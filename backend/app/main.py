@@ -4039,6 +4039,13 @@ def obtener_reporte_productividad(
                 COUNT(*) FILTER (WHERE p.estado = 'cerrado_con_acuerdo') AS cerrados_con_acuerdo,
                 COUNT(*) FILTER (WHERE p.estado = 'cerrado_sin_acuerdo') AS cerrados_sin_acuerdo,
                 COUNT(*) FILTER (WHERE p.estado = 'archivado') AS archivados,
+                COUNT(*) FILTER (WHERE p.finalizado = true) AS actas_subidas,
+                -- Cerrado con acuerdo pero el acta final + comprobante de
+                -- pago todavía no se han subido: para que el admin no
+                -- asuma que "cerrado" ya significa "acta lista".
+                COUNT(*) FILTER (
+                    WHERE p.estado = 'cerrado_con_acuerdo' AND p.finalizado = false
+                ) AS actas_pendientes,
                 ROUND(
                     AVG(
                         EXTRACT(EPOCH FROM (
@@ -4141,6 +4148,10 @@ def obtener_reporte_sucursales(
                 COUNT(*) FILTER (WHERE p.estado = 'cerrado_con_acuerdo') AS cerrados_con_acuerdo,
                 COUNT(*) FILTER (WHERE p.estado = 'cerrado_sin_acuerdo') AS cerrados_sin_acuerdo,
                 COUNT(*) FILTER (WHERE p.estado = 'archivado') AS archivados,
+                COUNT(*) FILTER (WHERE p.finalizado = true) AS actas_subidas,
+                COUNT(*) FILTER (
+                    WHERE p.estado = 'cerrado_con_acuerdo' AND p.finalizado = false
+                ) AS actas_pendientes,
                 ROUND(
                     AVG(
                         EXTRACT(EPOCH FROM (
@@ -4225,7 +4236,11 @@ def obtener_reporte_clientes(
                 COUNT(DISTINCT p.id) FILTER (WHERE p.estado = 'en_negociacion') AS en_negociacion,
                 COUNT(DISTINCT p.id) FILTER (WHERE p.estado = 'cerrado_con_acuerdo') AS cerrados_con_acuerdo,
                 COUNT(DISTINCT p.id) FILTER (WHERE p.estado = 'cerrado_sin_acuerdo') AS cerrados_sin_acuerdo,
-                COUNT(DISTINCT p.id) FILTER (WHERE p.estado = 'archivado') AS archivados
+                COUNT(DISTINCT p.id) FILTER (WHERE p.estado = 'archivado') AS archivados,
+                COUNT(DISTINCT p.id) FILTER (WHERE p.finalizado = true) AS actas_subidas,
+                COUNT(DISTINCT p.id) FILTER (
+                    WHERE p.estado = 'cerrado_con_acuerdo' AND p.finalizado = false
+                ) AS actas_pendientes
             FROM clientes cl
             JOIN procesos_mediacion p
                 ON p.cliente_demandante_id = cl.id OR p.cliente_demandado_id = cl.id
@@ -4306,7 +4321,7 @@ def exportar_reporte_excel(
         )
 
         encabezados = [
-            "Código", "Estado", "Solicitante", "Invitado", "Ciudad",
+            "Código", "Estado", "Acta final", "Solicitante", "Invitado", "Ciudad",
             "Sucursal", "Mediador", "Tema", "Fecha de creación"
         ]
 
@@ -4314,6 +4329,12 @@ def exportar_reporte_excel(
             [
                 f.get("codigo_proceso"),
                 ETIQUETAS_ESTADO_REPORTE.get(f.get("estado"), f.get("estado")),
+                # Para que "cerrado" no se confunda con "acta ya subida": un
+                # proceso puede estar cerrado con acuerdo y seguir esperando
+                # su acta final + comprobante de pago.
+                "Pendiente"
+                if f.get("estado") == "cerrado_con_acuerdo" and not f.get("finalizado")
+                else ("Subida" if f.get("finalizado") else "—"),
                 f.get("demandante"),
                 f.get("demandado"),
                 f.get("ciudad"),
@@ -4336,7 +4357,8 @@ def exportar_reporte_excel(
         encabezados = [
             "Mediador", "Estado", "Fecha de ingreso", "Ciudad", "Sucursal",
             "Total procesos", "En negociación", "Cerrados con acuerdo",
-            "Cerrados sin acuerdo", "Archivados", "Promedio días de cierre"
+            "Cerrados sin acuerdo", "Archivados", "Actas subidas",
+            "Actas pendientes", "Promedio días de cierre"
         ]
 
         filas_excel = [
@@ -4351,6 +4373,8 @@ def exportar_reporte_excel(
                 f.get("cerrados_con_acuerdo"),
                 f.get("cerrados_sin_acuerdo"),
                 f.get("archivados"),
+                f.get("actas_subidas"),
+                f.get("actas_pendientes"),
                 f.get("promedio_dias_cierre") if f.get("promedio_dias_cierre") is not None else ""
             ]
             for f in filas
@@ -4367,7 +4391,7 @@ def exportar_reporte_excel(
         encabezados = [
             "Sucursal", "Ciudad", "Total procesos", "En negociación",
             "Cerrados con acuerdo", "Cerrados sin acuerdo", "Archivados",
-            "Promedio días de cierre"
+            "Actas subidas", "Actas pendientes", "Promedio días de cierre"
         ]
 
         filas_excel = [
@@ -4379,6 +4403,8 @@ def exportar_reporte_excel(
                 f.get("cerrados_con_acuerdo"),
                 f.get("cerrados_sin_acuerdo"),
                 f.get("archivados"),
+                f.get("actas_subidas"),
+                f.get("actas_pendientes"),
                 f.get("promedio_dias_cierre") if f.get("promedio_dias_cierre") is not None else ""
             ]
             for f in filas
@@ -4395,7 +4421,7 @@ def exportar_reporte_excel(
         encabezados = [
             "Cliente", "Cédula", "Teléfono", "Email", "Total procesos",
             "En negociación", "Cerrados con acuerdo", "Cerrados sin acuerdo",
-            "Archivados"
+            "Archivados", "Actas subidas", "Actas pendientes"
         ]
 
         filas_excel = [
@@ -4408,7 +4434,9 @@ def exportar_reporte_excel(
                 f.get("en_negociacion"),
                 f.get("cerrados_con_acuerdo"),
                 f.get("cerrados_sin_acuerdo"),
-                f.get("archivados")
+                f.get("archivados"),
+                f.get("actas_subidas"),
+                f.get("actas_pendientes")
             ]
             for f in filas
         ]

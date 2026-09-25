@@ -114,6 +114,11 @@ function ImprimirReporteContenido() {
         )
       : null;
 
+  const actasPendientesProcesos =
+    tipo === 'procesos'
+      ? datos.filter((p: any) => p.estado === 'cerrado_con_acuerdo' && !p.finalizado).length
+      : 0;
+
   const barrasResumen: { label: string; valor: number; color?: string }[] | null =
     tipo === 'procesos' && resumenProcesos
       ? Object.entries(resumenProcesos).map(([estado, cantidad]) => ({
@@ -125,6 +130,17 @@ function ImprimirReporteContenido() {
       ? datos.map((m: any) => ({ label: m.mediador, valor: m.total_procesos }))
       : tipo === 'sucursales'
       ? datos.map((s: any) => ({ label: s.sucursal, valor: s.total_procesos }))
+      : null;
+
+  const barrasActasPendientes: { label: string; valor: number; color?: string }[] | null =
+    tipo === 'productividad'
+      ? datos
+          .filter((m: any) => m.actas_pendientes > 0)
+          .map((m: any) => ({ label: m.mediador, valor: m.actas_pendientes, color: '#ef4444' }))
+      : tipo === 'sucursales'
+      ? datos
+          .filter((s: any) => s.actas_pendientes > 0)
+          .map((s: any) => ({ label: s.sucursal, valor: s.actas_pendientes, color: '#ef4444' }))
       : null;
 
   if (loading) {
@@ -190,6 +206,9 @@ function ImprimirReporteContenido() {
                         Archivados
                       </th>
                       <th className="text-left py-2 pr-4 font-semibold text-numa-700">Total</th>
+                      <th className="text-left py-2 pr-4 font-semibold text-red-700">
+                        Con acuerdo sin acta
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -209,6 +228,9 @@ function ImprimirReporteContenido() {
                       <td className="py-2 pr-4 text-numa-900 text-sm font-bold">
                         {datos.length}
                       </td>
+                      <td className="py-2 pr-4 text-red-700 text-sm font-bold">
+                        {actasPendientesProcesos}
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -220,6 +242,15 @@ function ImprimirReporteContenido() {
                 </div>
               )}
 
+              {barrasActasPendientes && barrasActasPendientes.length > 0 && (
+                <div className="mb-6 print:break-inside-avoid">
+                  <p className="text-[11px] font-semibold text-red-700 uppercase tracking-wide mb-2">
+                    Actas pendientes de subir por {tipo === 'productividad' ? 'mediador' : 'sucursal'}
+                  </p>
+                  <BarrasResumen items={barrasActasPendientes} />
+                </div>
+              )}
+
               <table className="w-full text-xs border-collapse">
               <thead>
                 <tr className="border-b-2 border-numa-300">
@@ -227,6 +258,7 @@ function ImprimirReporteContenido() {
                     <>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Código</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Estado</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Acta final</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Solicitante</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Invitado</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Ciudad</th>
@@ -247,6 +279,8 @@ function ImprimirReporteContenido() {
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Con acuerdo</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sin acuerdo</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Archivados</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas subidas</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-red-700">Actas pendientes</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Prom. días</th>
                     </>
                   )}
@@ -272,6 +306,8 @@ function ImprimirReporteContenido() {
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Con acuerdo</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sin acuerdo</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Archivados</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas subidas</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-red-700">Actas pendientes</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Prom. días</th>
                     </>
                   )}
@@ -287,6 +323,8 @@ function ImprimirReporteContenido() {
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Con acuerdo</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sin acuerdo</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Archivados</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas subidas</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-red-700">Actas pendientes</th>
                     </>
                   )}
                 </tr>
@@ -298,6 +336,13 @@ function ImprimirReporteContenido() {
                     <tr key={p.id} className="border-b border-numa-100">
                       <td className="py-1.5 pr-2 code-text">{p.codigo_proceso}</td>
                       <td className="py-1.5 pr-2">{getEstadoLabel(p.estado)}</td>
+                      <td className="py-1.5 pr-2">
+                        {p.estado === 'cerrado_con_acuerdo' && !p.finalizado
+                          ? 'Pendiente'
+                          : p.finalizado
+                          ? 'Subida'
+                          : '—'}
+                      </td>
                       <td className="py-1.5 pr-2">{p.demandante}</td>
                       <td className="py-1.5 pr-2">{p.demandado}</td>
                       <td className="py-1.5 pr-2">{p.ciudad || '—'}</td>
@@ -327,6 +372,8 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2">{m.cerrados_con_acuerdo}</td>
                       <td className="py-1.5 pr-2">{m.cerrados_sin_acuerdo}</td>
                       <td className="py-1.5 pr-2">{m.archivados}</td>
+                      <td className="py-1.5 pr-2">{m.actas_subidas}</td>
+                      <td className="py-1.5 pr-2 font-semibold text-red-700">{m.actas_pendientes}</td>
                       <td className="py-1.5 pr-2">
                         {m.promedio_dias_cierre != null ? `${m.promedio_dias_cierre}` : '—'}
                       </td>
@@ -360,6 +407,8 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2">{s.cerrados_con_acuerdo}</td>
                       <td className="py-1.5 pr-2">{s.cerrados_sin_acuerdo}</td>
                       <td className="py-1.5 pr-2">{s.archivados}</td>
+                      <td className="py-1.5 pr-2">{s.actas_subidas}</td>
+                      <td className="py-1.5 pr-2 font-semibold text-red-700">{s.actas_pendientes}</td>
                       <td className="py-1.5 pr-2">
                         {s.promedio_dias_cierre != null ? `${s.promedio_dias_cierre}` : '—'}
                       </td>
@@ -378,6 +427,8 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2">{c.cerrados_con_acuerdo}</td>
                       <td className="py-1.5 pr-2">{c.cerrados_sin_acuerdo}</td>
                       <td className="py-1.5 pr-2">{c.archivados}</td>
+                      <td className="py-1.5 pr-2">{c.actas_subidas}</td>
+                      <td className="py-1.5 pr-2 font-semibold text-red-700">{c.actas_pendientes}</td>
                     </tr>
                   ))}
               </tbody>

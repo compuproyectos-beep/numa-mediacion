@@ -270,7 +270,8 @@ export default function ReportesPage() {
   };
 
   // Resumen rápido arriba de la tabla: para procesos, cuántos hay en cada
-  // estado; para actas y productividad, solo el total encontrado.
+  // estado (y cuántos de los "con acuerdo" todavía no tienen su acta final
+  // subida, para que no se confunda "cerrado" con "ya está el acta").
   const resumenProcesos =
     tipo === 'procesos'
       ? datos.reduce(
@@ -281,6 +282,11 @@ export default function ReportesPage() {
           {} as Record<string, number>
         )
       : null;
+
+  const actasPendientesProcesos =
+    tipo === 'procesos'
+      ? datos.filter((p: any) => p.estado === 'cerrado_con_acuerdo' && !p.finalizado).length
+      : 0;
 
   // Barritas para que los reportes no sean solo números: por estado en
   // Procesos, por mediador en Equipo, por sucursal en Sucursales. En
@@ -297,6 +303,20 @@ export default function ReportesPage() {
       ? datos.map((m: any) => ({ label: m.mediador, valor: m.total_procesos }))
       : tipo === 'sucursales'
       ? datos.map((s: any) => ({ label: s.sucursal, valor: s.total_procesos }))
+      : null;
+
+  // Segunda barrita, solo si hay algo que mostrar: cuántas actas siguen
+  // pendientes por mediador/sucursal, para que salte a la vista sin tener
+  // que leer toda la tabla.
+  const barrasActasPendientes: { label: string; valor: number; color?: string }[] | null =
+    tipo === 'productividad'
+      ? datos
+          .filter((m: any) => m.actas_pendientes > 0)
+          .map((m: any) => ({ label: m.mediador, valor: m.actas_pendientes, color: '#ef4444' }))
+      : tipo === 'sucursales'
+      ? datos
+          .filter((s: any) => s.actas_pendientes > 0)
+          .map((s: any) => ({ label: s.sucursal, valor: s.actas_pendientes, color: '#ef4444' }))
       : null;
 
   return (
@@ -462,6 +482,11 @@ export default function ReportesPage() {
                   {getEstadoLabel(estado)}: <strong>{cantidad as number}</strong>
                 </span>
               ))}
+              {actasPendientesProcesos > 0 && (
+                <span className="px-3 py-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 font-medium">
+                  Con acuerdo sin acta subida: <strong>{actasPendientesProcesos}</strong>
+                </span>
+              )}
             </div>
           )}
 
@@ -488,6 +513,15 @@ export default function ReportesPage() {
             </div>
           )}
 
+          {barrasActasPendientes && barrasActasPendientes.length > 0 && (
+            <div className="card p-4 border-red-200">
+              <p className="text-xs font-medium text-red-600 mb-3 uppercase tracking-wide">
+                Actas pendientes de subir por {tipo === 'productividad' ? 'mediador' : 'sucursal'}
+              </p>
+              <BarrasResumen items={barrasActasPendientes} />
+            </div>
+          )}
+
           <div className="card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full">
@@ -497,6 +531,7 @@ export default function ReportesPage() {
                       <>
                         <th className="table-header">Código</th>
                         <th className="table-header">Estado</th>
+                        <th className="table-header">Acta final</th>
                         <th className="table-header">Solicitante</th>
                         <th className="table-header">Invitado</th>
                         <th className="table-header">Ciudad</th>
@@ -520,6 +555,8 @@ export default function ReportesPage() {
                         <th className="table-header">Con acuerdo</th>
                         <th className="table-header">Sin acuerdo</th>
                         <th className="table-header">Archivados</th>
+                        <th className="table-header">Actas subidas</th>
+                        <th className="table-header">Actas pendientes</th>
                         <th className="table-header">Prom. días cierre</th>
                       </>
                     )}
@@ -546,6 +583,8 @@ export default function ReportesPage() {
                         <th className="table-header">Con acuerdo</th>
                         <th className="table-header">Sin acuerdo</th>
                         <th className="table-header">Archivados</th>
+                        <th className="table-header">Actas subidas</th>
+                        <th className="table-header">Actas pendientes</th>
                         <th className="table-header">Prom. días cierre</th>
                       </>
                     )}
@@ -562,6 +601,8 @@ export default function ReportesPage() {
                         <th className="table-header">Con acuerdo</th>
                         <th className="table-header">Sin acuerdo</th>
                         <th className="table-header">Archivados</th>
+                        <th className="table-header">Actas subidas</th>
+                        <th className="table-header">Actas pendientes</th>
                       </>
                     )}
                   </tr>
@@ -577,6 +618,19 @@ export default function ReportesPage() {
                       >
                         <td className="table-cell font-medium">{p.codigo_proceso}</td>
                         <td className="table-cell">{getEstadoLabel(p.estado)}</td>
+                        <td className="table-cell">
+                          {p.estado === 'cerrado_con_acuerdo' && !p.finalizado ? (
+                            <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-medium">
+                              Pendiente
+                            </span>
+                          ) : p.finalizado ? (
+                            <span className="px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-xs font-medium">
+                              Subida
+                            </span>
+                          ) : (
+                            <span className="text-numa-300">—</span>
+                          )}
+                        </td>
                         <td className="table-cell">{p.demandante}</td>
                         <td className="table-cell">{p.demandado}</td>
                         <td className="table-cell">{p.ciudad || '—'}</td>
@@ -621,6 +675,16 @@ export default function ReportesPage() {
                           <td className="table-cell">{m.cerrados_con_acuerdo}</td>
                           <td className="table-cell">{m.cerrados_sin_acuerdo}</td>
                           <td className="table-cell">{m.archivados}</td>
+                          <td className="table-cell">{m.actas_subidas}</td>
+                          <td className="table-cell">
+                            {m.actas_pendientes > 0 ? (
+                              <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-medium">
+                                {m.actas_pendientes}
+                              </span>
+                            ) : (
+                              0
+                            )}
+                          </td>
                           <td className="table-cell">
                             {m.promedio_dias_cierre != null
                               ? `${m.promedio_dias_cierre} días`
@@ -630,7 +694,7 @@ export default function ReportesPage() {
 
                         {mediadorExpandidoId === m.usuario_id && (
                           <tr key={`${m.usuario_id}-detalle`}>
-                            <td colSpan={11} className="bg-numa-50 px-4 py-4">
+                            <td colSpan={13} className="bg-numa-50 px-4 py-4">
                               {cargandoDetalleId === m.usuario_id ? (
                                 <Spinner />
                               ) : !detalleProcesos[m.usuario_id]?.length ? (
@@ -709,6 +773,16 @@ export default function ReportesPage() {
                         <td className="table-cell">{s.cerrados_con_acuerdo}</td>
                         <td className="table-cell">{s.cerrados_sin_acuerdo}</td>
                         <td className="table-cell">{s.archivados}</td>
+                        <td className="table-cell">{s.actas_subidas}</td>
+                        <td className="table-cell">
+                          {s.actas_pendientes > 0 ? (
+                            <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-medium">
+                              {s.actas_pendientes}
+                            </span>
+                          ) : (
+                            0
+                          )}
+                        </td>
                         <td className="table-cell">
                           {s.promedio_dias_cierre != null
                             ? `${s.promedio_dias_cierre} días`
@@ -740,11 +814,21 @@ export default function ReportesPage() {
                           <td className="table-cell">{c.cerrados_con_acuerdo}</td>
                           <td className="table-cell">{c.cerrados_sin_acuerdo}</td>
                           <td className="table-cell">{c.archivados}</td>
+                          <td className="table-cell">{c.actas_subidas}</td>
+                          <td className="table-cell">
+                            {c.actas_pendientes > 0 ? (
+                              <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-medium">
+                                {c.actas_pendientes}
+                              </span>
+                            ) : (
+                              0
+                            )}
+                          </td>
                         </tr>
 
                         {clienteExpandidoId === c.cliente_id && (
                           <tr key={`${c.cliente_id}-detalle`}>
-                            <td colSpan={9} className="bg-numa-50 px-4 py-4">
+                            <td colSpan={11} className="bg-numa-50 px-4 py-4">
                               {cargandoDetalleClienteId === c.cliente_id ? (
                                 <Spinner />
                               ) : !detalleCliente[c.cliente_id]?.length ? (
