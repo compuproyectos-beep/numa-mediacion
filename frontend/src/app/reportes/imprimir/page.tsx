@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Printer } from 'lucide-react';
 import { getProcesos, getActasFinales, getReporteProductividad } from '@/lib/services';
@@ -25,6 +25,20 @@ const getEstadoLabel = (estado: string) => {
 };
 
 export default function ImprimirReportePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-numa-50 text-numa-500 text-sm">
+          Generando reporte...
+        </div>
+      }
+    >
+      <ImprimirReporteContenido />
+    </Suspense>
+  );
+}
+
+function ImprimirReporteContenido() {
   const searchParams = useSearchParams();
 
   const tipo = (searchParams?.get('tipo') as TipoReporte) || 'procesos';
