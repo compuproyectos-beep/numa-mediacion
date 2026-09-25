@@ -8,24 +8,30 @@ import {
   EmptyState,
   SelectField,
   InputField,
-  ErrorAlert
+  ErrorAlert,
+  Badge,
+  BarrasResumen
 } from '@/components/ui';
 import {
   getProcesos,
   getActasFinales,
   getReporteProductividad,
+  getReporteSucursales,
+  getReporteClientes,
   descargarReporteExcel,
   getUsuarios
 } from '@/lib/services';
 import { getCiudadesCached, getSucursalesCached } from '@/lib/catalogCache';
 import { isAdmin } from '@/lib/auth';
 
-type TipoReporte = 'procesos' | 'productividad' | 'actas';
+type TipoReporte = 'procesos' | 'productividad' | 'actas' | 'sucursales' | 'clientes';
 
 const TIPOS: { valor: TipoReporte; titulo: string; adminOnly?: boolean }[] = [
   { valor: 'procesos', titulo: 'Procesos por periodo' },
-  { valor: 'productividad', titulo: 'Productividad por mediador', adminOnly: true },
-  { valor: 'actas', titulo: 'Actas finales emitidas' }
+  { valor: 'productividad', titulo: 'Equipo de mediadores', adminOnly: true },
+  { valor: 'actas', titulo: 'Actas finales emitidas' },
+  { valor: 'sucursales', titulo: 'Sucursales', adminOnly: true },
+  { valor: 'clientes', titulo: 'Clientes' }
 ];
 
 // Explicación en palabras simples de qué muestra cada reporte y cómo leer
@@ -35,9 +41,20 @@ const DESCRIPCIONES: Record<TipoReporte, string> = {
   procesos:
     'Lista todos los procesos de mediación creados en el rango de fechas elegido, con su estado actual. Da clic en cualquier fila para abrir ese proceso.',
   productividad:
-    'Un resumen por mediador de cuántos procesos maneja y qué tan rápido los resuelve. "Prom. días cierre" es el promedio de días entre que se crea un proceso y se cierra (con o sin acuerdo, o archivado); mientras más bajo, más rápido resuelve. Da clic en un mediador para ver el detalle de sus procesos.',
+    'El listado del equipo de mediadores (activos e inactivos), con cuántos procesos maneja cada uno y qué tan rápido los resuelve. "Prom. días cierre" es el promedio de días entre que se crea un proceso y se cierra (con o sin acuerdo, o archivado); mientras más bajo, más rápido resuelve. Da clic en un mediador para ver el detalle de sus procesos.',
   actas:
-    'Lista todas las actas finales subidas en el rango de fechas elegido. Da clic en cualquier fila para abrir el proceso al que pertenece esa acta.'
+    'Lista todas las actas finales subidas en el rango de fechas elegido. Da clic en cualquier fila para abrir el proceso al que pertenece esa acta.',
+  sucursales:
+    'Compara cuántos procesos ha manejado cada sucursal, con su desglose por estado y el promedio de días de cierre.',
+  clientes:
+    'Por cada cliente, cuántos procesos de mediación ha tenido (como solicitante o invitado) y en qué estado están. Da clic en un cliente para ver el detalle de sus procesos.'
+};
+
+const COLOR_ESTADO: Record<string, string> = {
+  en_negociacion: '#f59e0b',
+  cerrado_con_acuerdo: '#22c55e',
+  cerrado_sin_acuerdo: '#ef4444',
+  archivado: '#94a3b8'
 };
 
 const getEstadoLabel = (estado: string) => {
@@ -84,10 +101,16 @@ export default function ReportesPage() {
   const [detalleProcesos, setDetalleProcesos] = useState<Record<number, any[]>>({});
   const [cargandoDetalleId, setCargandoDetalleId] = useState<number | null>(null);
 
+  // Mismo patrón, para el detalle expandible del reporte de Clientes.
+  const [clienteExpandidoId, setClienteExpandidoId] = useState<number | null>(null);
+  const [detalleCliente, setDetalleCliente] = useState<Record<number, any[]>>({});
+  const [cargandoDetalleClienteId, setCargandoDetalleClienteId] = useState<number | null>(null);
+
   useEffect(() => {
-    // El reporte de productividad es solo para el administrador; si por
-    // alguna razón un mediador quedara en ese tipo, se regresa al primero.
-    if (!admin && tipo === 'productividad') {
+    // Productividad y Sucursales son solo para el administrador; si por
+    // alguna razón un mediador quedara en uno de esos tipos, se regresa al
+    // primero.
+    if (!admin && (tipo === 'productividad' || tipo === 'sucursales')) {
       setTipo('procesos');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -125,6 +148,10 @@ export default function ReportesPage() {
         data = await getProcesos(filtrosActivos);
       } else if (tipo === 'productividad') {
         data = await getReporteProductividad(filtrosActivos);
+      } else if (tipo === 'sucursales') {
+        data = await getReporteSucursales(filtrosActivos);
+      } else if (tipo === 'clientes') {
+        data = await getReporteClientes(filtrosActivos);
       } else {
         data = await getActasFinales(filtrosActivos);
       }
@@ -144,6 +171,7 @@ export default function ReportesPage() {
     setBuscado(false);
     setError('');
     setMediadorExpandidoId(null);
+    setClienteExpandidoId(null);
   };
 
   // Abre el proceso en una pestaña nueva para no perder el reporte ya
@@ -176,6 +204,33 @@ export default function ReportesPage() {
       setDetalleProcesos((prev) => ({ ...prev, [mediadorId]: [] }));
     } finally {
       setCargandoDetalleId(null);
+    }
+  };
+
+  const toggleDetalleCliente = async (clienteId: number) => {
+    if (clienteExpandidoId === clienteId) {
+      setClienteExpandidoId(null);
+      return;
+    }
+
+    setClienteExpandidoId(clienteId);
+
+    if (detalleCliente[clienteId]) return;
+
+    setCargandoDetalleClienteId(clienteId);
+
+    try {
+      const data = await getProcesos({
+        cliente_id: clienteId,
+        fecha_desde: filtrosActivos.fecha_desde,
+        fecha_hasta: filtrosActivos.fecha_hasta
+      });
+
+      setDetalleCliente((prev) => ({ ...prev, [clienteId]: data }));
+    } catch {
+      setDetalleCliente((prev) => ({ ...prev, [clienteId]: [] }));
+    } finally {
+      setCargandoDetalleClienteId(null);
     }
   };
 
@@ -225,6 +280,23 @@ export default function ReportesPage() {
           },
           {} as Record<string, number>
         )
+      : null;
+
+  // Barritas para que los reportes no sean solo números: por estado en
+  // Procesos, por mediador en Equipo, por sucursal en Sucursales. En
+  // Actas/Clientes no aporta tanto (muchas filas de a 1), así que se deja
+  // solo la tabla.
+  const barrasResumen: { label: string; valor: number; color?: string }[] | null =
+    tipo === 'procesos' && resumenProcesos
+      ? Object.entries(resumenProcesos).map(([estado, cantidad]) => ({
+          label: getEstadoLabel(estado),
+          valor: cantidad as number,
+          color: COLOR_ESTADO[estado]
+        }))
+      : tipo === 'productividad'
+      ? datos.map((m: any) => ({ label: m.mediador, valor: m.total_procesos }))
+      : tipo === 'sucursales'
+      ? datos.map((s: any) => ({ label: s.sucursal, valor: s.total_procesos }))
       : null;
 
   return (
@@ -396,13 +468,23 @@ export default function ReportesPage() {
           {tipo !== 'procesos' && (
             <div className="text-sm text-numa-500">
               Mostrando <span className="font-semibold text-numa-800">{datos.length}</span>{' '}
-              {tipo === 'productividad'
-                ? datos.length === 1
-                  ? 'mediador'
-                  : 'mediadores'
-                : datos.length === 1
-                ? 'acta final'
-                : 'actas finales'}
+              {tipo === 'productividad' &&
+                (datos.length === 1 ? 'mediador' : 'mediadores')}
+              {tipo === 'sucursales' &&
+                (datos.length === 1 ? 'sucursal' : 'sucursales')}
+              {tipo === 'clientes' &&
+                (datos.length === 1 ? 'cliente' : 'clientes')}
+              {tipo === 'actas' &&
+                (datos.length === 1 ? 'acta final' : 'actas finales')}
+            </div>
+          )}
+
+          {barrasResumen && barrasResumen.length > 0 && (
+            <div className="card p-4">
+              <p className="text-xs font-medium text-numa-500 mb-3 uppercase tracking-wide">
+                {tipo === 'procesos' ? 'Por estado' : 'Procesos por ' + (tipo === 'productividad' ? 'mediador' : 'sucursal')}
+              </p>
+              <BarrasResumen items={barrasResumen} />
             </div>
           )}
 
@@ -429,6 +511,8 @@ export default function ReportesPage() {
                       <>
                         <th className="table-header"></th>
                         <th className="table-header">Mediador</th>
+                        <th className="table-header">Estado</th>
+                        <th className="table-header">Fecha ingreso</th>
                         <th className="table-header">Ciudad</th>
                         <th className="table-header">Sucursal</th>
                         <th className="table-header">Total</th>
@@ -450,6 +534,34 @@ export default function ReportesPage() {
                         <th className="table-header">Sucursal</th>
                         {admin && <th className="table-header">Mediador</th>}
                         <th className="table-header">Fecha de subida</th>
+                      </>
+                    )}
+
+                    {tipo === 'sucursales' && (
+                      <>
+                        <th className="table-header">Sucursal</th>
+                        <th className="table-header">Ciudad</th>
+                        <th className="table-header">Total</th>
+                        <th className="table-header">En negociación</th>
+                        <th className="table-header">Con acuerdo</th>
+                        <th className="table-header">Sin acuerdo</th>
+                        <th className="table-header">Archivados</th>
+                        <th className="table-header">Prom. días cierre</th>
+                      </>
+                    )}
+
+                    {tipo === 'clientes' && (
+                      <>
+                        <th className="table-header"></th>
+                        <th className="table-header">Cliente</th>
+                        <th className="table-header">Cédula</th>
+                        <th className="table-header">Teléfono</th>
+                        <th className="table-header">Email</th>
+                        <th className="table-header">Total</th>
+                        <th className="table-header">En negociación</th>
+                        <th className="table-header">Con acuerdo</th>
+                        <th className="table-header">Sin acuerdo</th>
+                        <th className="table-header">Archivados</th>
                       </>
                     )}
                   </tr>
@@ -494,6 +606,14 @@ export default function ReportesPage() {
                             )}
                           </td>
                           <td className="table-cell font-medium">{m.mediador}</td>
+                          <td className="table-cell">
+                            <Badge label={m.activo ? 'Activo' : 'Inactivo'} variant={m.activo ? 'activo' : 'inactivo'} />
+                          </td>
+                          <td className="table-cell">
+                            {m.fecha_ingreso
+                              ? new Date(m.fecha_ingreso).toLocaleDateString('es-EC')
+                              : '—'}
+                          </td>
                           <td className="table-cell">{m.ciudad || '—'}</td>
                           <td className="table-cell">{m.sucursal || '—'}</td>
                           <td className="table-cell">{m.total_procesos}</td>
@@ -510,7 +630,7 @@ export default function ReportesPage() {
 
                         {mediadorExpandidoId === m.usuario_id && (
                           <tr key={`${m.usuario_id}-detalle`}>
-                            <td colSpan={9} className="bg-numa-50 px-4 py-4">
+                            <td colSpan={11} className="bg-numa-50 px-4 py-4">
                               {cargandoDetalleId === m.usuario_id ? (
                                 <Spinner />
                               ) : !detalleProcesos[m.usuario_id]?.length ? (
@@ -577,6 +697,98 @@ export default function ReportesPage() {
                             : '—'}
                         </td>
                       </tr>
+                    ))}
+
+                  {tipo === 'sucursales' &&
+                    datos.map((s: any) => (
+                      <tr key={s.sucursal_id} className="table-row">
+                        <td className="table-cell font-medium">{s.sucursal}</td>
+                        <td className="table-cell">{s.ciudad || '—'}</td>
+                        <td className="table-cell">{s.total_procesos}</td>
+                        <td className="table-cell">{s.en_negociacion}</td>
+                        <td className="table-cell">{s.cerrados_con_acuerdo}</td>
+                        <td className="table-cell">{s.cerrados_sin_acuerdo}</td>
+                        <td className="table-cell">{s.archivados}</td>
+                        <td className="table-cell">
+                          {s.promedio_dias_cierre != null
+                            ? `${s.promedio_dias_cierre} días`
+                            : '—'}
+                        </td>
+                      </tr>
+                    ))}
+
+                  {tipo === 'clientes' &&
+                    datos.map((c: any) => (
+                      <Fragment key={c.cliente_id}>
+                        <tr
+                          onClick={() => toggleDetalleCliente(c.cliente_id)}
+                          className="table-row cursor-pointer hover:bg-gold-400/[0.06]"
+                        >
+                          <td className="table-cell w-6">
+                            {clienteExpandidoId === c.cliente_id ? (
+                              <ChevronDown className="w-4 h-4 text-numa-400" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-numa-400" />
+                            )}
+                          </td>
+                          <td className="table-cell font-medium">{c.cliente}</td>
+                          <td className="table-cell">{c.cedula || '—'}</td>
+                          <td className="table-cell">{c.telefono || '—'}</td>
+                          <td className="table-cell">{c.email || '—'}</td>
+                          <td className="table-cell">{c.total_procesos}</td>
+                          <td className="table-cell">{c.en_negociacion}</td>
+                          <td className="table-cell">{c.cerrados_con_acuerdo}</td>
+                          <td className="table-cell">{c.cerrados_sin_acuerdo}</td>
+                          <td className="table-cell">{c.archivados}</td>
+                        </tr>
+
+                        {clienteExpandidoId === c.cliente_id && (
+                          <tr key={`${c.cliente_id}-detalle`}>
+                            <td colSpan={9} className="bg-numa-50 px-4 py-4">
+                              {cargandoDetalleClienteId === c.cliente_id ? (
+                                <Spinner />
+                              ) : !detalleCliente[c.cliente_id]?.length ? (
+                                <p className="text-xs text-numa-400 py-2">
+                                  Este cliente no tiene procesos en este rango de fechas.
+                                </p>
+                              ) : (
+                                <div className="space-y-2">
+                                  <p className="text-xs text-numa-500 font-medium">
+                                    Procesos de {c.cliente} en este periodo:
+                                  </p>
+
+                                  {detalleCliente[c.cliente_id].map((p: any) => (
+                                    <div
+                                      key={p.id}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        abrirProceso(p.id);
+                                      }}
+                                      className="bg-white border border-numa-200 rounded-sm p-3 cursor-pointer hover:shadow-md transition-shadow duration-200 flex items-center justify-between gap-3 flex-wrap"
+                                    >
+                                      <div>
+                                        <span className="font-medium text-numa-800 code-text text-xs">
+                                          {p.codigo_proceso}
+                                        </span>
+                                        <span className="text-xs text-numa-600 ml-2">
+                                          {p.demandante} vs {p.demandado}
+                                        </span>
+                                      </div>
+
+                                      <span className="text-xs text-numa-500">
+                                        {getEstadoLabel(p.estado)} ·{' '}
+                                        {p.fecha_creacion
+                                          ? new Date(p.fecha_creacion).toLocaleDateString('es-EC')
+                                          : '—'}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
                     ))}
                 </tbody>
               </table>

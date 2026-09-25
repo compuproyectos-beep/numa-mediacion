@@ -2448,6 +2448,7 @@ def obtener_procesos_mediacion(
     ciudad_id: int = None,
     sucursal_id: int = None,
     usuario_id: int = None,
+    cliente_id: int = None,
     fecha_desde: str = None,
     fecha_hasta: str = None,
     usuario=Depends(obtener_usuario_actual)
@@ -2531,6 +2532,12 @@ def obtener_procesos_mediacion(
         if fecha_hasta:
                 query += " AND DATE(p.fecha_creacion) <= %s"
                 params.append(fecha_hasta)
+
+        # Usado por el detalle expandible del reporte de Clientes: procesos
+        # donde el cliente participó, ya sea como solicitante o invitado.
+        if cliente_id:
+                query += " AND (p.cliente_demandante_id = %s OR p.cliente_demandado_id = %s)"
+                params.extend([cliente_id, cliente_id])
 
         query += " ORDER BY p.id DESC"
 
@@ -4023,6 +4030,8 @@ def obtener_reporte_productividad(
             SELECT
                 u.id AS usuario_id,
                 u.nombre || ' ' || u.apellido AS mediador,
+                u.activo,
+                u.fecha_creacion AS fecha_ingreso,
                 s.nombre AS sucursal,
                 ci.nombre AS ciudad,
                 COUNT(p.id) AS total_procesos,
@@ -4062,7 +4071,11 @@ def obtener_reporte_productividad(
         if condiciones_join:
             query += " AND " + " AND ".join(condiciones_join)
 
-        query += " WHERE u.rol = 'mediador' AND u.activo = true"
+        # Ya no se excluye a los mediadores inactivos: ahora este reporte
+        # también sirve como listado del equipo (con su estado visible), así
+        # que un mediador desactivado debe seguir apareciendo, marcado como
+        # inactivo, en vez de desaparecer de la lista.
+        query += " WHERE u.rol = 'mediador'"
 
         # Cada mediador solo ve su propia fila; el admin ve todas y puede
         # filtrar por ciudad, sucursal o un mediador específico.
@@ -4083,8 +4096,174 @@ def obtener_reporte_productividad(
                 params.append(ciudad_id)
 
         query += """
-            GROUP BY u.id, u.nombre, u.apellido, s.nombre, ci.nombre
-            ORDER BY total_procesos DESC, mediador ASC
+            GROUP BY u.id, u.nombre, u.apellido, u.activo, u.fecha_creacion, s.nombre, ci.nombre
+            ORDER BY u.activo DESC, total_procesos DESC, mediador ASC
+        """
+
+        cur.execute(query, tuple(params))
+        return cur.fetchall()
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/reportes/sucursales")
+def obtener_reporte_sucursales(
+    fecha_desde: str = None,
+    fecha_hasta: str = None,
+    ciudad_id: int = None,
+    sucursal_id: int = None,
+    usuario=Depends(obtener_usuario_actual)
+):
+    # Comparación entre sucursales: solo el administrador puede verlo (igual
+    # que Productividad).
+    if usuario["rol"] != "administrador":
+        raise HTTPException(
+            status_code=403,
+            detail="Solo un administrador puede ver el reporte de sucursales"
+        )
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        # LEFT JOIN a propósito, igual que en Productividad: una sucursal sin
+        # procesos en el rango de fechas debe seguir apareciendo con
+        # contadores en cero, no desaparecer de la lista.
+        query = """
+            SELECT
+                s.id AS sucursal_id,
+                s.nombre AS sucursal,
+                ci.nombre AS ciudad,
+                COUNT(p.id) AS total_procesos,
+                COUNT(*) FILTER (WHERE p.estado = 'en_negociacion') AS en_negociacion,
+                COUNT(*) FILTER (WHERE p.estado = 'cerrado_con_acuerdo') AS cerrados_con_acuerdo,
+                COUNT(*) FILTER (WHERE p.estado = 'cerrado_sin_acuerdo') AS cerrados_sin_acuerdo,
+                COUNT(*) FILTER (WHERE p.estado = 'archivado') AS archivados,
+                ROUND(
+                    AVG(
+                        EXTRACT(EPOCH FROM (
+                            COALESCE(
+                                p.fecha_acuerdo,
+                                CASE WHEN p.estado IN ('cerrado_sin_acuerdo', 'archivado')
+                                     THEN p.fecha_modificacion END
+                            ) - p.fecha_creacion
+                        )) / 86400
+                    )::numeric,
+                    1
+                ) AS promedio_dias_cierre
+            FROM sucursales s
+            JOIN ciudades ci ON s.ciudad_id = ci.id
+            LEFT JOIN procesos_mediacion p ON p.sucursal_id = s.id
+        """
+
+        params = []
+        condiciones_join = []
+
+        if fecha_desde:
+            condiciones_join.append("DATE(p.fecha_creacion) >= %s")
+            params.append(fecha_desde)
+
+        if fecha_hasta:
+            condiciones_join.append("DATE(p.fecha_creacion) <= %s")
+            params.append(fecha_hasta)
+
+        if condiciones_join:
+            query += " AND " + " AND ".join(condiciones_join)
+
+        query += " WHERE 1=1"
+
+        if sucursal_id:
+            query += " AND s.id = %s"
+            params.append(sucursal_id)
+
+        if ciudad_id:
+            query += " AND ci.id = %s"
+            params.append(ciudad_id)
+
+        query += """
+            GROUP BY s.id, s.nombre, ci.nombre
+            ORDER BY total_procesos DESC, sucursal ASC
+        """
+
+        cur.execute(query, tuple(params))
+        return cur.fetchall()
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/reportes/clientes")
+def obtener_reporte_clientes(
+    fecha_desde: str = None,
+    fecha_hasta: str = None,
+    ciudad_id: int = None,
+    sucursal_id: int = None,
+    usuario_id: int = None,
+    usuario=Depends(obtener_usuario_actual)
+):
+    # A diferencia de Productividad/Sucursales, este sí lo puede ver
+    # cualquier mediador — pero solo ve los clientes con quienes ha tenido
+    # un proceso él mismo; el admin ve todos.
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        # INNER JOIN a propósito (a diferencia de los otros dos reportes):
+        # aquí no interesa listar clientes sin ningún proceso en el rango de
+        # fechas/filtros elegidos.
+        query = """
+            SELECT
+                cl.id AS cliente_id,
+                cl.nombre || ' ' || cl.apellido AS cliente,
+                cl.cedula,
+                cl.telefono,
+                cl.email,
+                COUNT(DISTINCT p.id) AS total_procesos,
+                COUNT(DISTINCT p.id) FILTER (WHERE p.estado = 'en_negociacion') AS en_negociacion,
+                COUNT(DISTINCT p.id) FILTER (WHERE p.estado = 'cerrado_con_acuerdo') AS cerrados_con_acuerdo,
+                COUNT(DISTINCT p.id) FILTER (WHERE p.estado = 'cerrado_sin_acuerdo') AS cerrados_sin_acuerdo,
+                COUNT(DISTINCT p.id) FILTER (WHERE p.estado = 'archivado') AS archivados
+            FROM clientes cl
+            JOIN procesos_mediacion p
+                ON p.cliente_demandante_id = cl.id OR p.cliente_demandado_id = cl.id
+            JOIN sucursales s ON p.sucursal_id = s.id
+            JOIN ciudades ci ON s.ciudad_id = ci.id
+            WHERE 1=1
+        """
+
+        params = []
+
+        # Mismo criterio que el resto del sistema: un mediador solo ve lo
+        # relacionado con sus propios procesos.
+        if usuario["rol"] != "administrador":
+            query += " AND p.usuario_id = %s"
+            params.append(usuario["id"])
+        elif usuario_id:
+            query += " AND p.usuario_id = %s"
+            params.append(usuario_id)
+
+        if sucursal_id:
+            query += " AND s.id = %s"
+            params.append(sucursal_id)
+
+        if ciudad_id:
+            query += " AND ci.id = %s"
+            params.append(ciudad_id)
+
+        if fecha_desde:
+            query += " AND DATE(p.fecha_creacion) >= %s"
+            params.append(fecha_desde)
+
+        if fecha_hasta:
+            query += " AND DATE(p.fecha_creacion) <= %s"
+            params.append(fecha_hasta)
+
+        query += """
+            GROUP BY cl.id, cl.nombre, cl.apellido, cl.cedula, cl.telefono, cl.email
+            ORDER BY total_procesos DESC, cliente ASC
         """
 
         cur.execute(query, tuple(params))
@@ -4113,7 +4292,7 @@ def exportar_reporte_excel(
     usuario_id: int = None,
     usuario=Depends(obtener_usuario_actual)
 ):
-    if tipo not in ["procesos", "productividad", "actas"]:
+    if tipo not in ["procesos", "productividad", "actas", "sucursales", "clientes"]:
         raise HTTPException(status_code=400, detail="Tipo de reporte inválido")
 
     # Se reutilizan las mismas funciones que alimentan la pantalla (llamadas
@@ -4155,14 +4334,16 @@ def exportar_reporte_excel(
         )
 
         encabezados = [
-            "Mediador", "Ciudad", "Sucursal", "Total procesos", "En negociación",
-            "Cerrados con acuerdo", "Cerrados sin acuerdo", "Archivados",
-            "Promedio días de cierre"
+            "Mediador", "Estado", "Fecha de ingreso", "Ciudad", "Sucursal",
+            "Total procesos", "En negociación", "Cerrados con acuerdo",
+            "Cerrados sin acuerdo", "Archivados", "Promedio días de cierre"
         ]
 
         filas_excel = [
             [
                 f.get("mediador"),
+                "Activo" if f.get("activo") else "Inactivo",
+                str(f.get("fecha_ingreso") or ""),
                 f.get("ciudad"),
                 f.get("sucursal"),
                 f.get("total_procesos"),
@@ -4176,6 +4357,63 @@ def exportar_reporte_excel(
         ]
 
         nombre_archivo = "reporte_productividad_numa.xlsx"
+
+    elif tipo == "sucursales":
+        filas = obtener_reporte_sucursales(
+            fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ciudad_id=ciudad_id,
+            sucursal_id=sucursal_id, usuario=usuario
+        )
+
+        encabezados = [
+            "Sucursal", "Ciudad", "Total procesos", "En negociación",
+            "Cerrados con acuerdo", "Cerrados sin acuerdo", "Archivados",
+            "Promedio días de cierre"
+        ]
+
+        filas_excel = [
+            [
+                f.get("sucursal"),
+                f.get("ciudad"),
+                f.get("total_procesos"),
+                f.get("en_negociacion"),
+                f.get("cerrados_con_acuerdo"),
+                f.get("cerrados_sin_acuerdo"),
+                f.get("archivados"),
+                f.get("promedio_dias_cierre") if f.get("promedio_dias_cierre") is not None else ""
+            ]
+            for f in filas
+        ]
+
+        nombre_archivo = "reporte_sucursales_numa.xlsx"
+
+    elif tipo == "clientes":
+        filas = obtener_reporte_clientes(
+            fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ciudad_id=ciudad_id,
+            sucursal_id=sucursal_id, usuario_id=usuario_id, usuario=usuario
+        )
+
+        encabezados = [
+            "Cliente", "Cédula", "Teléfono", "Email", "Total procesos",
+            "En negociación", "Cerrados con acuerdo", "Cerrados sin acuerdo",
+            "Archivados"
+        ]
+
+        filas_excel = [
+            [
+                f.get("cliente"),
+                f.get("cedula"),
+                f.get("telefono"),
+                f.get("email"),
+                f.get("total_procesos"),
+                f.get("en_negociacion"),
+                f.get("cerrados_con_acuerdo"),
+                f.get("cerrados_sin_acuerdo"),
+                f.get("archivados")
+            ]
+            for f in filas
+        ]
+
+        nombre_archivo = "reporte_clientes_numa.xlsx"
 
     else:
         filas = obtener_actas_finales(

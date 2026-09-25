@@ -337,6 +337,7 @@ export async function getProcesos(filters?: {
   ciudad_id?: string | number;
   sucursal_id?: string | number;
   usuario_id?: string | number;
+  cliente_id?: string | number;
   fecha_desde?: string;
   fecha_hasta?: string;
 }): Promise<ProcesoMediacion[]> {
@@ -486,10 +487,31 @@ export async function getReporteProductividad(
   return res.data;
 }
 
-// Descarga el reporte (procesos, productividad o actas) como archivo .xlsx,
-// generado en el backend con los mismos filtros que se ven en pantalla.
+export async function getReporteSucursales(
+  filters?: FiltrosReporte
+): Promise<any[]> {
+  const res = await api.get('/reportes/sucursales', {
+    params: filters,
+  });
+
+  return res.data;
+}
+
+export async function getReporteClientes(
+  filters?: FiltrosReporte
+): Promise<any[]> {
+  const res = await api.get('/reportes/clientes', {
+    params: filters,
+  });
+
+  return res.data;
+}
+
+// Descarga el reporte (procesos, productividad, actas, sucursales o
+// clientes) como archivo .xlsx, generado en el backend con los mismos
+// filtros que se ven en pantalla.
 export async function descargarReporteExcel(
-  tipo: 'procesos' | 'productividad' | 'actas',
+  tipo: 'procesos' | 'productividad' | 'actas' | 'sucursales' | 'clientes',
   filters?: FiltrosReporte
 ): Promise<Blob> {
   const res = await api.get('/reportes/exportar-excel', {

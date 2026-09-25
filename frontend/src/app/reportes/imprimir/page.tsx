@@ -3,14 +3,30 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Printer } from 'lucide-react';
-import { getProcesos, getActasFinales, getReporteProductividad } from '@/lib/services';
+import {
+  getProcesos,
+  getActasFinales,
+  getReporteProductividad,
+  getReporteSucursales,
+  getReporteClientes
+} from '@/lib/services';
+import { BarrasResumen } from '@/components/ui';
 
-type TipoReporte = 'procesos' | 'productividad' | 'actas';
+type TipoReporte = 'procesos' | 'productividad' | 'actas' | 'sucursales' | 'clientes';
 
 const TITULOS: Record<TipoReporte, string> = {
   procesos: 'Reporte de Procesos por Periodo',
-  productividad: 'Reporte de Productividad por Mediador',
-  actas: 'Reporte de Actas Finales Emitidas'
+  productividad: 'Reporte del Equipo de Mediadores',
+  actas: 'Reporte de Actas Finales Emitidas',
+  sucursales: 'Reporte por Sucursal',
+  clientes: 'Reporte de Clientes'
+};
+
+const COLOR_ESTADO: Record<string, string> = {
+  en_negociacion: '#f59e0b',
+  cerrado_con_acuerdo: '#22c55e',
+  cerrado_sin_acuerdo: '#ef4444',
+  archivado: '#94a3b8'
 };
 
 const getEstadoLabel = (estado: string) => {
@@ -65,6 +81,10 @@ function ImprimirReporteContenido() {
         ? getReporteProductividad(filtros)
         : tipo === 'actas'
         ? getActasFinales(filtros)
+        : tipo === 'sucursales'
+        ? getReporteSucursales(filtros)
+        : tipo === 'clientes'
+        ? getReporteClientes(filtros)
         : getProcesos(filtros);
 
     cargar
@@ -92,6 +112,19 @@ function ImprimirReporteContenido() {
           },
           {} as Record<string, number>
         )
+      : null;
+
+  const barrasResumen: { label: string; valor: number; color?: string }[] | null =
+    tipo === 'procesos' && resumenProcesos
+      ? Object.entries(resumenProcesos).map(([estado, cantidad]) => ({
+          label: getEstadoLabel(estado),
+          valor: cantidad as number,
+          color: COLOR_ESTADO[estado]
+        }))
+      : tipo === 'productividad'
+      ? datos.map((m: any) => ({ label: m.mediador, valor: m.total_procesos }))
+      : tipo === 'sucursales'
+      ? datos.map((s: any) => ({ label: s.sucursal, valor: s.total_procesos }))
       : null;
 
   if (loading) {
@@ -181,6 +214,12 @@ function ImprimirReporteContenido() {
                 </table>
               )}
 
+              {barrasResumen && barrasResumen.length > 0 && (
+                <div className="mb-6 print:break-inside-avoid">
+                  <BarrasResumen items={barrasResumen} />
+                </div>
+              )}
+
               <table className="w-full text-xs border-collapse">
               <thead>
                 <tr className="border-b-2 border-numa-300">
@@ -200,6 +239,8 @@ function ImprimirReporteContenido() {
                   {tipo === 'productividad' && (
                     <>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Mediador</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Estado</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Ingreso</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sucursal</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Total</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">En negociación</th>
@@ -219,6 +260,33 @@ function ImprimirReporteContenido() {
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sucursal</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Mediador</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Fecha subida</th>
+                    </>
+                  )}
+
+                  {tipo === 'sucursales' && (
+                    <>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sucursal</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Ciudad</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Total</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">En negociación</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Con acuerdo</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sin acuerdo</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Archivados</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Prom. días</th>
+                    </>
+                  )}
+
+                  {tipo === 'clientes' && (
+                    <>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Cliente</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Cédula</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Teléfono</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Email</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Total</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">En negociación</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Con acuerdo</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sin acuerdo</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Archivados</th>
                     </>
                   )}
                 </tr>
@@ -247,6 +315,12 @@ function ImprimirReporteContenido() {
                   datos.map((m: any) => (
                     <tr key={m.usuario_id} className="border-b border-numa-100">
                       <td className="py-1.5 pr-2">{m.mediador}</td>
+                      <td className="py-1.5 pr-2">{m.activo ? 'Activo' : 'Inactivo'}</td>
+                      <td className="py-1.5 pr-2">
+                        {m.fecha_ingreso
+                          ? new Date(m.fecha_ingreso).toLocaleDateString('es-EC')
+                          : '—'}
+                      </td>
                       <td className="py-1.5 pr-2">{m.sucursal || '—'}</td>
                       <td className="py-1.5 pr-2">{m.total_procesos}</td>
                       <td className="py-1.5 pr-2">{m.en_negociacion}</td>
@@ -273,6 +347,37 @@ function ImprimirReporteContenido() {
                           ? new Date(a.fecha_subida).toLocaleDateString('es-EC')
                           : '—'}
                       </td>
+                    </tr>
+                  ))}
+
+                {tipo === 'sucursales' &&
+                  datos.map((s: any) => (
+                    <tr key={s.sucursal_id} className="border-b border-numa-100">
+                      <td className="py-1.5 pr-2">{s.sucursal}</td>
+                      <td className="py-1.5 pr-2">{s.ciudad || '—'}</td>
+                      <td className="py-1.5 pr-2">{s.total_procesos}</td>
+                      <td className="py-1.5 pr-2">{s.en_negociacion}</td>
+                      <td className="py-1.5 pr-2">{s.cerrados_con_acuerdo}</td>
+                      <td className="py-1.5 pr-2">{s.cerrados_sin_acuerdo}</td>
+                      <td className="py-1.5 pr-2">{s.archivados}</td>
+                      <td className="py-1.5 pr-2">
+                        {s.promedio_dias_cierre != null ? `${s.promedio_dias_cierre}` : '—'}
+                      </td>
+                    </tr>
+                  ))}
+
+                {tipo === 'clientes' &&
+                  datos.map((c: any) => (
+                    <tr key={c.cliente_id} className="border-b border-numa-100">
+                      <td className="py-1.5 pr-2">{c.cliente}</td>
+                      <td className="py-1.5 pr-2 code-text">{c.cedula || '—'}</td>
+                      <td className="py-1.5 pr-2">{c.telefono || '—'}</td>
+                      <td className="py-1.5 pr-2">{c.email || '—'}</td>
+                      <td className="py-1.5 pr-2">{c.total_procesos}</td>
+                      <td className="py-1.5 pr-2">{c.en_negociacion}</td>
+                      <td className="py-1.5 pr-2">{c.cerrados_con_acuerdo}</td>
+                      <td className="py-1.5 pr-2">{c.cerrados_sin_acuerdo}</td>
+                      <td className="py-1.5 pr-2">{c.archivados}</td>
                     </tr>
                   ))}
               </tbody>

@@ -283,3 +283,39 @@ export function SuccessAlert({ message }: { message: string }) {
     </div>
   );
 }
+
+// ── BARRAS RESUMEN ──────────────────────────────────────────────────────────
+// Mini gráfica de barras horizontales, sin ninguna librería, para que los
+// reportes no sean solo tablas de números. Se usa tanto en pantalla como en
+// la versión impresa/PDF (es solo CSS, así que imprime bien).
+export interface BarraItem {
+  label: string;
+  valor: number;
+  color?: string;
+}
+
+export function BarrasResumen({ items }: { items: BarraItem[] }) {
+  const max = Math.max(...items.map((i) => i.valor), 1);
+
+  return (
+    <div className="space-y-2">
+      {items.map((it) => (
+        <div key={it.label} className="flex items-center gap-3">
+          <span className="w-36 shrink-0 text-xs text-numa-600 truncate">{it.label}</span>
+          <div className="flex-1 h-2.5 bg-numa-100 rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: `${it.valor > 0 ? Math.max((it.valor / max) * 100, 3) : 0}%`,
+                backgroundColor: it.color || '#E0B84A',
+              }}
+            />
+          </div>
+          <span className="w-8 shrink-0 text-xs font-semibold text-numa-800 text-right">
+            {it.valor}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
