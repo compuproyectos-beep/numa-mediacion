@@ -290,6 +290,11 @@ def iniciar_scheduler():
             "cron",
             hour=8,
             minute=0,
+            # Railway corre con reloj en UTC, así que sin esto "hour=8"
+            # significaba 8am UTC = 3am Ecuador (mismo bug de zona horaria
+            # ya corregido en la validación de invitaciones). Con esto sí
+            # corre a las 8am hora de Ecuador todos los días.
+            timezone="America/Guayaquil",
         )
         _scheduler.start()
 
