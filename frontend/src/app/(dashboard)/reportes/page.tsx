@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { FileSpreadsheet, Printer, Search } from 'lucide-react';
+import { Fragment, useEffect, useState } from 'react';
+import { FileSpreadsheet, Printer, Search, ChevronDown, ChevronRight, Info } from 'lucide-react';
 import {
   PageHeader,
   Spinner,
@@ -27,6 +27,18 @@ const TIPOS: { valor: TipoReporte; titulo: string }[] = [
   { valor: 'productividad', titulo: 'Productividad por mediador' },
   { valor: 'actas', titulo: 'Actas finales emitidas' }
 ];
+
+// Explicación en palabras simples de qué muestra cada reporte y cómo leer
+// sus columnas, para que quien lo use (no solo quien lo programó) entienda
+// los números sin tener que preguntar.
+const DESCRIPCIONES: Record<TipoReporte, string> = {
+  procesos:
+    'Lista todos los procesos de mediación creados en el rango de fechas elegido, con su estado actual. Da clic en cualquier fila para abrir ese proceso.',
+  productividad:
+    'Un resumen por mediador de cuántos procesos maneja y qué tan rápido los resuelve. "Prom. días cierre" es el promedio de días entre que se crea un proceso y se cierra (con o sin acuerdo, o archivado); mientras más bajo, más rápido resuelve. Da clic en un mediador para ver el detalle de sus procesos.',
+  actas:
+    'Lista todas las actas finales subidas en el rango de fechas elegido. Da clic en cualquier fila para abrir el proceso al que pertenece esa acta.'
+};
 
 const getEstadoLabel = (estado: string) => {
   const labels: any = {
@@ -61,6 +73,14 @@ export default function ReportesPage() {
   const [loading, setLoading] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [error, setError] = useState('');
+
+  // Detalle expandible del reporte de productividad: al dar clic en un
+  // mediador se cargan (y se guardan en caché) sus propios procesos del
+  // mismo rango de fechas, para no tener que adivinar qué hay "adentro"
+  // de cada número.
+  const [mediadorExpandidoId, setMediadorExpandidoId] = useState<number | null>(null);
+  const [detalleProcesos, setDetalleProcesos] = useState<Record<number, any[]>>({});
+  const [cargandoDetalleId, setCargandoDetalleId] = useState<number | null>(null);
 
   useEffect(() => {
     getSucursalesCached().then(setSucursales).catch(() => setSucursales([]));
@@ -112,6 +132,40 @@ export default function ReportesPage() {
     setDatos([]);
     setBuscado(false);
     setError('');
+    setMediadorExpandidoId(null);
+  };
+
+  // Abre el proceso en una pestaña nueva para no perder el reporte ya
+  // generado (con sus filtros) en esta pestaña.
+  const abrirProceso = (procesoId: number) => {
+    window.open(`/procesos/${procesoId}`, '_blank');
+  };
+
+  const toggleDetalleMediador = async (mediadorId: number) => {
+    if (mediadorExpandidoId === mediadorId) {
+      setMediadorExpandidoId(null);
+      return;
+    }
+
+    setMediadorExpandidoId(mediadorId);
+
+    if (detalleProcesos[mediadorId]) return;
+
+    setCargandoDetalleId(mediadorId);
+
+    try {
+      const data = await getProcesos({
+        usuario_id: mediadorId,
+        fecha_desde: filtrosActivos.fecha_desde,
+        fecha_hasta: filtrosActivos.fecha_hasta
+      });
+
+      setDetalleProcesos((prev) => ({ ...prev, [mediadorId]: data }));
+    } catch {
+      setDetalleProcesos((prev) => ({ ...prev, [mediadorId]: [] }));
+    } finally {
+      setCargandoDetalleId(null);
+    }
   };
 
   const handleExportarExcel = async () => {
@@ -191,6 +245,11 @@ export default function ReportesPage() {
             {t.titulo}
           </button>
         ))}
+      </div>
+
+      <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-sm p-3 mb-4">
+        <Info className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
+        <p className="text-xs text-blue-700">{DESCRIPCIONES[tipo]}</p>
       </div>
 
       <div className="card p-4 mb-4">
@@ -349,6 +408,7 @@ export default function ReportesPage() {
 
                     {tipo === 'productividad' && (
                       <>
+                        <th className="table-header"></th>
                         <th className="table-header">Mediador</th>
                         <th className="table-header">Ciudad</th>
                         <th className="table-header">Sucursal</th>
@@ -379,7 +439,11 @@ export default function ReportesPage() {
                 <tbody>
                   {tipo === 'procesos' &&
                     datos.map((p: any) => (
-                      <tr key={p.id} className="table-row">
+                      <tr
+                        key={p.id}
+                        onClick={() => abrirProceso(p.id)}
+                        className="table-row cursor-pointer hover:bg-gold-400/[0.06]"
+                      >
                         <td className="table-cell font-medium">{p.codigo_proceso}</td>
                         <td className="table-cell">{getEstadoLabel(p.estado)}</td>
                         <td className="table-cell">{p.demandante}</td>
@@ -398,24 +462,89 @@ export default function ReportesPage() {
 
                   {tipo === 'productividad' &&
                     datos.map((m: any) => (
-                      <tr key={m.usuario_id} className="table-row">
-                        <td className="table-cell font-medium">{m.mediador}</td>
-                        <td className="table-cell">{m.ciudad || '—'}</td>
-                        <td className="table-cell">{m.sucursal || '—'}</td>
-                        <td className="table-cell">{m.total_procesos}</td>
-                        <td className="table-cell">{m.en_negociacion}</td>
-                        <td className="table-cell">{m.cerrados_con_acuerdo}</td>
-                        <td className="table-cell">{m.cerrados_sin_acuerdo}</td>
-                        <td className="table-cell">{m.archivados}</td>
-                        <td className="table-cell">
-                          {m.promedio_dias_cierre != null ? `${m.promedio_dias_cierre} días` : '—'}
-                        </td>
-                      </tr>
+                      <Fragment key={m.usuario_id}>
+                        <tr
+                          onClick={() => toggleDetalleMediador(m.usuario_id)}
+                          className="table-row cursor-pointer hover:bg-gold-400/[0.06]"
+                        >
+                          <td className="table-cell w-6">
+                            {mediadorExpandidoId === m.usuario_id ? (
+                              <ChevronDown className="w-4 h-4 text-numa-400" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-numa-400" />
+                            )}
+                          </td>
+                          <td className="table-cell font-medium">{m.mediador}</td>
+                          <td className="table-cell">{m.ciudad || '—'}</td>
+                          <td className="table-cell">{m.sucursal || '—'}</td>
+                          <td className="table-cell">{m.total_procesos}</td>
+                          <td className="table-cell">{m.en_negociacion}</td>
+                          <td className="table-cell">{m.cerrados_con_acuerdo}</td>
+                          <td className="table-cell">{m.cerrados_sin_acuerdo}</td>
+                          <td className="table-cell">{m.archivados}</td>
+                          <td className="table-cell">
+                            {m.promedio_dias_cierre != null
+                              ? `${m.promedio_dias_cierre} días`
+                              : '—'}
+                          </td>
+                        </tr>
+
+                        {mediadorExpandidoId === m.usuario_id && (
+                          <tr key={`${m.usuario_id}-detalle`}>
+                            <td colSpan={9} className="bg-numa-50 px-4 py-4">
+                              {cargandoDetalleId === m.usuario_id ? (
+                                <Spinner />
+                              ) : !detalleProcesos[m.usuario_id]?.length ? (
+                                <p className="text-xs text-numa-400 py-2">
+                                  Este mediador no tiene procesos en este rango de fechas.
+                                </p>
+                              ) : (
+                                <div className="space-y-2">
+                                  <p className="text-xs text-numa-500 font-medium">
+                                    Procesos de {m.mediador} en este periodo:
+                                  </p>
+
+                                  {detalleProcesos[m.usuario_id].map((p: any) => (
+                                    <div
+                                      key={p.id}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        abrirProceso(p.id);
+                                      }}
+                                      className="bg-white border border-numa-200 rounded-sm p-3 cursor-pointer hover:shadow-md transition-shadow duration-200 flex items-center justify-between gap-3 flex-wrap"
+                                    >
+                                      <div>
+                                        <span className="font-medium text-numa-800 code-text text-xs">
+                                          {p.codigo_proceso}
+                                        </span>
+                                        <span className="text-xs text-numa-600 ml-2">
+                                          {p.demandante} vs {p.demandado}
+                                        </span>
+                                      </div>
+
+                                      <span className="text-xs text-numa-500">
+                                        {getEstadoLabel(p.estado)} ·{' '}
+                                        {p.fecha_creacion
+                                          ? new Date(p.fecha_creacion).toLocaleDateString('es-EC')
+                                          : '—'}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
                     ))}
 
                   {tipo === 'actas' &&
                     datos.map((a: any) => (
-                      <tr key={a.id} className="table-row">
+                      <tr
+                        key={a.id}
+                        onClick={() => abrirProceso(a.proceso_id)}
+                        className="table-row cursor-pointer hover:bg-gold-400/[0.06]"
+                      >
                         <td className="table-cell font-medium">{a.codigo_acta}</td>
                         <td className="table-cell">{a.codigo_proceso}</td>
                         <td className="table-cell">{a.demandante}</td>
