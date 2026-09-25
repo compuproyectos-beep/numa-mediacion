@@ -41,6 +41,7 @@ def generar_recordatorios_citas():
         cur.execute("""
             SELECT
                 ct.id,
+                ct.proceso_id,
                 ct.fecha,
                 ct.hora,
                 ct.estado,
@@ -92,12 +93,12 @@ def generar_recordatorios_citas():
                     SELECT id
                     FROM notificaciones
                     WHERE usuario_id = %s
-                      AND referencia_tipo = 'cita_recordatorio'
+                      AND referencia_tipo = 'proceso_mediacion'
                       AND referencia_id = %s
                       AND titulo = %s
                 """, (
                     usuario_id,
-                    cita["id"],
+                    cita["proceso_id"],
                     titulo
                 ))
 
@@ -106,14 +107,17 @@ def generar_recordatorios_citas():
                 if existe:
                     continue
 
+                # referencia_tipo/referencia_id apuntan al proceso (no a la
+                # cita) para que el frontend pueda llevar directo al
+                # proceso con un clic en la notificación.
                 crear_notificacion(
                     cur,
                     usuario_id,
                     titulo,
                     mensaje,
                     "recordatorio",
-                    "cita_recordatorio",
-                    cita["id"]
+                    "proceso_mediacion",
+                    cita["proceso_id"]
                 )
 
         conn.commit()
@@ -2694,8 +2698,8 @@ def crear_invitacion_proceso(
                 f"{proceso['ciudad']} - {proceso['sucursal']} | "
                 f"{fecha} {hora}",
                 "cita",
-                "cita",
-                cita["id"]
+                "proceso_mediacion",
+                proceso_id
             )
 
         conn.commit()
@@ -3230,8 +3234,8 @@ async def subir_acta_final_proceso(
                 "Acta final subida",
                 f"Se subió el acta final {codigo_acta} ({proceso['ciudad']} - {proceso['sucursal']}), con comprobante de pago",
                 "acta",
-                "acta_proceso",
-                acta_final["id"]
+                "proceso_mediacion",
+                proceso_id
             )
 
         conn.commit()

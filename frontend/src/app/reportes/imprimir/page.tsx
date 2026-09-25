@@ -81,6 +81,19 @@ function ImprimirReporteContenido() {
         }`
       : 'Todas las fechas';
 
+  // Igual que en pantalla: para el reporte de procesos se cuenta cuántos
+  // hay en cada estado, para no dejar solo el total general.
+  const resumenProcesos =
+    tipo === 'procesos'
+      ? datos.reduce(
+          (acc: any, p: any) => {
+            acc[p.estado] = (acc[p.estado] || 0) + 1;
+            return acc;
+          },
+          {} as Record<string, number>
+        )
+      : null;
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-numa-50 text-numa-500 text-sm">
@@ -126,7 +139,49 @@ function ImprimirReporteContenido() {
               No hay resultados con esos filtros.
             </p>
           ) : (
-            <table className="w-full text-xs border-collapse">
+            <>
+              {resumenProcesos && (
+                <table className="w-full text-xs border-collapse mb-6">
+                  <thead>
+                    <tr className="border-b-2 border-numa-300">
+                      <th className="text-left py-2 pr-4 font-semibold text-numa-700">
+                        En negociación
+                      </th>
+                      <th className="text-left py-2 pr-4 font-semibold text-numa-700">
+                        Con acuerdo
+                      </th>
+                      <th className="text-left py-2 pr-4 font-semibold text-numa-700">
+                        Sin acuerdo
+                      </th>
+                      <th className="text-left py-2 pr-4 font-semibold text-numa-700">
+                        Archivados
+                      </th>
+                      <th className="text-left py-2 pr-4 font-semibold text-numa-700">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="py-2 pr-4 text-numa-800 text-sm font-semibold">
+                        {resumenProcesos.en_negociacion || 0}
+                      </td>
+                      <td className="py-2 pr-4 text-numa-800 text-sm font-semibold">
+                        {resumenProcesos.cerrado_con_acuerdo || 0}
+                      </td>
+                      <td className="py-2 pr-4 text-numa-800 text-sm font-semibold">
+                        {resumenProcesos.cerrado_sin_acuerdo || 0}
+                      </td>
+                      <td className="py-2 pr-4 text-numa-800 text-sm font-semibold">
+                        {resumenProcesos.archivado || 0}
+                      </td>
+                      <td className="py-2 pr-4 text-numa-900 text-sm font-bold">
+                        {datos.length}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              )}
+
+              <table className="w-full text-xs border-collapse">
               <thead>
                 <tr className="border-b-2 border-numa-300">
                   {tipo === 'procesos' && (
@@ -222,6 +277,7 @@ function ImprimirReporteContenido() {
                   ))}
               </tbody>
             </table>
+            </>
           )}
 
           <p className="text-xs text-numa-400 mt-6 text-right">

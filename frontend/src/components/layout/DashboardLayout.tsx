@@ -96,6 +96,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const noLeidas = notificaciones.filter((n) => !n.leida).length;
 
+  const abrirNotificacion = async (n: any) => {
+    await marcarUna(n.id);
+
+    // Solo las notificaciones ligadas a un proceso saben a dónde llevar;
+    // las demás (o notificaciones viejas de antes de este cambio) solo se
+    // marcan como leídas, sin navegar a ningún lado.
+    if (n.referencia_tipo === 'proceso_mediacion' && n.referencia_id) {
+      setOpen(false);
+      router.push(`/procesos/${n.referencia_id}`);
+    }
+  };
+
   const marcarUna = async (id: number) => {
     await marcarNotificacionLeida(id);
 
@@ -167,7 +179,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         return (
                           <button
                             key={n.id}
-                            onClick={() => marcarUna(n.id)}
+                            onClick={() => abrirNotificacion(n)}
                             className={`w-full text-left px-4 py-3 border-b border-numa-50 hover:bg-numa-50 transition flex gap-3 ${
                               !n.leida ? 'bg-gold-50/60' : ''
                             }`}

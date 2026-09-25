@@ -278,7 +278,13 @@ export default function ProcesosPage() {
       )}
 
       <div className="card p-4 mb-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            load();
+          }}
+          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3"
+        >
           <div className="xl:col-span-2">
             <InputField
               label="Buscar"
@@ -363,15 +369,15 @@ export default function ProcesosPage() {
           />
 
           <div className="flex items-end gap-2">
-            <button onClick={load} className="btn-primary">
+            <button type="submit" className="btn-primary">
               Buscar
             </button>
 
-            <button onClick={limpiarFiltros} className="btn-secondary">
+            <button type="button" onClick={limpiarFiltros} className="btn-secondary">
               Limpiar
             </button>
           </div>
-        </div>
+        </form>
       </div>
 
       <div className="mb-3 text-sm text-numa-500">

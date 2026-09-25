@@ -264,6 +264,12 @@ export default function ReportesPage() {
       </div>
 
       <div className="card p-4 mb-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            buscar();
+          }}
+        >
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
           <InputField
             label="Fecha desde"
@@ -332,7 +338,7 @@ export default function ReportesPage() {
         </div>
 
         <div className="flex flex-wrap gap-3 mt-4">
-          <button onClick={buscar} className="btn-primary">
+          <button type="submit" className="btn-primary">
             <Search className="w-4 h-4" />
             Generar reporte
           </button>
@@ -340,6 +346,7 @@ export default function ReportesPage() {
           {buscado && datos.length > 0 && (
             <>
               <button
+                type="button"
                 onClick={handleExportarExcel}
                 disabled={exportando}
                 className="btn-secondary"
@@ -348,13 +355,14 @@ export default function ReportesPage() {
                 {exportando ? 'Descargando...' : 'Descargar Excel'}
               </button>
 
-              <button onClick={handleImprimir} className="btn-secondary">
+              <button type="button" onClick={handleImprimir} className="btn-secondary">
                 <Printer className="w-4 h-4" />
                 Imprimir / PDF
               </button>
             </>
           )}
         </div>
+        </form>
       </div>
 
       {loading ? (
