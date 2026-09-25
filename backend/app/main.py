@@ -2599,7 +2599,14 @@ def crear_invitacion_proceso(
                 detail="Fecha u hora inválida"
             )
 
-        if fecha_hora_cita < datetime.datetime.now():
+        # fecha/hora llegan como hora local de Ecuador (UTC-5, sin horario de
+        # verano), pero el servidor corre con reloj en UTC. Se convierte la
+        # cita a UTC antes de comparar contra utcnow(); comparar contra
+        # datetime.now() aquí causaba que cualquier invitación de las
+        # próximas ~5 horas se rechazara como "ya pasada".
+        fecha_hora_cita_utc = fecha_hora_cita + datetime.timedelta(hours=5)
+
+        if fecha_hora_cita_utc < datetime.datetime.utcnow():
             raise HTTPException(
                 status_code=400,
                 detail="No se puede agendar una invitación en una fecha u hora pasada"
