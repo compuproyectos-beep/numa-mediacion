@@ -2404,6 +2404,7 @@ def obtener_procesos_mediacion(
     estado: str = None,
     ciudad_id: int = None,
     sucursal_id: int = None,
+    usuario_id: int = None,
     fecha_desde: str = None,
     fecha_hasta: str = None,
     usuario=Depends(obtener_usuario_actual)
@@ -2451,6 +2452,10 @@ def obtener_procesos_mediacion(
         if sucursal_id and usuario["rol"] == "administrador":
             query += " AND p.sucursal_id = %s"
             params.append(sucursal_id)
+
+        if usuario_id and usuario["rol"] == "administrador":
+            query += " AND p.usuario_id = %s"
+            params.append(usuario_id)
 
         if estado:
             query += " AND p.estado = %s"
@@ -3942,6 +3947,237 @@ def exportar_pdfs_actas_finales(
     finally:
         cur.close()
         conn.close()
+
+# =========================
+# REPORTES
+# =========================
+@app.get("/reportes/productividad")
+def obtener_reporte_productividad(
+    fecha_desde: str = None,
+    fecha_hasta: str = None,
+    ciudad_id: int = None,
+    sucursal_id: int = None,
+    usuario_id: int = None,
+    usuario=Depends(obtener_usuario_actual)
+):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        # LEFT JOIN a propósito: un mediador sin procesos en el rango de
+        # fechas debe seguir apareciendo con contadores en cero, en vez de
+        # desaparecer de la lista. Por eso el filtro de fechas va dentro del
+        # ON del join y no en el WHERE (que excluiría esas filas nulas).
+        query = """
+            SELECT
+                u.id AS usuario_id,
+                u.nombre || ' ' || u.apellido AS mediador,
+                s.nombre AS sucursal,
+                ci.nombre AS ciudad,
+                COUNT(p.id) AS total_procesos,
+                COUNT(*) FILTER (WHERE p.estado = 'en_negociacion') AS en_negociacion,
+                COUNT(*) FILTER (WHERE p.estado = 'cerrado_con_acuerdo') AS cerrados_con_acuerdo,
+                COUNT(*) FILTER (WHERE p.estado = 'cerrado_sin_acuerdo') AS cerrados_sin_acuerdo,
+                COUNT(*) FILTER (WHERE p.estado = 'archivado') AS archivados,
+                ROUND(
+                    AVG(
+                        EXTRACT(EPOCH FROM (
+                            COALESCE(
+                                p.fecha_acuerdo,
+                                CASE WHEN p.estado IN ('cerrado_sin_acuerdo', 'archivado')
+                                     THEN p.fecha_modificacion END
+                            ) - p.fecha_creacion
+                        )) / 86400
+                    )::numeric,
+                    1
+                ) AS promedio_dias_cierre
+            FROM usuarios u
+            JOIN sucursales s ON u.sucursal_id = s.id
+            JOIN ciudades ci ON s.ciudad_id = ci.id
+            LEFT JOIN procesos_mediacion p ON p.usuario_id = u.id
+        """
+
+        params = []
+        condiciones_join = []
+
+        if fecha_desde:
+            condiciones_join.append("DATE(p.fecha_creacion) >= %s")
+            params.append(fecha_desde)
+
+        if fecha_hasta:
+            condiciones_join.append("DATE(p.fecha_creacion) <= %s")
+            params.append(fecha_hasta)
+
+        if condiciones_join:
+            query += " AND " + " AND ".join(condiciones_join)
+
+        query += " WHERE u.rol = 'mediador' AND u.activo = true"
+
+        # Cada mediador solo ve su propia fila; el admin ve todas y puede
+        # filtrar por ciudad, sucursal o un mediador específico.
+        if usuario["rol"] != "administrador":
+            query += " AND u.id = %s"
+            params.append(usuario["id"])
+        else:
+            if usuario_id:
+                query += " AND u.id = %s"
+                params.append(usuario_id)
+
+            if sucursal_id:
+                query += " AND s.id = %s"
+                params.append(sucursal_id)
+
+            if ciudad_id:
+                query += " AND ci.id = %s"
+                params.append(ciudad_id)
+
+        query += """
+            GROUP BY u.id, u.nombre, u.apellido, s.nombre, ci.nombre
+            ORDER BY total_procesos DESC, mediador ASC
+        """
+
+        cur.execute(query, tuple(params))
+        return cur.fetchall()
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+ETIQUETAS_ESTADO_REPORTE = {
+    "en_negociacion": "En negociación",
+    "cerrado_con_acuerdo": "Cerrado con acuerdo",
+    "cerrado_sin_acuerdo": "Cerrado sin acuerdo",
+    "archivado": "Archivado"
+}
+
+
+@app.get("/reportes/exportar-excel")
+def exportar_reporte_excel(
+    tipo: str,
+    fecha_desde: str = None,
+    fecha_hasta: str = None,
+    ciudad_id: int = None,
+    sucursal_id: int = None,
+    usuario_id: int = None,
+    usuario=Depends(obtener_usuario_actual)
+):
+    if tipo not in ["procesos", "productividad", "actas"]:
+        raise HTTPException(status_code=400, detail="Tipo de reporte inválido")
+
+    # Se reutilizan las mismas funciones que alimentan la pantalla (llamadas
+    # directamente como funciones de Python, no como endpoints HTTP), para
+    # no duplicar la lógica de filtros ni el control de permisos por rol.
+    if tipo == "procesos":
+        filas = obtener_procesos_mediacion(
+            q=None, estado=None, ciudad_id=ciudad_id, sucursal_id=sucursal_id,
+            usuario_id=usuario_id, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta,
+            usuario=usuario
+        )
+
+        encabezados = [
+            "Código", "Estado", "Solicitante", "Invitado", "Ciudad",
+            "Sucursal", "Mediador", "Tema", "Fecha de creación"
+        ]
+
+        filas_excel = [
+            [
+                f.get("codigo_proceso"),
+                ETIQUETAS_ESTADO_REPORTE.get(f.get("estado"), f.get("estado")),
+                f.get("demandante"),
+                f.get("demandado"),
+                f.get("ciudad"),
+                f.get("sucursal"),
+                f.get("usuario"),
+                f.get("tema"),
+                str(f.get("fecha_creacion") or "")
+            ]
+            for f in filas
+        ]
+
+        nombre_archivo = "reporte_procesos_numa.xlsx"
+
+    elif tipo == "productividad":
+        filas = obtener_reporte_productividad(
+            fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ciudad_id=ciudad_id,
+            sucursal_id=sucursal_id, usuario_id=usuario_id, usuario=usuario
+        )
+
+        encabezados = [
+            "Mediador", "Ciudad", "Sucursal", "Total procesos", "En negociación",
+            "Cerrados con acuerdo", "Cerrados sin acuerdo", "Archivados",
+            "Promedio días de cierre"
+        ]
+
+        filas_excel = [
+            [
+                f.get("mediador"),
+                f.get("ciudad"),
+                f.get("sucursal"),
+                f.get("total_procesos"),
+                f.get("en_negociacion"),
+                f.get("cerrados_con_acuerdo"),
+                f.get("cerrados_sin_acuerdo"),
+                f.get("archivados"),
+                f.get("promedio_dias_cierre") if f.get("promedio_dias_cierre") is not None else ""
+            ]
+            for f in filas
+        ]
+
+        nombre_archivo = "reporte_productividad_numa.xlsx"
+
+    else:
+        filas = obtener_actas_finales(
+            q=None, ciudad_id=ciudad_id, sucursal_id=sucursal_id, usuario_id=usuario_id,
+            fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, usuario=usuario
+        )
+
+        encabezados = [
+            "Código de acta", "Proceso", "Solicitante", "Invitado", "Ciudad",
+            "Sucursal", "Mediador", "Fecha de subida"
+        ]
+
+        filas_excel = [
+            [
+                f.get("codigo_acta"),
+                f.get("codigo_proceso"),
+                f.get("demandante"),
+                f.get("demandado"),
+                f.get("ciudad"),
+                f.get("sucursal"),
+                f.get("usuario"),
+                str(f.get("fecha_subida") or "")
+            ]
+            for f in filas
+        ]
+
+        nombre_archivo = "reporte_actas_finales_numa.xlsx"
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Reporte"
+    ws.append(encabezados)
+
+    for celda in ws[1]:
+        celda.font = Font(bold=True)
+
+    for fila in filas_excel:
+        ws.append(fila)
+
+    for columna in ws.columns:
+        ancho = max((len(str(c.value)) for c in columna if c.value), default=10) + 2
+        ws.column_dimensions[columna[0].column_letter].width = min(ancho, 40)
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{nombre_archivo}"'}
+    )
+
 
 # =========================
 # EXPEDIENTE COMPLETO DEL PROCESO

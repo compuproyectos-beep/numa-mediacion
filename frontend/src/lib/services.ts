@@ -336,6 +336,7 @@ export async function getProcesos(filters?: {
   estado?: string;
   ciudad_id?: string | number;
   sucursal_id?: string | number;
+  usuario_id?: string | number;
   fecha_desde?: string;
   fecha_hasta?: string;
 }): Promise<ProcesoMediacion[]> {
@@ -466,6 +467,38 @@ export async function getActasFinales(filters?: {
   return res.data;
 }
 
+
+export interface FiltrosReporte {
+  fecha_desde?: string;
+  fecha_hasta?: string;
+  ciudad_id?: string | number;
+  sucursal_id?: string | number;
+  usuario_id?: string | number;
+}
+
+export async function getReporteProductividad(
+  filters?: FiltrosReporte
+): Promise<any[]> {
+  const res = await api.get('/reportes/productividad', {
+    params: filters,
+  });
+
+  return res.data;
+}
+
+// Descarga el reporte (procesos, productividad o actas) como archivo .xlsx,
+// generado en el backend con los mismos filtros que se ven en pantalla.
+export async function descargarReporteExcel(
+  tipo: 'procesos' | 'productividad' | 'actas',
+  filters?: FiltrosReporte
+): Promise<Blob> {
+  const res = await api.get('/reportes/exportar-excel', {
+    params: { tipo, ...filters },
+    responseType: 'blob',
+  });
+
+  return res.data;
+}
 
 export function getPdfActaFinalUrl(actaId: number): string {
   return `${process.env.NEXT_PUBLIC_API_URL}/actas-finales/${actaId}/pdf`;

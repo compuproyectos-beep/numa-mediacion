@@ -17,6 +17,7 @@ import {
   X,
   ChevronRight,
   CalendarDays,
+  BarChart3,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import clsx from 'clsx';
@@ -27,6 +28,7 @@ const navItems = [
   { href: '/actas-finales', icon: FileCheck, label: 'Actas Finales' },
   { href: '/clientes', icon: Users, label: 'Clientes' },
   { href: '/agenda', icon: CalendarDays, label: 'Agenda' },
+  { href: '/reportes', icon: BarChart3, label: 'Reportes' },
   { href: '/sucursales', icon: Building2, label: 'Sucursales', adminOnly: true },
   { href: '/ciudades', icon: MapPin, label: 'Ciudades', adminOnly: true },
   { href: '/usuarios', icon: UserCircle, label: 'Usuarios', adminOnly: true },
