@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply text-numa-900;
+    background-color: #F3F6FA;
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 bg-numa-900 text-numa-50 rounded-sm text-sm font-medium tracking-wide transition-all duration-200 hover:bg-numa-950 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gold-500 focus:ring-offset-2;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 border border-numa-300 text-numa-700 rounded-sm text-sm font-medium tracking-wide transition-all duration-200 hover:bg-numa-100 hover:border-numa-400;
+  }
+
+  .btn-gold {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 bg-gold-500 text-white rounded-sm text-sm font-semibold tracking-wide transition-all duration-200 hover:bg-gold-600 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gold-600 focus:ring-offset-2;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-red-700 text-white rounded-sm text-sm font-medium transition-all duration-200 hover:bg-red-800;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-4 py-2 text-numa-600 rounded-sm text-sm font-medium transition-all duration-200 hover:bg-numa-100 hover:text-numa-900;
+  }
+
+  .card {
+    @apply bg-white border border-numa-200/70 rounded-sm shadow-md;
+  }
+
+  .input-field {
+    @apply w-full px-3 py-2.5 border border-numa-300 rounded-sm text-sm text-numa-900 bg-white placeholder-numa-400 focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-500 transition-all duration-200;
+  }
+
+  .label {
+    @apply block text-[13px] font-medium text-numa-600 mb-1.5;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .table-header {
+    @apply text-left text-[11px] font-semibold text-numa-500 uppercase tracking-wider py-3 px-4;
+  }
+
+  .table-cell {
+    @apply py-3.5 px-4 text-sm text-numa-800 whitespace-nowrap;
+  }
+
+  .table-row {
+    @apply border-b border-numa-100 transition-colors duration-150;
+  }
+
+  .table-row:nth-child(even) {
+    @apply bg-numa-50/60;
+  }
+
+  .table-row:hover {
+    @apply bg-gold-400/[0.06];
+  }
+
+  /* Keeps a table's identifying column (usually the first) visible while the
+     rest of a wide table scrolls horizontally — used on data-dense list pages. */
+  .table-cell-sticky {
+    @apply sticky left-0 z-10 bg-white;
+  }
+
+  .table-row:nth-child(even) .table-cell-sticky {
+    background-color: #F3F6FA;
+  }
+
+  .table-row:hover .table-cell-sticky {
+    background-color: #F3F6FA;
+  }
+
+  .code-text {
+    @apply font-mono text-[13px] tracking-tight;
+  }
+
+  .section-title {
+    @apply text-2xl font-display font-bold text-numa-900 tracking-tight;
+  }
+
+  .page-header {
+    @apply flex items-center justify-between mb-6;
+  }
+}

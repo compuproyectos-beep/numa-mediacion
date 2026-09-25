@@ -1,0 +1,24 @@
+# entorno virtual (se reinstala desde requirements.txt, no se sube)
+venv/
+env/
+.venv/
+
+# variables de entorno y secretos — NUNCA subir esto
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# archivos temporales generados en tiempo de ejecución
+*.zip
+*.log
+
+# editor / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

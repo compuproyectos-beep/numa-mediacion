@@ -1,0 +1,483 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Plus, Pencil } from 'lucide-react';
+import {
+  Modal, Spinner, EmptyState,
+  InputField, SelectField, PageHeader, ErrorAlert
+} from '@/components/ui';
+import {
+  getClientes,
+  createCliente,
+  updateCliente,
+  getProvincias
+} from '@/lib/services';
+import { getCiudadesCached } from '@/lib/catalogCache';
+import { Cliente, CreateClientePayload } from '@/types';
+
+const empty: CreateClientePayload = {
+  nombre: '',
+  apellido: '',
+  cedula: '',
+  email: '',
+  telefono: '',
+  ciudad_id: undefined,
+  direccion: ''
+};
+
+export default function ClientesPage() {
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [ciudades, setCiudades] = useState<any[]>([]);
+  const [provincias, setProvincias] = useState<any[]>([]);
+  const [provinciaId, setProvinciaId] = useState('');
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [cedulaError, setCedulaError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [telefonoError, setTelefonoError] = useState('');
+  const [search, setSearch] = useState('');
+
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<Cliente | null>(null);
+  const [form, setForm] = useState<CreateClientePayload>(empty);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    Promise.all([getClientes(), getCiudadesCached(), getProvincias()])
+      .then(([clientesData, ciudadesData, provinciasData]) => {
+        setClientes(clientesData);
+        setCiudades(ciudadesData);
+        setProvincias(provinciasData);
+      })
+      .catch(() => setError('Error al cargar clientes'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const ciudadesFiltradas = ciudades.filter(
+    (c) => String(c.provincia_id) === String(provinciaId)
+  );
+
+  const validarCedula = (cedula: string) => {
+    if (!/^\d{10}$/.test(cedula)) return false;
+
+    const provincia = parseInt(cedula.slice(0, 2), 10);
+    if (provincia < 1 || provincia > 24) return false;
+
+    const tercerDigito = parseInt(cedula[2], 10);
+    if (tercerDigito >= 6) return false;
+
+    const coeficientes = [2, 1, 2, 1, 2, 1, 2, 1, 2];
+    let suma = 0;
+
+    for (let i = 0; i < 9; i++) {
+      let valor = parseInt(cedula[i], 10) * coeficientes[i];
+      if (valor >= 10) valor -= 9;
+      suma += valor;
+    }
+
+    const digitoVerificador = (10 - (suma % 10)) % 10;
+
+    return digitoVerificador === parseInt(cedula[9], 10);
+  };
+
+  const validarEmail = (email: string) => {
+    if (!email) return true;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+  };
+
+  const validarTelefono = (telefono: string) => {
+    if (!telefono) return true;
+    return /^\d{10}$/.test(telefono);
+  };
+
+  const filtered = clientes.filter((c) => {
+    const q = search.toLowerCase();
+
+    return (
+      c.nombre.toLowerCase().includes(q) ||
+      c.apellido.toLowerCase().includes(q) ||
+      c.cedula.includes(q) ||
+      (c.email || '').toLowerCase().includes(q) ||
+      (c.telefono || '').includes(q) ||
+      (c.ciudad || '').toLowerCase().includes(q) ||
+      (c.provincia || '').toLowerCase().includes(q) ||
+      (c.direccion || '').toLowerCase().includes(q)
+    );
+  });
+
+  const openCreate = () => {
+    setEditing(null);
+    setProvinciaId('');
+    setForm(empty);
+    setError('');
+    setCedulaError('');
+    setEmailError('');
+    setTelefonoError('');
+    setShowForm(true);
+  };
+
+  const openEdit = (c: Cliente) => {
+    const ciudad = ciudades.find(
+      (ciudad) => Number(ciudad.id) === Number(c.ciudad_id)
+    );
+
+    setEditing(c);
+    setProvinciaId(ciudad?.provincia_id ? String(ciudad.provincia_id) : '');
+
+    setForm({
+      nombre: c.nombre || '',
+      apellido: c.apellido || '',
+      cedula: c.cedula || '',
+      email: c.email || '',
+      telefono: c.telefono || '',
+      ciudad_id: c.ciudad_id,
+      direccion: c.direccion || ''
+    });
+
+    setError('');
+    setCedulaError('');
+    setEmailError('');
+    setTelefonoError('');
+    setShowForm(true);
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    setEditing(null);
+    setProvinciaId('');
+    setForm(empty);
+    setError('');
+    setCedulaError('');
+    setEmailError('');
+    setTelefonoError('');
+  };
+
+  const handleSave = async () => {
+    setError('');
+    setCedulaError('');
+    setEmailError('');
+    setTelefonoError('');
+
+    if (!form.nombre.trim() || !form.apellido.trim() || !form.cedula.trim()) {
+      setError('Completa nombre, apellido y cédula');
+      return;
+    }
+
+    if (!validarCedula(form.cedula)) {
+      setCedulaError(
+        form.cedula.length !== 10
+          ? 'La cédula debe tener 10 dígitos'
+          : 'Cédula ecuatoriana inválida'
+      );
+      return;
+    }
+
+    if (!validarEmail(form.email)) {
+      setEmailError('Ingresa un email válido');
+      return;
+    }
+
+    if (!validarTelefono(form.telefono)) {
+      setTelefonoError('El teléfono debe tener 10 dígitos');
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      if (editing) {
+        await updateCliente(editing.id, form);
+      } else {
+        await createCliente(form);
+      }
+
+      const clientesActualizados = await getClientes();
+      setClientes(clientesActualizados);
+
+      closeForm();
+    } catch (err: any) {
+      const detail =
+        err?.response?.data?.detail ||
+        'Error al guardar cliente';
+
+      if (detail.toLowerCase().includes('cédula')) {
+        setCedulaError(detail);
+      } else {
+        setError(detail);
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <PageHeader
+        title="Clientes"
+        subtitle="Gestión de clientes y participantes"
+        action={
+          <button onClick={openCreate} className="btn-primary">
+            <Plus className="w-4 h-4" /> Nuevo Cliente
+          </button>
+        }
+      />
+
+      {error && !showForm && (
+        <div className="mb-4">
+          <ErrorAlert message={error} />
+        </div>
+      )}
+
+      <div className="mb-4">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar por nombre, cédula, ciudad, dirección o email..."
+          className="input-field max-w-md"
+        />
+      </div>
+
+      <div className="card overflow-hidden">
+        {loading ? (
+          <Spinner />
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            message={
+              search
+                ? 'No se encontraron resultados.'
+                : 'No hay clientes registrados.'
+            }
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead className="bg-numa-50 border-b border-numa-100">
+                <tr>
+                  <th className="table-header table-cell-sticky !bg-numa-50">Nombre</th>
+                  <th className="table-header">Cédula</th>
+                  <th className="table-header">Email</th>
+                  <th className="table-header">Teléfono</th>
+                  <th className="table-header">Ciudad domicilio</th>
+                  <th className="table-header">Dirección</th>
+                  <th className="table-header">Acciones</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filtered.map((c) => (
+                  <tr key={c.id} className="table-row">
+                    <td className="table-cell table-cell-sticky">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-numa-100 flex items-center justify-center shrink-0">
+                          <span className="text-xs font-bold text-numa-600">
+                            {c.nombre.charAt(0)}
+                            {c.apellido.charAt(0)}
+                          </span>
+                        </div>
+
+                        <p className="font-medium text-numa-900">
+                          {c.nombre} {c.apellido}
+                        </p>
+                      </div>
+                    </td>
+
+                    <td className="table-cell text-numa-500 code-text">{c.cedula}</td>
+                    <td className="table-cell text-numa-500">{c.email || '—'}</td>
+                    <td className="table-cell text-numa-500">{c.telefono || '—'}</td>
+                    <td className="table-cell text-numa-500">
+                      {c.ciudad || '—'}
+                    </td>
+                    <td
+                      className="table-cell text-numa-500 max-w-xs truncate"
+                      title={c.direccion || undefined}
+                    >
+                      {c.direccion || '—'}
+                    </td>
+
+                    <td className="table-cell">
+                      <button
+                        onClick={() => openEdit(c)}
+                        className="btn-ghost text-xs py-1 px-2"
+                      >
+                        <Pencil className="w-3 h-3" /> Editar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <Modal
+        open={showForm}
+        onClose={closeForm}
+        title={editing ? 'Editar Cliente' : 'Nuevo Cliente'}
+        size="lg"
+      >
+        {error && showForm && (
+          <div className="mb-4">
+            <ErrorAlert message={error} />
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-4">
+          <InputField
+            label="Nombres"
+            value={form.nombre}
+            onChange={(e) =>
+              setForm({ ...form, nombre: e.target.value })
+            }
+            placeholder="Juan"
+          />
+
+          <InputField
+            label="Apellidos"
+            value={form.apellido}
+            onChange={(e) =>
+              setForm({ ...form, apellido: e.target.value })
+            }
+            placeholder="Pérez"
+          />
+
+          <div>
+            <InputField
+              label="Cédula"
+              value={form.cedula}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                setForm({ ...form, cedula: value });
+
+                if (value.length > 0 && value.length < 10) {
+                  setCedulaError('La cédula debe tener 10 dígitos');
+                } else if (value.length === 10 && !validarCedula(value)) {
+                  setCedulaError('Cédula ecuatoriana inválida');
+                } else {
+                  setCedulaError('');
+                }
+              }}
+              placeholder="0923456789"
+            />
+
+            {cedulaError && (
+              <p className="text-xs text-red-500 mt-1">
+                {cedulaError}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <InputField
+              label="Teléfono"
+              value={form.telefono}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                setForm({ ...form, telefono: value });
+
+                if (value.length > 0 && value.length < 10) {
+                  setTelefonoError('El teléfono debe tener 10 dígitos');
+                } else {
+                  setTelefonoError('');
+                }
+              }}
+              placeholder="0999999999"
+            />
+
+            {telefonoError && (
+              <p className="text-xs text-red-500 mt-1">
+                {telefonoError}
+              </p>
+            )}
+          </div>
+
+          <div className="col-span-2">
+            <InputField
+              label="Email"
+              value={form.email}
+              onChange={(e) => {
+                const value = e.target.value.trim();
+                setForm({ ...form, email: value });
+
+                if (value.length > 0 && !validarEmail(value)) {
+                  setEmailError('Ingresa un email válido');
+                } else {
+                  setEmailError('');
+                }
+              }}
+              placeholder="cliente@correo.com"
+            />
+
+            {emailError && (
+              <p className="text-xs text-red-500 mt-1">
+                {emailError}
+              </p>
+            )}
+          </div>
+
+          <SelectField
+            label="Provincia domicilio"
+            value={provinciaId}
+            onChange={(e) => {
+              setProvinciaId(e.target.value);
+              setForm({ ...form, ciudad_id: undefined });
+            }}
+          >
+            <option value="">Seleccione una provincia</option>
+
+            {provincias.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nombre}
+              </option>
+            ))}
+          </SelectField>
+
+          <SelectField
+            label="Ciudad de domicilio"
+            value={form.ciudad_id || ''}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                ciudad_id: e.target.value
+                  ? Number(e.target.value)
+                  : undefined
+              })
+            }
+            disabled={!provinciaId}
+          >
+            <option value="">Seleccione una ciudad</option>
+
+            {ciudadesFiltradas.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nombre}
+              </option>
+            ))}
+          </SelectField>
+
+          <div className="col-span-2">
+            <InputField
+              label="Dirección domiciliaria"
+              value={form.direccion || ''}
+              onChange={(e) =>
+                setForm({ ...form, direccion: e.target.value })
+              }
+              placeholder="Av. Principal y calle secundaria"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 mt-6">
+          <button onClick={closeForm} className="btn-secondary">
+            Cancelar
+          </button>
+
+          <button onClick={handleSave} disabled={saving} className="btn-primary">
+            {saving ? 'Guardando...' : 'Guardar'}
+          </button>
+        </div>
+      </Modal>
+    </>
+  );
+}
