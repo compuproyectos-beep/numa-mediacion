@@ -284,19 +284,34 @@ _scheduler = BackgroundScheduler()
 
 @app.on_event("startup")
 def iniciar_scheduler():
-    if not _scheduler.get_jobs():
+    if _scheduler.get_jobs():
+        return
+
+    try:
+        # Railway corre con reloj en UTC, así que sin esto "hour=8"
+        # significaba 8am UTC = 3am Ecuador (mismo bug de zona horaria
+        # ya corregido en la validación de invitaciones). Con esto sí
+        # corre a las 8am hora de Ecuador todos los días.
         _scheduler.add_job(
             generar_recordatorios_citas,
             "cron",
             hour=8,
             minute=0,
-            # Railway corre con reloj en UTC, así que sin esto "hour=8"
-            # significaba 8am UTC = 3am Ecuador (mismo bug de zona horaria
-            # ya corregido en la validación de invitaciones). Con esto sí
-            # corre a las 8am hora de Ecuador todos los días.
             timezone="America/Guayaquil",
         )
-        _scheduler.start()
+    except Exception:
+        # Si por lo que sea el servidor no tiene los datos de zonas horarias
+        # disponibles, no debe tumbar el arranque de todo el sistema por un
+        # recordatorio: se registra sin zona horaria específica (como estaba
+        # antes) en vez de dejar caído el login y todo lo demás.
+        _scheduler.add_job(
+            generar_recordatorios_citas,
+            "cron",
+            hour=8,
+            minute=0,
+        )
+
+    _scheduler.start()
 
 
 # =========================
