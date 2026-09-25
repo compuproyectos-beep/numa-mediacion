@@ -30,6 +30,8 @@ export function useAuth() {
     const realUser: User = {
      id: userData.id,
      username: userData.email,
+     nombre: userData.nombre,
+     apellido: userData.apellido,
      email: userData.email,
      rol: userData.rol,
      activo: userData.activo,

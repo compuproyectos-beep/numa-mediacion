@@ -12,6 +12,8 @@ export interface AuthResponse {
 export interface User {
   id: number;
   username: string;
+  nombre?: string;
+  apellido?: string;
   email: string;
   rol: 'administrador' | 'usuario';
   activo: boolean;

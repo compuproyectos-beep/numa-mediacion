@@ -1510,6 +1510,14 @@ def crear_usuario(
             detail="Solo administrador puede crear usuarios"
         )
 
+    # El centro solo debe tener un administrador (el actual). Todo usuario
+    # nuevo se crea como mediador, sin excepción.
+    if rol == "administrador":
+        raise HTTPException(
+            status_code=400,
+            detail="No se pueden crear nuevos administradores"
+        )
+
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
@@ -1736,9 +1744,20 @@ def editar_usuario(
         if rol not in ("administrador", "mediador"):
             raise HTTPException(status_code=400, detail="Rol inválido")
 
-        cur.execute("SELECT id FROM usuarios WHERE id = %s", (id,))
-        if not cur.fetchone():
+        cur.execute("SELECT id, rol FROM usuarios WHERE id = %s", (id,))
+        usuario_existente = cur.fetchone()
+
+        if not usuario_existente:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+        # El centro solo debe tener un administrador (el actual). Se puede
+        # editar al administrador existente sin problema, pero no se puede
+        # ascender a un mediador a administrador.
+        if rol == "administrador" and usuario_existente["rol"] != "administrador":
+            raise HTTPException(
+                status_code=400,
+                detail="No se pueden crear nuevos administradores"
+            )
 
         cur.execute("SELECT id FROM usuarios WHERE email = %s AND id != %s", (email, id))
         if cur.fetchone():

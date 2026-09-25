@@ -526,9 +526,16 @@ export default function UsuariosPage() {
               label="Rol"
               value={form.rol}
               onChange={(e) => setForm({ ...form, rol: e.target.value })}
+              disabled={!editing}
             >
               <option value="mediador">Mediador</option>
-              <option value="administrador">Administrador</option>
+              {/* El centro solo tiene un administrador (el actual). Al crear
+                  un usuario nuevo no se puede elegir "Administrador"; esta
+                  opción solo aparece al editar al administrador existente,
+                  para no dejarlo sin rol válido en su propio formulario. */}
+              {editing && editing.rol === 'administrador' && (
+                <option value="administrador">Administrador</option>
+              )}
             </SelectField>
 
             <SelectField
