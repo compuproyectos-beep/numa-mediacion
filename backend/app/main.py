@@ -3960,6 +3960,14 @@ def obtener_reporte_productividad(
     usuario_id: int = None,
     usuario=Depends(obtener_usuario_actual)
 ):
+    # Reporte de comparación entre mediadores: solo el administrador puede
+    # verlo (igual que Sucursales/Ciudades/Usuarios).
+    if usuario["rol"] != "administrador":
+        raise HTTPException(
+            status_code=403,
+            detail="Solo un administrador puede ver el reporte de productividad"
+        )
+
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
 

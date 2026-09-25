@@ -22,9 +22,9 @@ import { isAdmin } from '@/lib/auth';
 
 type TipoReporte = 'procesos' | 'productividad' | 'actas';
 
-const TIPOS: { valor: TipoReporte; titulo: string }[] = [
+const TIPOS: { valor: TipoReporte; titulo: string; adminOnly?: boolean }[] = [
   { valor: 'procesos', titulo: 'Procesos por periodo' },
-  { valor: 'productividad', titulo: 'Productividad por mediador' },
+  { valor: 'productividad', titulo: 'Productividad por mediador', adminOnly: true },
   { valor: 'actas', titulo: 'Actas finales emitidas' }
 ];
 
@@ -54,6 +54,8 @@ const getEstadoLabel = (estado: string) => {
 export default function ReportesPage() {
   const admin = isAdmin();
 
+  const tiposVisibles = TIPOS.filter((t) => !t.adminOnly || admin);
+
   const [tipo, setTipo] = useState<TipoReporte>('procesos');
 
   const [filters, setFilters] = useState({
@@ -81,6 +83,15 @@ export default function ReportesPage() {
   const [mediadorExpandidoId, setMediadorExpandidoId] = useState<number | null>(null);
   const [detalleProcesos, setDetalleProcesos] = useState<Record<number, any[]>>({});
   const [cargandoDetalleId, setCargandoDetalleId] = useState<number | null>(null);
+
+  useEffect(() => {
+    // El reporte de productividad es solo para el administrador; si por
+    // alguna razón un mediador quedara en ese tipo, se regresa al primero.
+    if (!admin && tipo === 'productividad') {
+      setTipo('procesos');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [admin]);
 
   useEffect(() => {
     getSucursalesCached().then(setSucursales).catch(() => setSucursales([]));
@@ -231,7 +242,7 @@ export default function ReportesPage() {
 
       {/* Selector de tipo de reporte */}
       <div className="flex gap-2 mb-4 flex-wrap">
-        {TIPOS.map((t) => (
+        {tiposVisibles.map((t) => (
           <button
             key={t.valor}
             type="button"
