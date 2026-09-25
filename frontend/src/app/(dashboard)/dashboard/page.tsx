@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import { StatCard, Spinner, ErrorAlert, PageHeader, Badge, EmptyState } from '@/components/ui';
 import { getDashboard, getUsoAlmacenamiento, getProcesos, getActasFinales } from '@/lib/services';
 import { useAuth } from '@/hooks/useAuth';
+import { GuiaBienvenida, useGuiaBienvenida } from '@/components/dashboard/GuiaBienvenida';
 
 // Cada tarjeta clickeable del resumen corresponde a un filtro de estado de
 // procesos, salvo "actas_finales" que no es un estado de proceso sino la
@@ -53,6 +54,7 @@ const CATEGORIAS: Record<
 export default function DashboardPage() {
   const router = useRouter();
   const { user, isAdmin } = useAuth();
+  const { mostrar: mostrarGuia, cerrarGuia, abrirGuia } = useGuiaBienvenida();
   const [stats, setStats] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -121,7 +123,14 @@ export default function DashboardPage() {
             ? 'Resumen práctico del sistema'
             : `${user?.sucursal || 'Sucursal'} · ${user?.ciudad || 'Ciudad'}`
         }
+        action={
+          <button type="button" onClick={abrirGuia} className="btn-secondary text-xs">
+            ¿Cómo funciona?
+          </button>
+        }
       />
+
+      <GuiaBienvenida open={mostrarGuia} onClose={cerrarGuia} />
 
       {error && <ErrorAlert message={error} />}
 
@@ -319,7 +328,11 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-numa-400">No hay procesos recientes.</p>
+                <EmptyState
+                  message="Todavía no tienes procesos registrados."
+                  actionLabel="Crear tu primer proceso"
+                  onAction={() => router.push('/procesos?crear=1')}
+                />
               )}
             </div>
 
@@ -381,7 +394,7 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-numa-400">No hay actas finales recientes.</p>
+                <EmptyState message="Todavía no hay actas finales subidas." />
               )}
             </div>
           </div>

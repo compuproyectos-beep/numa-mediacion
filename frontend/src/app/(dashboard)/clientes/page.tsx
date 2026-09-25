@@ -247,8 +247,10 @@ export default function ClientesPage() {
             message={
               search
                 ? 'No se encontraron resultados.'
-                : 'No hay clientes registrados.'
+                : 'Todavía no hay clientes registrados.'
             }
+            actionLabel={search ? undefined : 'Registrar tu primer cliente'}
+            onAction={search ? undefined : openCreate}
           />
         ) : (
           <div className="overflow-x-auto">

@@ -223,7 +223,15 @@ const handleCambiarEstado = async () => {
 
       <div className="card overflow-hidden">
         {loading ? <Spinner /> : sucursales.length === 0 ? (
-          <EmptyState message="No hay sucursales registradas." />
+          <EmptyState
+            message={
+              search
+                ? 'No se encontraron resultados.'
+                : 'Todavía no hay sucursales registradas.'
+            }
+            actionLabel={search ? undefined : 'Crear la primera sucursal'}
+            onAction={search ? undefined : openCreate}
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full">

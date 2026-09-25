@@ -232,6 +232,10 @@ export default function ProcesoDetallePage() {
     enviandoInvitacionRef.current = true;
     setGuardandoInvitacion(true);
     setError('');
+    setSuccessMessage('');
+
+    const fechaEnviada = invitacionForm.fecha;
+    const horaEnviada = invitacionForm.hora;
 
     try {
       await crearInvitacionProceso(proceso.id, invitacionForm);
@@ -242,6 +246,10 @@ export default function ProcesoDetallePage() {
       if (proceso.usuario_id) await cargarCitasMediador(proceso.usuario_id);
 
       setInvitacionForm({ fecha: '', hora: '', observaciones: '' });
+
+      setSuccessMessage(
+        `Invitación creada para el ${fechaEnviada} a las ${horaEnviada}. Ya aparece en la línea de tiempo del proceso.`
+      );
     } catch (err: any) {
       setError(err?.response?.data?.detail || 'Error al crear invitación');
     } finally {
@@ -260,6 +268,7 @@ export default function ProcesoDetallePage() {
 
     setGuardandoAvance(true);
     setError('');
+    setSuccessMessage('');
 
     try {
       await crearAvanceProceso(proceso.id, {
@@ -279,6 +288,10 @@ export default function ProcesoDetallePage() {
         resultado: 'en_negociacion',
         observacion: ''
       });
+
+      setSuccessMessage(
+        `Avance registrado: ${getEstadoProcesoLabel(avanceForm.resultado)}.`
+      );
     } catch (err: any) {
       setError(err?.response?.data?.detail || 'Error al registrar avance');
     } finally {
@@ -294,6 +307,7 @@ export default function ProcesoDetallePage() {
 
     setSubiendoActaFinal(true);
     setError('');
+    setSuccessMessage('');
 
     try {
       const data = await subirActaFinalProceso(

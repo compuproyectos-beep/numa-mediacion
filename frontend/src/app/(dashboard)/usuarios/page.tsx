@@ -325,8 +325,10 @@ export default function UsuariosPage() {
             message={
               search
                 ? 'No se encontraron resultados.'
-                : 'No hay usuarios registrados.'
+                : 'Todavía no hay usuarios registrados.'
             }
+            actionLabel={search ? undefined : 'Crear el primer usuario'}
+            onAction={search ? undefined : openCreate}
           />
         ) : (
           <div className="overflow-x-auto">

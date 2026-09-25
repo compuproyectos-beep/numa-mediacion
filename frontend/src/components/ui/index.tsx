@@ -77,11 +77,24 @@ export function Spinner({ className }: { className?: string }) {
 }
 
 // ── EMPTY STATE ───────────────────────────────────────────────────────────────
-export function EmptyState({ message }: { message: string }) {
+interface EmptyStateProps {
+  message: string;
+  actionLabel?: string;
+  onAction?: () => void;
+  icon?: string;
+}
+
+export function EmptyState({ message, actionLabel, onAction, icon = '📂' }: EmptyStateProps) {
   return (
     <div className="text-center py-14 text-numa-400 text-sm">
-      <div className="mb-2 text-3xl">📂</div>
-      {message}
+      <div className="mb-2 text-3xl">{icon}</div>
+      <p>{message}</p>
+
+      {actionLabel && onAction && (
+        <button type="button" onClick={onAction} className="btn-primary mt-4 inline-flex">
+          {actionLabel}
+        </button>
+      )}
     </div>
   );
 }

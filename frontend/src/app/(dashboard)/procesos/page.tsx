@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus } from 'lucide-react';
+import { Plus, Check } from 'lucide-react';
 import {
   PageHeader,
   Spinner,
@@ -53,6 +53,11 @@ export default function ProcesosPage() {
   // desde las tarjetas del dashboard (/procesos?estado=cerrado_con_acuerdo).
   const estadoDesdeUrl = searchParams?.get('estado') || '';
 
+  // Permite llegar aquí con la intención de crear de una vez, por ejemplo
+  // desde el botón "Crear tu primer proceso" del dashboard cuando un
+  // mediador nuevo todavía no tiene ningún proceso.
+  const crearDesdeUrl = searchParams?.get('crear') === '1';
+
   const [procesos, setProcesos] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
   const [sucursales, setSucursales] = useState<any[]>([]);
@@ -63,6 +68,16 @@ export default function ProcesosPage() {
   const [error, setError] = useState('');
 
   const [showCreate, setShowCreate] = useState(false);
+
+  // El formulario de "Nuevo Proceso" se muestra como flujo por pasos, para
+  // que un mediador nuevo no se enfrente a un formulario largo de una sola
+  // vez: 1) partes involucradas, 2) tema, 3) confirmación con resumen.
+  const PASOS_CREAR = [
+    { numero: 1, titulo: 'Partes' },
+    { numero: 2, titulo: 'Tema' },
+    { numero: 3, titulo: 'Confirmar' }
+  ] as const;
+  const [paso, setPaso] = useState(1);
 
   const [filters, setFilters] = useState({
     q: '',
@@ -107,6 +122,8 @@ export default function ProcesosPage() {
     getClientes().then(setClientes).catch(() => setClientes([]));
     getSucursalesCached().then(setSucursales).catch(() => setSucursales([]));
     getCiudadesCached(true).then(setCiudades).catch(() => setCiudades([]));
+
+    if (crearDesdeUrl) abrirCrear();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -123,21 +140,86 @@ export default function ProcesosPage() {
     getProcesos().then(setProcesos);
   };
 
-  const handleCreate = async () => {
+  const abrirCrear = () => {
+    setForm({
+      cliente_demandante_id: '',
+      cliente_demandado_id: '',
+      sucursal_id: '',
+      tema: ''
+    });
+    setPaso(1);
     setError('');
+    setShowCreate(true);
+  };
 
+  const cerrarCrear = () => {
+    setShowCreate(false);
+    setError('');
+    setPaso(1);
+  };
+
+  // Paso 1: sucursal (solo admin) + solicitante + invitado.
+  const validarPaso1 = () => {
     if (
       !form.cliente_demandante_id ||
       !form.cliente_demandado_id ||
-      !form.tema.trim() ||
       (isAdmin() && !form.sucursal_id)
     ) {
-      setError('Completa todos los campos obligatorios');
-      return;
+      setError('Completa sucursal, solicitante e invitado');
+      return false;
     }
 
     if (form.cliente_demandante_id === form.cliente_demandado_id) {
       setError('Solicitante e invitado no pueden ser iguales');
+      return false;
+    }
+
+    setError('');
+    return true;
+  };
+
+  // Paso 2: tema del proceso.
+  const validarPaso2 = () => {
+    if (!form.tema.trim()) {
+      setError('Describe el tema del proceso');
+      return false;
+    }
+
+    setError('');
+    return true;
+  };
+
+  const irSiguientePaso = () => {
+    if (paso === 1 && !validarPaso1()) return;
+    if (paso === 2 && !validarPaso2()) return;
+
+    setPaso((p) => Math.min(p + 1, PASOS_CREAR.length));
+  };
+
+  const irPasoAnterior = () => {
+    setError('');
+    setPaso((p) => Math.max(p - 1, 1));
+  };
+
+  const nombreCliente = (id: string) =>
+    clientes.find((c: any) => String(c.id) === String(id));
+
+  const nombreSucursal = (id: string) =>
+    sucursales.find((s: any) => String(s.id) === String(id));
+
+  const handleCreate = async () => {
+    setError('');
+
+    // Si algo quedó incompleto (por ejemplo, se llegó aquí saltando pasos),
+    // se regresa al paso correspondiente en vez de solo mostrar el error
+    // con el usuario ya en el paso de confirmación.
+    if (!validarPaso1()) {
+      setPaso(1);
+      return;
+    }
+
+    if (!validarPaso2()) {
+      setPaso(2);
       return;
     }
 
@@ -152,6 +234,7 @@ export default function ProcesosPage() {
       });
 
       setShowCreate(false);
+      setPaso(1);
 
       setForm({
         cliente_demandante_id: '',
@@ -181,7 +264,7 @@ export default function ProcesosPage() {
         title="Procesos de Mediación"
         subtitle="Gestión de procesos, invitaciones y avances"
         action={
-          <button onClick={() => setShowCreate(true)} className="btn-primary">
+          <button onClick={abrirCrear} className="btn-primary">
             <Plus className="w-4 h-4" />
             Nuevo Proceso
           </button>
@@ -301,7 +384,20 @@ export default function ProcesosPage() {
           <Spinner />
         ) : procesos.length === 0 ? (
           <div className="card p-6">
-            <EmptyState message="No hay procesos registrados." />
+            {(() => {
+              const hayFiltrosActivos = Object.values(filters).some((v) => !!v);
+              return (
+                <EmptyState
+                  message={
+                    hayFiltrosActivos
+                      ? 'No hay procesos que coincidan con estos filtros.'
+                      : 'Todavía no tienes procesos registrados.'
+                  }
+                  actionLabel={hayFiltrosActivos ? undefined : 'Crear tu primer proceso'}
+                  onAction={hayFiltrosActivos ? undefined : abrirCrear}
+                />
+              );
+            })()}
           </div>
         ) : (
           procesos.map((p) => (
@@ -370,87 +466,203 @@ export default function ProcesosPage() {
         )}
       </div>
 
-      <Modal
-        open={showCreate}
-        onClose={() => {
-          setShowCreate(false);
-          setError('');
-        }}
-        title="Nuevo Proceso de Mediación"
-        size="lg"
-      >
+      <Modal open={showCreate} onClose={cerrarCrear} title="Nuevo Proceso de Mediación" size="lg">
+        {/* Indicador de pasos: le muestra al mediador dónde está y qué falta,
+            para que un formulario de varias secciones no se sienta como un
+            solo bloque largo y confuso. */}
+        <div className="flex items-center gap-2 mb-6">
+          {PASOS_CREAR.map((p, idx) => (
+            <div key={p.numero} className="flex items-center flex-1 last:flex-none">
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 ${
+                    paso === p.numero
+                      ? 'bg-gold-500 text-white'
+                      : paso > p.numero
+                      ? 'bg-green-50 text-green-700'
+                      : 'bg-numa-100 text-numa-400'
+                  }`}
+                >
+                  {paso > p.numero ? <Check className="w-3.5 h-3.5" /> : p.numero}
+                </div>
+
+                <span
+                  className={`text-xs font-medium hidden sm:inline ${
+                    paso === p.numero ? 'text-numa-800' : 'text-numa-400'
+                  }`}
+                >
+                  {p.titulo}
+                </span>
+              </div>
+
+              {idx < PASOS_CREAR.length - 1 && (
+                <div
+                  className={`flex-1 h-px mx-3 ${
+                    paso > p.numero ? 'bg-green-200' : 'bg-numa-100'
+                  }`}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+
         {error && showCreate && (
           <div className="mb-4">
             <ErrorAlert message={error} />
           </div>
         )}
 
-        <div className="space-y-4">
-          {isAdmin() && (
-            <SelectField
-              label="Sucursal"
-              value={form.sucursal_id}
-              onChange={(e) => setForm({ ...form, sucursal_id: e.target.value })}
-            >
-              <option value="">Seleccione una sucursal</option>
+        {paso === 1 && (
+          <div className="space-y-4 animate-fade-in">
+            <p className="text-xs text-numa-500">
+              Paso 1 de {PASOS_CREAR.length}: elige quiénes participan en el proceso.
+            </p>
 
-              {sucursales.map((s: any) => (
-                <option key={s.id} value={s.id}>
-                  {s.ciudad_nombre || s.ciudad || ''} - {s.nombre}
+            {isAdmin() && (
+              <SelectField
+                label="Sucursal"
+                value={form.sucursal_id}
+                onChange={(e) => setForm({ ...form, sucursal_id: e.target.value })}
+              >
+                <option value="">Seleccione una sucursal</option>
+
+                {sucursales.map((s: any) => (
+                  <option key={s.id} value={s.id}>
+                    {s.ciudad_nombre || s.ciudad || ''} - {s.nombre}
+                  </option>
+                ))}
+              </SelectField>
+            )}
+
+            <SelectField
+              label="Solicitante"
+              value={form.cliente_demandante_id}
+              onChange={(e) =>
+                setForm({ ...form, cliente_demandante_id: e.target.value })
+              }
+            >
+              <option value="">Seleccione</option>
+
+              {clientes.map((c: any) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre} {c.apellido}
                 </option>
               ))}
             </SelectField>
-          )}
 
-          <SelectField
-            label="Solicitante"
-            value={form.cliente_demandante_id}
-            onChange={(e) =>
-              setForm({ ...form, cliente_demandante_id: e.target.value })
-            }
-          >
-            <option value="">Seleccione</option>
+            <SelectField
+              label="Invitado"
+              value={form.cliente_demandado_id}
+              onChange={(e) =>
+                setForm({ ...form, cliente_demandado_id: e.target.value })
+              }
+            >
+              <option value="">Seleccione</option>
 
-            {clientes.map((c: any) => (
-              <option key={c.id} value={c.id}>
-                {c.nombre} {c.apellido}
-              </option>
-            ))}
-          </SelectField>
+              {clientes.map((c: any) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre} {c.apellido}
+                </option>
+              ))}
+            </SelectField>
 
-          <SelectField
-            label="Invitado"
-            value={form.cliente_demandado_id}
-            onChange={(e) =>
-              setForm({ ...form, cliente_demandado_id: e.target.value })
-            }
-          >
-            <option value="">Seleccione</option>
+            {clientes.length === 0 && (
+              <p className="text-xs text-numa-400">
+                Todavía no hay clientes registrados. Ve a &quot;Clientes&quot; para
+                registrar al solicitante y al invitado antes de continuar.
+              </p>
+            )}
+          </div>
+        )}
 
-            {clientes.map((c: any) => (
-              <option key={c.id} value={c.id}>
-                {c.nombre} {c.apellido}
-              </option>
-            ))}
-          </SelectField>
+        {paso === 2 && (
+          <div className="space-y-4 animate-fade-in">
+            <p className="text-xs text-numa-500">
+              Paso 2 de {PASOS_CREAR.length}: describe el motivo del proceso.
+            </p>
 
-          <TextareaField
-            label="Tema / Motivo del proceso"
-            rows={4}
-            value={form.tema}
-            onChange={(e) => setForm({ ...form, tema: e.target.value })}
-            placeholder="Ejemplo: Mediación por acuerdo de pago..."
-          />
-        </div>
+            <TextareaField
+              label="Tema / Motivo del proceso"
+              rows={5}
+              value={form.tema}
+              onChange={(e) => setForm({ ...form, tema: e.target.value })}
+              placeholder="Ejemplo: Mediación por acuerdo de pago..."
+            />
+          </div>
+        )}
 
-        <div className="flex justify-end gap-3 mt-6">
-          <button onClick={() => setShowCreate(false)} className="btn-secondary">
-            Cancelar
-          </button>
+        {paso === 3 && (
+          <div className="space-y-4 animate-fade-in">
+            <p className="text-xs text-numa-500">
+              Paso 3 de {PASOS_CREAR.length}: revisa los datos antes de crear el proceso.
+            </p>
 
-          <button onClick={handleCreate} disabled={saving} className="btn-primary">
-            {saving ? 'Guardando...' : 'Crear Proceso'}
-          </button>
+            <div className="card bg-numa-50 p-4 space-y-2 text-sm">
+              {isAdmin() && (
+                <div>
+                  <span className="text-numa-400">Sucursal: </span>
+                  <span className="font-medium text-numa-800">
+                    {nombreSucursal(form.sucursal_id)?.nombre || '—'}
+                  </span>
+                </div>
+              )}
+
+              <div>
+                <span className="text-numa-400">Solicitante: </span>
+                <span className="font-medium text-numa-800">
+                  {nombreCliente(form.cliente_demandante_id)?.nombre}{' '}
+                  {nombreCliente(form.cliente_demandante_id)?.apellido}
+                </span>
+              </div>
+
+              <div>
+                <span className="text-numa-400">Invitado: </span>
+                <span className="font-medium text-numa-800">
+                  {nombreCliente(form.cliente_demandado_id)?.nombre}{' '}
+                  {nombreCliente(form.cliente_demandado_id)?.apellido}
+                </span>
+              </div>
+
+              <div>
+                <span className="text-numa-400">Tema: </span>
+                <span className="text-numa-700">{form.tema}</span>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-sm p-3">
+              <p className="text-xs text-blue-700">
+                Al crear el proceso irás directo a su pantalla, donde podrás
+                agendar invitaciones, registrar avances y, cuando se cierre,
+                subir el acta final.
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-between gap-3 mt-6">
+          <div>
+            {paso > 1 && (
+              <button onClick={irPasoAnterior} className="btn-secondary">
+                Atrás
+              </button>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+            <button onClick={cerrarCrear} className="btn-secondary">
+              Cancelar
+            </button>
+
+            {paso < PASOS_CREAR.length ? (
+              <button onClick={irSiguientePaso} className="btn-primary">
+                Siguiente
+              </button>
+            ) : (
+              <button onClick={handleCreate} disabled={saving} className="btn-primary">
+                {saving ? 'Guardando...' : 'Crear Proceso'}
+              </button>
+            )}
+          </div>
         </div>
       </Modal>
     </>
