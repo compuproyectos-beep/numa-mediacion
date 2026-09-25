@@ -467,8 +467,8 @@ export default function ProcesoDetallePage() {
           }`}
         >
           {plazoActaInfo.vencido
-            ? `El plazo de 48 horas para subir el acta final y el comprobante de pago venció hace ${plazoActaInfo.texto}. Súbelos cuanto antes: mientras esto esté pendiente, no podrás cerrar otros procesos con acuerdo.`
-            : `Te quedan ${plazoActaInfo.texto} para subir el acta final y el comprobante de pago.`}
+            ? `El plazo de 48 horas para subir el acta final y el comprobante de pago venció hace ${plazoActaInfo.texto}. Súbelos cuanto antes — ya puedes subir actas o cerrar otros procesos con normalidad, ese bloqueo era solo durante las 48 horas.`
+            : `Te quedan ${plazoActaInfo.texto} para subir el acta final y el comprobante de pago. Mientras esté pendiente, no podrás subir actas de otros procesos.`}
         </div>
       )}
 
