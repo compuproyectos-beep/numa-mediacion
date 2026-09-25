@@ -106,6 +106,19 @@ export default function ReportesPage() {
   const [detalleCliente, setDetalleCliente] = useState<Record<number, any[]>>({});
   const [cargandoDetalleClienteId, setCargandoDetalleClienteId] = useState<number | null>(null);
 
+  // Y también para Sucursales, que antes no tenía detalle expandible.
+  const [sucursalExpandidoId, setSucursalExpandidoId] = useState<number | null>(null);
+  const [detalleSucursal, setDetalleSucursal] = useState<Record<number, any[]>>({});
+  const [cargandoDetalleSucursalId, setCargandoDetalleSucursalId] = useState<number | null>(null);
+
+  // Cuando se da clic en el número de "Actas pendientes" (en vez de en la
+  // fila completa), se abre el mismo detalle pero filtrado a solo esos
+  // procesos, para ir directo a lo que falta subir sin tener que leer toda
+  // la lista.
+  const [soloPendientesDetalle, setSoloPendientesDetalle] = useState(false);
+
+  const esActaPendiente = (p: any) => p.estado === 'cerrado_con_acuerdo' && !p.finalizado;
+
   useEffect(() => {
     // Productividad y Sucursales son solo para el administrador; si por
     // alguna razón un mediador quedara en uno de esos tipos, se regresa al
@@ -172,6 +185,8 @@ export default function ReportesPage() {
     setError('');
     setMediadorExpandidoId(null);
     setClienteExpandidoId(null);
+    setSucursalExpandidoId(null);
+    setSoloPendientesDetalle(false);
   };
 
   // Abre el proceso en una pestaña nueva para no perder el reporte ya
@@ -180,13 +195,15 @@ export default function ReportesPage() {
     window.open(`/procesos/${procesoId}`, '_blank');
   };
 
-  const toggleDetalleMediador = async (mediadorId: number) => {
-    if (mediadorExpandidoId === mediadorId) {
+  const toggleDetalleMediador = async (mediadorId: number, soloPendientes = false) => {
+    if (mediadorExpandidoId === mediadorId && !soloPendientes) {
       setMediadorExpandidoId(null);
+      setSoloPendientesDetalle(false);
       return;
     }
 
     setMediadorExpandidoId(mediadorId);
+    setSoloPendientesDetalle(soloPendientes);
 
     if (detalleProcesos[mediadorId]) return;
 
@@ -207,13 +224,15 @@ export default function ReportesPage() {
     }
   };
 
-  const toggleDetalleCliente = async (clienteId: number) => {
-    if (clienteExpandidoId === clienteId) {
+  const toggleDetalleCliente = async (clienteId: number, soloPendientes = false) => {
+    if (clienteExpandidoId === clienteId && !soloPendientes) {
       setClienteExpandidoId(null);
+      setSoloPendientesDetalle(false);
       return;
     }
 
     setClienteExpandidoId(clienteId);
+    setSoloPendientesDetalle(soloPendientes);
 
     if (detalleCliente[clienteId]) return;
 
@@ -231,6 +250,35 @@ export default function ReportesPage() {
       setDetalleCliente((prev) => ({ ...prev, [clienteId]: [] }));
     } finally {
       setCargandoDetalleClienteId(null);
+    }
+  };
+
+  const toggleDetalleSucursal = async (sucursalId: number, soloPendientes = false) => {
+    if (sucursalExpandidoId === sucursalId && !soloPendientes) {
+      setSucursalExpandidoId(null);
+      setSoloPendientesDetalle(false);
+      return;
+    }
+
+    setSucursalExpandidoId(sucursalId);
+    setSoloPendientesDetalle(soloPendientes);
+
+    if (detalleSucursal[sucursalId]) return;
+
+    setCargandoDetalleSucursalId(sucursalId);
+
+    try {
+      const data = await getProcesos({
+        sucursal_id: sucursalId,
+        fecha_desde: filtrosActivos.fecha_desde,
+        fecha_hasta: filtrosActivos.fecha_hasta
+      });
+
+      setDetalleSucursal((prev) => ({ ...prev, [sucursalId]: data }));
+    } catch {
+      setDetalleSucursal((prev) => ({ ...prev, [sucursalId]: [] }));
+    } finally {
+      setCargandoDetalleSucursalId(null);
     }
   };
 
@@ -576,6 +624,7 @@ export default function ReportesPage() {
 
                     {tipo === 'sucursales' && (
                       <>
+                        <th className="table-header"></th>
                         <th className="table-header">Sucursal</th>
                         <th className="table-header">Ciudad</th>
                         <th className="table-header">Total</th>
@@ -678,7 +727,14 @@ export default function ReportesPage() {
                           <td className="table-cell">{m.actas_subidas}</td>
                           <td className="table-cell">
                             {m.actas_pendientes > 0 ? (
-                              <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-medium">
+                              <span
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleDetalleMediador(m.usuario_id, true);
+                                }}
+                                className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-medium cursor-pointer hover:bg-red-100 underline decoration-dotted"
+                                title="Ver los procesos con acta pendiente"
+                              >
                                 {m.actas_pendientes}
                               </span>
                             ) : (
@@ -703,11 +759,30 @@ export default function ReportesPage() {
                                 </p>
                               ) : (
                                 <div className="space-y-2">
-                                  <p className="text-xs text-numa-500 font-medium">
-                                    Procesos de {m.mediador} en este periodo:
-                                  </p>
+                                  <div className="flex items-center justify-between flex-wrap gap-2">
+                                    <p className="text-xs text-numa-500 font-medium">
+                                      {soloPendientesDetalle
+                                        ? `Procesos de ${m.mediador} con acta pendiente:`
+                                        : `Procesos de ${m.mediador} en este periodo:`}
+                                    </p>
+                                    {soloPendientesDetalle && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSoloPendientesDetalle(false);
+                                        }}
+                                        className="text-xs text-numa-500 underline hover:text-numa-800"
+                                      >
+                                        Ver todos
+                                      </button>
+                                    )}
+                                  </div>
 
-                                  {detalleProcesos[m.usuario_id].map((p: any) => (
+                                  {(soloPendientesDetalle
+                                    ? detalleProcesos[m.usuario_id].filter(esActaPendiente)
+                                    : detalleProcesos[m.usuario_id]
+                                  ).map((p: any) => (
                                     <div
                                       key={p.id}
                                       onClick={(e) => {
@@ -765,30 +840,115 @@ export default function ReportesPage() {
 
                   {tipo === 'sucursales' &&
                     datos.map((s: any) => (
-                      <tr key={s.sucursal_id} className="table-row">
-                        <td className="table-cell font-medium">{s.sucursal}</td>
-                        <td className="table-cell">{s.ciudad || '—'}</td>
-                        <td className="table-cell">{s.total_procesos}</td>
-                        <td className="table-cell">{s.en_negociacion}</td>
-                        <td className="table-cell">{s.cerrados_con_acuerdo}</td>
-                        <td className="table-cell">{s.cerrados_sin_acuerdo}</td>
-                        <td className="table-cell">{s.archivados}</td>
-                        <td className="table-cell">{s.actas_subidas}</td>
-                        <td className="table-cell">
-                          {s.actas_pendientes > 0 ? (
-                            <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-medium">
-                              {s.actas_pendientes}
-                            </span>
-                          ) : (
-                            0
-                          )}
-                        </td>
-                        <td className="table-cell">
-                          {s.promedio_dias_cierre != null
-                            ? `${s.promedio_dias_cierre} días`
-                            : '—'}
-                        </td>
-                      </tr>
+                      <Fragment key={s.sucursal_id}>
+                        <tr
+                          onClick={() => toggleDetalleSucursal(s.sucursal_id)}
+                          className="table-row cursor-pointer hover:bg-gold-400/[0.06]"
+                        >
+                          <td className="table-cell w-6">
+                            {sucursalExpandidoId === s.sucursal_id ? (
+                              <ChevronDown className="w-4 h-4 text-numa-400" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-numa-400" />
+                            )}
+                          </td>
+                          <td className="table-cell font-medium">{s.sucursal}</td>
+                          <td className="table-cell">{s.ciudad || '—'}</td>
+                          <td className="table-cell">{s.total_procesos}</td>
+                          <td className="table-cell">{s.en_negociacion}</td>
+                          <td className="table-cell">{s.cerrados_con_acuerdo}</td>
+                          <td className="table-cell">{s.cerrados_sin_acuerdo}</td>
+                          <td className="table-cell">{s.archivados}</td>
+                          <td className="table-cell">{s.actas_subidas}</td>
+                          <td className="table-cell">
+                            {s.actas_pendientes > 0 ? (
+                              <span
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleDetalleSucursal(s.sucursal_id, true);
+                                }}
+                                className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-medium cursor-pointer hover:bg-red-100 underline decoration-dotted"
+                                title="Ver los procesos con acta pendiente"
+                              >
+                                {s.actas_pendientes}
+                              </span>
+                            ) : (
+                              0
+                            )}
+                          </td>
+                          <td className="table-cell">
+                            {s.promedio_dias_cierre != null
+                              ? `${s.promedio_dias_cierre} días`
+                              : '—'}
+                          </td>
+                        </tr>
+
+                        {sucursalExpandidoId === s.sucursal_id && (
+                          <tr key={`${s.sucursal_id}-detalle`}>
+                            <td colSpan={11} className="bg-numa-50 px-4 py-4">
+                              {cargandoDetalleSucursalId === s.sucursal_id ? (
+                                <Spinner />
+                              ) : !detalleSucursal[s.sucursal_id]?.length ? (
+                                <p className="text-xs text-numa-400 py-2">
+                                  Esta sucursal no tiene procesos en este rango de fechas.
+                                </p>
+                              ) : (
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between flex-wrap gap-2">
+                                    <p className="text-xs text-numa-500 font-medium">
+                                      {soloPendientesDetalle
+                                        ? `Procesos de ${s.sucursal} con acta pendiente:`
+                                        : `Procesos de ${s.sucursal} en este periodo:`}
+                                    </p>
+                                    {soloPendientesDetalle && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSoloPendientesDetalle(false);
+                                        }}
+                                        className="text-xs text-numa-500 underline hover:text-numa-800"
+                                      >
+                                        Ver todos
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {(soloPendientesDetalle
+                                    ? detalleSucursal[s.sucursal_id].filter(esActaPendiente)
+                                    : detalleSucursal[s.sucursal_id]
+                                  ).map((p: any) => (
+                                    <div
+                                      key={p.id}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        abrirProceso(p.id);
+                                      }}
+                                      className="bg-white border border-numa-200 rounded-sm p-3 cursor-pointer hover:shadow-md transition-shadow duration-200 flex items-center justify-between gap-3 flex-wrap"
+                                    >
+                                      <div>
+                                        <span className="font-medium text-numa-800 code-text text-xs">
+                                          {p.codigo_proceso}
+                                        </span>
+                                        <span className="text-xs text-numa-600 ml-2">
+                                          {p.demandante} vs {p.demandado}
+                                        </span>
+                                      </div>
+
+                                      <span className="text-xs text-numa-500">
+                                        {getEstadoLabel(p.estado)} ·{' '}
+                                        {p.fecha_creacion
+                                          ? new Date(p.fecha_creacion).toLocaleDateString('es-EC')
+                                          : '—'}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
                     ))}
 
                   {tipo === 'clientes' &&
@@ -817,7 +977,14 @@ export default function ReportesPage() {
                           <td className="table-cell">{c.actas_subidas}</td>
                           <td className="table-cell">
                             {c.actas_pendientes > 0 ? (
-                              <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-medium">
+                              <span
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleDetalleCliente(c.cliente_id, true);
+                                }}
+                                className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-medium cursor-pointer hover:bg-red-100 underline decoration-dotted"
+                                title="Ver los procesos con acta pendiente"
+                              >
                                 {c.actas_pendientes}
                               </span>
                             ) : (
@@ -837,11 +1004,30 @@ export default function ReportesPage() {
                                 </p>
                               ) : (
                                 <div className="space-y-2">
-                                  <p className="text-xs text-numa-500 font-medium">
-                                    Procesos de {c.cliente} en este periodo:
-                                  </p>
+                                  <div className="flex items-center justify-between flex-wrap gap-2">
+                                    <p className="text-xs text-numa-500 font-medium">
+                                      {soloPendientesDetalle
+                                        ? `Procesos de ${c.cliente} con acta pendiente:`
+                                        : `Procesos de ${c.cliente} en este periodo:`}
+                                    </p>
+                                    {soloPendientesDetalle && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSoloPendientesDetalle(false);
+                                        }}
+                                        className="text-xs text-numa-500 underline hover:text-numa-800"
+                                      >
+                                        Ver todos
+                                      </button>
+                                    )}
+                                  </div>
 
-                                  {detalleCliente[c.cliente_id].map((p: any) => (
+                                  {(soloPendientesDetalle
+                                    ? detalleCliente[c.cliente_id].filter(esActaPendiente)
+                                    : detalleCliente[c.cliente_id]
+                                  ).map((p: any) => (
                                     <div
                                       key={p.id}
                                       onClick={(e) => {
