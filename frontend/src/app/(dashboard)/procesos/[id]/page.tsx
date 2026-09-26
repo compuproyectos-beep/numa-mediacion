@@ -373,6 +373,11 @@ export default function ProcesoDetallePage() {
   // proceso pasó a "cerrado con acuerdo", para subir el acta final junto
   // con el comprobante de pago.
   const plazoActaInfo = (() => {
+    // Una vez que el acta final ya se subió (finalizado = true), el plazo
+    // de 48 horas deja de tener sentido — si no, el aviso se quedaba
+    // mostrando "venció hace..." para siempre, aunque ya se hubiera subido.
+    if (proceso?.finalizado) return null;
+
     const inicio = parseFechaUTC(proceso?.fecha_acuerdo);
     if (!inicio) return null;
 

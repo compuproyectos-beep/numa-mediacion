@@ -426,6 +426,16 @@ export default function ProcesosPage() {
                     >
                       {getEstadoProcesoLabel(p.estado)}
                     </span>
+
+                    {/* Un proceso "cerrado con acuerdo" no significa que ya
+                        esté todo listo: falta que se suba el acta final +
+                        comprobante. Esto lo hace visible de una vez en el
+                        listado, sin tener que entrar a cada proceso. */}
+                    {p.estado === 'cerrado_con_acuerdo' && !p.finalizado && (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+                        Falta subir acta
+                      </span>
+                    )}
                   </div>
 
                   <div className="text-sm text-numa-800">
