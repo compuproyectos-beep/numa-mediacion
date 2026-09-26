@@ -22,7 +22,9 @@ import io
 from openpyxl import Workbook
 from openpyxl.styles import Font
 import secrets
-from app.email_utils import enviar_correo, plantilla_base
+from app.email_utils import enviar_correo, plantilla_base, enviar_correo_con_adjunto
+from app.file_compress_utils import comprimir_imagen, comprimir_pdf
+from decimal import Decimal
 
 from app.database import get_db
 from app.security import obtener_usuario_actual, crear_token
@@ -274,6 +276,115 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 # =========================
+# RESPALDO DIARIO DE LA BASE DE DATOS
+# =========================
+# El plan de Supabase en uso no incluye respaldos automáticos, así que este
+# job hace su propio respaldo: exporta todas las filas de todas las tablas
+# a JSON, lo comprime en un .zip y lo manda por correo al administrador.
+# No respalda los PDFs de actas/comprobantes (esos viven en Supabase
+# Storage, no en la base de datos) — solo los datos de las tablas.
+def _valor_serializable(valor):
+    """Convierte tipos que json.dumps no entiende (fechas, Decimal, etc.)
+    a algo que sí pueda escribir en el respaldo."""
+    if isinstance(valor, (datetime.date, datetime.datetime)):
+        return valor.isoformat()
+    if isinstance(valor, Decimal):
+        return float(valor)
+    if isinstance(valor, (bytes, bytearray)):
+        return None  # no debería haber columnas binarias, pero por si acaso
+    return str(valor)
+
+
+def generar_respaldo_base_datos():
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        cur.execute("""
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+              AND table_type = 'BASE TABLE'
+            ORDER BY table_name
+        """)
+
+        tablas = [fila["table_name"] for fila in cur.fetchall()]
+
+        buffer_zip = io.BytesIO()
+
+        with zipfile.ZipFile(buffer_zip, "w", zipfile.ZIP_DEFLATED) as zf:
+            resumen = []
+
+            for tabla in tablas:
+                cur.execute(f'SELECT * FROM "{tabla}"')
+                filas = cur.fetchall()
+
+                contenido = json.dumps(
+                    filas, default=_valor_serializable, ensure_ascii=False, indent=2
+                )
+
+                zf.writestr(f"{tabla}.json", contenido)
+                resumen.append(f"{tabla}: {len(filas)} filas")
+
+            zf.writestr(
+                "LEEME.txt",
+                "Respaldo automático diario de la base de datos de NUMA/SIGM.\n"
+                "No incluye los archivos PDF de actas ni comprobantes de pago "
+                "(esos se guardan en Supabase Storage, no en la base de datos).\n\n"
+                + "\n".join(resumen)
+            )
+
+        contenido_zip = buffer_zip.getvalue()
+        fecha_hoy = datetime.date.today().isoformat()
+
+        # A quién se le manda: BACKUP_EMAIL si está configurado, o si no,
+        # el correo del administrador activo.
+        destinatario = os.getenv("BACKUP_EMAIL")
+
+        if not destinatario:
+            cur.execute("""
+                SELECT email FROM usuarios
+                WHERE rol = 'administrador' AND activo = true
+                LIMIT 1
+            """)
+            admin = cur.fetchone()
+            destinatario = admin["email"] if admin else None
+
+        if not destinatario:
+            print("⚠️  Respaldo generado pero no hay a quién enviarlo (sin BACKUP_EMAIL ni administrador activo).")
+            return
+
+        tamano_mb = len(contenido_zip) / (1024 * 1024)
+
+        enviado = enviar_correo_con_adjunto(
+            destinatario,
+            f"Respaldo NUMA — {fecha_hoy}",
+            plantilla_base(
+                "Respaldo diario de la base de datos",
+                f"Adjunto el respaldo automático del {fecha_hoy} "
+                f"({tamano_mb:.1f} MB, {len(tablas)} tablas). "
+                "Guárdalo en un lugar seguro (por ejemplo, una carpeta de Drive dedicada a respaldos).",
+                "Ir al sistema",
+                os.getenv("FRONTEND_URL", "https://numa-frontend-production.up.railway.app"),
+            ),
+            f"respaldo_numa_{fecha_hoy}.zip",
+            contenido_zip,
+        )
+
+        if enviado:
+            print(f"✅ Respaldo diario enviado a {destinatario} ({tamano_mb:.1f} MB)")
+        else:
+            print(f"⚠️  No se pudo enviar el respaldo diario a {destinatario}")
+
+    except Exception as e:
+        print("Error generando el respaldo diario:", e)
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+# =========================
 # PROGRAMADOR DE RECORDATORIOS
 # =========================
 # Se registra UNA sola vez, cuando arranca la aplicación (no cada vez que
@@ -308,6 +419,25 @@ def iniciar_scheduler():
             generar_recordatorios_citas,
             "cron",
             hour=8,
+            minute=0,
+        )
+
+    try:
+        # Respaldo diario de la base de datos (ver la función más arriba).
+        # A las 3am hora de Ecuador, para que no compita con el horario en
+        # que el centro está usando el sistema.
+        _scheduler.add_job(
+            generar_respaldo_base_datos,
+            "cron",
+            hour=3,
+            minute=0,
+            timezone="America/Guayaquil",
+        )
+    except Exception:
+        _scheduler.add_job(
+            generar_respaldo_base_datos,
+            "cron",
+            hour=3,
             minute=0,
         )
 
@@ -1814,6 +1944,12 @@ def editar_usuario(
 # =========================
 @app.get("/usuarios")
 def obtener_usuarios(usuario=Depends(obtener_usuario_actual)):
+    # Este listado trae el email, cédula y rol de TODOS los usuarios
+    # (incluido el propio admin), así que solo el administrador puede
+    # consultarlo. Ninguna pantalla de mediador necesita este endpoint.
+    if usuario["rol"] != "administrador":
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver esta información")
+
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
@@ -3169,12 +3305,28 @@ async def subir_acta_final_proceso(
         contenido_acta = await archivo.read()
         contenido_comprobante = await comprobante_pago.read()
 
-        extension_comprobante = {
+        # Se comprimen antes de subir a Supabase Storage para gastar menos
+        # espacio de almacenamiento sin perder legibilidad (ver
+        # app/file_compress_utils.py). Si algo falla al comprimir, se sube
+        # el archivo tal cual llegó — nunca se bloquea la subida por eso.
+        contenido_acta = comprimir_pdf(contenido_acta)
+
+        content_type_comprobante = comprobante_pago.content_type
+        extension_comprobante_forzada = None
+
+        if content_type_comprobante in ("image/jpeg", "image/jpg", "image/png"):
+            contenido_comprobante, content_type_comprobante, extension_comprobante_forzada = (
+                comprimir_imagen(contenido_comprobante, content_type_comprobante)
+            )
+        elif content_type_comprobante == "application/pdf":
+            contenido_comprobante = comprimir_pdf(contenido_comprobante)
+
+        extension_comprobante = extension_comprobante_forzada or {
             "application/pdf": "pdf",
             "image/jpeg": "jpg",
             "image/jpg": "jpg",
             "image/png": "png",
-        }[comprobante_pago.content_type]
+        }[content_type_comprobante]
 
         nombre_unico_acta = f"{uuid.uuid4()}.pdf"
         ruta_storage = f"actas-finales/{codigo_acta}/{nombre_unico_acta}"
@@ -3217,7 +3369,7 @@ async def subir_acta_final_proceso(
             )
 
         response_comprobante = _subir_a_supabase(
-            ruta_comprobante, contenido_comprobante, comprobante_pago.content_type
+            ruta_comprobante, contenido_comprobante, content_type_comprobante
         )
 
         if response_comprobante.status_code not in [200, 201]:
@@ -3617,6 +3769,7 @@ async def reemplazar_acta_final_pdf(
             )
 
         contenido = await archivo.read()
+        contenido = comprimir_pdf(contenido)
 
         nombre_unico = f"{uuid.uuid4()}.pdf"
         ruta_storage = f"actas-finales/{acta['codigo_acta']}/{nombre_unico}"

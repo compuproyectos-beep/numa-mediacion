@@ -2,6 +2,7 @@ import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
 from email.header import Header
 from email.utils import formataddr
 
@@ -42,6 +43,60 @@ def enviar_correo(destinatario: str, asunto: str, cuerpo_html: str) -> bool:
         return True
     except Exception as e:
         print(f"⚠️  Error enviando correo a {destinatario}: {e}")
+        return False
+
+
+def enviar_correo_con_adjunto(
+    destinatario: str,
+    asunto: str,
+    cuerpo_html: str,
+    nombre_adjunto: str,
+    contenido_adjunto: bytes,
+) -> bool:
+    """
+    Igual que enviar_correo, pero con un archivo adjunto (por ejemplo, el
+    respaldo diario de la base de datos comprimido en .zip). Devuelve True
+    si se envió, False si falló, y nunca lanza una excepción hacia quien
+    la llama (para no tumbar el proceso que dispara el respaldo).
+    """
+    smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_password = os.getenv("SMTP_PASSWORD")
+    email_from = os.getenv("EMAIL_FROM", smtp_user)
+    remitente_nombre = os.getenv("EMAIL_REMITENTE_NOMBRE", "Centro de Mediación NUMA")
+
+    if not smtp_user or not smtp_password:
+        print(
+            "⚠️  SMTP_USER / SMTP_PASSWORD no configurados. "
+            "No se envió el correo con adjunto a:", destinatario
+        )
+        return False
+
+    try:
+        mensaje = MIMEMultipart("mixed")
+        mensaje["Subject"] = asunto
+        mensaje["From"] = formataddr((str(Header(remitente_nombre, "utf-8")), email_from))
+        mensaje["To"] = destinatario
+
+        cuerpo = MIMEMultipart("alternative")
+        cuerpo.attach(MIMEText(cuerpo_html, "html"))
+        mensaje.attach(cuerpo)
+
+        adjunto = MIMEApplication(contenido_adjunto)
+        adjunto.add_header(
+            "Content-Disposition", "attachment", filename=nombre_adjunto
+        )
+        mensaje.attach(adjunto)
+
+        with smtplib.SMTP(smtp_host, smtp_port) as servidor:
+            servidor.starttls()
+            servidor.login(smtp_user, smtp_password)
+            servidor.sendmail(email_from, destinatario, mensaje.as_string())
+
+        return True
+    except Exception as e:
+        print(f"⚠️  Error enviando correo con adjunto a {destinatario}: {e}")
         return False
 
 

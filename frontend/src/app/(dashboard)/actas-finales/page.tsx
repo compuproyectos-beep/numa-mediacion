@@ -23,6 +23,18 @@ import {
 } from '@/lib/services';
 import { getCiudadesCached, getSucursalesCached } from '@/lib/catalogCache';
 
+// Convierte bytes a un texto legible (KB o MB), para mostrar cuánto pesa
+// cada acta/comprobante ya comprimido en Supabase Storage.
+function formatearPeso(bytes?: number | null): string | null {
+  if (bytes == null || bytes <= 0) return null;
+
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(0)} KB`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export default function ActasFinalesPage() {
   const [actas, setActas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -426,6 +438,15 @@ const handleExportarZip = async () => {
                     ? new Date(a.fecha_subida).toLocaleDateString('es-EC')
                     : '—'}
                 </p>
+
+                {(formatearPeso(a.tamano_bytes) || formatearPeso(a.tamano_comprobante_bytes)) && (
+                  <p className="text-xs text-numa-400">
+                    Peso — Acta: {formatearPeso(a.tamano_bytes) || '—'}
+                    {a.ruta_comprobante_pago && (
+                      <> · Comprobante: {formatearPeso(a.tamano_comprobante_bytes) || '—'}</>
+                    )}
+                  </p>
+                )}
 
               </div>
 
