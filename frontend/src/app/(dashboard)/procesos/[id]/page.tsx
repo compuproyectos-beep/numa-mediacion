@@ -55,6 +55,12 @@ export default function ProcesoDetallePage() {
 
   const [proceso, setProceso] = useState<any | null>(null);
   const [loadingProceso, setLoadingProceso] = useState(true);
+
+  // Si este proceso está "cerrado con acuerdo" pero NO es el primero en la
+  // fila para subir acta (ver la regla de fila FIFO en el backend), aquí
+  // se guarda cuál es el que sí lo es, para poder mostrarlo por nombre en
+  // el aviso en vez de solo decir "hay otro proceso con prioridad".
+  const [procesoPrimeroEnFila, setProcesoPrimeroEnFila] = useState<any | null>(null);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -118,6 +124,28 @@ export default function ProcesoDetallePage() {
       }
 
       setProceso(encontrado);
+
+      // Si este proceso está pendiente de acta pero no es el primero en la
+      // fila, se busca cuál sí lo es (mismo mediador), para nombrarlo en el
+      // aviso en vez de dejarlo genérico.
+      if (
+        encontrado &&
+        encontrado.estado === 'cerrado_con_acuerdo' &&
+        !encontrado.finalizado &&
+        !encontrado.acta_primero_en_fila
+      ) {
+        const primero = procesos.find(
+          (p: any) =>
+            p.usuario_id === encontrado.usuario_id &&
+            p.estado === 'cerrado_con_acuerdo' &&
+            !p.finalizado &&
+            p.acta_primero_en_fila
+        );
+        setProcesoPrimeroEnFila(primero || null);
+      } else {
+        setProcesoPrimeroEnFila(null);
+      }
+
       return encontrado;
     } catch {
       setError('Error al cargar el proceso');
@@ -461,20 +489,40 @@ export default function ProcesoDetallePage() {
       </div>
 
       {/* Se muestra justo debajo del encabezado (no al fondo de la página)
-          para que el mediador vea el plazo de las 48 horas de una vez,
-          sin tener que bajar por toda la línea de tiempo del proceso. */}
-      {plazoActaInfo && (
-        <div
-          className={`mb-4 text-sm px-4 py-3 rounded-sm border font-medium ${
-            plazoActaInfo.vencido
-              ? 'bg-red-50 border-red-100 text-red-700'
-              : 'bg-gold-50 border-gold-100 text-gold-700'
-          }`}
-        >
-          {plazoActaInfo.vencido
-            ? `El plazo de 48 horas para subir el acta final y el comprobante de pago venció hace ${plazoActaInfo.texto}. Súbelos cuanto antes — ya puedes subir actas o cerrar otros procesos con normalidad, ese bloqueo era solo durante las 48 horas.`
-            : `Te quedan ${plazoActaInfo.texto} para subir el acta final y el comprobante de pago. Mientras esté pendiente, no podrás subir actas de otros procesos.`}
+          para que el mediador vea de una vez si este proceso tiene su acta
+          pendiente, y si es el que debe subir primero (fila FIFO) o si hay
+          otro con prioridad. */}
+      {procesoPrimeroEnFila ? (
+        <div className="mb-4 text-sm px-4 py-3 rounded-sm border font-medium bg-blue-50 border-blue-100 text-blue-700 flex items-center justify-between gap-3 flex-wrap">
+          <span>
+            Este proceso también tiene el acta final pendiente, pero primero
+            debes subir la del proceso{' '}
+            <strong>{procesoPrimeroEnFila.codigo_proceso}</strong> — es el
+            primero en la fila. Súbela ahí para poder continuar con este.
+          </span>
+
+          <button
+            type="button"
+            onClick={() => router.push(`/procesos/${procesoPrimeroEnFila.id}`)}
+            className="btn-secondary text-xs py-1.5 px-3 shrink-0"
+          >
+            Ir a {procesoPrimeroEnFila.codigo_proceso}
+          </button>
         </div>
+      ) : (
+        plazoActaInfo && (
+          <div
+            className={`mb-4 text-sm px-4 py-3 rounded-sm border font-medium ${
+              plazoActaInfo.vencido
+                ? 'bg-red-50 border-red-100 text-red-700'
+                : 'bg-gold-50 border-gold-100 text-gold-700'
+            }`}
+          >
+            {plazoActaInfo.vencido
+              ? `Ya pasó el plazo recomendado de 48 horas para subir el acta final y el comprobante de pago de este proceso (hace ${plazoActaInfo.texto}). Súbelos cuanto antes — este proceso ya no bloquea la subida de otros, pero sigue pendiente.`
+              : `Te quedan ${plazoActaInfo.texto} del plazo recomendado de 48 horas para subir el acta final y el comprobante de pago. Mientras esté dentro de este plazo, no podrás subir actas de otros procesos pendientes.`}
+          </div>
+        )
       )}
 
       {error && (
@@ -822,22 +870,33 @@ export default function ProcesoDetallePage() {
           <div className="card p-4">
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <p className="text-sm text-numa-600">
-                El proceso llegó a un acuerdo. Sube el acta final y el
-                comprobante de pago para cerrarlo.
+                {procesoPrimeroEnFila
+                  ? `Este proceso llegó a un acuerdo, pero primero debes subir el acta de ${procesoPrimeroEnFila.codigo_proceso} (es el primero en la fila).`
+                  : 'El proceso llegó a un acuerdo. Sube el acta final y el comprobante de pago para cerrarlo.'}
               </p>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setShowActaFinal(true);
-                  setArchivoActaFinal(null);
-                  setError('');
-                }}
-                className="btn-primary shrink-0"
-              >
-                <Upload className="w-4 h-4" />
-                Subir Acta y Comprobante
-              </button>
+              {procesoPrimeroEnFila ? (
+                <button
+                  type="button"
+                  onClick={() => router.push(`/procesos/${procesoPrimeroEnFila.id}`)}
+                  className="btn-secondary shrink-0"
+                >
+                  Ir a {procesoPrimeroEnFila.codigo_proceso}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowActaFinal(true);
+                    setArchivoActaFinal(null);
+                    setError('');
+                  }}
+                  className="btn-primary shrink-0"
+                >
+                  <Upload className="w-4 h-4" />
+                  Subir Acta y Comprobante
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -863,10 +922,12 @@ export default function ProcesoDetallePage() {
         <div className="space-y-4">
           <p className="text-sm text-numa-600">
             Debe subir el acta final y el comprobante de pago juntos: el proceso no
-            queda finalizado hasta que ambos archivos estén cargados. Tiene un plazo
-            de 48 horas desde que el proceso pasó a &quot;Cerrado con acuerdo&quot; —
-            mientras esta acta esté pendiente, no podrá subir actas finales de otros
-            procesos.
+            queda finalizado hasta que ambos archivos estén cargados. El plazo
+            recomendado es de 48 horas desde que el proceso pasó a &quot;Cerrado con
+            acuerdo&quot;. Si tiene más de un proceso pendiente a la vez, no podrá
+            subir actas de los demás mientras este siga dentro de su plazo de 48
+            horas — pero si se le pasa el plazo sin subirlo, deja de bloquear a los
+            otros (aunque sigue pendiente).
           </p>
 
           {plazoActaInfo && (
@@ -878,8 +939,8 @@ export default function ProcesoDetallePage() {
               }`}
             >
               {plazoActaInfo.vencido
-                ? `El plazo venció hace ${plazoActaInfo.texto}.`
-                : `Te quedan ${plazoActaInfo.texto} de las 48 horas.`}
+                ? `Ya pasó el plazo recomendado de 48 horas (hace ${plazoActaInfo.texto}).`
+                : `Te quedan ${plazoActaInfo.texto} del plazo recomendado de 48 horas.`}
             </div>
           )}
 

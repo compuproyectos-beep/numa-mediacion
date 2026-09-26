@@ -2605,6 +2605,24 @@ def obtener_procesos_mediacion(
                 p.finalizado,
                 p.acta_final_id,
                 p.usuario_id,
+                -- Id del proceso que, entre los pendientes de acta de este
+                -- mismo mediador, es el que está bloqueando a los demás
+                -- ahora mismo (el más antiguo que sigue dentro de sus 48
+                -- horas — ver la misma regla en subir_acta_final_proceso).
+                -- NULL si ninguno está pendiente, o si ninguno sigue
+                -- fresco (en ese caso no hay bloqueante y todos se pueden
+                -- subir).
+                (
+                    SELECT p2.id
+                    FROM procesos_mediacion p2
+                    WHERE p2.usuario_id = p.usuario_id
+                      AND p2.estado = 'cerrado_con_acuerdo'
+                      AND p2.finalizado = false
+                      AND p2.fecha_acuerdo IS NOT NULL
+                      AND p2.fecha_acuerdo > NOW() - INTERVAL '48 hours'
+                    ORDER BY p2.fecha_acuerdo ASC, p2.id ASC
+                    LIMIT 1
+                ) AS _id_bloqueante,
                 cd.nombre || ' ' || cd.apellido AS demandante,
                 cd.cedula AS demandante_cedula,
                 cdd.nombre || ' ' || cdd.apellido AS demandado,
@@ -2678,7 +2696,23 @@ def obtener_procesos_mediacion(
         query += " ORDER BY p.id DESC"
 
         cur.execute(query, tuple(params))
-        return cur.fetchall()
+        filas = cur.fetchall()
+
+        # Convierte el id auxiliar en un booleano simple (¿se puede subir
+        # el acta de este proceso ahora mismo, o está bloqueado detrás de
+        # otro?), y quita el campo auxiliar antes de devolver — el
+        # frontend solo necesita el booleano.
+        for fila in filas:
+            id_bloqueante = fila.pop("_id_bloqueante", None)
+            fila["acta_primero_en_fila"] = bool(
+                fila["estado"] == "cerrado_con_acuerdo"
+                and not fila["finalizado"]
+                # Sin bloqueante (nadie fresco pendiente) -> todos libres.
+                # Con bloqueante -> solo ese id puede subir.
+                and (id_bloqueante is None or id_bloqueante == fila["id"])
+            )
+
+        return filas
 
     finally:
         cur.close()
@@ -3248,44 +3282,50 @@ async def subir_acta_final_proceso(
                 detail="Solo el mediador asignado a este proceso puede subir el acta final"
             )
 
-        # Bloqueo de 48 horas: si este mediador tiene OTRO proceso en
-        # 'acuerdo' esperando su acta final + comprobante, no puede subir
-        # la de este (salvo que sea justo la del proceso pendiente) hasta
-        # que la suba o pasen las 48 horas desde que se marcó 'acuerdo'.
+        # Fila de espera: de todos los procesos "cerrado con acuerdo" de
+        # este mediador que aún no tienen acta subida, el que está
+        # "bloqueando" a los demás es el MÁS ANTIGUO que sigue DENTRO de
+        # su propia ventana de 48 horas (fresco). Ese es el único que se
+        # puede subir mientras tanto.
         #
-        # Importante: solo cuenta como "bloqueante" un proceso que pasó a
-        # 'acuerdo' ANTES que este (fecha_acuerdo < la de este proceso). Sin
-        # este filtro, si el mediador tenía dos procesos pendientes a la vez
-        # (por ejemplo el 12 y el 13), el sistema podía bloquear el intento
-        # de subir el MÁS ANTIGUO de los dos (el que en realidad debía subir
-        # primero) señalando al otro como bloqueante, simplemente porque
-        # "id != proceso_id" no distinguía cuál era más viejo.
+        # Si a ESE bloqueante se le pasan las 48 horas sin que se suba su
+        # acta, deja de bloquear — no porque "ya se liberó todo", sino
+        # porque pasa el turno al siguiente más antiguo que siga fresco
+        # (si hay uno). Así, el bloqueante nunca frena el trabajo para
+        # siempre: si nadie tiene un proceso fresco pendiente en este
+        # momento, no hay ningún bloqueo y se puede subir cualquiera.
+        #
+        # Y si aparece un proceso NUEVO fresco mientras uno viejo (ya
+        # vencido) sigue sin acta, ese nuevo si puede volver a bloquear a
+        # los demás — incluido el viejo — porque lo que importa es cuál es
+        # el más antiguo entre los que siguen frescos, no el orden en que
+        # se intenten subir.
         if usuario["rol"] != "administrador":
             cur.execute("""
                 SELECT id, codigo_proceso, fecha_acuerdo
                 FROM procesos_mediacion
                 WHERE usuario_id = %s
-                  AND id != %s
                   AND estado = 'cerrado_con_acuerdo'
                   AND finalizado = false
                   AND fecha_acuerdo IS NOT NULL
                   AND fecha_acuerdo > NOW() - INTERVAL '48 hours'
-                  AND fecha_acuerdo < %s
-                ORDER BY fecha_acuerdo ASC
+                ORDER BY fecha_acuerdo ASC, id ASC
                 LIMIT 1
-            """, (usuario["id"], proceso_id, proceso["fecha_acuerdo"]))
+            """, (usuario["id"],))
 
             bloqueante = cur.fetchone()
 
-            if bloqueante:
-                fecha_limite = bloqueante["fecha_acuerdo"] + datetime.timedelta(hours=48)
+            if bloqueante and bloqueante["id"] != proceso_id:
                 raise HTTPException(
                     status_code=400,
                     detail=(
-                        f"Tienes el proceso {bloqueante['codigo_proceso']} pendiente de "
-                        f"subir su acta final y comprobante de pago (plazo de 48 horas). "
-                        f"No puedes subir actas de otros procesos hasta subir esa, o hasta "
-                        f"el {fecha_limite.strftime('%d/%m/%Y %H:%M')}."
+                        f"Primero debes subir el acta final y el comprobante de pago del "
+                        f"proceso {bloqueante['codigo_proceso']} — es el que está dentro de "
+                        f"su plazo de 48 horas y va primero en la fila (se cerró con "
+                        f"acuerdo el "
+                        f"{bloqueante['fecha_acuerdo'].strftime('%d/%m/%Y %H:%M')}). "
+                        f"Los demás procesos pendientes quedan bloqueados hasta que subas "
+                        f"esa, o hasta que a esa le pasen las 48 horas."
                     )
                 )
 

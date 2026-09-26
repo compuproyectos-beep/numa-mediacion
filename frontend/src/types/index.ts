@@ -162,6 +162,15 @@ export interface ProcesoMediacion {
   ciudad: string;
   usuario: string;
   usuario_id: number;
+  finalizado?: boolean;
+  fecha_acuerdo?: string | null;
+  acta_final_id?: number | null;
+  // true cuando este es el proceso "cerrado con acuerdo" más antiguo sin
+  // acta subida de su mediador — el único que se puede subir de inmediato
+  // (ver la fila FIFO de subir_acta_final_proceso en el backend). Los
+  // demás pendientes del mismo mediador quedan bloqueados hasta que se
+  // suba este.
+  acta_primero_en_fila?: boolean;
 }
 
 export interface CreateProcesoPayload {

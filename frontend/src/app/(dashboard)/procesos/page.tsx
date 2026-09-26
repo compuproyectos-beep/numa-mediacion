@@ -430,10 +430,20 @@ export default function ProcesosPage() {
                     {/* Un proceso "cerrado con acuerdo" no significa que ya
                         esté todo listo: falta que se suba el acta final +
                         comprobante. Esto lo hace visible de una vez en el
-                        listado, sin tener que entrar a cada proceso. */}
+                        listado, sin tener que entrar a cada proceso.
+                        Además, si el mediador tiene más de un proceso
+                        pendiente a la vez, se distingue cuál es el que debe
+                        subir primero (fila FIFO) de los que están detrás
+                        esperando su turno. */}
                     {p.estado === 'cerrado_con_acuerdo' && !p.finalizado && (
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
-                        Falta subir acta
+                      <span
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                          p.acta_primero_en_fila
+                            ? 'bg-red-50 text-red-700 border-red-200'
+                            : 'bg-numa-100 text-numa-500 border-numa-200'
+                        }`}
+                      >
+                        {p.acta_primero_en_fila ? 'Falta subir acta' : 'Acta pendiente (en espera)'}
                       </span>
                     )}
                   </div>
