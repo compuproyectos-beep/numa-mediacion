@@ -25,6 +25,7 @@ function etiquetaAccion(accion: string): string {
     usuario_editado: 'Usuario editado',
     usuario_activado: 'Usuario activado',
     usuario_desactivado: 'Usuario desactivado',
+    cliente_creado: 'Cliente creado',
     cliente_editado: 'Cliente editado',
     sucursal_creada: 'Sucursal creada',
     sucursal_editada: 'Sucursal editada',
@@ -102,6 +103,7 @@ export default function AuditoriaPage() {
               <option value="usuario_editado">Usuario editado</option>
               <option value="usuario_activado">Usuario activado</option>
               <option value="usuario_desactivado">Usuario desactivado</option>
+              <option value="cliente_creado">Cliente creado</option>
               <option value="cliente_editado">Cliente editado</option>
               <option value="sucursal_creada">Sucursal creada</option>
               <option value="sucursal_editada">Sucursal editada</option>

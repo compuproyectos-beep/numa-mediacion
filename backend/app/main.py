@@ -1251,6 +1251,12 @@ def crear_cliente(
         ))
 
         cliente = cur.fetchone()
+
+        registrar_auditoria(
+            cur, usuario, "cliente_creado", "clientes", cliente["id"],
+            f"Creó al cliente {nombre} {apellido} (cédula {cedula})"
+        )
+
         conn.commit()
         return cliente
 
