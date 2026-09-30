@@ -18,6 +18,8 @@ import {
   getReporteProductividad,
   getReporteSucursales,
   getReporteClientes,
+  getReporteResumen,
+  ResumenReporte,
   descargarReporteExcel,
   getUsuarios
 } from '@/lib/services';
@@ -39,7 +41,7 @@ const TIPOS: { valor: TipoReporte; titulo: string; adminOnly?: boolean }[] = [
 // los números sin tener que preguntar.
 const DESCRIPCIONES: Record<TipoReporte, string> = {
   procesos:
-    'Lista todos los procesos de mediación creados en el rango de fechas elegido, con su estado actual. Da clic en cualquier fila para abrir ese proceso.',
+    'Lista todos los procesos de mediación creados en el rango de fechas elegido, con su estado actual. Da clic en cualquier fila para abrir ese proceso. "Tasa de acuerdo" es, de los procesos ya resueltos (con o sin acuerdo — los archivados no cuentan porque no llegaron a resolverse), qué porcentaje terminó con acuerdo.',
   productividad:
     'El listado del equipo de mediadores (activos e inactivos), con cuántos procesos maneja cada uno y qué tan rápido los resuelve. "Prom. días cierre" es el promedio de días entre que se crea un proceso y se cierra (con o sin acuerdo, o archivado); mientras más bajo, más rápido resuelve. Da clic en un mediador para ver el detalle de sus procesos.',
   actas:
@@ -88,6 +90,10 @@ export default function ReportesPage() {
   const [mediadores, setMediadores] = useState<any[]>([]);
 
   const [datos, setDatos] = useState<any[]>([]);
+  // Indicadores de resultado (% de acuerdo, tiempo promedio) — se cargan
+  // junto con el reporte de "Procesos por periodo", usando los mismos
+  // filtros, y respetando el mismo alcance (un mediador solo ve lo suyo).
+  const [resumenIndicadores, setResumenIndicadores] = useState<ResumenReporte | null>(null);
   const [buscado, setBuscado] = useState(false);
   const [loading, setLoading] = useState(false);
   const [exportando, setExportando] = useState(false);
@@ -159,6 +165,9 @@ export default function ReportesPage() {
 
       if (tipo === 'procesos') {
         data = await getProcesos(filtrosActivos);
+        getReporteResumen(filtrosActivos)
+          .then(setResumenIndicadores)
+          .catch(() => setResumenIndicadores(null));
       } else if (tipo === 'productividad') {
         data = await getReporteProductividad(filtrosActivos);
       } else if (tipo === 'sucursales') {
@@ -533,6 +542,22 @@ export default function ReportesPage() {
               {actasPendientesProcesos > 0 && (
                 <span className="px-3 py-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 font-medium">
                   Con acuerdo sin acta subida: <strong>{actasPendientesProcesos}</strong>
+                </span>
+              )}
+
+              {resumenIndicadores && resumenIndicadores.tasa_acuerdo !== null && (
+                <span
+                  className="px-3 py-1.5 rounded-full bg-green-50 text-green-700 border border-green-200 font-medium"
+                  title={`De ${resumenIndicadores.total_resueltos} procesos resueltos (con o sin acuerdo), ${resumenIndicadores.cerrados_con_acuerdo} terminaron con acuerdo.`}
+                >
+                  Tasa de acuerdo: <strong>{resumenIndicadores.tasa_acuerdo}%</strong>
+                </span>
+              )}
+
+              {resumenIndicadores && resumenIndicadores.promedio_dias_resolucion !== null && (
+                <span className="px-3 py-1.5 rounded-full bg-numa-50 text-numa-600 border border-numa-200">
+                  Tiempo promedio de resolución:{' '}
+                  <strong>{resumenIndicadores.promedio_dias_resolucion} días</strong>
                 </span>
               )}
             </div>

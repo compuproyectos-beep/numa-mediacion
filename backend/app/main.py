@@ -4325,6 +4325,100 @@ def exportar_pdfs_actas_finales(
 # =========================
 # REPORTES
 # =========================
+@app.get("/reportes/resumen")
+def obtener_reporte_resumen(
+    fecha_desde: str = None,
+    fecha_hasta: str = None,
+    ciudad_id: int = None,
+    sucursal_id: int = None,
+    usuario_id: int = None,
+    usuario=Depends(obtener_usuario_actual)
+):
+    """
+    Indicadores de resultado (no solo de volumen): de los procesos que
+    llegaron a una resolución real en el rango, qué porcentaje se cerró con
+    acuerdo, y cuánto tiempo toma en promedio. "Archivado" se cuenta aparte
+    porque no es un resultado de la mediación en sí (no llegó a resolverse
+    por otra razón), así que no entra en el % de acuerdo para no
+    distorsionarlo.
+    """
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        query = """
+            SELECT
+                COUNT(*) AS total_creados,
+                COUNT(*) FILTER (WHERE p.estado = 'en_negociacion') AS en_negociacion,
+                COUNT(*) FILTER (WHERE p.estado = 'cerrado_con_acuerdo') AS cerrados_con_acuerdo,
+                COUNT(*) FILTER (WHERE p.estado = 'cerrado_sin_acuerdo') AS cerrados_sin_acuerdo,
+                COUNT(*) FILTER (WHERE p.estado = 'archivado') AS archivados,
+                ROUND(
+                    AVG(
+                        EXTRACT(EPOCH FROM (
+                            COALESCE(
+                                p.fecha_acuerdo,
+                                CASE WHEN p.estado IN ('cerrado_sin_acuerdo', 'archivado')
+                                     THEN p.fecha_modificacion END
+                            ) - p.fecha_creacion
+                        )) / 86400
+                    ) FILTER (
+                        WHERE p.estado IN ('cerrado_con_acuerdo', 'cerrado_sin_acuerdo')
+                    )::numeric,
+                    1
+                ) AS promedio_dias_resolucion
+            FROM procesos_mediacion p
+            JOIN sucursales s ON p.sucursal_id = s.id
+            JOIN ciudades ci ON s.ciudad_id = ci.id
+            WHERE 1=1
+        """
+        params = []
+
+        # Mismo alcance que el resto de reportes: un mediador solo ve lo
+        # suyo, el admin ve todo y puede filtrar.
+        if usuario["rol"] != "administrador":
+            query += " AND p.usuario_id = %s"
+            params.append(usuario["id"])
+        else:
+            if usuario_id:
+                query += " AND p.usuario_id = %s"
+                params.append(usuario_id)
+
+            if sucursal_id:
+                query += " AND s.id = %s"
+                params.append(sucursal_id)
+
+            if ciudad_id:
+                query += " AND ci.id = %s"
+                params.append(ciudad_id)
+
+        if fecha_desde:
+            query += " AND DATE(p.fecha_creacion) >= %s"
+            params.append(fecha_desde)
+
+        if fecha_hasta:
+            query += " AND DATE(p.fecha_creacion) <= %s"
+            params.append(fecha_hasta)
+
+        cur.execute(query, tuple(params))
+        fila = cur.fetchone()
+
+        con_acuerdo = fila["cerrados_con_acuerdo"] or 0
+        sin_acuerdo = fila["cerrados_sin_acuerdo"] or 0
+        total_resueltos = con_acuerdo + sin_acuerdo
+
+        fila["total_resueltos"] = total_resueltos
+        fila["tasa_acuerdo"] = (
+            round(con_acuerdo / total_resueltos * 100, 1) if total_resueltos > 0 else None
+        )
+
+        return fila
+
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.get("/reportes/productividad")
 def obtener_reporte_productividad(
     fecha_desde: str = None,

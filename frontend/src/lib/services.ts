@@ -516,6 +516,27 @@ export interface FiltrosReporte {
   usuario_id?: string | number;
 }
 
+export interface ResumenReporte {
+  total_creados: number;
+  en_negociacion: number;
+  cerrados_con_acuerdo: number;
+  cerrados_sin_acuerdo: number;
+  archivados: number;
+  total_resueltos: number;
+  tasa_acuerdo: number | null;
+  promedio_dias_resolucion: number | null;
+}
+
+export async function getReporteResumen(
+  filters?: FiltrosReporte
+): Promise<ResumenReporte> {
+  const res = await api.get('/reportes/resumen', {
+    params: filters,
+  });
+
+  return res.data;
+}
+
 export async function getReporteProductividad(
   filters?: FiltrosReporte
 ): Promise<any[]> {
