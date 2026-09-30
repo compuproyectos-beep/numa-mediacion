@@ -635,6 +635,33 @@ def _limpiar_intentos(username: str):
 
 
 # =========================
+# AUDITORÍA
+# =========================
+# Registro de quién hizo qué sobre qué, y cuándo — para acciones sensibles
+# (usuarios, clientes, sucursales, intentos de login). Se inserta con el
+# mismo cursor/conexión de quien lo llama, así que queda dentro de la misma
+# transacción: si la operación se revierte, el registro de auditoría
+# también (no queda un log de algo que en realidad no se guardó).
+def registrar_auditoria(cur, usuario, accion: str, entidad: str, entidad_id=None, detalle: str = None):
+    nombre = None
+    if usuario:
+        nombre = (f"{usuario.get('nombre', '')} {usuario.get('apellido', '')}").strip()
+        nombre = nombre or usuario.get("email") or usuario.get("username")
+
+    cur.execute("""
+        INSERT INTO auditoria (usuario_id, usuario_nombre, accion, entidad, entidad_id, detalle)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """, (
+        usuario.get("id") if usuario else None,
+        nombre,
+        accion,
+        entidad,
+        entidad_id,
+        detalle,
+    ))
+
+
+# =========================
 # LOGIN
 # =========================
 @app.post("/login")
@@ -661,13 +688,19 @@ def login(username: str = Form(...), password: str = Form(...)):
 
         if not user:
             _registrar_intento_fallido(username)
+            registrar_auditoria(cur, None, "login_fallido", "auth", detalle=f"Usuario no encontrado: {username}")
+            conn.commit()
             raise HTTPException(status_code=401, detail="Usuario no encontrado")
 
         if not user["activo"]:
+            registrar_auditoria(cur, user, "login_fallido", "auth", user["id"], "Cuenta inactiva")
+            conn.commit()
             raise HTTPException(status_code=401, detail="Usuario inactivo")
 
         if not pwd_context.verify(password, user["password_hash"]):
             _registrar_intento_fallido(username)
+            registrar_auditoria(cur, user, "login_fallido", "auth", user["id"], "Contraseña incorrecta")
+            conn.commit()
             raise HTTPException(status_code=401, detail="Contraseña incorrecta")
 
         _limpiar_intentos(username)
@@ -1040,6 +1073,11 @@ def actualizar_cliente(
 
         if not cliente:
             raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+        registrar_auditoria(
+            cur, usuario, "cliente_editado", "clientes", id,
+            f"Editó al cliente {nombre} {apellido} (cédula {cedula})"
+        )
 
         conn.commit()
         return cliente
@@ -1597,6 +1635,12 @@ def crear_sucursal(
         ))
 
         sucursal = cur.fetchone()
+
+        registrar_auditoria(
+            cur, usuario, "sucursal_creada", "sucursales", sucursal["id"],
+            f"Creó la sucursal {nombre} (ciudad: {ciudad['nombre']})"
+        )
+
         conn.commit()
 
         return sucursal
@@ -1673,6 +1717,12 @@ def editar_sucursal(
         """, (ciudad_id, nombre, direccion, telefono, slug, id))
 
         sucursal = cur.fetchone()
+
+        registrar_auditoria(
+            cur, usuario, "sucursal_editada", "sucursales", id,
+            f"Editó la sucursal {nombre} (ciudad: {ciudad['nombre']})"
+        )
+
         conn.commit()
 
         return sucursal
@@ -1834,6 +1884,11 @@ def crear_usuario(
 
         nuevo_usuario = cur.fetchone()
 
+        registrar_auditoria(
+            cur, usuario, "usuario_creado", "usuarios", nuevo_usuario["id"],
+            f"Creó al usuario {nombre} {apellido} ({email}) con rol {rol}"
+        )
+
         conn.commit()
 
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
@@ -1977,6 +2032,12 @@ def editar_usuario(
         """, (nombre, apellido, cedula, email, rol, sucursal_id, id))
 
         usuario_actualizado = cur.fetchone()
+
+        registrar_auditoria(
+            cur, usuario, "usuario_editado", "usuarios", id,
+            f"Editó al usuario {nombre} {apellido} ({email}), rol {rol}, sucursal {sucursal_id}"
+        )
+
         conn.commit()
 
         return usuario_actualizado
@@ -2256,6 +2317,11 @@ def cambiar_estado_sucursal(
         if not sucursal:
             raise HTTPException(status_code=404, detail="Sucursal no encontrada")
 
+        registrar_auditoria(
+            cur, usuario, "sucursal_activada" if activo else "sucursal_desactivada", "sucursales", id,
+            f"{'Activó' if activo else 'Desactivó'} la sucursal {sucursal['nombre']}"
+        )
+
         conn.commit()
         return sucursal
 
@@ -2309,6 +2375,11 @@ def cambiar_estado_usuario(
 
         if not user:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+        registrar_auditoria(
+            cur, usuario, "usuario_activado" if activo else "usuario_desactivado", "usuarios", id,
+            f"{'Activó' if activo else 'Desactivó'} al usuario {user['nombre']} {user['apellido']} ({user['email']})"
+        )
 
         conn.commit()
         return user
@@ -4924,6 +4995,66 @@ def enviar_respaldo_manual(usuario=Depends(obtener_usuario_actual)):
         raise HTTPException(status_code=500, detail=resultado["motivo"])
 
     return resultado
+
+
+@app.get("/admin/auditoria")
+def obtener_auditoria(
+    fecha_desde: str = None,
+    fecha_hasta: str = None,
+    usuario_id: int = None,
+    accion: str = None,
+    limite: int = 100,
+    usuario=Depends(obtener_usuario_actual)
+):
+    """
+    Registro de acciones sensibles: quién hizo qué y cuándo (usuarios,
+    clientes, sucursales, intentos de login). Solo el administrador puede
+    consultarlo.
+    """
+    if usuario["rol"] != "administrador":
+        raise HTTPException(
+            status_code=403,
+            detail="Solo el administrador puede ver el registro de auditoría"
+        )
+
+    limite = max(1, min(limite, 500))
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        query = """
+            SELECT id, usuario_id, usuario_nombre, accion, entidad, entidad_id, detalle, fecha_creacion
+            FROM auditoria
+            WHERE 1=1
+        """
+        params = []
+
+        if fecha_desde:
+            query += " AND fecha_creacion >= %s"
+            params.append(fecha_desde)
+
+        if fecha_hasta:
+            query += " AND fecha_creacion < (%s::date + INTERVAL '1 day')"
+            params.append(fecha_hasta)
+
+        if usuario_id:
+            query += " AND usuario_id = %s"
+            params.append(usuario_id)
+
+        if accion:
+            query += " AND accion = %s"
+            params.append(accion)
+
+        query += " ORDER BY fecha_creacion DESC LIMIT %s"
+        params.append(limite)
+
+        cur.execute(query, tuple(params))
+        return cur.fetchall()
+
+    finally:
+        cur.close()
+        conn.close()
 
 
 @app.get("/admin/almacenamiento")

@@ -75,6 +75,30 @@ export async function enviarRespaldoManual(): Promise<{
   return res.data;
 }
 
+export interface RegistroAuditoria {
+  id: number;
+  usuario_id: number | null;
+  usuario_nombre: string | null;
+  accion: string;
+  entidad: string;
+  entidad_id: number | null;
+  detalle: string | null;
+  fecha_creacion: string;
+}
+
+export async function getAuditoria(filters?: {
+  fecha_desde?: string;
+  fecha_hasta?: string;
+  usuario_id?: number;
+  accion?: string;
+  limite?: number;
+}): Promise<RegistroAuditoria[]> {
+  const res = await api.get<RegistroAuditoria[]>('/admin/auditoria', {
+    params: filters,
+  });
+  return res.data;
+}
+
 // ── ACTAS ─────────────────────────────────────────────────────────────────────
 // ── PROVINCIAS ────────────────────────────────────────────────────────────────
 export async function getProvincias(): Promise<any[]> {

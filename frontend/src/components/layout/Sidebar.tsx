@@ -19,6 +19,7 @@ import {
   ChevronUp,
   CalendarDays,
   BarChart3,
+  ClipboardList,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import clsx from 'clsx';
@@ -33,6 +34,7 @@ const navItems = [
   { href: '/sucursales', icon: Building2, label: 'Sucursales', adminOnly: true },
   { href: '/ciudades', icon: MapPin, label: 'Ciudades', adminOnly: true },
   { href: '/usuarios', icon: UserCircle, label: 'Usuarios', adminOnly: true },
+  { href: '/auditoria', icon: ClipboardList, label: 'Auditoría', adminOnly: true },
 ];
 
 export default function Sidebar() {
