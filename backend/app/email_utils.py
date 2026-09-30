@@ -1,51 +1,72 @@
 import os
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.application import MIMEApplication
-from email.header import Header
-from email.utils import formataddr
+import base64
+import requests
+
+
+# Antes esto mandaba por SMTP (puerto 587). Se cambió a la API HTTPS de
+# Resend (https://resend.com) porque el relay SMTP se quedaba "timed out"
+# al conectar desde Railway — la API usa HTTPS (puerto 443), el mismo
+# puerto por el que ya funciona el resto del sistema, así que no depende de
+# que el proveedor de hosting permita el puerto SMTP.
+#
+# La clave (RESEND_API_KEY) es la misma API key de Resend; si no está esa
+# variable configurada en Railway, se reutiliza SMTP_PASSWORD (donde ya
+# estaba puesta esa misma clave), para no tener que duplicarla.
+_RESEND_URL = "https://api.resend.com/emails"
+
+
+def _resend_api_key() -> str | None:
+    return os.getenv("RESEND_API_KEY") or os.getenv("SMTP_PASSWORD")
+
+
+def _remitente() -> str:
+    email_from = os.getenv("EMAIL_FROM", "onboarding@resend.dev")
+    remitente_nombre = os.getenv("EMAIL_REMITENTE_NOMBRE", "Centro de Mediación NUMA")
+    return f"{remitente_nombre} <{email_from}>"
 
 
 def enviar_correo(destinatario: str, asunto: str, cuerpo_html: str) -> bool:
     """
-    Envía un correo por SMTP (funciona con Gmail, GMX, o cualquier proveedor
-    que soporte SMTP estándar — solo cambia las variables de entorno).
-    Devuelve True si se envió, False si falló (y deja el error en consola
-    para poder revisarlo, pero nunca interrumpe el flujo que lo llamó).
-    """
-    smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
-    smtp_port = int(os.getenv("SMTP_PORT", "587"))
-    smtp_user = os.getenv("SMTP_USER")
-    smtp_password = os.getenv("SMTP_PASSWORD")
-    email_from = os.getenv("EMAIL_FROM", smtp_user)
-    remitente_nombre = os.getenv("EMAIL_REMITENTE_NOMBRE", "Centro de Mediación NUMA")
+    Envía un correo a través de la API de Resend. Devuelve True si se
+    envió, False si falló (y deja el error en consola para poder
+    revisarlo, pero nunca interrumpe el flujo que lo llamó).
 
-    if not smtp_user or not smtp_password:
+    Nota: mientras la cuenta de Resend no tenga un dominio propio
+    verificado (usando el remitente de prueba "onboarding@resend.dev"),
+    Resend solo entrega correos al email con el que se creó la cuenta de
+    Resend — no a cualquier destinatario todavía.
+    """
+    api_key = _resend_api_key()
+
+    if not api_key:
         print(
-            "⚠️  SMTP_USER / SMTP_PASSWORD no configurados. "
+            "⚠️  RESEND_API_KEY / SMTP_PASSWORD no configurados. "
             "No se envió el correo a:", destinatario
         )
         return False
 
-    mensaje = MIMEMultipart("alternative")
-    mensaje["Subject"] = asunto
-    mensaje["From"] = formataddr((str(Header(remitente_nombre, "utf-8")), email_from))
-    mensaje["To"] = destinatario
-
-    mensaje.attach(MIMEText(cuerpo_html, "html"))
-
     try:
-        # timeout=20: sin esto, si Railway bloquea el puerto SMTP o el host
-        # no responde, smtplib se queda esperando indefinidamente (la
-        # petición HTTP entera quedaba "colgada" sin error ni éxito). Con
-        # el timeout, en 20 segundos falla con una excepción clara en vez
-        # de trabar el request para siempre.
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as servidor:
-            servidor.starttls()
-            servidor.login(smtp_user, smtp_password)
-            servidor.sendmail(email_from, destinatario, mensaje.as_string())
-        return True
+        respuesta = requests.post(
+            _RESEND_URL,
+            headers={"Authorization": f"Bearer {api_key}"},
+            json={
+                "from": _remitente(),
+                "to": [destinatario],
+                "subject": asunto,
+                "html": cuerpo_html,
+            },
+            timeout=20,
+        )
+
+        if respuesta.status_code in (200, 201):
+            return True
+
+        print(
+            f"⚠️  Resend rechazó el correo a {destinatario} "
+            f"({respuesta.status_code}): {respuesta.text}"
+        )
+        return False
+
     except Exception as e:
         print(f"⚠️  Error enviando correo a {destinatario}: {e}")
         return False
@@ -64,44 +85,43 @@ def enviar_correo_con_adjunto(
     si se envió, False si falló, y nunca lanza una excepción hacia quien
     la llama (para no tumbar el proceso que dispara el respaldo).
     """
-    smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
-    smtp_port = int(os.getenv("SMTP_PORT", "587"))
-    smtp_user = os.getenv("SMTP_USER")
-    smtp_password = os.getenv("SMTP_PASSWORD")
-    email_from = os.getenv("EMAIL_FROM", smtp_user)
-    remitente_nombre = os.getenv("EMAIL_REMITENTE_NOMBRE", "Centro de Mediación NUMA")
+    api_key = _resend_api_key()
 
-    if not smtp_user or not smtp_password:
+    if not api_key:
         print(
-            "⚠️  SMTP_USER / SMTP_PASSWORD no configurados. "
+            "⚠️  RESEND_API_KEY / SMTP_PASSWORD no configurados. "
             "No se envió el correo con adjunto a:", destinatario
         )
         return False
 
     try:
-        mensaje = MIMEMultipart("mixed")
-        mensaje["Subject"] = asunto
-        mensaje["From"] = formataddr((str(Header(remitente_nombre, "utf-8")), email_from))
-        mensaje["To"] = destinatario
-
-        cuerpo = MIMEMultipart("alternative")
-        cuerpo.attach(MIMEText(cuerpo_html, "html"))
-        mensaje.attach(cuerpo)
-
-        adjunto = MIMEApplication(contenido_adjunto)
-        adjunto.add_header(
-            "Content-Disposition", "attachment", filename=nombre_adjunto
+        respuesta = requests.post(
+            _RESEND_URL,
+            headers={"Authorization": f"Bearer {api_key}"},
+            json={
+                "from": _remitente(),
+                "to": [destinatario],
+                "subject": asunto,
+                "html": cuerpo_html,
+                "attachments": [
+                    {
+                        "filename": nombre_adjunto,
+                        "content": base64.b64encode(contenido_adjunto).decode("ascii"),
+                    }
+                ],
+            },
+            timeout=20,
         )
-        mensaje.attach(adjunto)
 
-        # Mismo timeout=20 que en enviar_correo: evita que una conexión SMTP
-        # que nunca responde deje la petición colgada para siempre.
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as servidor:
-            servidor.starttls()
-            servidor.login(smtp_user, smtp_password)
-            servidor.sendmail(email_from, destinatario, mensaje.as_string())
+        if respuesta.status_code in (200, 201):
+            return True
 
-        return True
+        print(
+            f"⚠️  Resend rechazó el correo con adjunto a {destinatario} "
+            f"({respuesta.status_code}): {respuesta.text}"
+        )
+        return False
+
     except Exception as e:
         print(f"⚠️  Error enviando correo con adjunto a {destinatario}: {e}")
         return False
