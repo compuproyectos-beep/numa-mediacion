@@ -36,7 +36,12 @@ def enviar_correo(destinatario: str, asunto: str, cuerpo_html: str) -> bool:
     mensaje.attach(MIMEText(cuerpo_html, "html"))
 
     try:
-        with smtplib.SMTP(smtp_host, smtp_port) as servidor:
+        # timeout=20: sin esto, si Railway bloquea el puerto SMTP o el host
+        # no responde, smtplib se queda esperando indefinidamente (la
+        # petición HTTP entera quedaba "colgada" sin error ni éxito). Con
+        # el timeout, en 20 segundos falla con una excepción clara en vez
+        # de trabar el request para siempre.
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as servidor:
             servidor.starttls()
             servidor.login(smtp_user, smtp_password)
             servidor.sendmail(email_from, destinatario, mensaje.as_string())
@@ -89,7 +94,9 @@ def enviar_correo_con_adjunto(
         )
         mensaje.attach(adjunto)
 
-        with smtplib.SMTP(smtp_host, smtp_port) as servidor:
+        # Mismo timeout=20 que en enviar_correo: evita que una conexión SMTP
+        # que nunca responde deje la petición colgada para siempre.
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as servidor:
             servidor.starttls()
             servidor.login(smtp_user, smtp_password)
             servidor.sendmail(email_from, destinatario, mensaje.as_string())

@@ -79,11 +79,13 @@ export default function DashboardPage() {
         mensaje: `${data.motivo} (${data.tamano_mb} MB, ${data.tablas} tablas)`,
       });
     } catch (err: any) {
+      const esTimeout = err?.code === 'ECONNABORTED';
       setResultadoRespaldo({
         ok: false,
-        mensaje:
-          err?.response?.data?.detail ||
-          'No se pudo generar/enviar el respaldo. Intenta de nuevo.',
+        mensaje: esTimeout
+          ? 'El servidor no respondió a tiempo (45s). Probablemente el servidor de correo (SMTP) no está respondiendo — revisa que SMTP_USER/SMTP_PASSWORD estén bien configurados en Railway, o si el proveedor de correo está bloqueando la conexión.'
+          : err?.response?.data?.detail ||
+            'No se pudo generar/enviar el respaldo. Intenta de nuevo.',
       });
     } finally {
       setEnviandoRespaldo(false);

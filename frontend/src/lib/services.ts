@@ -67,7 +67,11 @@ export async function enviarRespaldoManual(): Promise<{
   tamano_mb?: number;
   tablas?: number;
 }> {
-  const res = await api.post('/admin/respaldo-manual');
+  // timeout de 45s: generar el respaldo y enviarlo por correo puede tardar
+  // unos segundos, pero si el servidor SMTP no responde en absoluto (puerto
+  // bloqueado, host mal configurado), esto evita que el botón se quede
+  // "Enviando..." para siempre sin decir nada.
+  const res = await api.post('/admin/respaldo-manual', null, { timeout: 45000 });
   return res.data;
 }
 
