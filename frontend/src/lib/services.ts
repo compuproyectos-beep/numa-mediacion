@@ -60,6 +60,17 @@ export async function getUsoAlmacenamiento(): Promise<any> {
   return res.data;
 }
 
+export async function enviarRespaldoManual(): Promise<{
+  ok: boolean;
+  motivo: string;
+  destinatario?: string;
+  tamano_mb?: number;
+  tablas?: number;
+}> {
+  const res = await api.post('/admin/respaldo-manual');
+  return res.data;
+}
+
 // ── ACTAS ─────────────────────────────────────────────────────────────────────
 // ── PROVINCIAS ────────────────────────────────────────────────────────────────
 export async function getProvincias(): Promise<any[]> {

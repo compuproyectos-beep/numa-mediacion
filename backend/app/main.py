@@ -295,7 +295,14 @@ def _valor_serializable(valor):
     return str(valor)
 
 
-def generar_respaldo_base_datos():
+def _generar_y_enviar_respaldo() -> dict:
+    """
+    Hace el trabajo real de armar el zip y enviarlo por correo. Devuelve un
+    diccionario con el detalle de qué pasó (ok/False y el motivo), para que
+    tanto el job automático de las 3am como el botón de "enviar respaldo
+    ahora" en el panel puedan mostrar exactamente por qué falló algo, en vez
+    de un simple "no llegó el correo" sin más pistas.
+    """
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
@@ -336,10 +343,12 @@ def generar_respaldo_base_datos():
 
         contenido_zip = buffer_zip.getvalue()
         fecha_hoy = datetime.date.today().isoformat()
+        tamano_mb = len(contenido_zip) / (1024 * 1024)
 
         # A quién se le manda: BACKUP_EMAIL si está configurado, o si no,
         # el correo del administrador activo.
         destinatario = os.getenv("BACKUP_EMAIL")
+        origen_destinatario = "BACKUP_EMAIL"
 
         if not destinatario:
             cur.execute("""
@@ -349,12 +358,32 @@ def generar_respaldo_base_datos():
             """)
             admin = cur.fetchone()
             destinatario = admin["email"] if admin else None
+            origen_destinatario = "administrador activo"
 
         if not destinatario:
-            print("⚠️  Respaldo generado pero no hay a quién enviarlo (sin BACKUP_EMAIL ni administrador activo).")
-            return
+            return {
+                "ok": False,
+                "motivo": (
+                    "Se generó el respaldo pero no hay a quién enviarlo: no está "
+                    "configurada la variable BACKUP_EMAIL en Railway y no se "
+                    "encontró ningún administrador activo con correo."
+                ),
+                "tamano_mb": round(tamano_mb, 2),
+                "tablas": len(tablas),
+            }
 
-        tamano_mb = len(contenido_zip) / (1024 * 1024)
+        if not os.getenv("SMTP_USER") or not os.getenv("SMTP_PASSWORD"):
+            return {
+                "ok": False,
+                "motivo": (
+                    "Se generó el respaldo pero no se pudo enviar: faltan las "
+                    "variables SMTP_USER y/o SMTP_PASSWORD en Railway (el mismo "
+                    "correo que usa el sistema para las demás notificaciones)."
+                ),
+                "tamano_mb": round(tamano_mb, 2),
+                "tablas": len(tablas),
+                "destinatario": destinatario,
+            }
 
         enviado = enviar_correo_con_adjunto(
             destinatario,
@@ -372,16 +401,41 @@ def generar_respaldo_base_datos():
         )
 
         if enviado:
-            print(f"✅ Respaldo diario enviado a {destinatario} ({tamano_mb:.1f} MB)")
+            return {
+                "ok": True,
+                "motivo": f"Respaldo enviado a {destinatario} ({origen_destinatario}).",
+                "destinatario": destinatario,
+                "tamano_mb": round(tamano_mb, 2),
+                "tablas": len(tablas),
+            }
         else:
-            print(f"⚠️  No se pudo enviar el respaldo diario a {destinatario}")
+            return {
+                "ok": False,
+                "motivo": (
+                    f"El servidor de correo (SMTP) rechazó o falló el envío a "
+                    f"{destinatario}. Revisa los logs de Railway para ver el "
+                    f"error exacto de smtplib."
+                ),
+                "destinatario": destinatario,
+                "tamano_mb": round(tamano_mb, 2),
+                "tablas": len(tablas),
+            }
 
     except Exception as e:
-        print("Error generando el respaldo diario:", e)
+        return {"ok": False, "motivo": f"Error generando el respaldo: {e}"}
 
     finally:
         cur.close()
         conn.close()
+
+
+def generar_respaldo_base_datos():
+    """Wrapper usado por el job automático de las 3am: solo imprime el resultado."""
+    resultado = _generar_y_enviar_respaldo()
+    if resultado["ok"]:
+        print(f"✅ {resultado['motivo']} ({resultado.get('tamano_mb')} MB)")
+    else:
+        print(f"⚠️  Respaldo diario no enviado: {resultado['motivo']}")
 
 
 # =========================
@@ -4848,6 +4902,28 @@ def _listar_objetos_supabase_recursivo(base_url, bucket, headers, prefijo=""):
             archivos.append({"ruta": ruta, "bytes": tamano})
 
     return archivos
+
+
+@app.post("/admin/respaldo-manual")
+def enviar_respaldo_manual(usuario=Depends(obtener_usuario_actual)):
+    """
+    Genera y envía el respaldo de la base de datos en el momento, con el
+    mismo código que usa el job automático de las 3am. Sirve para probar
+    ahora mismo si el envío funciona (y por qué, si no), en vez de esperar
+    a la madrugada y solo saber si llegó o no llegó el correo.
+    """
+    if usuario["rol"] != "administrador":
+        raise HTTPException(
+            status_code=403,
+            detail="Solo el administrador puede enviar el respaldo manualmente"
+        )
+
+    resultado = _generar_y_enviar_respaldo()
+
+    if not resultado["ok"]:
+        raise HTTPException(status_code=500, detail=resultado["motivo"])
+
+    return resultado
 
 
 @app.get("/admin/almacenamiento")

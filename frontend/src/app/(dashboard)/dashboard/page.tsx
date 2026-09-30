@@ -9,12 +9,13 @@ import {
   FileCheck,
   LayoutDashboard,
   HardDrive,
-  ChevronDown
+  ChevronDown,
+  DatabaseBackup
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { StatCard, Spinner, ErrorAlert, PageHeader, Badge, EmptyState } from '@/components/ui';
-import { getDashboard, getUsoAlmacenamiento, getProcesos, getActasFinales } from '@/lib/services';
+import { getDashboard, getUsoAlmacenamiento, getProcesos, getActasFinales, enviarRespaldoManual } from '@/lib/services';
 import { useAuth } from '@/hooks/useAuth';
 import { GuiaBienvenida, useGuiaBienvenida } from '@/components/dashboard/GuiaBienvenida';
 
@@ -61,6 +62,33 @@ export default function DashboardPage() {
 
   const [almacenamiento, setAlmacenamiento] = useState<any | null>(null);
   const [loadingAlmacenamiento, setLoadingAlmacenamiento] = useState(isAdmin);
+
+  const [enviandoRespaldo, setEnviandoRespaldo] = useState(false);
+  const [resultadoRespaldo, setResultadoRespaldo] = useState<{
+    ok: boolean;
+    mensaje: string;
+  } | null>(null);
+
+  const handleEnviarRespaldo = async () => {
+    setEnviandoRespaldo(true);
+    setResultadoRespaldo(null);
+    try {
+      const data = await enviarRespaldoManual();
+      setResultadoRespaldo({
+        ok: true,
+        mensaje: `${data.motivo} (${data.tamano_mb} MB, ${data.tablas} tablas)`,
+      });
+    } catch (err: any) {
+      setResultadoRespaldo({
+        ok: false,
+        mensaje:
+          err?.response?.data?.detail ||
+          'No se pudo generar/enviar el respaldo. Intenta de nuevo.',
+      });
+    } finally {
+      setEnviandoRespaldo(false);
+    }
+  };
 
   // Tarjeta clickeada actualmente (una de las claves de CATEGORIAS), la
   // lista que trae y su estado de carga.
@@ -467,6 +495,43 @@ export default function DashboardPage() {
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {isAdmin && (
+            <div className="card p-6">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-sm font-semibold text-numa-700 uppercase tracking-wider flex items-center gap-2">
+                  <DatabaseBackup className="w-4 h-4 text-numa-400" />
+                  Respaldo de la base de datos
+                </h2>
+              </div>
+
+              <p className="text-sm text-numa-500 mb-4">
+                Genera y envía por correo el mismo respaldo que el sistema manda automáticamente
+                todos los días a las 3am — úsalo para confirmar ahora mismo si el envío está
+                funcionando, sin esperar a la madrugada.
+              </p>
+
+              <button
+                onClick={handleEnviarRespaldo}
+                disabled={enviandoRespaldo}
+                className="btn-primary text-sm px-4 py-2 disabled:opacity-60"
+              >
+                {enviandoRespaldo ? 'Enviando respaldo...' : 'Enviar respaldo ahora'}
+              </button>
+
+              {resultadoRespaldo && (
+                <div
+                  className={`mt-4 text-sm rounded-lg p-3 border ${
+                    resultadoRespaldo.ok
+                      ? 'bg-green-50 text-green-700 border-green-200'
+                      : 'bg-red-50 text-red-700 border-red-200'
+                  }`}
+                >
+                  {resultadoRespaldo.mensaje}
                 </div>
               )}
             </div>
