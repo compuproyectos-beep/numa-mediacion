@@ -156,27 +156,46 @@ export default function HomePage() {
       {/* HERO — banner a todo lo ancho con las fotos ocupando toda la
           sección (como cme.com.ec), en vez de una foto chica en un
           recuadro al lado del texto. El texto va encima, con un degradado
-          oscuro detrás para que se lea bien. */}
-      <section className="relative min-h-screen flex items-center overflow-hidden">
+          suave detrás para que se lea bien.
+          Cada foto se ve COMPLETA (sin recortar) de fondo desenfocado de
+          la misma foto, ampliada, rellena los bordes para que no queden
+          franjas vacías — así no se pierde nada de la imagen original. */}
+      <section className="relative min-h-[640px] sm:min-h-[720px] lg:min-h-[820px] flex items-center overflow-hidden">
         {/* Carrusel de fondo, a todo lo ancho y alto de la sección */}
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-numa-950">
           {heroImages.map((img, i) => (
-            <Image
+            <div
               key={img.src}
-              src={img.src}
-              alt={img.alt}
-              fill
-              priority={i === 0}
-              sizes="100vw"
-              className={`object-cover transition-opacity duration-1000 ${
+              className={`absolute inset-0 transition-opacity duration-1000 ${
                 i === heroIndex ? 'opacity-100' : 'opacity-0'
               }`}
-            />
+            >
+              {/* Relleno desenfocado — ocupa todo el espacio */}
+              <Image
+                src={img.src}
+                alt=""
+                fill
+                aria-hidden="true"
+                sizes="100vw"
+                className="object-cover scale-110 blur-2xl opacity-60"
+              />
+
+              {/* Foto completa, sin recortar */}
+              <Image
+                src={img.src}
+                alt={img.alt}
+                fill
+                priority={i === 0}
+                sizes="100vw"
+                className="object-contain"
+              />
+            </div>
           ))}
 
-          {/* Degradado para que el texto se lea sobre cualquier foto */}
-          <div className="absolute inset-0 bg-gradient-to-r from-numa-950/90 via-numa-950/60 to-numa-950/30" />
-          <div className="absolute inset-0 bg-gradient-to-t from-numa-950/80 via-transparent to-numa-950/20" />
+          {/* Degradado leve, solo para que el texto de la izquierda se lea
+              bien — ya no oscurece toda la foto. */}
+          <div className="absolute inset-0 bg-gradient-to-r from-numa-950/75 via-numa-950/25 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-numa-950/60 via-transparent to-numa-950/10" />
         </div>
 
         {/* Top line */}
