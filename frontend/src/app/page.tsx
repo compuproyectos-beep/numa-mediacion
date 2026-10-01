@@ -71,7 +71,10 @@ const heroImages = [
     alt: 'Partes llegando a un acuerdo durante una sesión de mediación en NUMA',
   },
   {
-    src: '/images/numa-pompilio.jpg',
+    // Versión en tono azul (igual a la paleta de la marca) de la misma
+    // foto que se usa más abajo en la sección de Numa Pompilio — el
+    // original es muy café y no dejaba leer bien el texto encima.
+    src: '/images/numa-pompilio-azul.jpg',
     alt: 'Numa Pompilio, segundo rey de Roma, símbolo histórico de la mediación y la paz',
   },
   {
@@ -180,15 +183,19 @@ export default function HomePage() {
                 className="object-cover scale-110 blur-2xl opacity-60"
               />
 
-              {/* Foto completa, sin recortar */}
-              <Image
-                src={img.src}
-                alt={img.alt}
-                fill
-                priority={i === 0}
-                sizes="100vw"
-                className="object-contain"
-              />
+              {/* Foto completa, sin recortar — con un margen fijo para que
+                  no quede pegada al borde ni se sienta tan grande, aunque
+                  su proporción case casi exacto con la del banner. */}
+              <div className="absolute inset-x-8 sm:inset-x-16 lg:inset-x-24 inset-y-10 sm:inset-y-14 lg:inset-y-16">
+                <Image
+                  src={img.src}
+                  alt={img.alt}
+                  fill
+                  priority={i === 0}
+                  sizes="100vw"
+                  className="object-contain"
+                />
+              </div>
             </div>
           ))}
 
