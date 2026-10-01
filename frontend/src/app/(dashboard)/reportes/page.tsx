@@ -345,6 +345,32 @@ export default function ReportesPage() {
       ? datos.filter((p: any) => p.estado === 'cerrado_con_acuerdo' && !p.finalizado).length
       : 0;
 
+  // El sistema gira ante todo en torno a las actas, así que ese gráfico va
+  // primero, antes que el de procesos por estado/mediador/sucursal — no al
+  // revés.
+  //
+  // En Procesos, es un solo gráfico con 2 barras (subidas vs pendientes).
+  // En Equipo/Sucursales, es un listado por mediador/sucursal, igual que ya
+  // existía para "pendientes" — ahora con su contraparte "completas".
+  const actasSubidasProcesos =
+    tipo === 'procesos' ? datos.filter((p: any) => p.finalizado).length : 0;
+
+  const barrasActas: { label: string; valor: number; color?: string }[] | null =
+    tipo === 'procesos'
+      ? [
+          { label: 'Actas subidas', valor: actasSubidasProcesos, color: '#22c55e' },
+          { label: 'Actas pendientes', valor: actasPendientesProcesos, color: '#ef4444' }
+        ]
+      : tipo === 'productividad'
+      ? datos
+          .filter((m: any) => m.actas_subidas > 0)
+          .map((m: any) => ({ label: m.mediador, valor: m.actas_subidas, color: '#22c55e' }))
+      : tipo === 'sucursales'
+      ? datos
+          .filter((s: any) => s.actas_subidas > 0)
+          .map((s: any) => ({ label: s.sucursal, valor: s.actas_subidas, color: '#22c55e' }))
+      : null;
+
   // Barritas para que los reportes no sean solo números: por estado en
   // Procesos, por mediador en Equipo, por sucursal en Sucursales. En
   // Actas/Clientes no aporta tanto (muchas filas de a 1), así que se deja
@@ -362,9 +388,8 @@ export default function ReportesPage() {
       ? datos.map((s: any) => ({ label: s.sucursal, valor: s.total_procesos }))
       : null;
 
-  // Segunda barrita, solo si hay algo que mostrar: cuántas actas siguen
-  // pendientes por mediador/sucursal, para que salte a la vista sin tener
-  // que leer toda la tabla.
+  // Actas pendientes por mediador/sucursal (Procesos ya las muestra dentro
+  // de "barrasActas" arriba, así que acá solo aplica a Equipo/Sucursales).
   const barrasActasPendientes: { label: string; valor: number; color?: string }[] | null =
     tipo === 'productividad'
       ? datos
@@ -574,6 +599,19 @@ export default function ReportesPage() {
                 (datos.length === 1 ? 'cliente' : 'clientes')}
               {tipo === 'actas' &&
                 (datos.length === 1 ? 'acta final' : 'actas finales')}
+            </div>
+          )}
+
+          {/* El gráfico de actas va primero: es el corazón del sistema,
+              antes que el desglose general de procesos. */}
+          {barrasActas && barrasActas.length > 0 && (
+            <div className="card p-4">
+              <p className="text-xs font-medium text-numa-500 mb-3 uppercase tracking-wide">
+                {tipo === 'procesos'
+                  ? 'Actas'
+                  : 'Actas subidas por ' + (tipo === 'productividad' ? 'mediador' : 'sucursal')}
+              </p>
+              <BarrasResumen items={barrasActas} />
             </div>
           )}
 
