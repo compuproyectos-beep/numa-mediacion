@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { Menu, X, ChevronDown, Phone, Mail, MapPin } from 'lucide-react';
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
+import RotatingLogo from '@/components/public/RotatingLogo';
 import api from '@/lib/api';
 
 export default function PublicNavbar() {
@@ -46,6 +47,20 @@ export default function PublicNavbar() {
     };
   }, []);
 
+  // Mismo agrupamiento Provincia → Ciudad → Sucursal que en el desplegable
+  // del hero, para que no haya dos formas distintas de mostrar las sedes.
+  // El backend ya entrega la lista ordenada en ese orden.
+  const sedesPorProvincia = sedes.reduce((acc: Record<string, Record<string, any[]>>, sede: any) => {
+    const provincia = sede.provincia || 'Otras';
+    const ciudad = sede.ciudad || 'Sin ciudad';
+
+    if (!acc[provincia]) acc[provincia] = {};
+    if (!acc[provincia][ciudad]) acc[provincia][ciudad] = [];
+    acc[provincia][ciudad].push(sede);
+
+    return acc;
+  }, {});
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-numa-950/95 backdrop-blur-sm border-b border-numa-800">
       {/* Barra de contacto — siempre visible, sin necesidad de bajar hasta el pie de página */}
@@ -80,11 +95,7 @@ export default function PublicNavbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           <Link href="/" className="flex items-center">
-            <img
-              src="/logo-numa.png"
-              alt="NUMA Centro de Mediación"
-              className="h-16 w-auto object-contain"
-            />
+            <RotatingLogo className="h-14 w-40 sm:h-16 sm:w-48" />
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
@@ -126,26 +137,39 @@ export default function PublicNavbar() {
                         No hay sedes disponibles
                       </div>
                     ) : (
-                      sedes.map((sede) => (
-                        <Link
-                          key={sede.id}
-                          href={`/sedes/${sede.slug}`}
-                          onClick={() => setOpenSedes(false)}
-                          className="flex items-center gap-3 px-4 py-3 hover:bg-gold-50 transition-colors group"
-                        >
-                          <div className="w-9 h-9 rounded-full bg-numa-50 border border-numa-100 flex items-center justify-center shrink-0 group-hover:bg-gold-100 group-hover:border-gold-200 transition-colors">
-                            <MapPin className="w-4 h-4 text-numa-500 group-hover:text-gold-600" />
+                      Object.entries(sedesPorProvincia).map(([provincia, ciudades]) => (
+                        <div key={provincia}>
+                          <div className="px-4 pt-3 pb-1 bg-numa-50/70">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-numa-700">
+                              {provincia}
+                            </span>
                           </div>
 
-                          <div className="min-w-0">
-                            <span className="block text-sm font-semibold text-numa-900 truncate group-hover:text-numa-950">
-                              {sede.nombre}
-                            </span>
-                            <span className="block text-xs text-numa-400">
-                              {sede.ciudad}
-                            </span>
-                          </div>
-                        </Link>
+                          {Object.entries(ciudades).map(([ciudad, listaSedes]) => (
+                            <div key={ciudad}>
+                              <div className="px-5 pt-2 pb-1">
+                                <span className="text-[11px] font-medium text-numa-400 uppercase tracking-wide">
+                                  {ciudad}
+                                </span>
+                              </div>
+
+                              {listaSedes.map((sede: any) => (
+                                <Link
+                                  key={sede.id}
+                                  href={`/sedes/${sede.slug}`}
+                                  onClick={() => setOpenSedes(false)}
+                                  className="flex items-center gap-3 pl-7 pr-4 py-2.5 hover:bg-gold-50 transition-colors group"
+                                >
+                                  <MapPin className="w-3.5 h-3.5 text-numa-400 group-hover:text-gold-600 shrink-0" />
+
+                                  <span className="block text-sm font-semibold text-numa-900 truncate">
+                                    {sede.nombre}
+                                  </span>
+                                </Link>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
                       ))
                     )}
                   </div>
@@ -195,35 +219,48 @@ export default function PublicNavbar() {
           </button>
 
           {openSedes && (
-            <div className="max-h-52 overflow-y-auto bg-white rounded-md border border-numa-100 divide-y divide-numa-100">
+            <div className="max-h-64 overflow-y-auto bg-white rounded-md border border-numa-100 divide-y divide-numa-100">
               {sedes.length === 0 ? (
                 <div className="px-4 py-4 text-sm text-numa-500 text-center">
                   No hay sedes disponibles
                 </div>
               ) : (
-                sedes.map((sede) => (
-                  <Link
-                    key={sede.id}
-                    href={`/sedes/${sede.slug}`}
-                    onClick={() => {
-                      setOpenSedes(false);
-                      setOpen(false);
-                    }}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-gold-50"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-numa-50 border border-numa-100 flex items-center justify-center shrink-0">
-                      <MapPin className="w-4 h-4 text-numa-500" />
+                Object.entries(sedesPorProvincia).map(([provincia, ciudades]) => (
+                  <div key={provincia}>
+                    <div className="px-4 pt-2.5 pb-1 bg-numa-50/70">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-numa-700">
+                        {provincia}
+                      </span>
                     </div>
 
-                    <div className="min-w-0">
-                      <span className="block text-sm font-semibold text-numa-900 truncate">
-                        {sede.nombre}
-                      </span>
-                      <span className="block text-xs text-numa-400">
-                        {sede.ciudad}
-                      </span>
-                    </div>
-                  </Link>
+                    {Object.entries(ciudades).map(([ciudad, listaSedes]) => (
+                      <div key={ciudad}>
+                        <div className="px-5 pt-1.5 pb-1">
+                          <span className="text-[11px] font-medium text-numa-400 uppercase tracking-wide">
+                            {ciudad}
+                          </span>
+                        </div>
+
+                        {listaSedes.map((sede: any) => (
+                          <Link
+                            key={sede.id}
+                            href={`/sedes/${sede.slug}`}
+                            onClick={() => {
+                              setOpenSedes(false);
+                              setOpen(false);
+                            }}
+                            className="flex items-center gap-3 pl-7 pr-4 py-2.5 hover:bg-gold-50"
+                          >
+                            <MapPin className="w-3.5 h-3.5 text-numa-400 shrink-0" />
+
+                            <span className="block text-sm font-semibold text-numa-900 truncate">
+                              {sede.nombre}
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
                 ))
               )}
             </div>

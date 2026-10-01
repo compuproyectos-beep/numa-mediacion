@@ -1,5 +1,6 @@
 import { Mail, Phone, MapPin, Lock } from 'lucide-react';
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
+import RotatingLogo from '@/components/public/RotatingLogo';
 import Link from 'next/link';
 
 export default function PublicFooter() {
@@ -14,11 +15,7 @@ export default function PublicFooter() {
           {/* Brand */}
           <div className="md:col-span-2">
             <Link href="/" className="inline-block mb-5">
-              <img
-                src="/logo-numa.png"
-                alt="NUMA Centro de Mediación"
-                className="h-14 w-auto object-contain"
-              />
+              <RotatingLogo className="h-14 w-44" />
             </Link>
 
             <p className="text-sm leading-relaxed max-w-sm text-white">

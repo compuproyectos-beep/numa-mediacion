@@ -80,14 +80,6 @@ const heroImages = [
   },
 ];
 
-// Insignia de logos que rota sola sobre la foto del hero: las 3 versiones
-// del logo que mandó el abogado, alternándose.
-const heroLogos = [
-  '/logo-numa.png',
-  '/images/logo-numa-oscuro.jpg',
-  '/images/logo-numa-claro.jpg',
-];
-
 const beneficios = [
   {
     icon: Gavel,
@@ -124,10 +116,8 @@ const beneficios = [
 export default function HomePage() {
   const [sedes, setSedes] = useState<any[]>([]);
 
-  // Índice de la foto y del logo que se muestran ahora mismo en el hero;
-  // cada uno avanza solo con su propio temporizador.
+  // Índice de la foto que se muestra ahora mismo en el carrusel del hero.
   const [heroIndex, setHeroIndex] = useState(0);
-  const [logoIndex, setLogoIndex] = useState(0);
 
   useEffect(() => {
     api
@@ -140,13 +130,6 @@ export default function HomePage() {
     const intervalo = setInterval(() => {
       setHeroIndex((i) => (i + 1) % heroImages.length);
     }, 5000);
-    return () => clearInterval(intervalo);
-  }, []);
-
-  useEffect(() => {
-    const intervalo = setInterval(() => {
-      setLogoIndex((i) => (i + 1) % heroLogos.length);
-    }, 3200);
     return () => clearInterval(intervalo);
   }, []);
 
@@ -170,46 +153,65 @@ export default function HomePage() {
     <div className="min-h-screen bg-white font-display">
       <PublicNavbar />
 
-      {/* HERO */}
-      <section className="relative min-h-screen flex items-center bg-white overflow-hidden">
-        {/* Formas azules decorativas */}
-        <div className="absolute -bottom-40 -left-24 w-96 h-96 bg-numa-50 rounded-full blur-3xl opacity-90" />
-        <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-gold-400/10 rounded-full blur-3xl" />
+      {/* HERO — banner a todo lo ancho con las fotos ocupando toda la
+          sección (como cme.com.ec), en vez de una foto chica en un
+          recuadro al lado del texto. El texto va encima, con un degradado
+          oscuro detrás para que se lea bien. */}
+      <section className="relative min-h-screen flex items-center overflow-hidden">
+        {/* Carrusel de fondo, a todo lo ancho y alto de la sección */}
+        <div className="absolute inset-0">
+          {heroImages.map((img, i) => (
+            <Image
+              key={img.src}
+              src={img.src}
+              alt={img.alt}
+              fill
+              priority={i === 0}
+              sizes="100vw"
+              className={`object-cover transition-opacity duration-1000 ${
+                i === heroIndex ? 'opacity-100' : 'opacity-0'
+              }`}
+            />
+          ))}
 
-        {/* Pattern */}
-        <div className="absolute inset-0 opacity-[0.08]">
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage:
-                'repeating-linear-gradient(45deg, #C9D6E5 0, #C9D6E5 1px, transparent 0, transparent 50%)',
-              backgroundSize: '22px 22px',
-            }}
-          />
+          {/* Degradado para que el texto se lea sobre cualquier foto */}
+          <div className="absolute inset-0 bg-gradient-to-r from-numa-950/90 via-numa-950/60 to-numa-950/30" />
+          <div className="absolute inset-0 bg-gradient-to-t from-numa-950/80 via-transparent to-numa-950/20" />
         </div>
 
         {/* Top line */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-numa-800 via-gold-500 to-numa-800" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-numa-800 via-gold-500 to-numa-800 z-10" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 sm:pt-40 pb-20">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          <div>
+        {/* Indicadores del carrusel */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+          {heroImages.map((img, i) => (
+            <button
+              key={img.src}
+              type="button"
+              onClick={() => setHeroIndex(i)}
+              aria-label={`Mostrar foto ${i + 1}`}
+              className={`h-1.5 rounded-full transition-all ${
+                i === heroIndex ? 'w-6 bg-gold-400' : 'w-1.5 bg-white/60'
+              }`}
+            />
+          ))}
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 sm:pt-40 pb-24 w-full">
+          <div className="max-w-2xl">
             <div className="flex items-center gap-2 mb-6">
               <div className="h-px w-12 bg-gold-500" />
 
-              <span className="text-gold-600 text-xs uppercase tracking-[0.3em] font-sans">
+              <span className="text-gold-400 text-xs uppercase tracking-[0.3em] font-sans">
                 Desde 2010
               </span>
             </div>
 
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-numa-900 leading-tight mb-6">
-              Centro de{' '}
-              <span className="text-gold-600">Mediación</span>
-              <br />
-              NUMA
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight mb-6">
+              Centro de <span className="text-gold-400">Mediación</span> NUMA
             </h1>
 
-            <p className="text-lg text-numa-600 leading-relaxed mb-8 max-w-2xl">
+            <p className="text-lg text-numa-100 leading-relaxed mb-8 max-w-xl">
               Somos una institución comprometida con la resolución pacífica de
               conflictos, promoviendo el diálogo, la justicia y el
               entendimiento entre las partes.
@@ -226,7 +228,7 @@ export default function HomePage() {
 
               <Link
                 href="/login"
-                className="inline-flex items-center gap-2 px-6 py-3 border border-numa-300 text-numa-700 text-sm font-medium rounded-sm hover:border-gold-400 hover:text-gold-600 hover:bg-gold-50 transition-colors"
+                className="inline-flex items-center gap-2 px-6 py-3 border border-white/40 text-white text-sm font-medium rounded-sm hover:border-gold-400 hover:text-gold-400 transition-colors"
               >
                 Acceso al Sistema
               </Link>
@@ -235,7 +237,7 @@ export default function HomePage() {
               <div className="relative group">
                 <button
                   type="button"
-                  className="inline-flex items-center gap-2 px-6 py-3 border border-numa-300 text-numa-700 text-sm font-medium rounded-sm hover:border-gold-400 hover:text-gold-600 hover:bg-gold-50 transition-colors"
+                  className="inline-flex items-center gap-2 px-6 py-3 border border-white/40 text-white text-sm font-medium rounded-sm hover:border-gold-400 hover:text-gold-400 transition-colors"
                 >
                   Sedes
                   <ChevronDown className="w-4 h-4" />
@@ -288,73 +290,22 @@ export default function HomePage() {
             </div>
 
             {/* FRANJA DE CONFIANZA */}
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-3 pt-6 border-t border-numa-100">
-              <div className="flex items-center gap-2 text-sm text-numa-600">
-                <Shield className="w-4 h-4 text-gold-500" />
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-3 pt-6 border-t border-white/20">
+              <div className="flex items-center gap-2 text-sm text-numa-100">
+                <Shield className="w-4 h-4 text-gold-400" />
                 Mediación certificada
               </div>
 
-              <div className="flex items-center gap-2 text-sm text-numa-600">
-                <Users className="w-4 h-4 text-gold-500" />
+              <div className="flex items-center gap-2 text-sm text-numa-100">
+                <Users className="w-4 h-4 text-gold-400" />
                 Equipo profesional
               </div>
 
-              <div className="flex items-center gap-2 text-sm text-numa-600">
-                <CheckCircle className="w-4 h-4 text-gold-500" />
+              <div className="flex items-center gap-2 text-sm text-numa-100">
+                <CheckCircle className="w-4 h-4 text-gold-400" />
                 Acuerdos con validez legal
               </div>
             </div>
-          </div>
-
-          {/* IMAGEN HERO — carrusel con transición, igual al ejemplo que envió
-              el abogado: varias fotos que se van turnando solas. */}
-          <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-            <div className="relative rounded-sm overflow-hidden shadow-2xl border border-numa-200 h-[280px] sm:h-[360px] lg:h-[440px]">
-              {heroImages.map((img, i) => (
-                <Image
-                  key={img.src}
-                  src={img.src}
-                  alt={img.alt}
-                  width={900}
-                  height={1000}
-                  priority={i === 0}
-                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
-                    i === heroIndex ? 'opacity-100' : 'opacity-0'
-                  }`}
-                />
-              ))}
-
-              {/* Indicadores del carrusel */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-                {heroImages.map((img, i) => (
-                  <button
-                    key={img.src}
-                    type="button"
-                    onClick={() => setHeroIndex(i)}
-                    aria-label={`Mostrar foto ${i + 1}`}
-                    className={`h-1.5 rounded-full transition-all ${
-                      i === heroIndex ? 'w-6 bg-gold-400' : 'w-1.5 bg-white/70'
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Insignia de logos: las 3 versiones del logo rotando solas,
-                como un sello sobre la foto. */}
-            <div className="absolute -bottom-6 -left-6 w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-white shadow-xl border border-numa-100 p-2.5 overflow-hidden">
-              {heroLogos.map((src, i) => (
-                <img
-                  key={src}
-                  src={src}
-                  alt="Logo Centro de Mediación NUMA"
-                  className={`absolute inset-0 w-full h-full object-contain p-2.5 transition-opacity duration-700 ${
-                    i === logoIndex ? 'opacity-100' : 'opacity-0'
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
           </div>
         </div>
       </section>
