@@ -8,7 +8,9 @@ import {
   getActasFinales,
   getReporteProductividad,
   getReporteSucursales,
-  getReporteClientes
+  getReporteClientes,
+  getReporteResumen,
+  ResumenReporte
 } from '@/lib/services';
 import { BarrasResumen } from '@/components/ui';
 
@@ -66,6 +68,9 @@ function ImprimirReporteContenido() {
 
   const [datos, setDatos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  // Igual que en pantalla: indicadores de resultado (tasa de acuerdo, tiempo
+  // promedio de resolución), que solo aplican al reporte de Procesos.
+  const [resumenIndicadores, setResumenIndicadores] = useState<ResumenReporte | null>(null);
 
   useEffect(() => {
     const filtros = {
@@ -91,6 +96,12 @@ function ImprimirReporteContenido() {
       .then(setDatos)
       .catch(() => setDatos([]))
       .finally(() => setLoading(false));
+
+    if (tipo === 'procesos') {
+      getReporteResumen(filtros)
+        .then(setResumenIndicadores)
+        .catch(() => setResumenIndicadores(null));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -130,6 +141,27 @@ function ImprimirReporteContenido() {
       ? datos.map((m: any) => ({ label: m.mediador, valor: m.total_procesos }))
       : tipo === 'sucursales'
       ? datos.map((s: any) => ({ label: s.sucursal, valor: s.total_procesos }))
+      : null;
+
+  // El sistema gira ante todo en torno a las actas, así que este gráfico se
+  // muestra primero, antes que el desglose general — igual que en pantalla.
+  const actasSubidasProcesos =
+    tipo === 'procesos' ? datos.filter((p: any) => p.finalizado).length : 0;
+
+  const barrasActas: { label: string; valor: number; color?: string }[] | null =
+    tipo === 'procesos'
+      ? [
+          { label: 'Actas subidas', valor: actasSubidasProcesos, color: '#22c55e' },
+          { label: 'Actas pendientes', valor: actasPendientesProcesos, color: '#ef4444' }
+        ]
+      : tipo === 'productividad'
+      ? datos
+          .filter((m: any) => m.actas_subidas > 0)
+          .map((m: any) => ({ label: m.mediador, valor: m.actas_subidas, color: '#22c55e' }))
+      : tipo === 'sucursales'
+      ? datos
+          .filter((s: any) => s.actas_subidas > 0)
+          .map((s: any) => ({ label: s.sucursal, valor: s.actas_subidas, color: '#22c55e' }))
       : null;
 
   const barrasActasPendientes: { label: string; valor: number; color?: string }[] | null =
@@ -209,6 +241,16 @@ function ImprimirReporteContenido() {
                       <th className="text-left py-2 pr-4 font-semibold text-red-700">
                         Con acuerdo sin acta
                       </th>
+                      {resumenIndicadores && resumenIndicadores.tasa_acuerdo !== null && (
+                        <th className="text-left py-2 pr-4 font-semibold text-green-700">
+                          Tasa de acuerdo
+                        </th>
+                      )}
+                      {resumenIndicadores && resumenIndicadores.promedio_dias_resolucion !== null && (
+                        <th className="text-left py-2 pr-4 font-semibold text-numa-700">
+                          Prom. días resolución
+                        </th>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -231,9 +273,31 @@ function ImprimirReporteContenido() {
                       <td className="py-2 pr-4 text-red-700 text-sm font-bold">
                         {actasPendientesProcesos}
                       </td>
+                      {resumenIndicadores && resumenIndicadores.tasa_acuerdo !== null && (
+                        <td className="py-2 pr-4 text-green-700 text-sm font-bold">
+                          {resumenIndicadores.tasa_acuerdo}%
+                        </td>
+                      )}
+                      {resumenIndicadores && resumenIndicadores.promedio_dias_resolucion !== null && (
+                        <td className="py-2 pr-4 text-numa-800 text-sm font-semibold">
+                          {resumenIndicadores.promedio_dias_resolucion} días
+                        </td>
+                      )}
                     </tr>
                   </tbody>
                 </table>
+              )}
+
+              {/* El gráfico de actas va primero: es el corazón del sistema. */}
+              {barrasActas && barrasActas.length > 0 && (
+                <div className="mb-6 print:break-inside-avoid">
+                  <p className="text-[11px] font-semibold text-numa-700 uppercase tracking-wide mb-2">
+                    {tipo === 'procesos'
+                      ? 'Actas'
+                      : 'Actas subidas por ' + (tipo === 'productividad' ? 'mediador' : 'sucursal')}
+                  </p>
+                  <BarrasResumen items={barrasActas} />
+                </div>
               )}
 
               {barrasResumen && barrasResumen.length > 0 && (
