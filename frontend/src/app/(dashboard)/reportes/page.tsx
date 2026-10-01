@@ -70,6 +70,11 @@ const getEstadoLabel = (estado: string) => {
   return labels[estado] || estado;
 };
 
+// Puede haber sucursales con el mismo nombre en ciudades distintas (p. ej.
+// "NORTE" en dos ciudades), así que en los gráficos por sucursal se muestra
+// la ciudad entre paréntesis para no confundirlas.
+const labelSucursal = (s: any) => (s.ciudad ? `${s.sucursal} (${s.ciudad})` : s.sucursal);
+
 export default function ReportesPage() {
   const admin = isAdmin();
 
@@ -368,7 +373,7 @@ export default function ReportesPage() {
       : tipo === 'sucursales'
       ? datos
           .filter((s: any) => s.actas_subidas > 0)
-          .map((s: any) => ({ label: s.sucursal, valor: s.actas_subidas, color: '#22c55e' }))
+          .map((s: any) => ({ label: labelSucursal(s), valor: s.actas_subidas, color: '#22c55e' }))
       : null;
 
   // Barritas para que los reportes no sean solo números: por estado en
@@ -385,7 +390,7 @@ export default function ReportesPage() {
       : tipo === 'productividad'
       ? datos.map((m: any) => ({ label: m.mediador, valor: m.total_procesos }))
       : tipo === 'sucursales'
-      ? datos.map((s: any) => ({ label: s.sucursal, valor: s.total_procesos }))
+      ? datos.map((s: any) => ({ label: labelSucursal(s), valor: s.total_procesos }))
       : null;
 
   // Actas pendientes por mediador/sucursal (Procesos ya las muestra dentro
@@ -398,7 +403,7 @@ export default function ReportesPage() {
       : tipo === 'sucursales'
       ? datos
           .filter((s: any) => s.actas_pendientes > 0)
-          .map((s: any) => ({ label: s.sucursal, valor: s.actas_pendientes, color: '#ef4444' }))
+          .map((s: any) => ({ label: labelSucursal(s), valor: s.actas_pendientes, color: '#ef4444' }))
       : null;
 
   return (

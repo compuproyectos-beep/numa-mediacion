@@ -42,6 +42,10 @@ const getEstadoLabel = (estado: string) => {
   return labels[estado] || estado;
 };
 
+// Puede haber sucursales con el mismo nombre en ciudades distintas, así que
+// en los gráficos por sucursal se muestra la ciudad entre paréntesis.
+const labelSucursal = (s: any) => (s.ciudad ? `${s.sucursal} (${s.ciudad})` : s.sucursal);
+
 export default function ImprimirReportePage() {
   return (
     <Suspense
@@ -140,7 +144,7 @@ function ImprimirReporteContenido() {
       : tipo === 'productividad'
       ? datos.map((m: any) => ({ label: m.mediador, valor: m.total_procesos }))
       : tipo === 'sucursales'
-      ? datos.map((s: any) => ({ label: s.sucursal, valor: s.total_procesos }))
+      ? datos.map((s: any) => ({ label: labelSucursal(s), valor: s.total_procesos }))
       : null;
 
   // El sistema gira ante todo en torno a las actas, así que este gráfico se
@@ -161,7 +165,7 @@ function ImprimirReporteContenido() {
       : tipo === 'sucursales'
       ? datos
           .filter((s: any) => s.actas_subidas > 0)
-          .map((s: any) => ({ label: s.sucursal, valor: s.actas_subidas, color: '#22c55e' }))
+          .map((s: any) => ({ label: labelSucursal(s), valor: s.actas_subidas, color: '#22c55e' }))
       : null;
 
   const barrasActasPendientes: { label: string; valor: number; color?: string }[] | null =
@@ -172,7 +176,7 @@ function ImprimirReporteContenido() {
       : tipo === 'sucursales'
       ? datos
           .filter((s: any) => s.actas_pendientes > 0)
-          .map((s: any) => ({ label: s.sucursal, valor: s.actas_pendientes, color: '#ef4444' }))
+          .map((s: any) => ({ label: labelSucursal(s), valor: s.actas_pendientes, color: '#ef4444' }))
       : null;
 
   if (loading) {
