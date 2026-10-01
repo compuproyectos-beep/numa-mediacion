@@ -50,12 +50,42 @@ const valores = [
 ];
 
 const servicios = [
-  'Mediación familiar y civil',
+  'Mediación familiar',
+  'Mediación civil',
+  'Mediación de la mujer',
+  'Mediación en niñez y adolescencia',
+  'Mediación en inquilinato',
+  'Mediación en tránsito',
   'Mediación comercial y empresarial',
   'Arbitraje y conciliación',
   'Mediación laboral',
   'Mediación comunitaria',
   'Capacitación en resolución de conflictos',
+];
+
+// Carrusel del hero: las fotos van rotando solas, con una transición suave
+// (igual a lo que pidió el abogado, tipo cme.com.ec).
+const heroImages = [
+  {
+    src: '/images/liderazgo-mediador.jpg',
+    alt: 'Partes llegando a un acuerdo durante una sesión de mediación en NUMA',
+  },
+  {
+    src: '/images/numa-pompilio.jpg',
+    alt: 'Numa Pompilio, segundo rey de Roma, símbolo histórico de la mediación y la paz',
+  },
+  {
+    src: '/images/oficina-matriz.jpg',
+    alt: 'Oficina matriz del Centro de Mediación NUMA',
+  },
+];
+
+// Insignia de logos que rota sola sobre la foto del hero: las 3 versiones
+// del logo que mandó el abogado, alternándose.
+const heroLogos = [
+  '/logo-numa.png',
+  '/images/logo-numa-oscuro.jpg',
+  '/images/logo-numa-claro.jpg',
 ];
 
 const beneficios = [
@@ -94,12 +124,47 @@ const beneficios = [
 export default function HomePage() {
   const [sedes, setSedes] = useState<any[]>([]);
 
+  // Índice de la foto y del logo que se muestran ahora mismo en el hero;
+  // cada uno avanza solo con su propio temporizador.
+  const [heroIndex, setHeroIndex] = useState(0);
+  const [logoIndex, setLogoIndex] = useState(0);
+
   useEffect(() => {
     api
       .get('/sedes')
       .then((res) => setSedes(res.data))
       .catch(() => setSedes([]));
   }, []);
+
+  useEffect(() => {
+    const intervalo = setInterval(() => {
+      setHeroIndex((i) => (i + 1) % heroImages.length);
+    }, 5000);
+    return () => clearInterval(intervalo);
+  }, []);
+
+  useEffect(() => {
+    const intervalo = setInterval(() => {
+      setLogoIndex((i) => (i + 1) % heroLogos.length);
+    }, 3200);
+    return () => clearInterval(intervalo);
+  }, []);
+
+  // El desplegable de Sedes ahora se agrupa Provincia → Ciudad → Sucursal
+  // (antes solo mostraba ciudad y sucursal, y podía confundirse si dos
+  // sucursales en ciudades distintas se llamaban igual). El backend ya
+  // entrega las sedes ordenadas en ese mismo orden, así que aquí solo se
+  // agrupan sin volver a ordenar.
+  const sedesPorProvincia = sedes.reduce((acc: Record<string, Record<string, any[]>>, sede: any) => {
+    const provincia = sede.provincia || 'Otras';
+    const ciudad = sede.ciudad || 'Sin ciudad';
+
+    if (!acc[provincia]) acc[provincia] = {};
+    if (!acc[provincia][ciudad]) acc[provincia][ciudad] = [];
+    acc[provincia][ciudad].push(sede);
+
+    return acc;
+  }, {});
 
   return (
     <div className="min-h-screen bg-white font-display">
@@ -184,25 +249,38 @@ export default function HomePage() {
                   </div>
 
                   <div className="divide-y divide-numa-100">
-                    {sedes.map((sede) => (
-                    <Link
-                      key={sede.id}
-                      href={`/sedes/${sede.slug}`}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-gold-50 transition-colors group"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-numa-50 border border-numa-100 flex items-center justify-center shrink-0 group-hover:bg-gold-100 group-hover:border-gold-200 transition-colors">
-                        <MapPin className="w-4 h-4 text-numa-500 group-hover:text-gold-600" />
-                      </div>
+                    {Object.entries(sedesPorProvincia).map(([provincia, ciudades]) => (
+                      <div key={provincia}>
+                        <div className="px-4 pt-3 pb-1 bg-numa-50/70">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-numa-700">
+                            {provincia}
+                          </span>
+                        </div>
 
-                      <div className="min-w-0">
-                        <span className="block text-sm font-semibold text-numa-900 truncate">
-                          {sede.nombre}
-                        </span>
-                        <span className="block text-xs text-numa-400">
-                          {sede.ciudad}
-                        </span>
+                        {Object.entries(ciudades).map(([ciudad, listaSedes]) => (
+                          <div key={ciudad}>
+                            <div className="px-5 pt-2 pb-1">
+                              <span className="text-[11px] font-medium text-numa-400 uppercase tracking-wide">
+                                {ciudad}
+                              </span>
+                            </div>
+
+                            {listaSedes.map((sede: any) => (
+                              <Link
+                                key={sede.id}
+                                href={`/sedes/${sede.slug}`}
+                                className="flex items-center gap-3 pl-7 pr-4 py-2.5 hover:bg-gold-50 transition-colors group"
+                              >
+                                <MapPin className="w-3.5 h-3.5 text-numa-400 group-hover:text-gold-600 shrink-0" />
+
+                                <span className="block text-sm font-semibold text-numa-900 truncate">
+                                  {sede.nombre}
+                                </span>
+                              </Link>
+                            ))}
+                          </div>
+                        ))}
                       </div>
-                    </Link>
                     ))}
                   </div>
                 </div>
@@ -228,17 +306,53 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* IMAGEN HERO */}
+          {/* IMAGEN HERO — carrusel con transición, igual al ejemplo que envió
+              el abogado: varias fotos que se van turnando solas. */}
           <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-            <div className="relative rounded-sm overflow-hidden shadow-2xl border border-numa-200">
-              <Image
-                src="/images/liderazgo-mediador.jpg"
-                alt="Partes llegando a un acuerdo durante una sesión de mediación en NUMA"
-                width={900}
-                height={1000}
-                priority
-                className="w-full h-[280px] sm:h-[360px] lg:h-[440px] object-cover"
-              />
+            <div className="relative rounded-sm overflow-hidden shadow-2xl border border-numa-200 h-[280px] sm:h-[360px] lg:h-[440px]">
+              {heroImages.map((img, i) => (
+                <Image
+                  key={img.src}
+                  src={img.src}
+                  alt={img.alt}
+                  width={900}
+                  height={1000}
+                  priority={i === 0}
+                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
+                    i === heroIndex ? 'opacity-100' : 'opacity-0'
+                  }`}
+                />
+              ))}
+
+              {/* Indicadores del carrusel */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                {heroImages.map((img, i) => (
+                  <button
+                    key={img.src}
+                    type="button"
+                    onClick={() => setHeroIndex(i)}
+                    aria-label={`Mostrar foto ${i + 1}`}
+                    className={`h-1.5 rounded-full transition-all ${
+                      i === heroIndex ? 'w-6 bg-gold-400' : 'w-1.5 bg-white/70'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Insignia de logos: las 3 versiones del logo rotando solas,
+                como un sello sobre la foto. */}
+            <div className="absolute -bottom-6 -left-6 w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-white shadow-xl border border-numa-100 p-2.5 overflow-hidden">
+              {heroLogos.map((src, i) => (
+                <img
+                  key={src}
+                  src={src}
+                  alt="Logo Centro de Mediación NUMA"
+                  className={`absolute inset-0 w-full h-full object-contain p-2.5 transition-opacity duration-700 ${
+                    i === logoIndex ? 'opacity-100' : 'opacity-0'
+                  }`}
+                />
+              ))}
             </div>
           </div>
           </div>
@@ -294,6 +408,48 @@ export default function HomePage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* NUMA POMPILIO — símbolo histórico detrás del nombre del centro */}
+      <section id="numa-pompilio" className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div className="relative mx-auto w-full max-w-md lg:max-w-none order-2 lg:order-1">
+              <div className="relative rounded-sm overflow-hidden shadow-2xl border border-numa-200">
+                <Image
+                  src="/images/numa-pompilio.jpg"
+                  alt="Numa Pompilio, segundo rey de Roma, símbolo histórico de la mediación"
+                  width={900}
+                  height={1000}
+                  className="w-full h-[320px] sm:h-[380px] object-cover"
+                />
+              </div>
+            </div>
+
+            <div className="order-1 lg:order-2">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="h-px w-8 bg-gold-400" />
+
+                <span className="text-gold-600 text-xs uppercase tracking-[0.2em] font-sans">
+                  El origen de nuestro nombre
+                </span>
+              </div>
+
+              <h2 className="text-4xl font-bold text-numa-900 mb-6 leading-tight">
+                Numa Pompilio, símbolo de mediador
+              </h2>
+
+              <p className="text-numa-600 leading-relaxed">
+                Numa Pompilio (c. 753-674 a.C.) fue el segundo rey de Roma,
+                sucesor de Rómulo, reconocido como un monarca sabio, religioso
+                y pacífico. Como símbolo de mediador, se destacó por
+                establecer la paz con pueblos vecinos, reformar el calendario
+                y organizar la religión romana, priorizando la diplomacia
+                sobre la guerra.
+              </p>
             </div>
           </div>
         </div>

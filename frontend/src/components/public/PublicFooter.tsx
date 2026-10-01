@@ -1,4 +1,4 @@
-import { Mail, Phone, MapPin } from 'lucide-react';
+import { Mail, Phone, MapPin, Lock } from 'lucide-react';
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
 import Link from 'next/link';
 
@@ -56,7 +56,7 @@ export default function PublicFooter() {
           {/* Contact */}
           <div>
             <h4 className="text-white text-sm font-semibold uppercase tracking-wider mb-4">
-              Contacto Oficina Principal
+              Contacto Oficina Matriz
             </h4>
 
             <ul className="space-y-4">
@@ -102,20 +102,24 @@ export default function PublicFooter() {
           </div>
         </div>
 
-        <div className="border-t border-numa-800 mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
-            <p className="text-sm text-white">
-              © {new Date().getFullYear()} Centro de Mediación NUMA.
-              Todos los derechos reservados.
-            </p>
+        {/* Aviso de privacidad: antes era un link pequeño y casi no se veía.
+            Ahora es un botón propio, con ícono y color dorado, para que no
+            pase desapercibido — el contenido que protege es importante. */}
+        <div className="border-t border-numa-800 mt-12 pt-6 flex flex-col sm:flex-row items-center justify-center">
+          <Link
+            href="/aviso-privacidad"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-gold-400/60 text-gold-400 text-sm font-semibold hover:bg-gold-400 hover:text-numa-950 transition-colors"
+          >
+            <Lock className="w-4 h-4" />
+            Aviso de Privacidad
+          </Link>
+        </div>
 
-            <Link
-              href="/aviso-privacidad"
-              className="text-sm text-white hover:text-gold-400 transition-colors underline"
-            >
-              Aviso de Privacidad
-            </Link>
-          </div>
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-white">
+            © {new Date().getFullYear()} Centro de Mediación NUMA.
+            Todos los derechos reservados.
+          </p>
 
           <Link
             href="/login"

@@ -2610,7 +2610,7 @@ def listar_sedes_publicas():
             LEFT JOIN provincias p ON p.id = c.provincia_id
             WHERE s.activo = true
               AND s.slug IS NOT NULL
-            ORDER BY c.nombre ASC, s.nombre ASC
+            ORDER BY p.nombre ASC, c.nombre ASC, s.nombre ASC
         """)
 
         return cur.fetchall()
