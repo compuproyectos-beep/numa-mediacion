@@ -526,7 +526,7 @@ export default function ProcesosPage() {
                 <div
                   className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 ${
                     paso === p.numero
-                      ? 'bg-gold-500 text-white'
+                      ? 'bg-gold-500 text-numa-950'
                       : paso > p.numero
                       ? 'bg-green-50 text-green-700'
                       : 'bg-numa-100 text-numa-400'

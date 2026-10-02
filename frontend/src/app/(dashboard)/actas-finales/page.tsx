@@ -337,37 +337,43 @@ const handleExportarZip = async () => {
             )}
           </div>
 
-          {/* Fila 2: las dos fechas juntas, y los 3 botones de acción al
-              lado (antes "Descargar..." quedaba solo, estirado a lo ancho
-              de toda una fila — ahora va del mismo tamaño que los demás). */}
-          <div className="flex flex-col lg:flex-row lg:items-end gap-3 mt-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
-              <InputField
-                label="Fecha desde"
-                type="date"
-                value={filters.fecha_desde}
-                onChange={(e) =>
-                  setFilters({
-                    ...filters,
-                    fecha_desde: e.target.value
-                  })
-                }
-              />
+          {/* Fila 2: las dos fechas juntas y bien pegadas entre sí (antes
+              quedaban muy separadas al repartirse 50/50 en todo el ancho
+              libre de la fila), y los 3 botones de acción unidos al lado
+              (antes "Descargar..." quedaba solo, estirado a lo ancho de
+              toda una fila — ahora va del mismo tamaño que los demás). */}
+          <div className="flex flex-wrap items-end gap-4 mt-3">
+            <div className="flex items-end gap-2">
+              <div className="w-36">
+                <InputField
+                  label="Fecha desde"
+                  type="date"
+                  value={filters.fecha_desde}
+                  onChange={(e) =>
+                    setFilters({
+                      ...filters,
+                      fecha_desde: e.target.value
+                    })
+                  }
+                />
+              </div>
 
-              <InputField
-                label="Fecha hasta"
-                type="date"
-                value={filters.fecha_hasta}
-                onChange={(e) =>
-                  setFilters({
-                    ...filters,
-                    fecha_hasta: e.target.value
-                  })
-                }
-              />
+              <div className="w-36">
+                <InputField
+                  label="Fecha hasta"
+                  type="date"
+                  value={filters.fecha_hasta}
+                  onChange={(e) =>
+                    setFilters({
+                      ...filters,
+                      fecha_hasta: e.target.value
+                    })
+                  }
+                />
+              </div>
             </div>
 
-            <div className="flex items-center flex-wrap gap-2">
+            <div className="flex items-center gap-1.5">
               <button type="submit" className="btn-primary">
                 Buscar
               </button>

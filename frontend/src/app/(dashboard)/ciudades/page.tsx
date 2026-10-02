@@ -28,6 +28,23 @@ const empty = {
   prefijo: ''
 };
 
+// Para que la tabla no se sienta tan gris/plana, el prefijo de cada ciudad
+// se muestra como una pastilla de color (siempre el mismo color para la
+// misma ciudad), de una paleta chica dentro de la marca.
+const BADGE_COLORS = [
+  'bg-gold-400/15 text-gold-700 border-gold-400/30',
+  'bg-numa-700/10 text-numa-700 border-numa-700/20',
+  'bg-emerald-50 text-emerald-700 border-emerald-200',
+  'bg-sky-50 text-sky-700 border-sky-200',
+  'bg-rose-50 text-rose-700 border-rose-200',
+  'bg-violet-50 text-violet-700 border-violet-200'
+];
+
+const getBadgeClass = (id: number | string) => {
+  const n = Number(id) || 0;
+  return BADGE_COLORS[n % BADGE_COLORS.length];
+};
+
 
 export default function CiudadesPage() {
   const [ciudades, setCiudades] = useState<Ciudad[]>([]);
@@ -185,10 +202,22 @@ const ciudadesFiltradas = ciudades.filter((c: any) => {
                 {ciudadesFiltradas.map((c: any) => {
                   return (
                     <tr key={c.id} className="table-row">
-                      <td className="table-cell text-numa-400">{c.id}</td>
+                      <td className="table-cell text-numa-400 code-text">{c.id}</td>
                       <td className="table-cell font-medium">{c.nombre}</td>
-                      <td className="table-cell">{c.provincia || '—'}</td>
-                      <td className="table-cell">{c.prefijo || '—'}</td>
+                      <td className="table-cell text-numa-600">{c.provincia || '—'}</td>
+                      <td className="table-cell">
+                        {c.prefijo ? (
+                          <span
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border code-text ${getBadgeClass(
+                              c.id
+                            )}`}
+                          >
+                            {c.prefijo}
+                          </span>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
 
                       <td className="table-cell">
                         {admin && (
