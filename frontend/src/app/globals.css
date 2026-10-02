@@ -15,36 +15,44 @@
 }
 
 @layer components {
+  /* Acción principal: dorado con texto navy (como el botón "Conoce más" del
+     sitio público), en píldora — es el color de acento de la marca y
+     combina bien con el celeste/gris de fondo del dashboard sin perder
+     seriedad. */
   .btn-primary {
-    @apply inline-flex items-center gap-2 px-5 py-2.5 bg-numa-900 text-numa-50 rounded-sm text-sm font-medium tracking-wide transition-all duration-200 hover:bg-numa-950 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gold-500 focus:ring-offset-2;
+    @apply inline-flex items-center gap-2 px-5 py-2.5 bg-gold-400 text-numa-950 rounded-full text-sm font-semibold tracking-wide transition-all duration-200 hover:bg-gold-500 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-numa-800/30 focus:ring-offset-2;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center gap-2 px-5 py-2.5 border border-numa-300 text-numa-700 rounded-sm text-sm font-medium tracking-wide transition-all duration-200 hover:bg-numa-100 hover:border-numa-400;
+    @apply inline-flex items-center gap-2 px-5 py-2.5 border border-numa-300 text-numa-700 rounded-full text-sm font-medium tracking-wide transition-all duration-200 hover:bg-numa-100 hover:border-numa-400;
   }
 
   .btn-gold {
-    @apply inline-flex items-center gap-2 px-5 py-2.5 bg-gold-500 text-white rounded-sm text-sm font-semibold tracking-wide transition-all duration-200 hover:bg-gold-600 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gold-600 focus:ring-offset-2;
+    @apply inline-flex items-center gap-2 px-5 py-2.5 bg-gold-500 text-white rounded-full text-sm font-semibold tracking-wide transition-all duration-200 hover:bg-gold-600 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gold-600 focus:ring-offset-2;
   }
 
   .btn-danger {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-red-700 text-white rounded-sm text-sm font-medium transition-all duration-200 hover:bg-red-800;
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-red-700 text-white rounded-full text-sm font-medium transition-all duration-200 hover:bg-red-800;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center gap-2 px-4 py-2 text-numa-600 rounded-sm text-sm font-medium transition-all duration-200 hover:bg-numa-100 hover:text-numa-900;
+    @apply inline-flex items-center gap-2 px-4 py-2 text-numa-600 rounded-full text-sm font-medium transition-all duration-200 hover:bg-numa-100 hover:text-numa-900;
   }
 
   .card {
     @apply bg-white border border-numa-200/70 rounded-sm shadow-md;
   }
 
+  /* Más compactos y con más contraste al enfocar (anillo dorado más
+     visible), para que no se vean tan grandes y vacíos. */
   .input-field {
-    @apply w-full px-3 py-2.5 border border-numa-300 rounded-sm text-sm text-numa-900 bg-white placeholder-numa-400 focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-500 transition-all duration-200;
+    @apply w-full px-3 py-2 border border-numa-200 rounded-md text-sm text-numa-900 bg-white placeholder-numa-400 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200;
   }
 
+  /* Más chica y en mayúsculas, para distinguirse claramente del texto que
+     va dentro del campo (antes usaban casi el mismo tono y tamaño). */
   .label {
-    @apply block text-[13px] font-medium text-numa-600 mb-1.5;
+    @apply block text-[11px] font-semibold text-numa-500 uppercase tracking-wider mb-1.5;
   }
 
   .badge {

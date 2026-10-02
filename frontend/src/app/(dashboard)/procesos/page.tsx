@@ -45,6 +45,20 @@ const getEstadoProcesoClass = (estado: string) => {
   return classes[estado] || 'bg-numa-100 text-numa-600';
 };
 
+// Misma idea que el badge, pero como una franja de color a la izquierda de
+// la tarjeta — así se distingue el estado de un proceso de un vistazo,
+// sin tener que leer el texto del badge en cada tarjeta de la lista.
+const getEstadoBorderClass = (estado: string) => {
+  const classes: any = {
+    en_negociacion: 'border-l-amber-400',
+    cerrado_con_acuerdo: 'border-l-green-500',
+    cerrado_sin_acuerdo: 'border-l-red-500',
+    archivado: 'border-l-slate-300'
+  };
+
+  return classes[estado] || 'border-l-numa-200';
+};
+
 export default function ProcesosPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -410,7 +424,9 @@ export default function ProcesosPage() {
             <div
               key={p.id}
               onClick={() => router.push(`/procesos/${p.id}`)}
-              className="card p-4 border border-numa-100 cursor-pointer hover:shadow-lg transition-shadow duration-200"
+              className={`card p-4 border border-numa-100 border-l-4 ${getEstadoBorderClass(
+                p.estado
+              )} cursor-pointer hover:shadow-lg transition-shadow duration-200`}
             >
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div className="space-y-2">
