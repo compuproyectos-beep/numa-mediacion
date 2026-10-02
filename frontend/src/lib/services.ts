@@ -338,10 +338,11 @@ export async function getCitas(filters?: {
 
 export async function cambiarEstadoCita(
   id: number,
-  estado: string
+  estado: string,
+  motivo?: string
 ): Promise<any> {
   const res = await api.put(`/citas/${id}/estado`, null, {
-    params: { estado },
+    params: { estado, motivo: motivo || undefined },
   });
 
   return res.data;

@@ -6,7 +6,7 @@ import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
-import { InputField, Spinner, ErrorAlert, ConfirmDialog } from '@/components/ui';
+import { InputField, TextareaField, Spinner, ErrorAlert, Modal } from '@/components/ui';
 import { getCitas, cambiarEstadoCita } from '@/lib/services';
 
 const locales = { es };
@@ -72,6 +72,8 @@ export default function CalendarioAgendaMediador({
   const [cambiandoEstado, setCambiandoEstado] = useState(false);
   const [errorEstado, setErrorEstado] = useState('');
   const [mostrarConfirmarCancelar, setMostrarConfirmarCancelar] = useState(false);
+  const [motivoCancelacion, setMotivoCancelacion] = useState('');
+  const [errorMotivoCancelacion, setErrorMotivoCancelacion] = useState('');
 
   const cargarCitas = useCallback(async () => {
     setLoading(true);
@@ -148,16 +150,16 @@ export default function CalendarioAgendaMediador({
       year: 'numeric',
     });
 
-  const handleCambiarEstado = async (nuevoEstado: string) => {
+  const handleCambiarEstado = async (nuevoEstado: string, motivo?: string) => {
     if (!citaActiva) return;
 
     setCambiandoEstado(true);
     setErrorEstado('');
 
     try {
-      await cambiarEstadoCita(citaActiva.id, nuevoEstado);
+      await cambiarEstadoCita(citaActiva.id, nuevoEstado, motivo);
       await cargarCitas();
-      setCitaActiva({ ...citaActiva, estado: nuevoEstado });
+      setCitaActiva({ ...citaActiva, estado: nuevoEstado, motivo_cancelacion: motivo });
       onCitaActualizada?.();
     } catch (err: any) {
       setErrorEstado(
@@ -170,12 +172,19 @@ export default function CalendarioAgendaMediador({
 
   const handleCancelarClick = () => {
     if (!citaActiva) return;
+    setMotivoCancelacion('');
+    setErrorMotivoCancelacion('');
     setMostrarConfirmarCancelar(true);
   };
 
   const confirmarCancelacion = () => {
+    if (!motivoCancelacion.trim()) {
+      setErrorMotivoCancelacion('Debes indicar el motivo de la cancelación');
+      return;
+    }
+
     setMostrarConfirmarCancelar(false);
-    handleCambiarEstado('cancelada');
+    handleCambiarEstado('cancelada', motivoCancelacion.trim());
   };
 
   return (
@@ -346,6 +355,13 @@ export default function CalendarioAgendaMediador({
                 <span className="text-numa-800">{citaActiva.observaciones}</span>
               </p>
             )}
+
+            {citaActiva.estado === 'cancelada' && citaActiva.motivo_cancelacion && (
+              <p>
+                <span className="text-numa-500">Motivo de cancelación:</span>{' '}
+                <span className="text-numa-800">{citaActiva.motivo_cancelacion}</span>
+              </p>
+            )}
           </div>
 
           {errorEstado && (
@@ -460,20 +476,52 @@ export default function CalendarioAgendaMediador({
         </div>
       )}
 
-      <ConfirmDialog
+      <Modal
         open={mostrarConfirmarCancelar}
         onClose={() => setMostrarConfirmarCancelar(false)}
-        onConfirm={confirmarCancelacion}
-        loading={cambiandoEstado}
-        confirmLabel="Sí, cancelar invitación"
-        message={
-          citaActiva
+        title="Cancelar invitación"
+        size="sm"
+      >
+        <p className="text-sm text-numa-700 mb-4">
+          {citaActiva
             ? `¿Seguro que quieres cancelar la invitación del ${etiquetaFecha(
                 citaActiva.fecha
               )} a las ${citaActiva.hora?.slice(0, 5)}? Esta acción no se puede deshacer.`
-            : ''
-        }
-      />
+            : ''}
+        </p>
+
+        <TextareaField
+          label="Motivo de la cancelación"
+          rows={3}
+          value={motivoCancelacion}
+          onChange={(e) => {
+            setMotivoCancelacion(e.target.value);
+            if (errorMotivoCancelacion) setErrorMotivoCancelacion('');
+          }}
+          placeholder="Ejemplo: El mediador se enfermó, se reagendará más adelante..."
+        />
+
+        {errorMotivoCancelacion && (
+          <p className="text-xs text-red-500 mt-1">{errorMotivoCancelacion}</p>
+        )}
+
+        <div className="flex gap-3 justify-end mt-6">
+          <button
+            onClick={() => setMostrarConfirmarCancelar(false)}
+            className="btn-secondary text-sm"
+          >
+            Volver
+          </button>
+
+          <button
+            onClick={confirmarCancelacion}
+            disabled={cambiandoEstado}
+            className="btn-danger text-sm"
+          >
+            {cambiandoEstado ? 'Procesando...' : 'Sí, cancelar invitación'}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

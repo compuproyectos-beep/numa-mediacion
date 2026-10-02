@@ -50,6 +50,32 @@ const getEstadoProcesoClass = (estado: string) => {
   return classes[estado] || 'bg-numa-100 text-numa-600';
 };
 
+// Mismos colores que ya se usan en la Agenda (ver colorPorEstado en
+// CalendarioAgendaMediador) para el estado de una invitación — así una
+// invitación pendiente/realizada/cancelada se identifica igual en los dos
+// lugares del sistema.
+const getEstadoCitaBadgeClass = (estado: string) => {
+  const classes: any = {
+    pendiente: 'bg-gold-400/10 text-gold-700',
+    realizada: 'bg-green-50 text-green-700',
+    cancelada: 'bg-red-50 text-red-700',
+    reagendada: 'bg-numa-100 text-numa-700'
+  };
+
+  return classes[estado] || 'bg-numa-100 text-numa-600';
+};
+
+const getEstadoCitaBorderClass = (estado: string) => {
+  const classes: any = {
+    pendiente: 'border-l-gold-400',
+    realizada: 'border-l-green-600',
+    cancelada: 'border-l-red-600',
+    reagendada: 'border-l-numa-600'
+  };
+
+  return classes[estado] || 'border-l-numa-200';
+};
+
 export default function ProcesoDetallePage() {
   const params = useParams();
   const router = useRouter();
@@ -657,7 +683,10 @@ export default function ProcesoDetallePage() {
                       );
 
                 return (
-                  <div key={cita.id} className="card p-4">
+                  <div
+                    key={cita.id}
+                    className={`card p-4 border-l-4 ${getEstadoCitaBorderClass(cita.estado)}`}
+                  >
                     <div className="flex justify-between gap-3">
                       <div>
                         <p className="font-semibold text-numa-800">
@@ -679,8 +708,12 @@ export default function ProcesoDetallePage() {
                         )}
                       </div>
 
-                      <span className="text-xs text-numa-400">
-                        Estado: {cita.estado}
+                      <span
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold capitalize shrink-0 ${getEstadoCitaBadgeClass(
+                          cita.estado
+                        )}`}
+                      >
+                        {cita.estado}
                       </span>
                     </div>
 
@@ -692,6 +725,18 @@ export default function ProcesoDetallePage() {
 
                         <p className="text-sm text-numa-600 whitespace-pre-wrap">
                           {cita.observaciones}
+                        </p>
+                      </div>
+                    )}
+
+                    {cita.estado === 'cancelada' && cita.motivo_cancelacion && (
+                      <div className="mt-3 bg-red-50 border border-red-100 rounded-sm p-3">
+                        <p className="text-xs font-semibold text-red-700">
+                          Motivo de cancelación:
+                        </p>
+
+                        <p className="text-sm text-red-700 whitespace-pre-wrap">
+                          {cita.motivo_cancelacion}
                         </p>
                       </div>
                     )}

@@ -2431,6 +2431,7 @@ def obtener_citas(
                 c.tema,
                 c.observaciones,
                 c.estado,
+                c.motivo_cancelacion,
                 c.fecha_creacion,
                 a.codigo_acta,
                 s.nombre AS sucursal,
@@ -2488,12 +2489,21 @@ def obtener_citas(
 def cambiar_estado_cita(
     cita_id: int,
     estado: str,
+    motivo: str = None,
     usuario=Depends(obtener_usuario_actual)
 ):
     estados_validos = ["pendiente", "confirmada", "realizada", "cancelada"]
 
     if estado not in estados_validos:
         raise HTTPException(status_code=400, detail="Estado de invitación inválido")
+
+    # Al cancelar, el motivo es obligatorio — así queda claro por qué se
+    # canceló, tanto en Agenda como en la línea de tiempo del proceso.
+    if estado == "cancelada" and not (motivo and motivo.strip()):
+        raise HTTPException(
+            status_code=400,
+            detail="Debes indicar el motivo de la cancelación"
+        )
 
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -2520,10 +2530,11 @@ def cambiar_estado_cita(
         cur.execute("""
             UPDATE citas
             SET estado = %s,
+                motivo_cancelacion = CASE WHEN %s = 'cancelada' THEN %s ELSE motivo_cancelacion END,
                 fecha_modificacion = NOW()
             WHERE id = %s
             RETURNING *
-        """, (estado, cita_id))
+        """, (estado, estado, motivo.strip() if motivo else None, cita_id))
 
         cita = cur.fetchone()
         conn.commit()
@@ -2893,6 +2904,7 @@ def obtener_citas_proceso(
                 c.tema,
                 c.estado,
                 c.observaciones,
+                c.motivo_cancelacion,
                 c.fecha_creacion,
                 cp.nombre || ' ' || cp.apellido AS creado_por
             FROM citas c
@@ -4981,6 +4993,7 @@ def obtener_expediente_proceso(
                 c.hora,
                 c.estado,
                 c.observaciones,
+                c.motivo_cancelacion,
                 cp.nombre || ' ' || cp.apellido AS creado_por,
                 av.resultado,
                 av.observacion AS avance_observacion,

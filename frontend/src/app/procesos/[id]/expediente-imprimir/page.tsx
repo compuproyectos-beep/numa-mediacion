@@ -191,6 +191,13 @@ export default function ImprimirExpedientePage() {
                   </p>
                 )}
 
+                {item.estado === 'cancelada' && item.motivo_cancelacion && (
+                  <p className="text-sm text-red-700 mt-1">
+                    <span className="text-numa-500">Motivo de cancelación: </span>
+                    {item.motivo_cancelacion}
+                  </p>
+                )}
+
                 {item.resultado && (
                   <div className="mt-3 pt-3 border-t border-numa-100">
                     <p className="text-sm font-medium text-numa-800">
