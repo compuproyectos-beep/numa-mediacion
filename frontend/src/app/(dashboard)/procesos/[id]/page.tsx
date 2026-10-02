@@ -743,12 +743,70 @@ export default function ProcesoDetallePage() {
               Acta final subida
             </h3>
 
-            <p className="text-sm text-green-700">
-              Código acta:{' '}
-              <span className="font-semibold code-text">
-                {expedienteProceso.acta_final.codigo_acta}
-              </span>
-            </p>
+            {/* Código acta y las acciones (Ver/Descargar) van en la misma
+                fila, con los botones alineados a la derecha — así no
+                ocupan una fila aparte como antes. */}
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <p className="text-sm text-green-700">
+                Código acta:{' '}
+                <span className="font-semibold code-text">
+                  {expedienteProceso.acta_final.codigo_acta}
+                </span>
+              </p>
+
+              <div className="flex flex-wrap gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleVerPdfActaFinal(expedienteProceso.acta_final.id)}
+                  className="btn-ghost text-xs py-1 px-2"
+                >
+                  <Eye className="w-4 h-4" />
+                  Ver PDF
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleDescargarPdfActaFinal(
+                      expedienteProceso.acta_final.id,
+                      expedienteProceso.acta_final.codigo_acta
+                    )
+                  }
+                  className="btn-ghost text-xs py-1 px-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Descargar
+                </button>
+
+                {expedienteProceso.acta_final.nombre_comprobante_pago && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleVerComprobanteActaFinal(expedienteProceso.acta_final.id)}
+                      className="btn-ghost text-xs py-1 px-2"
+                    >
+                      <Receipt className="w-4 h-4" />
+                      Ver comprobante
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleDescargarComprobanteActaFinal(
+                          expedienteProceso.acta_final.id,
+                          expedienteProceso.acta_final.codigo_acta,
+                          expedienteProceso.acta_final.nombre_comprobante_pago
+                        )
+                      }
+                      className="btn-ghost text-xs py-1 px-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      Descargar comprobante
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
 
             <p className="text-sm text-green-700 mt-1">
               Subido por: {expedienteProceso.acta_final.subido_por || '—'}
@@ -762,62 +820,6 @@ export default function ProcesoDetallePage() {
                   ).toLocaleString('es-EC')
                 : '—'}
             </p>
-
-            {/* Ver/descargar el acta (y el comprobante, si ya lo tiene)
-                directo desde aquí — antes había que ir a Actas Finales y
-                buscarla a mano con el código. */}
-            <div className="flex flex-wrap gap-2 mt-3">
-              <button
-                type="button"
-                onClick={() => handleVerPdfActaFinal(expedienteProceso.acta_final.id)}
-                className="btn-ghost text-xs py-1 px-2"
-              >
-                <Eye className="w-4 h-4" />
-                Ver PDF
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  handleDescargarPdfActaFinal(
-                    expedienteProceso.acta_final.id,
-                    expedienteProceso.acta_final.codigo_acta
-                  )
-                }
-                className="btn-ghost text-xs py-1 px-2"
-              >
-                <Download className="w-4 h-4" />
-                Descargar
-              </button>
-
-              {expedienteProceso.acta_final.nombre_comprobante_pago && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => handleVerComprobanteActaFinal(expedienteProceso.acta_final.id)}
-                    className="btn-ghost text-xs py-1 px-2"
-                  >
-                    <Receipt className="w-4 h-4" />
-                    Ver comprobante
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleDescargarComprobanteActaFinal(
-                        expedienteProceso.acta_final.id,
-                        expedienteProceso.acta_final.codigo_acta,
-                        expedienteProceso.acta_final.nombre_comprobante_pago
-                      )
-                    }
-                    className="btn-ghost text-xs py-1 px-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    Descargar comprobante
-                  </button>
-                </>
-              )}
-            </div>
           </div>
         )}
 
