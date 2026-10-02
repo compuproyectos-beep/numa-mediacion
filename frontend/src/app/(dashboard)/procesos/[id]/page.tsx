@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon } from 'lucide-react';
+import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon, Eye, Download, Receipt } from 'lucide-react';
 import CalendarioAgendaMediador from '@/components/citas/CalendarioAgendaMediador';
 import {
   Spinner,
@@ -23,7 +23,9 @@ import {
   crearAvanceProceso,
   subirActaFinalProceso,
   getExpedienteProceso,
-  getCitas
+  getCitas,
+  descargarPdfActaFinal,
+  descargarComprobantePagoActaFinal
 } from '@/lib/services';
 
 const getEstadoProcesoLabel = (estado: string) => {
@@ -359,6 +361,75 @@ export default function ProcesoDetallePage() {
     }
   };
 
+  // Permiten ver/descargar el acta final (y su comprobante) directo desde
+  // la ficha del proceso — antes había que anotar el código del acta y
+  // buscarla a mano en Actas Finales.
+  const handleVerPdfActaFinal = async (actaId: number) => {
+    try {
+      const blob = await descargarPdfActaFinal(actaId);
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch {
+      setError('No se pudo abrir el PDF del acta final');
+    }
+  };
+
+  const handleDescargarPdfActaFinal = async (actaId: number, codigoActa: string) => {
+    try {
+      const blob = await descargarPdfActaFinal(actaId);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+
+      link.href = url;
+      link.download = `${codigoActa}.pdf`;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setError('No se pudo descargar el PDF del acta final');
+    }
+  };
+
+  const handleVerComprobanteActaFinal = async (actaId: number) => {
+    try {
+      const blob = await descargarComprobantePagoActaFinal(actaId);
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch {
+      setError('No se pudo abrir el comprobante de pago');
+    }
+  };
+
+  const handleDescargarComprobanteActaFinal = async (
+    actaId: number,
+    codigoActa: string,
+    nombreComprobante?: string
+  ) => {
+    try {
+      const blob = await descargarComprobantePagoActaFinal(actaId);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+
+      const extension = nombreComprobante?.includes('.')
+        ? nombreComprobante.split('.').pop()
+        : 'pdf';
+
+      link.href = url;
+      link.download = `comprobante_${codigoActa}.${extension}`;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setError('No se pudo descargar el comprobante de pago');
+    }
+  };
+
   const citaPendiente = citasProceso.find((c: any) => c.estado === 'pendiente');
 
   // El backend guarda fecha_acuerdo con NOW() en UTC, pero como la columna
@@ -691,6 +762,62 @@ export default function ProcesoDetallePage() {
                   ).toLocaleString('es-EC')
                 : '—'}
             </p>
+
+            {/* Ver/descargar el acta (y el comprobante, si ya lo tiene)
+                directo desde aquí — antes había que ir a Actas Finales y
+                buscarla a mano con el código. */}
+            <div className="flex flex-wrap gap-2 mt-3">
+              <button
+                type="button"
+                onClick={() => handleVerPdfActaFinal(expedienteProceso.acta_final.id)}
+                className="btn-ghost text-xs py-1 px-2"
+              >
+                <Eye className="w-4 h-4" />
+                Ver PDF
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  handleDescargarPdfActaFinal(
+                    expedienteProceso.acta_final.id,
+                    expedienteProceso.acta_final.codigo_acta
+                  )
+                }
+                className="btn-ghost text-xs py-1 px-2"
+              >
+                <Download className="w-4 h-4" />
+                Descargar
+              </button>
+
+              {expedienteProceso.acta_final.nombre_comprobante_pago && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleVerComprobanteActaFinal(expedienteProceso.acta_final.id)}
+                    className="btn-ghost text-xs py-1 px-2"
+                  >
+                    <Receipt className="w-4 h-4" />
+                    Ver comprobante
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleDescargarComprobanteActaFinal(
+                        expedienteProceso.acta_final.id,
+                        expedienteProceso.acta_final.codigo_acta,
+                        expedienteProceso.acta_final.nombre_comprobante_pago
+                      )
+                    }
+                    className="btn-ghost text-xs py-1 px-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Descargar comprobante
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         )}
 
