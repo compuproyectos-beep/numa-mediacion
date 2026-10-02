@@ -198,7 +198,7 @@ export default function HomePage() {
           ))}
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 sm:pt-40 pb-24 w-full">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 pb-24 w-full">
           <div className="max-w-2xl">
             <div className="flex items-center gap-2 mb-6">
               <div className="h-px w-12 bg-gold-500" />
