@@ -82,10 +82,6 @@ return (
       </div>
 
       <div className="relative z-10 max-w-xl">
-        <p className="text-sm font-semibold tracking-[0.25em] text-numa-700 uppercase mb-4">
-          Centro de Mediación
-        </p>
-
         <h1 className="text-4xl font-black text-gold-600 leading-tight mb-6">
           Gestión jurídica
           <span className="block text-gold-600">

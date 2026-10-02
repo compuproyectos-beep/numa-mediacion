@@ -52,13 +52,22 @@ export default function ImprimirHistorialActaPage() {
         {/* Encabezado tipo membrete */}
         <div className="border-b-2 border-gold-500 px-10 pt-8 pb-6">
           <div className="flex items-start justify-between">
-            <div>
-              <p className="text-[11px] tracking-[0.2em] text-gold-600 font-semibold uppercase mb-1">
-                Centro de Mediación
-              </p>
-              <h1 className="font-display text-2xl font-bold text-numa-900">
-                NUMA
-              </h1>
+            <div className="flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/logo-numa-claro.jpg"
+                alt="Centro de Mediación NUMA"
+                className="h-12 w-auto object-contain"
+              />
+
+              <div>
+                <p className="text-[11px] tracking-[0.2em] text-gold-600 font-semibold uppercase mb-1">
+                  Centro de Mediación
+                </p>
+                <h1 className="font-display text-2xl font-bold text-numa-900">
+                  NUMA
+                </h1>
+              </div>
             </div>
 
             <button
