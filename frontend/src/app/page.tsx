@@ -139,8 +139,10 @@ export default function HomePage() {
           la misma foto, ampliada, rellena los bordes para que no queden
           franjas vacías — así no se pierde nada de la imagen original. */}
       <section className="relative min-h-[640px] sm:min-h-[720px] lg:min-h-[820px] flex items-center overflow-hidden">
-        {/* Carrusel de fondo, a todo lo ancho y alto de la sección */}
-        <div className="absolute inset-0 bg-numa-950">
+        {/* Carrusel de fondo, a todo lo ancho y alto de la sección.
+            Tono oscuro neutro (no el azul intenso de numa-950) para que el
+            fondo no se sienta "muy azulado". */}
+        <div className="absolute inset-0 bg-[#0B141C]">
           {heroImages.map((img, i) => (
             <div
               key={img.src}
@@ -175,9 +177,9 @@ export default function HomePage() {
           ))}
 
           {/* Degradado leve, solo para que el texto de la izquierda se lea
-              bien — ya no oscurece toda la foto. */}
-          <div className="absolute inset-0 bg-gradient-to-r from-numa-950/75 via-numa-950/25 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-numa-950/60 via-transparent to-numa-950/10" />
+              bien — ya no oscurece toda la foto. Tono neutro, no azulado. */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0B141C]/75 via-[#0B141C]/25 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0B141C]/60 via-transparent to-[#0B141C]/10" />
         </div>
 
         {/* Top line */}
@@ -233,6 +235,49 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* NUMA POMPILIO — símbolo histórico detrás del nombre del centro.
+          Va justo debajo del banner de fotos (antes de "Quiénes somos"),
+          como una franja informativa chica — no una sección a página
+          completa — con la foto más reducida. */}
+      <section id="numa-pompilio" className="py-10 bg-white border-b border-numa-100">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 sm:grid-cols-[150px_1fr] gap-5 sm:gap-8 items-center">
+            <div className="relative mx-auto sm:mx-0 w-32 sm:w-full rounded-sm overflow-hidden shadow-md border border-numa-200">
+              <Image
+                src="/images/numa-pompilio.jpg"
+                alt="Numa Pompilio, segundo rey de Roma, símbolo histórico de la mediación"
+                width={360}
+                height={420}
+                className="w-full h-auto object-cover"
+              />
+            </div>
+
+            <div className="text-center sm:text-left">
+              <div className="flex items-center justify-center sm:justify-start gap-2 mb-2">
+                <div className="h-px w-6 bg-gold-400" />
+
+                <span className="text-gold-600 text-xs uppercase tracking-[0.2em] font-sans">
+                  El origen de nuestro nombre
+                </span>
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-bold text-numa-900 mb-2 leading-tight">
+                Numa Pompilio, símbolo de mediador
+              </h2>
+
+              <p className="text-sm text-numa-600 leading-relaxed">
+                Numa Pompilio (c. 753-674 a.C.) fue el segundo rey de Roma,
+                sucesor de Rómulo, reconocido como un monarca sabio, religioso
+                y pacífico. Como símbolo de mediador, se destacó por
+                establecer la paz con pueblos vecinos, reformar el calendario
+                y organizar la religión romana, priorizando la diplomacia
+                sobre la guerra.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* NOSOTROS */}
       <section id="nosotros" className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -282,48 +327,6 @@ export default function HomePage() {
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* NUMA POMPILIO — símbolo histórico detrás del nombre del centro */}
-      <section id="numa-pompilio" className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div className="relative mx-auto w-full max-w-md lg:max-w-none order-2 lg:order-1">
-              <div className="relative rounded-sm overflow-hidden shadow-2xl border border-numa-200">
-                <Image
-                  src="/images/numa-pompilio.jpg"
-                  alt="Numa Pompilio, segundo rey de Roma, símbolo histórico de la mediación"
-                  width={900}
-                  height={1000}
-                  className="w-full h-[320px] sm:h-[380px] object-cover"
-                />
-              </div>
-            </div>
-
-            <div className="order-1 lg:order-2">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="h-px w-8 bg-gold-400" />
-
-                <span className="text-gold-600 text-xs uppercase tracking-[0.2em] font-sans">
-                  El origen de nuestro nombre
-                </span>
-              </div>
-
-              <h2 className="text-4xl font-bold text-numa-900 mb-6 leading-tight">
-                Numa Pompilio, símbolo de mediador
-              </h2>
-
-              <p className="text-numa-600 leading-relaxed">
-                Numa Pompilio (c. 753-674 a.C.) fue el segundo rey de Roma,
-                sucesor de Rómulo, reconocido como un monarca sabio, religioso
-                y pacífico. Como símbolo de mediador, se destacó por
-                establecer la paz con pueblos vecinos, reformar el calendario
-                y organizar la religión romana, priorizando la diplomacia
-                sobre la guerra.
-              </p>
             </div>
           </div>
         </div>
