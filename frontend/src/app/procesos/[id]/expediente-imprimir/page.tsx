@@ -178,6 +178,12 @@ export default function ImprimirExpedientePage() {
                   </p>
                 </div>
 
+                {item.creado_por && (
+                  <p className="text-xs text-numa-400">
+                    Invitación creada por: {item.creado_por}
+                  </p>
+                )}
+
                 {item.observaciones && (
                   <p className="text-sm text-numa-700">
                     <span className="text-numa-500">Observación invitación: </span>
