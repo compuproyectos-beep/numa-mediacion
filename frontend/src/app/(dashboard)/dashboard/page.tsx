@@ -256,11 +256,32 @@ export default function DashboardPage() {
                       }
                       className="p-4 border border-numa-100 rounded-sm bg-numa-50 cursor-pointer hover:shadow-md transition-shadow duration-200"
                     >
-                      <p className="font-semibold text-numa-800">
-                        {categoriaAbierta === 'actas_finales'
-                          ? item.codigo_acta
-                          : item.codigo_proceso}
-                      </p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold text-numa-800">
+                          {categoriaAbierta === 'actas_finales'
+                            ? item.codigo_acta
+                            : item.codigo_proceso}
+                        </p>
+
+                        {/* Un proceso "cerrado con acuerdo" no significa que ya
+                            esté todo listo: falta que se suba el acta final +
+                            comprobante. Esto lo hace visible de una vez en
+                            este panel rápido del Dashboard, igual que ya pasa
+                            en el listado de Procesos. */}
+                        {categoriaAbierta === 'cerrado_con_acuerdo' && !item.finalizado && (
+                          <span
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                              item.acta_primero_en_fila
+                                ? 'bg-red-50 text-red-700 border-red-200'
+                                : 'bg-numa-100 text-numa-500 border-numa-200'
+                            }`}
+                          >
+                            {item.acta_primero_en_fila
+                              ? 'Falta subir acta y comprobante'
+                              : 'Acta pendiente (en espera)'}
+                          </span>
+                        )}
+                      </div>
 
                       <p className="text-sm text-numa-600 mt-1">
                         {item.demandante} vs {item.demandado}
