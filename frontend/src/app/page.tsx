@@ -12,19 +12,16 @@ import {
   Star,
   ArrowRight,
   CheckCircle,
-  ChevronDown,
   Gavel,
   Wallet,
   Zap,
   HandHeart,
   Lock,
-  MapPin,
 } from 'lucide-react';
 
 import PublicNavbar from '@/components/public/PublicNavbar';
 import PublicFooter from '@/components/public/PublicFooter';
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
-import api from '@/lib/api';
 
 const valores = [
   {
@@ -117,17 +114,11 @@ const beneficios = [
 ];
 
 export default function HomePage() {
-  const [sedes, setSedes] = useState<any[]>([]);
-
   // Índice de la foto que se muestra ahora mismo en el carrusel del hero.
+  // (El desplegable de Sedes que antes vivía aquí se quitó del banner —
+  // ya está arriba, en el menú de PublicNavbar — así que esta página ya
+  // no necesita traer la lista de sedes por su cuenta.)
   const [heroIndex, setHeroIndex] = useState(0);
-
-  useEffect(() => {
-    api
-      .get('/sedes')
-      .then((res) => setSedes(res.data))
-      .catch(() => setSedes([]));
-  }, []);
 
   useEffect(() => {
     const intervalo = setInterval(() => {
@@ -135,22 +126,6 @@ export default function HomePage() {
     }, 5000);
     return () => clearInterval(intervalo);
   }, []);
-
-  // El desplegable de Sedes ahora se agrupa Provincia → Ciudad → Sucursal
-  // (antes solo mostraba ciudad y sucursal, y podía confundirse si dos
-  // sucursales en ciudades distintas se llamaban igual). El backend ya
-  // entrega las sedes ordenadas en ese mismo orden, así que aquí solo se
-  // agrupan sin volver a ordenar.
-  const sedesPorProvincia = sedes.reduce((acc: Record<string, Record<string, any[]>>, sede: any) => {
-    const provincia = sede.provincia || 'Otras';
-    const ciudad = sede.ciudad || 'Sin ciudad';
-
-    if (!acc[provincia]) acc[provincia] = {};
-    if (!acc[provincia][ciudad]) acc[provincia][ciudad] = [];
-    acc[provincia][ciudad].push(sede);
-
-    return acc;
-  }, {});
 
   return (
     <div className="min-h-screen bg-white font-display">
@@ -233,105 +208,27 @@ export default function HomePage() {
               </span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight mb-6">
-              Centro de <span className="text-gold-400">Mediación</span> NUMA
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.1] mb-6">
+              Centro de
+              <br />
+              <span className="text-gold-400">Mediación</span>
+              <br />
+              NUMA
             </h1>
 
-            <p className="text-lg text-numa-100 leading-relaxed mb-8 max-w-xl">
-              Somos una institución comprometida con la resolución pacífica de
-              conflictos, promoviendo el diálogo, la justicia y el
-              entendimiento entre las partes.
+            <p className="text-lg text-numa-100 leading-relaxed mb-8 max-w-[22rem]">
+              Promovemos el diálogo, la justicia y el entendimiento entre las
+              partes.
             </p>
 
-            {/* BOTONES */}
-            <div className="flex flex-wrap gap-4 mb-10">
-              <a
-                href="#nosotros"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 text-numa-950 text-sm font-semibold rounded-sm hover:bg-gold-500 transition-colors"
-              >
-                Conoce más <ArrowRight className="w-4 h-4" />
-              </a>
-
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 px-6 py-3 border border-white/40 text-white text-sm font-medium rounded-sm hover:border-gold-400 hover:text-gold-400 transition-colors"
-              >
-                Acceso al Sistema
-              </Link>
-
-              {/* BOTON SEDES */}
-              <div className="relative group">
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-2 px-6 py-3 border border-white/40 text-white text-sm font-medium rounded-sm hover:border-gold-400 hover:text-gold-400 transition-colors"
-                >
-                  Sedes
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-
-                  <div className="absolute bottom-full left-0 mb-2 w-72 max-h-80 overflow-y-auto bg-white border border-numa-100 shadow-2xl rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  <div className="px-4 py-3 bg-numa-50 border-b border-numa-100 sticky top-0">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-numa-500">
-                      Nuestras sedes
-                    </span>
-                  </div>
-
-                  <div className="divide-y divide-numa-100">
-                    {Object.entries(sedesPorProvincia).map(([provincia, ciudades]) => (
-                      <div key={provincia}>
-                        <div className="px-4 pt-3 pb-1 bg-numa-50/70">
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-numa-700">
-                            {provincia}
-                          </span>
-                        </div>
-
-                        {Object.entries(ciudades).map(([ciudad, listaSedes]) => (
-                          <div key={ciudad}>
-                            <div className="px-5 pt-2 pb-1">
-                              <span className="text-[11px] font-medium text-numa-400 uppercase tracking-wide">
-                                {ciudad}
-                              </span>
-                            </div>
-
-                            {listaSedes.map((sede: any) => (
-                              <Link
-                                key={sede.id}
-                                href={`/sedes/${sede.slug}`}
-                                className="flex items-center gap-3 pl-7 pr-4 py-2.5 hover:bg-gold-50 transition-colors group"
-                              >
-                                <MapPin className="w-3.5 h-3.5 text-numa-400 group-hover:text-gold-600 shrink-0" />
-
-                                <span className="block text-sm font-semibold text-numa-900 truncate">
-                                  {sede.nombre}
-                                </span>
-                              </Link>
-                            ))}
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* FRANJA DE CONFIANZA */}
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-3 pt-6 border-t border-white/20">
-              <div className="flex items-center gap-2 text-sm text-numa-100">
-                <Shield className="w-4 h-4 text-gold-400" />
-                Mediación certificada
-              </div>
-
-              <div className="flex items-center gap-2 text-sm text-numa-100">
-                <Users className="w-4 h-4 text-gold-400" />
-                Equipo profesional
-              </div>
-
-              <div className="flex items-center gap-2 text-sm text-numa-100">
-                <CheckCircle className="w-4 h-4 text-gold-400" />
-                Acuerdos con validez legal
-              </div>
-            </div>
+            {/* Un solo botón — Acceso al Sistema y Sedes ya están en el
+                menú de arriba, no hace falta repetirlos aquí. */}
+            <a
+              href="#nosotros"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 text-numa-950 text-sm font-semibold rounded-sm hover:bg-gold-500 transition-colors"
+            >
+              Conoce más <ArrowRight className="w-4 h-4" />
+            </a>
           </div>
         </div>
       </section>
