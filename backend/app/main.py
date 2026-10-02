@@ -2967,6 +2967,12 @@ def crear_invitacion_proceso(
                 detail="Solo el mediador asignado a este proceso puede crear invitaciones"
             )
 
+        if not observaciones or not observaciones.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="Debes ingresar una observación para la invitación"
+            )
+
         try:
             fecha_hora_cita = datetime.datetime.strptime(
                 f"{fecha} {hora}", "%Y-%m-%d %H:%M"

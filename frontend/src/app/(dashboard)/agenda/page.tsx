@@ -106,6 +106,11 @@ export default function AgendaPage() {
   const handleCrearInvitacion = async () => {
     if (!procesoSeleccionadoId || !invitacionForm.fecha || !invitacionForm.hora) return;
 
+    if (!invitacionForm.observaciones.trim()) {
+      setError('Debes ingresar una observación para la invitación');
+      return;
+    }
+
     setGuardandoInvitacion(true);
     setError('');
     setSuccessMessage('');
@@ -309,7 +314,7 @@ export default function AgendaPage() {
                   <button
                     type="button"
                     onClick={handleCrearInvitacion}
-                    disabled={guardandoInvitacion}
+                    disabled={guardandoInvitacion || !invitacionForm.observaciones.trim()}
                     className="btn-primary mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {guardandoInvitacion ? 'Guardando...' : 'Crear invitación'}
@@ -409,7 +414,7 @@ export default function AgendaPage() {
                 <button
                   type="button"
                   onClick={handleCrearInvitacion}
-                  disabled={guardandoInvitacion}
+                  disabled={guardandoInvitacion || !invitacionForm.observaciones.trim()}
                   className="btn-primary mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {guardandoInvitacion ? 'Guardando...' : 'Crear invitación'}

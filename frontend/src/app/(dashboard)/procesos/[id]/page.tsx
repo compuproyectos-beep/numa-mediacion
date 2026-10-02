@@ -285,6 +285,11 @@ export default function ProcesoDetallePage() {
       return;
     }
 
+    if (!invitacionForm.observaciones.trim()) {
+      setError('Debes ingresar una observación para la invitación');
+      return;
+    }
+
     enviandoInvitacionRef.current = true;
     setGuardandoInvitacion(true);
     setError('');
@@ -990,7 +995,11 @@ export default function ProcesoDetallePage() {
               <button
                 type="button"
                 onClick={handleCrearInvitacion}
-                disabled={guardandoInvitacion || horaInvitacionOcupada}
+                disabled={
+                  guardandoInvitacion ||
+                  horaInvitacionOcupada ||
+                  !invitacionForm.observaciones.trim()
+                }
                 className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {guardandoInvitacion ? 'Guardando...' : 'Crear invitación'}
