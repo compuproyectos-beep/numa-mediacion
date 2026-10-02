@@ -381,18 +381,21 @@ const handleExportarZip = async () => {
               <button type="button" onClick={limpiarFiltros} className="btn-secondary">
                 Limpiar
               </button>
-
-              <button
-                type="button"
-                onClick={handleExportarZip}
-                className="btn-gold"
-              >
-                <Download className="w-4 h-4" />
-                {filters.ciudad_id || filters.sucursal_id || filters.fecha_desde || filters.fecha_hasta
-                  ? 'Descargar filtrados'
-                  : 'Descargar todos'}
-              </button>
             </div>
+
+            {/* Un poco más a la derecha (queda aprox. debajo de "Mediador"
+                de la fila 1) y con el mismo dorado que el resto del
+                sistema (antes usaba btn-gold, un tono distinto). */}
+            <button
+              type="button"
+              onClick={handleExportarZip}
+              className="btn-primary ml-auto"
+            >
+              <Download className="w-4 h-4" />
+              {filters.ciudad_id || filters.sucursal_id || filters.fecha_desde || filters.fecha_hasta
+                ? 'Descargar filtrados'
+                : 'Descargar todos'}
+            </button>
           </div>
         </form>
       </div>
