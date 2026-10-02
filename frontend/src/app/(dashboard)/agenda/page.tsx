@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { CalendarPlus } from 'lucide-react';
 import {
   PageHeader,
@@ -65,6 +65,30 @@ export default function AgendaPage() {
     ? (mediadorSeleccionadoId ? Number(mediadorSeleccionadoId) : null)
     : user?.id ?? null;
 
+  // Separado del useEffect de abajo para poder volver a llamarlo cuando
+  // una invitación se cancela desde el propio calendario (ver
+  // onCitaActualizada más abajo) — si no, el proceso de esa invitación se
+  // queda sin aparecer en el selector hasta salir y volver a entrar a
+  // Agenda, porque la lista de procesos solo se cargaba una vez al elegir
+  // el mediador.
+  const cargarProcesosDisponibles = useCallback(async (usuarioId: number) => {
+    setLoadingProcesos(true);
+
+    try {
+      const data = await getProcesos({
+        usuario_id: usuarioId,
+        estado: 'en_negociacion'
+      });
+
+      setProcesos(data.filter((p: any) => !p.tiene_invitacion_pendiente));
+    } catch (err) {
+      console.error(err);
+      setProcesos([]);
+    } finally {
+      setLoadingProcesos(false);
+    }
+  }, []);
+
   useEffect(() => {
     setProcesoSeleccionadoId('');
     setInvitacionForm({ fecha: '', hora: '', observaciones: '' });
@@ -76,24 +100,8 @@ export default function AgendaPage() {
       return;
     }
 
-    (async () => {
-      setLoadingProcesos(true);
-
-      try {
-        const data = await getProcesos({
-          usuario_id: usuarioIdAgenda,
-          estado: 'en_negociacion'
-        });
-
-        setProcesos(data.filter((p: any) => !p.tiene_invitacion_pendiente));
-      } catch (err) {
-        console.error(err);
-        setProcesos([]);
-      } finally {
-        setLoadingProcesos(false);
-      }
-    })();
-  }, [usuarioIdAgenda]);
+    cargarProcesosDisponibles(usuarioIdAgenda);
+  }, [usuarioIdAgenda, cargarProcesosDisponibles]);
 
   const handleCrearInvitacion = async () => {
     if (!procesoSeleccionadoId || !invitacionForm.fecha || !invitacionForm.hora) return;
@@ -264,6 +272,7 @@ export default function AgendaPage() {
                   setError('');
                   setSuccessMessage('');
                 }}
+                onCitaActualizada={() => cargarProcesosDisponibles(Number(mediadorSeleccionadoId))}
               />
 
               {procesoSeleccionado && invitacionForm.fecha && invitacionForm.hora && (
@@ -363,6 +372,7 @@ export default function AgendaPage() {
                 setError('');
                 setSuccessMessage('');
               }}
+              onCitaActualizada={() => user?.id && cargarProcesosDisponibles(user.id)}
             />
 
             {procesoSeleccionado && invitacionForm.fecha && invitacionForm.hora && (
