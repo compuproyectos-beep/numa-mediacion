@@ -337,13 +337,12 @@ const handleExportarZip = async () => {
             )}
           </div>
 
-          {/* Fila 2: las dos fechas juntas y bien pegadas entre sí (antes
-              quedaban muy separadas al repartirse 50/50 en todo el ancho
-              libre de la fila), y los 3 botones de acción unidos al lado
-              (antes "Descargar..." quedaba solo, estirado a lo ancho de
-              toda una fila — ahora va del mismo tamaño que los demás). */}
-          <div className="flex flex-wrap items-end gap-4 mt-3">
-            <div className="flex items-end gap-2">
+          {/* Fila 2: usa la misma grilla de 6 columnas que la fila 1, para
+              que "Descargar..." caiga justo debajo de "Mediador" (columna 5)
+              en vez de pegarse al borde derecho de la tarjeta. Fechas juntas
+              (cols 1-2), Buscar/Limpiar juntos (cols 3-4), Descargar (col 5). */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mt-3 items-end">
+            <div className="xl:col-span-2 flex items-end gap-2">
               <div className="w-36">
                 <InputField
                   label="Fecha desde"
@@ -373,7 +372,7 @@ const handleExportarZip = async () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="xl:col-span-2 flex items-center gap-1.5">
               <button type="submit" className="btn-primary">
                 Buscar
               </button>
@@ -383,13 +382,10 @@ const handleExportarZip = async () => {
               </button>
             </div>
 
-            {/* Un poco más a la derecha (queda aprox. debajo de "Mediador"
-                de la fila 1) y con el mismo dorado que el resto del
-                sistema (antes usaba btn-gold, un tono distinto). */}
             <button
               type="button"
               onClick={handleExportarZip}
-              className="btn-primary ml-auto"
+              className="btn-primary"
             >
               <Download className="w-4 h-4" />
               {filters.ciudad_id || filters.sucursal_id || filters.fecha_desde || filters.fecha_hasta
