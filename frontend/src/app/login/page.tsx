@@ -68,13 +68,17 @@ return (
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-numa-800 via-gold-500 to-numa-800" />
 
       <div className="relative z-10">
-        <div className="inline-flex bg-numa-950 rounded-2xl shadow-xl p-3 border border-gold-500/30">
+        <Link
+          href="/"
+          className="inline-flex bg-numa-950 rounded-2xl shadow-xl p-3 border border-gold-500/30 hover:opacity-90 transition-opacity"
+          title="Volver a la página principal"
+        >
           <img
-            src="/logo-numa.png"
+            src="/images/logo-numa-oscuro.jpg"
             alt="NUMA Centro de Mediación"
-            className="w-40 object-contain"
+            className="w-40 object-contain rounded-md"
           />
-        </div>
+        </Link>
       </div>
 
       <div className="relative z-10 max-w-xl">
@@ -116,13 +120,17 @@ return (
 
         {/* Mobile logo */}
         <div className="lg:hidden flex justify-center mb-8">
-          <div className="bg-numa-950 rounded-2xl p-4 shadow-lg">
+          <Link
+            href="/"
+            className="bg-numa-950 rounded-2xl p-4 shadow-lg hover:opacity-90 transition-opacity"
+            title="Volver a la página principal"
+          >
             <img
-              src="/logo-numa.png"
+              src="/images/logo-numa-oscuro.jpg"
               alt="NUMA"
-              className="w-44 object-contain"
+              className="w-44 object-contain rounded-md"
             />
-          </div>
+          </Link>
         </div>
 
         <div className="bg-white border border-numa-200 shadow-2xl rounded-3xl p-10 transition-all duration-300">
