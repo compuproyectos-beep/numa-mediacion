@@ -744,9 +744,9 @@ export default function ProcesoDetallePage() {
             </h3>
 
             {/* Código acta y las acciones (Ver/Descargar) van en la misma
-                fila, con los botones alineados a la derecha — así no
-                ocupan una fila aparte como antes. */}
-            <div className="flex items-center justify-between gap-3 flex-wrap">
+                fila, con los botones cerca del texto en vez de pegados al
+                borde derecho de la tarjeta. */}
+            <div className="flex items-center justify-center gap-6 flex-wrap">
               <p className="text-sm text-green-700">
                 Código acta:{' '}
                 <span className="font-semibold code-text">
@@ -754,7 +754,7 @@ export default function ProcesoDetallePage() {
                 </span>
               </p>
 
-              <div className="flex flex-wrap gap-2 justify-end">
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => handleVerPdfActaFinal(expedienteProceso.acta_final.id)}
