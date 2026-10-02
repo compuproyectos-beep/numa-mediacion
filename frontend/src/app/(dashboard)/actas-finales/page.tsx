@@ -385,7 +385,7 @@ const handleExportarZip = async () => {
             <button
               type="button"
               onClick={handleExportarZip}
-              className="btn-primary"
+              className="btn-primary whitespace-nowrap justify-self-start"
             >
               <Download className="w-4 h-4" />
               {filters.ciudad_id || filters.sucursal_id || filters.fecha_desde || filters.fecha_hasta
