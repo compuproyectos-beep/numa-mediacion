@@ -2754,6 +2754,14 @@ def obtener_procesos_mediacion(
                     ORDER BY p2.fecha_acuerdo ASC, p2.id ASC
                     LIMIT 1
                 ) AS _id_bloqueante,
+                -- Si ya tiene una invitación pendiente, no se puede agendar
+                -- otra hasta que esa se resuelva (realizada/cancelada) —
+                -- usado para saber qué procesos se pueden elegir al crear
+                -- una invitación nueva desde Agenda.
+                EXISTS (
+                    SELECT 1 FROM citas c
+                    WHERE c.proceso_id = p.id AND c.estado = 'pendiente'
+                ) AS tiene_invitacion_pendiente,
                 cd.nombre || ' ' || cd.apellido AS demandante,
                 cd.cedula AS demandante_cedula,
                 cdd.nombre || ' ' || cdd.apellido AS demandado,

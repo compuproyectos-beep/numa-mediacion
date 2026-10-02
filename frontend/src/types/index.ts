@@ -171,6 +171,9 @@ export interface ProcesoMediacion {
   // demás pendientes del mismo mediador quedan bloqueados hasta que se
   // suba este.
   acta_primero_en_fila?: boolean;
+  // true si este proceso ya tiene una invitación pendiente agendada — no
+  // se puede elegir para agendar otra hasta que esa se resuelva.
+  tiene_invitacion_pendiente?: boolean;
 }
 
 export interface CreateProcesoPayload {
