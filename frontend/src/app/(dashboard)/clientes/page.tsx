@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Pencil } from 'lucide-react';
+import { Plus, Pencil, Search } from 'lucide-react';
 import {
   Modal, Spinner, EmptyState,
   InputField, SelectField, PageHeader, ErrorAlert
@@ -14,6 +14,23 @@ import {
 } from '@/lib/services';
 import { getCiudadesCached } from '@/lib/catalogCache';
 import { Cliente, CreateClientePayload } from '@/types';
+
+// Para que la lista de clientes no se sienta tan plana/gris, cada avatar
+// recibe un color distinto (siempre el mismo para el mismo cliente), de
+// una paleta chica dentro de la marca.
+const AVATAR_COLORS = [
+  'bg-gold-400/20 text-gold-700',
+  'bg-numa-700 text-white',
+  'bg-emerald-100 text-emerald-700',
+  'bg-sky-100 text-sky-700',
+  'bg-rose-100 text-rose-700',
+  'bg-violet-100 text-violet-700'
+];
+
+const getAvatarClass = (id: number | string) => {
+  const n = Number(id) || 0;
+  return AVATAR_COLORS[n % AVATAR_COLORS.length];
+};
 
 const empty: CreateClientePayload = {
   nombre: '',
@@ -229,13 +246,15 @@ export default function ClientesPage() {
         </div>
       )}
 
-      <div className="mb-4">
+      <div className="mb-4 relative max-w-sm">
+        <Search className="w-4 h-4 text-numa-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por nombre, cédula, ciudad, dirección o email..."
-          className="input-field max-w-md"
+          placeholder="Buscar por nombre, cédula, ciudad..."
+          className="w-full pl-9 pr-4 py-2 border border-numa-200 rounded-full text-xs bg-white focus:outline-none focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200"
         />
       </div>
 
@@ -272,8 +291,12 @@ export default function ClientesPage() {
                   <tr key={c.id} className="table-row">
                     <td className="table-cell table-cell-sticky">
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-numa-100 flex items-center justify-center shrink-0">
-                          <span className="text-xs font-bold text-numa-600">
+                        <div
+                          className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${getAvatarClass(
+                            c.id
+                          )}`}
+                        >
+                          <span className="text-xs font-bold">
                             {c.nombre.charAt(0)}
                             {c.apellido.charAt(0)}
                           </span>

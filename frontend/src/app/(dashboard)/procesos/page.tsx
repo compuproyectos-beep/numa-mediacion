@@ -297,99 +297,106 @@ export default function ProcesosPage() {
             e.preventDefault();
             load();
           }}
-          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3"
         >
-          <div className="xl:col-span-2">
-            <InputField
-              label="Buscar"
-              value={filters.q}
-              onChange={(e) => setFilters({ ...filters, q: e.target.value })}
-              placeholder="Código, cliente, cédula o tema..."
-            />
-          </div>
+          {/* Fila 1: buscar + los filtros de "dónde" / "qué estado" */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+            <div className="xl:col-span-2">
+              <InputField
+                label="Buscar"
+                value={filters.q}
+                onChange={(e) => setFilters({ ...filters, q: e.target.value })}
+                placeholder="Código, cliente, cédula o tema..."
+              />
+            </div>
 
-          <SelectField
-            label="Estado"
-            value={filters.estado}
-            onChange={(e) => setFilters({ ...filters, estado: e.target.value })}
-          >
-            <option value="">Todos</option>
-            <option value="en_negociacion">En negociación</option>
-            <option value="cerrado_con_acuerdo">Cerrado con acuerdo</option>
-            <option value="cerrado_sin_acuerdo">Cerrado sin acuerdo</option>
-            <option value="archivado">Archivado</option>
-          </SelectField>
-
-          {isAdmin() && (
             <SelectField
-              label="Ciudad"
-              value={filters.ciudad_id}
-              onChange={(e) =>
-                setFilters({
-                  ...filters,
-                  ciudad_id: e.target.value,
-                  sucursal_id: ''
-                })
-              }
+              label="Estado"
+              value={filters.estado}
+              onChange={(e) => setFilters({ ...filters, estado: e.target.value })}
             >
-              <option value="">Todas</option>
-              {ciudades.map((c: any) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
+              <option value="">Todos</option>
+              <option value="en_negociacion">En negociación</option>
+              <option value="cerrado_con_acuerdo">Cerrado con acuerdo</option>
+              <option value="cerrado_sin_acuerdo">Cerrado sin acuerdo</option>
+              <option value="archivado">Archivado</option>
             </SelectField>
-          )}
 
-          {isAdmin() && (
-            <SelectField
-              label="Sucursal"
-              value={filters.sucursal_id}
-              onChange={(e) =>
-                setFilters({ ...filters, sucursal_id: e.target.value })
-              }
-            >
-              <option value="">Todas</option>
-              {sucursales
-                .filter((s: any) =>
-                  filters.ciudad_id
-                    ? String(s.ciudad_id) === String(filters.ciudad_id)
-                    : true
-                )
-                .map((s: any) => (
-                  <option key={s.id} value={s.id}>
-                    {s.nombre}
+            {isAdmin() && (
+              <SelectField
+                label="Ciudad"
+                value={filters.ciudad_id}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    ciudad_id: e.target.value,
+                    sucursal_id: ''
+                  })
+                }
+              >
+                <option value="">Todas</option>
+                {ciudades.map((c: any) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre}
                   </option>
                 ))}
-            </SelectField>
-          )}
+              </SelectField>
+            )}
 
-          <InputField
-            label="Fecha desde"
-            type="date"
-            value={filters.fecha_desde}
-            onChange={(e) =>
-              setFilters({ ...filters, fecha_desde: e.target.value })
-            }
-          />
+            {isAdmin() && (
+              <SelectField
+                label="Sucursal"
+                value={filters.sucursal_id}
+                onChange={(e) =>
+                  setFilters({ ...filters, sucursal_id: e.target.value })
+                }
+              >
+                <option value="">Todas</option>
+                {sucursales
+                  .filter((s: any) =>
+                    filters.ciudad_id
+                      ? String(s.ciudad_id) === String(filters.ciudad_id)
+                      : true
+                  )
+                  .map((s: any) => (
+                    <option key={s.id} value={s.id}>
+                      {s.nombre}
+                    </option>
+                  ))}
+              </SelectField>
+            )}
+          </div>
 
-          <InputField
-            label="Fecha hasta"
-            type="date"
-            value={filters.fecha_hasta}
-            onChange={(e) =>
-              setFilters({ ...filters, fecha_hasta: e.target.value })
-            }
-          />
+          {/* Fila 2: las dos fechas juntas, lado a lado, y los botones —
+              antes podían quedar una arriba y otra abajo según cuántos
+              filtros de ciudad/sucursal se mostraran en la fila 1. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-3 mt-3">
+            <InputField
+              label="Fecha desde"
+              type="date"
+              value={filters.fecha_desde}
+              onChange={(e) =>
+                setFilters({ ...filters, fecha_desde: e.target.value })
+              }
+            />
 
-          <div className="flex items-end gap-2">
-            <button type="submit" className="btn-primary">
-              Buscar
-            </button>
+            <InputField
+              label="Fecha hasta"
+              type="date"
+              value={filters.fecha_hasta}
+              onChange={(e) =>
+                setFilters({ ...filters, fecha_hasta: e.target.value })
+              }
+            />
 
-            <button type="button" onClick={limpiarFiltros} className="btn-secondary">
-              Limpiar
-            </button>
+            <div className="flex items-end gap-2">
+              <button type="submit" className="btn-primary">
+                Buscar
+              </button>
+
+              <button type="button" onClick={limpiarFiltros} className="btn-secondary">
+                Limpiar
+              </button>
+            </div>
           </div>
         </form>
       </div>

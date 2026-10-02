@@ -257,129 +257,136 @@ const handleExportarZip = async () => {
             e.preventDefault();
             load();
           }}
-          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3"
         >
-          <div className="xl:col-span-2">
-            <InputField
-              label="Buscar"
-              value={filters.q}
-              onChange={(e) => setFilters({ ...filters, q: e.target.value })}
-              placeholder="Acta, proceso, cliente o cédula..."
-            />
-          </div>
+          {/* Fila 1: buscar + los filtros de "dónde" */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+            <div className="xl:col-span-2">
+              <InputField
+                label="Buscar"
+                value={filters.q}
+                onChange={(e) => setFilters({ ...filters, q: e.target.value })}
+                placeholder="Acta, proceso, cliente o cédula..."
+              />
+            </div>
 
-          {isAdmin && (
-            <SelectField
-              label="Ciudad"
-              value={filters.ciudad_id}
-              onChange={(e) =>
-                setFilters({
-                  ...filters,
-                  ciudad_id: e.target.value,
-                  sucursal_id: ''
-                })
-              }
-            >
-              <option value="">Todas</option>
-              {ciudades.map((c: any) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </SelectField>
-          )}
-
-          {isAdmin && (
-            <SelectField
-              label="Sucursal"
-              value={filters.sucursal_id}
-              onChange={(e) =>
-                setFilters({
-                  ...filters,
-                  sucursal_id: e.target.value
-                })
-              }
-            >
-              <option value="">Todas</option>
-              {sucursales
-                .filter((s: any) =>
-                  filters.ciudad_id
-                    ? String(s.ciudad_id) === String(filters.ciudad_id)
-                    : true
-                )
-                .map((s: any) => (
-                  <option key={s.id} value={s.id}>
-                    {s.nombre}
+            {isAdmin && (
+              <SelectField
+                label="Ciudad"
+                value={filters.ciudad_id}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    ciudad_id: e.target.value,
+                    sucursal_id: ''
+                  })
+                }
+              >
+                <option value="">Todas</option>
+                {ciudades.map((c: any) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre}
                   </option>
                 ))}
-            </SelectField>
-          )}
+              </SelectField>
+            )}
 
-          {isAdmin && (
-            <SelectField
-              label="Mediador"
-              value={filters.usuario_id}
-              onChange={(e) =>
-                setFilters({
-                  ...filters,
-                  usuario_id: e.target.value
-                })
-              }
-            >
-              <option value="">Todos</option>
-              {mediadores.map((m: any) => (
-                <option key={m.id} value={m.id}>
-                  {m.nombre} {m.apellido}
-                </option>
-              ))}
-            </SelectField>
-          )}
+            {isAdmin && (
+              <SelectField
+                label="Sucursal"
+                value={filters.sucursal_id}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    sucursal_id: e.target.value
+                  })
+                }
+              >
+                <option value="">Todas</option>
+                {sucursales
+                  .filter((s: any) =>
+                    filters.ciudad_id
+                      ? String(s.ciudad_id) === String(filters.ciudad_id)
+                      : true
+                  )
+                  .map((s: any) => (
+                    <option key={s.id} value={s.id}>
+                      {s.nombre}
+                    </option>
+                  ))}
+              </SelectField>
+            )}
 
-          <InputField
-            label="Fecha desde"
-            type="date"
-            value={filters.fecha_desde}
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                fecha_desde: e.target.value
-              })
-            }
-          />
-
-          <InputField
-            label="Fecha hasta"
-            type="date"
-            value={filters.fecha_hasta}
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                fecha_hasta: e.target.value
-              })
-            }
-          />
-
-          <div className="flex items-end gap-2">
-            <button type="submit" className="btn-primary">
-              Buscar
-            </button>
-
-            <button type="button" onClick={limpiarFiltros} className="btn-secondary">
-              Limpiar
-            </button>
+            {isAdmin && (
+              <SelectField
+                label="Mediador"
+                value={filters.usuario_id}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    usuario_id: e.target.value
+                  })
+                }
+              >
+                <option value="">Todos</option>
+                {mediadores.map((m: any) => (
+                  <option key={m.id} value={m.id}>
+                    {m.nombre} {m.apellido}
+                  </option>
+                ))}
+              </SelectField>
+            )}
           </div>
 
-          <div className="flex items-end">
-            <button
-              type="button"
-              onClick={handleExportarZip}
-              className="btn-primary w-full justify-center"
-            >
-              <Download className="w-4 h-4" />
-              {filters.ciudad_id || filters.sucursal_id || filters.fecha_desde || filters.fecha_hasta
-                ? 'Descargar PDF filtrados'
-                : 'Descargar todos los PDF'}
-            </button>
+          {/* Fila 2: las dos fechas juntas, y los 3 botones de acción al
+              lado (antes "Descargar..." quedaba solo, estirado a lo ancho
+              de toda una fila — ahora va del mismo tamaño que los demás). */}
+          <div className="flex flex-col lg:flex-row lg:items-end gap-3 mt-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
+              <InputField
+                label="Fecha desde"
+                type="date"
+                value={filters.fecha_desde}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    fecha_desde: e.target.value
+                  })
+                }
+              />
+
+              <InputField
+                label="Fecha hasta"
+                type="date"
+                value={filters.fecha_hasta}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    fecha_hasta: e.target.value
+                  })
+                }
+              />
+            </div>
+
+            <div className="flex items-center flex-wrap gap-2">
+              <button type="submit" className="btn-primary">
+                Buscar
+              </button>
+
+              <button type="button" onClick={limpiarFiltros} className="btn-secondary">
+                Limpiar
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExportarZip}
+                className="btn-gold"
+              >
+                <Download className="w-4 h-4" />
+                {filters.ciudad_id || filters.sucursal_id || filters.fecha_desde || filters.fecha_hasta
+                  ? 'Descargar filtrados'
+                  : 'Descargar todos'}
+              </button>
+            </div>
           </div>
         </form>
       </div>

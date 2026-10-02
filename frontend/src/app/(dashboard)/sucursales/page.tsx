@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, Building2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Building2, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
   Modal, Spinner, EmptyState, ConfirmDialog,
@@ -209,17 +209,17 @@ const handleCambiarEstado = async () => {
         </div>
       )}
 
-      <div className="card p-4 mb-4">
+      <div className="mb-4 relative max-w-sm">
+        <Search className="w-4 h-4 text-numa-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por sucursal, ciudad, provincia o teléfono..."
-          className="w-full px-4 py-2 border border-numa-200 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gold-400"
+          placeholder="Buscar sucursal, ciudad, provincia..."
+          className="w-full pl-9 pr-4 py-2 border border-numa-200 rounded-full text-xs bg-white focus:outline-none focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200"
         />
       </div>
-
-      
 
       <div className="card overflow-hidden">
         {loading ? <Spinner /> : sucursales.length === 0 ? (

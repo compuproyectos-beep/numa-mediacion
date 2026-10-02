@@ -426,10 +426,10 @@ export default function ReportesPage() {
             key={t.valor}
             type="button"
             onClick={() => cambiarTipo(t.valor)}
-            className={`px-4 py-2 rounded-sm text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
               tipo === t.valor
-                ? 'bg-numa-900 text-numa-50'
-                : 'bg-white border border-numa-200 text-numa-600 hover:bg-numa-100'
+                ? 'bg-gold-400 text-numa-950 shadow-sm'
+                : 'bg-white border border-numa-200 text-numa-600 hover:border-gold-400 hover:text-gold-600'
             }`}
           >
             {t.titulo}
