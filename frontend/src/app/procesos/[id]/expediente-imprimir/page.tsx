@@ -60,34 +60,34 @@ export default function ImprimirExpedientePage() {
   return (
     <main className="min-h-screen bg-numa-100 print:bg-white py-10 print:py-0">
       <div className="max-w-3xl mx-auto bg-white shadow-md print:shadow-none border border-numa-200 print:border-0 rounded-sm">
-        {/* Encabezado tipo membrete */}
-        <div className="border-b-2 border-gold-500 px-10 pt-8 pb-6">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/images/logo-numa-claro.jpg"
-                alt="Centro de Mediación NUMA"
-                className="h-12 w-auto object-contain"
-              />
+        {/* Encabezado tipo membrete. El logo y el nombre van centrados en
+            la hoja; el botón de Imprimir queda flotando aparte (y
+            desaparece al imprimir). */}
+        <div className="border-b-2 border-gold-500 px-10 pt-8 pb-6 relative">
+          <button
+            onClick={() => window.print()}
+            className="print:hidden absolute top-8 right-10 inline-flex items-center gap-2 px-4 py-2 bg-numa-900 text-numa-50 rounded-sm text-sm font-medium hover:bg-numa-950 transition-colors"
+          >
+            <Printer className="w-4 h-4" />
+            Imprimir
+          </button>
 
-              <div>
-                <p className="text-[11px] tracking-[0.2em] text-gold-600 font-semibold uppercase mb-1">
-                  Centro de Mediación
-                </p>
-                <h1 className="font-display text-2xl font-bold text-numa-900">
-                  NUMA
-                </h1>
-              </div>
+          <div className="flex items-center justify-center gap-3 text-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/logo-numa-claro.jpg"
+              alt="Centro de Mediación NUMA"
+              className="h-20 w-auto object-contain"
+            />
+
+            <div>
+              <p className="text-[11px] tracking-[0.2em] text-gold-600 font-semibold uppercase mb-1">
+                Centro de Mediación
+              </p>
+              <h1 className="font-display text-2xl font-bold text-numa-900">
+                NUMA
+              </h1>
             </div>
-
-            <button
-              onClick={() => window.print()}
-              className="print:hidden inline-flex items-center gap-2 px-4 py-2 bg-numa-900 text-numa-50 rounded-sm text-sm font-medium hover:bg-numa-950 transition-colors"
-            >
-              <Printer className="w-4 h-4" />
-              Imprimir
-            </button>
           </div>
 
           <div className="mt-6 flex items-center justify-between flex-wrap gap-2">
