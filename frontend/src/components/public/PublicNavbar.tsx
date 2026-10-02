@@ -11,6 +11,10 @@ export default function PublicNavbar() {
   const [open, setOpen] = useState(false);
   const [sedes, setSedes] = useState<any[]>([]);
   const [openSedes, setOpenSedes] = useState(false);
+  // Arriba del todo (sobre el banner de fotos) el menú va claro, con letras
+  // azules; apenas se hace scroll pasa a oscuro con letras blancas, como
+  // estaba antes. Así no se siente todo "un bloque azul" desde el inicio.
+  const [scrolled, setScrolled] = useState(false);
 
   const sedesRef = useRef<HTMLDivElement>(null);
 
@@ -19,6 +23,13 @@ export default function PublicNavbar() {
       .get('/sedes')
       .then((res) => setSedes(res.data))
       .catch(() => setSedes([]));
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 40);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   useEffect(() => {
@@ -62,18 +73,32 @@ export default function PublicNavbar() {
   }, {});
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-numa-950/95 backdrop-blur-sm border-b border-numa-800">
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-sm border-b transition-colors duration-300 ${
+        scrolled
+          ? 'bg-numa-950/95 border-numa-800'
+          : 'bg-white/95 border-numa-100'
+      }`}
+    >
       {/* Barra de contacto — siempre visible, sin necesidad de bajar hasta el pie de página */}
-      <div className="hidden sm:block bg-numa-900 border-b border-numa-800">
+      <div
+        className={`hidden sm:block border-b transition-colors duration-300 ${
+          scrolled ? 'bg-numa-900 border-numa-800' : 'bg-numa-50 border-numa-100'
+        }`}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-12 text-sm text-white">
+          <div
+            className={`flex items-center justify-between h-12 text-sm transition-colors duration-300 ${
+              scrolled ? 'text-white' : 'text-numa-800'
+            }`}
+          >
             <div className="flex items-center gap-7">
-              <span className="flex items-center gap-2 text-white">
+              <span className="flex items-center gap-2">
                 <Phone className="w-4 h-4" />
                 0981790092
               </span>
 
-              <span className="flex items-center gap-2 text-white">
+              <span className="flex items-center gap-2">
                 <Mail className="w-4 h-4" />
                 numamediacionec@hotmail.com
               </span>
@@ -83,7 +108,7 @@ export default function PublicNavbar() {
               href="https://wa.me/593981790092?text=Hola%2C%20quisiera%20informaci%C3%B3n%20sobre%20mediaci%C3%B3n"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors font-medium"
+              className="flex items-center gap-2 text-green-600 hover:text-green-500 transition-colors font-medium"
             >
               <WhatsAppIcon className="w-4 h-4" />
               WhatsApp
@@ -95,7 +120,16 @@ export default function PublicNavbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           <Link href="/" className="flex items-center">
-            <RotatingLogo className="h-14 w-40 sm:h-16 sm:w-48" />
+            {/* Mientras el navbar es blanco, el logo (que trae fondos oscuros
+                en 2 de sus 3 variantes) va sobre un chip oscuro para que
+                siempre se lea bien, sin importar cuál variante esté activa. */}
+            <span
+              className={`inline-flex items-center rounded-sm transition-colors duration-300 ${
+                scrolled ? '' : 'bg-numa-950 p-1.5'
+              }`}
+            >
+              <RotatingLogo className="h-14 w-40 sm:h-16 sm:w-48" />
+            </span>
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
@@ -104,7 +138,9 @@ export default function PublicNavbar() {
                 <a
                   key={item}
                   href={`/#${item.toLowerCase()}`}
-                  className="text-sm text-white hover:text-gold-400 transition-colors duration-200 tracking-wide"
+                  className={`text-sm transition-colors duration-200 tracking-wide hover:text-gold-500 ${
+                    scrolled ? 'text-white hover:text-gold-400' : 'text-numa-800'
+                  }`}
                 >
                   {item}
                 </a>
@@ -117,7 +153,11 @@ export default function PublicNavbar() {
               <button
                 type="button"
                 onClick={() => setOpenSedes((prev) => !prev)}
-                className="px-5 py-2 text-sm font-medium text-white border border-white/20 rounded-sm hover:border-gold-400 hover:text-gold-400 transition-colors duration-200 tracking-wide inline-flex items-center gap-1"
+                className={`px-5 py-2 text-sm font-medium rounded-sm transition-colors duration-200 tracking-wide inline-flex items-center gap-1 border ${
+                  scrolled
+                    ? 'text-white border-white/20 hover:border-gold-400 hover:text-gold-400'
+                    : 'text-numa-800 border-numa-200 hover:border-gold-500 hover:text-gold-600'
+                }`}
               >
                 Sedes
                 <ChevronDown className="w-4 h-4" />
@@ -187,7 +227,9 @@ export default function PublicNavbar() {
 
           <button
             onClick={() => setOpen((prev) => !prev)}
-            className="md:hidden p-2 text-white hover:text-gold-400"
+            className={`md:hidden p-2 hover:text-gold-400 transition-colors duration-200 ${
+              scrolled ? 'text-white' : 'text-numa-800'
+            }`}
           >
             {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -195,14 +237,22 @@ export default function PublicNavbar() {
       </div>
 
       {open && (
-        <div className="md:hidden bg-numa-950 border-t border-numa-800 px-4 pb-4 pt-2 space-y-2">
+        <div
+          className={`md:hidden border-t px-4 pb-4 pt-2 space-y-2 transition-colors duration-300 ${
+            scrolled
+              ? 'bg-numa-950 border-numa-800'
+              : 'bg-white border-numa-100'
+          }`}
+        >
           {['Nosotros', 'Misión', 'Valores', 'Servicios', 'Contacto'].map(
             (item) => (
               <a
                 key={item}
                 href={`/#${item.toLowerCase()}`}
                 onClick={() => setOpen(false)}
-                className="block py-2 text-sm text-white hover:text-gold-400"
+                className={`block py-2 text-sm hover:text-gold-400 ${
+                  scrolled ? 'text-white' : 'text-numa-800'
+                }`}
               >
                 {item}
               </a>
@@ -212,7 +262,9 @@ export default function PublicNavbar() {
           <button
             type="button"
             onClick={() => setOpenSedes((prev) => !prev)}
-            className="w-full flex items-center justify-between py-2 text-sm text-white hover:text-gold-400"
+            className={`w-full flex items-center justify-between py-2 text-sm hover:text-gold-400 ${
+              scrolled ? 'text-white' : 'text-numa-800'
+            }`}
           >
             Sedes
             <ChevronDown className="w-4 h-4" />
