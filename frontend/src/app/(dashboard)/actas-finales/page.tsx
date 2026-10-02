@@ -257,7 +257,7 @@ const handleExportarZip = async () => {
             e.preventDefault();
             load();
           }}
-          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3"
+          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3"
         >
           <div className="xl:col-span-2">
             <InputField
@@ -402,7 +402,9 @@ const handleExportarZip = async () => {
         actas.map((a) => (
           <div
             key={a.id}
-            className="card p-4 border border-numa-100"
+            className={`card p-4 border border-numa-100 border-l-4 ${
+              a.ruta_comprobante_pago ? 'border-l-green-500' : 'border-l-amber-400'
+            }`}
           >
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div className="space-y-2">
