@@ -2879,16 +2879,18 @@ def obtener_citas_proceso(
 
         cur.execute("""
             SELECT
-                id,
-                fecha,
-                hora,
-                tema,
-                estado,
-                observaciones,
-                fecha_creacion
-            FROM citas
-            WHERE proceso_id = %s
-            ORDER BY id ASC
+                c.id,
+                c.fecha,
+                c.hora,
+                c.tema,
+                c.estado,
+                c.observaciones,
+                c.fecha_creacion,
+                cp.nombre || ' ' || cp.apellido AS creado_por
+            FROM citas c
+            LEFT JOIN usuarios cp ON cp.id = c.creado_por_id
+            WHERE c.proceso_id = %s
+            ORDER BY c.id ASC
         """, (proceso_id,))
 
         return cur.fetchall()
@@ -2991,6 +2993,7 @@ def crear_invitacion_proceso(
                     cliente_demandado_id,
                     sucursal_id,
                     usuario_id,
+                    creado_por_id,
                     fecha,
                     hora,
                     tema,
@@ -3000,7 +3003,7 @@ def crear_invitacion_proceso(
                     fecha_modificacion
                 )
                 VALUES (
-                    %s,%s,%s,%s,%s,%s,%s,%s,%s,
+                    %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
                     'pendiente',
                     NOW(),
                     NOW()
@@ -3012,6 +3015,7 @@ def crear_invitacion_proceso(
                 proceso["cliente_demandado_id"],
                 proceso["sucursal_id"],
                 proceso["usuario_id"],
+                usuario["id"],
                 fecha,
                 hora,
                 f"Invitación proceso {proceso['codigo_proceso']}",
@@ -3165,6 +3169,7 @@ def crear_avance_proceso(
                         cliente_demandado_id,
                         sucursal_id,
                         usuario_id,
+                        creado_por_id,
                         fecha,
                         hora,
                         tema,
@@ -3173,13 +3178,14 @@ def crear_avance_proceso(
                         fecha_creacion,
                         fecha_modificacion
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'pendiente', NOW(), NOW())
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pendiente', NOW(), NOW())
                     RETURNING id
                 """, (
                     proceso_id,
                     proceso["cliente_demandante_id"],
                     proceso["cliente_demandado_id"],
                     proceso["sucursal_id"],
+                    usuario["id"],
                     usuario["id"],
                     proxima_fecha,
                     proxima_hora,
@@ -4967,6 +4973,7 @@ def obtener_expediente_proceso(
                 c.hora,
                 c.estado,
                 c.observaciones,
+                cp.nombre || ' ' || cp.apellido AS creado_por,
                 av.resultado,
                 av.observacion AS avance_observacion,
                 av.proxima_fecha,
@@ -4974,6 +4981,7 @@ def obtener_expediente_proceso(
                 av.fecha_creacion AS fecha_avance,
                 u.nombre || ' ' || u.apellido AS usuario_avance
             FROM citas c
+            LEFT JOIN usuarios cp ON cp.id = c.creado_por_id
             LEFT JOIN avances_mediacion av ON av.cita_id = c.id
             LEFT JOIN usuarios u ON av.usuario_id = u.id
             WHERE c.proceso_id = %s

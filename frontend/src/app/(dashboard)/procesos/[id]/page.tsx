@@ -667,6 +667,16 @@ export default function ProcesoDetallePage() {
                         <p className="text-sm text-numa-500 mt-1">
                           {cita.fecha} — {cita.hora?.slice(0, 5)}
                         </p>
+
+                        {/* Quién creó esta invitación — no siempre es el
+                            mediador asignado al proceso: un admin puede
+                            crearla en su nombre (ej. el mediador se
+                            enfermó), y esto deja ese dato visible. */}
+                        {cita.creado_por && (
+                          <p className="text-xs text-numa-400 mt-1">
+                            Invitación creada por: {cita.creado_por}
+                          </p>
+                        )}
                       </div>
 
                       <span className="text-xs text-numa-400">
