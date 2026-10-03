@@ -40,7 +40,12 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  // En celular arranca abierto a propósito: es lo primero que ve el
+  // mediador o admin al entrar (recién logueado o al refrescar), para que
+  // note de una vez que ahí están las opciones del menú. En pantallas
+  // grandes esto no se nota (el overlay de abajo es "lg:hidden"), así que
+  // no hace falta distinguir el tamaño de pantalla aquí.
+  const [mobileOpen, setMobileOpen] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 

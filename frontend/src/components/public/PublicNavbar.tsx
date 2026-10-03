@@ -94,7 +94,23 @@ export default function PublicNavbar() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          <Link href="/" className="flex items-center">
+          {/* Logo — a la izquierda en escritorio (posición original) */}
+          <Link href="/" className="hidden md:flex items-center">
+            <RotatingLogo className="h-14 w-40 sm:h-16 sm:w-48" />
+          </Link>
+
+          {/* En móvil la hamburguesa va a la izquierda (igual que dentro
+              del sistema) y el logo queda centrado, con un espacio
+              invisible del mismo ancho del botón al otro lado para que el
+              logo quede realmente centrado. */}
+          <button
+            onClick={() => setOpen((prev) => !prev)}
+            className="md:hidden p-2 -ml-2 text-white hover:text-gold-400"
+          >
+            {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+
+          <Link href="/" className="md:hidden flex items-center">
             <RotatingLogo className="h-14 w-40 sm:h-16 sm:w-48" />
           </Link>
 
@@ -185,12 +201,7 @@ export default function PublicNavbar() {
             </Link>
           </div>
 
-          <button
-            onClick={() => setOpen((prev) => !prev)}
-            className="md:hidden p-2 text-white hover:text-gold-400"
-          >
-            {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          <span className="md:hidden w-9 h-9" aria-hidden="true" />
         </div>
       </div>
 

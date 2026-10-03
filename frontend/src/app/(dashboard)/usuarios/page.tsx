@@ -73,6 +73,12 @@ export default function UsuariosPage() {
   const [changingEstado, setChangingEstado] = useState(false);
   const [search, setSearch] = useState('');
 
+  // El atributo "title" (tooltip nativo) solo aparece al pasar el mouse —
+  // en el teléfono no hay forma de verlo. El nombre completo también se
+  // puede desplegar dando clic/toque: se guarda aquí el id del usuario
+  // cuyo nombre está desplegado (uno solo a la vez).
+  const [nombreExpandidoId, setNombreExpandidoId] = useState<number | null>(null);
+
   const admin = isAdmin();
   const router = useRouter();
 
@@ -369,7 +375,7 @@ export default function UsuariosPage() {
               <tbody>
                 {filtered.map((u) => (
                   <tr key={u.id} className="table-row">
-                    <td className="table-cell table-cell-sticky font-medium">
+                    <td className="table-cell table-cell-sticky font-medium max-w-[160px] sm:max-w-[220px]">
                       <div className="flex items-center gap-2">
                         <div
                           className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${getAvatarClass(
@@ -382,7 +388,17 @@ export default function UsuariosPage() {
                           </span>
                         </div>
 
-                        <span>
+                        <span
+                          onClick={() =>
+                            setNombreExpandidoId((prev) => (prev === u.id ? null : u.id))
+                          }
+                          className={`cursor-pointer ${
+                            nombreExpandidoId === u.id
+                              ? 'whitespace-normal break-words'
+                              : 'block truncate'
+                          }`}
+                          title={`${u.nombre} ${u.apellido || ''}`}
+                        >
                           {u.nombre} {u.apellido || ''}
                         </span>
                       </div>

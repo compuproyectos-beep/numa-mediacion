@@ -55,6 +55,13 @@ export default function ClientesPage() {
   const [telefonoError, setTelefonoError] = useState('');
   const [search, setSearch] = useState('');
 
+  // El atributo "title" (el tooltip nativo del navegador) solo aparece al
+  // pasar el mouse por encima — en el teléfono, donde no hay mouse, nunca
+  // se ve. Por eso el nombre completo también se puede desplegar dando
+  // clic/toque: se guarda aquí el id del cliente cuyo nombre está
+  // desplegado (uno solo a la vez).
+  const [nombreExpandidoId, setNombreExpandidoId] = useState<number | null>(null);
+
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Cliente | null>(null);
   const [form, setForm] = useState<CreateClientePayload>(empty);
@@ -303,7 +310,12 @@ export default function ClientesPage() {
                         </div>
 
                         <p
-                          className="font-medium text-numa-900 truncate"
+                          onClick={() =>
+                            setNombreExpandidoId((prev) => (prev === c.id ? null : c.id))
+                          }
+                          className={`font-medium text-numa-900 cursor-pointer ${
+                            nombreExpandidoId === c.id ? 'whitespace-normal break-words' : 'truncate'
+                          }`}
                           title={`${c.nombre} ${c.apellido}`}
                         >
                           {c.nombre} {c.apellido}

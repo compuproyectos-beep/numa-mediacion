@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   FileText,
   CheckCircle,
@@ -99,6 +99,20 @@ export default function DashboardPage() {
   const [loadingCategoria, setLoadingCategoria] = useState(false);
   const [errorCategoria, setErrorCategoria] = useState('');
 
+  // El panel de resultados aparece más abajo, debajo de las tarjetas — en
+  // un celular (o incluso en una pantalla chica) queda fuera de la vista
+  // y no se nota que hay que bajar para verlo. Igual que en el calendario
+  // de Agenda, se baja la pantalla sola hasta ahí apenas se abre.
+  const panelCategoriaRef = useRef<HTMLDivElement>(null);
+
+  const bajarAPanelCategoria = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        panelCategoriaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    });
+  };
+
   const toggleCategoria = async (clave: string) => {
     if (categoriaAbierta === clave) {
       setCategoriaAbierta(null);
@@ -109,6 +123,7 @@ export default function DashboardPage() {
     setListaCategoria([]);
     setErrorCategoria('');
     setLoadingCategoria(true);
+    bajarAPanelCategoria();
 
     try {
       const info = CATEGORIAS[clave];
@@ -220,7 +235,7 @@ export default function DashboardPage() {
               uno clickeable para ir directo a su proceso, y un botón para
               ver la lista completa con el filtro ya aplicado. */}
           {categoriaAbierta && (
-            <div className="card p-6 animate-fade-in">
+            <div ref={panelCategoriaRef} className="card p-6 animate-fade-in">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-semibold text-numa-700 uppercase tracking-wider flex items-center gap-2">
                   <ChevronDown className="w-4 h-4 text-numa-400" />

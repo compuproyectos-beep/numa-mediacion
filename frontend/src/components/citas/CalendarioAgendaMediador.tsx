@@ -251,6 +251,41 @@ export default function CalendarioAgendaMediador({
     [permitirCrear]
   );
 
+  // El espacio en blanco de una casilla usa, por defecto, el mecanismo
+  // propio de react-big-calendar para detectar el toque (basado en
+  // "mantener presionado sin mover el dedo"). En un celular real casi
+  // siempre hay un microtemblor del dedo al tocar, y ese mecanismo lo
+  // interpreta como que el usuario está arrastrando para hacer scroll, no
+  // seleccionando — por eso el número del día (que es un botón normal)
+  // respondía siempre, pero el espacio en blanco fallaba casi siempre en
+  // un teléfono de verdad, aunque en una computadora con mouse sí
+  // funcionaba. Envolviendo cada casilla del mes en un div con su propio
+  // onClick (un clic/toque normal del navegador, sin ese mecanismo
+  // especial) se vuelve igual de confiable que tocar el número.
+  const CeldaDiaSeleccionable = useCallback(
+    ({ value, children }: any) => {
+      if (!permitirCrear) return children;
+
+      // "display: flex" en el envoltorio es a propósito: la casilla de
+      // adentro (que pinta el fondo, el resaltado del día elegido, etc.)
+      // depende de que su propio contenedor directo sea flex para
+      // estirarse a toda la altura de la celda (así funcionaba antes,
+      // cuando ella misma era la hija directa de la fila). Si el
+      // envoltorio no fuera flex, esa casilla se quedaría con alto cero y
+      // el color de fondo dejaría de verse.
+      return (
+        <div
+          className="numa-celda-dia-wrapper"
+          onClick={() => seleccionarDiaParaNuevaInvitacion(value)}
+          style={{ flex: '1 0 0%', display: 'flex', cursor: 'pointer' }}
+        >
+          {children}
+        </div>
+      );
+    },
+    [permitirCrear, seleccionarDiaParaNuevaInvitacion]
+  );
+
   const cargarCitas = useCallback(async () => {
     setLoading(true);
 
@@ -418,7 +453,7 @@ export default function CalendarioAgendaMediador({
               setHoraSeleccionada(fechaISO === hoyISO() ? '' : '09:00');
               forzarScrollAlPanel();
             }}
-            components={{ toolbar: BarraCalendario }}
+            components={{ toolbar: BarraCalendario, dateCellWrapper: CeldaDiaSeleccionable }}
             messages={{
               next: 'Siguiente',
               previous: 'Anterior',
@@ -487,6 +522,17 @@ export default function CalendarioAgendaMediador({
 
               .calendario-numa .rbc-day-bg:not(.rbc-off-range-bg):hover {
                 background-color: rgba(224, 184, 74, 0.08);
+              }
+
+              /* La línea delgada que separa una columna de día de la
+                 siguiente normalmente la dibuja react-big-calendar entre
+                 casillas que son hermanas directas. Como ahora cada
+                 casilla va envuelta en un div propio (para que todo el
+                 espacio en blanco responda al toque, no solo el número),
+                 esas casillas ya no son hermanas directas — así que la
+                 línea se vuelve a dibujar aquí, entre los envoltorios. */
+              .calendario-numa .numa-celda-dia-wrapper + .numa-celda-dia-wrapper {
+                border-left: 1px solid #ddd;
               }
             `}</style>
           )}
