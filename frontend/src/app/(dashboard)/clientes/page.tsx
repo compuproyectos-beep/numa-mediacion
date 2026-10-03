@@ -289,7 +289,7 @@ export default function ClientesPage() {
               <tbody>
                 {filtered.map((c) => (
                   <tr key={c.id} className="table-row">
-                    <td className="table-cell table-cell-sticky">
+                    <td className="table-cell table-cell-sticky max-w-[160px] sm:max-w-[220px]">
                       <div className="flex items-center gap-2">
                         <div
                           className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${getAvatarClass(
@@ -302,7 +302,10 @@ export default function ClientesPage() {
                           </span>
                         </div>
 
-                        <p className="font-medium text-numa-900">
+                        <p
+                          className="font-medium text-numa-900 truncate"
+                          title={`${c.nombre} ${c.apellido}`}
+                        >
                           {c.nombre} {c.apellido}
                         </p>
                       </div>

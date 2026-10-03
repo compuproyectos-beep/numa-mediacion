@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -74,6 +74,42 @@ export default function CalendarioAgendaMediador({
   const [mostrarConfirmarCancelar, setMostrarConfirmarCancelar] = useState(false);
   const [motivoCancelacion, setMotivoCancelacion] = useState('');
   const [errorMotivoCancelacion, setErrorMotivoCancelacion] = useState('');
+
+  // El panel con el detalle del día o de una cita aparece debajo del
+  // calendario. Cuando se abre desde "+N más" (o seleccionando un día o una
+  // cita), este panel puede quedar fuera de la vista sin que se note que
+  // hay que bajar para verlo — por eso se desplaza la pantalla sola hasta
+  // ahí apenas aparece.
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if ((diaSeleccionado || citaActiva) && panelRef.current) {
+      panelRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [diaSeleccionado, citaActiva]);
+
+  // Elige un día para agendar una nueva invitación. Se usa tanto al hacer
+  // clic/arrastrar en el espacio en blanco de una casilla (onSelectSlot)
+  // como al tocar el número del día (onDrillDown) — en celdas con varias
+  // invitaciones casi no queda espacio en blanco donde dar clic, pero el
+  // número del día siempre está visible y libre, así que también sirve
+  // como botón para elegir esa fecha.
+  const seleccionarDiaParaNuevaInvitacion = useCallback(
+    (fecha: Date) => {
+      if (!permitirCrear) return;
+
+      const fechaISO = new Date(fecha).toISOString().slice(0, 10);
+
+      // No se puede agendar una cita nueva en una fecha pasada
+      if (fechaISO < hoyISO()) return;
+
+      setCitaActiva(null);
+      setErrorEstado('');
+      setDiaSeleccionado(fechaISO);
+      setHoraSeleccionada(fechaISO === hoyISO() ? '' : '09:00');
+    },
+    [permitirCrear]
+  );
 
   const cargarCitas = useCallback(async () => {
     setLoading(true);
@@ -207,7 +243,7 @@ export default function CalendarioAgendaMediador({
       {loading ? (
         <Spinner />
       ) : (
-        <div className="h-[440px]">
+        <div className="calendario-numa h-[440px]">
           <Calendar
             localizer={localizer}
             date={calendarDate}
@@ -230,6 +266,11 @@ export default function CalendarioAgendaMediador({
               // citas de ese día SIEMPRE se puedan ver, se reutiliza el mismo
               // panel de "citas del día" que ya se muestra debajo del
               // calendario al seleccionar un día vacío.
+              //
+              // "+N más" solo debe MOSTRAR las citas de ese día, no debe
+              // bloquearse si la fecha ya pasó (a diferencia de elegir un
+              // día para agendar), así que esto no reutiliza
+              // seleccionarDiaParaNuevaInvitacion.
               const fechaISO = new Date(fecha).toISOString().slice(0, 10);
               setCitaActiva(null);
               setErrorEstado('');
@@ -246,6 +287,23 @@ export default function CalendarioAgendaMediador({
             }}
             dayPropGetter={(date: Date) => {
               const esPasado = date < new Date(new Date().toDateString());
+              const fechaISO = new Date(date).toISOString().slice(0, 10);
+              // Marca en el propio calendario cuál día quedó elegido (al
+              // tocarlo para una nueva invitación, o al abrir una cita
+              // existente ese día), para que quede clara la relación con
+              // el panel que aparece debajo.
+              const esSeleccionado =
+                fechaISO === diaSeleccionado || fechaISO === citaActiva?.fecha;
+
+              if (esSeleccionado) {
+                return {
+                  style: {
+                    backgroundColor: 'rgba(224, 184, 74, 0.14)',
+                    boxShadow: 'inset 0 0 0 2px #E0B84A',
+                  },
+                };
+              }
+
               return esPasado
                 ? { style: { backgroundColor: '#F8FAFC', color: '#B9C4D3' } }
                 : {};
@@ -259,31 +317,41 @@ export default function CalendarioAgendaMediador({
                 fontWeight: 600,
               },
             })}
-            onSelectSlot={(slotInfo: any) => {
-              if (!permitirCrear) return;
-
-              const fecha = new Date(slotInfo.start).toISOString().slice(0, 10);
-
-              // No se puede agendar una cita nueva en una fecha pasada
-              if (fecha < hoyISO()) return;
-
-              setCitaActiva(null);
-              setErrorEstado('');
-              setDiaSeleccionado(fecha);
-              setHoraSeleccionada(fecha === hoyISO() ? '' : '09:00');
-            }}
+            onSelectSlot={(slotInfo: any) => seleccionarDiaParaNuevaInvitacion(slotInfo.start)}
+            onDrillDown={(fecha: Date) => seleccionarDiaParaNuevaInvitacion(fecha)}
             onSelectEvent={(event: any) => {
               setDiaSeleccionado('');
               setErrorEstado('');
               setCitaActiva(event.resource);
             }}
           />
+
+          {permitirCrear && (
+            <style jsx global>{`
+              /* El número del día (arriba de cada casilla) también elige
+                 esa fecha para una nueva invitación (ver onDrillDown más
+                 arriba). Se agranda su área de toque y se marca con el
+                 cursor de "esto se puede tocar", porque en un día con
+                 varias invitaciones casi no queda espacio en blanco donde
+                 dar clic, y el número siempre está libre. */
+              .calendario-numa .rbc-button-link {
+                cursor: pointer;
+                padding: 4px 6px;
+                margin: -4px -6px;
+                border-radius: 4px;
+              }
+
+              .calendario-numa .rbc-day-bg:not(.rbc-off-range-bg):hover {
+                background-color: rgba(224, 184, 74, 0.08);
+              }
+            `}</style>
+          )}
         </div>
       )}
 
       {/* Detalle y gestión de una cita existente */}
       {citaActiva && (
-        <div className="mt-5 border-t border-numa-100 pt-5">
+        <div ref={panelRef} className="mt-5 border-t border-numa-100 pt-5">
           <div className="flex items-start justify-between mb-4">
             <div>
               <p className="text-sm font-semibold text-numa-800 capitalize">
@@ -405,7 +473,7 @@ export default function CalendarioAgendaMediador({
 
       {/* Citas del día seleccionado (clic en un día vacío o en "+N más") */}
       {diaSeleccionado && !citaActiva && (
-        <div className="mt-5 border-t border-numa-100 pt-5">
+        <div ref={panelRef} className="mt-5 border-t border-numa-100 pt-5">
           <p className="text-sm font-semibold text-numa-800 mb-2 capitalize">
             {etiquetaFecha(diaSeleccionado)}
           </p>

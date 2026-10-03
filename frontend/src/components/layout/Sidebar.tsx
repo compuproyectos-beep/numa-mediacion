@@ -192,6 +192,13 @@ export default function Sidebar() {
       </aside>
 
       <header className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-numa-950 border-b border-numa-800 flex items-center justify-between px-4 h-14">
+        <button
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="p-2 -ml-2 text-white hover:text-gold-400"
+        >
+          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+
         <Link href="/dashboard" className="flex items-center">
           <img
             src="/logo-numa.png"
@@ -200,12 +207,9 @@ export default function Sidebar() {
           />
         </Link>
 
-        <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="p-2 text-white hover:text-gold-400"
-        >
-          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+        {/* Espaciador invisible del mismo ancho que el botón, para que el
+            logo quede centrado en vez de recostado a la izquierda. */}
+        <span className="w-9 h-9" aria-hidden="true" />
       </header>
 
       {mobileOpen && (
