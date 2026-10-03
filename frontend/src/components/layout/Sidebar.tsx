@@ -25,7 +25,7 @@ import { useAuth } from '@/hooks/useAuth';
 import clsx from 'clsx';
 
 const navItems = [
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Panel General' },
   { href: '/procesos', icon: FileText, label: 'Procesos de Mediación' },
   { href: '/actas-finales', icon: FileCheck, label: 'Actas Finales' },
   { href: '/clientes', icon: Users, label: 'Clientes' },
@@ -106,7 +106,7 @@ export default function Sidebar() {
                     : 'text-white/80 group-hover:text-gold-400'
                 )}
               />
-              <span className="flex-1">{label}</span>
+              <span className="flex-1 uppercase tracking-wide text-[13px]">{label}</span>
               {active && <ChevronRight className="w-3 h-3 text-gold-400" />}
             </Link>
           );
