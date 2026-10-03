@@ -59,58 +59,68 @@ function BarraCalendario({ date, onNavigate }: any) {
     'rounded-sm px-1 py-0.5 cursor-pointer hover:bg-gold-400/10 ' +
     'focus:outline-none focus:ring-1 focus:ring-gold-400';
 
+  // Las flechas de "mes anterior / siguiente" van en un círculo oscuro
+  // relleno — a propósito bien distintas de la flechita gris chiquita que
+  // el navegador ya le dibuja a cada <select> (la de "mes ▾" y "año ▾"),
+  // para que no se confundan siendo dos cosas distintas: estas SIEMPRE
+  // mueven un mes para adelante o atrás; las de los selectores abren la
+  // lista para saltar directo a cualquier mes o año.
+  const estiloFlecha =
+    'p-1.5 rounded-full bg-numa-800 text-white hover:bg-numa-900 ' +
+    'transition-colors shrink-0';
+
   return (
-    <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-      <div className="flex items-center gap-0.5">
-        <button
-          type="button"
-          onClick={() => onNavigate('PREV')}
-          aria-label="Mes anterior"
-          className="p-1.5 rounded-full text-numa-500 hover:text-gold-600 hover:bg-gold-400/10 transition-colors shrink-0"
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
+    <div className="flex items-center justify-center mb-3 gap-2 flex-wrap">
+      <button
+        type="button"
+        onClick={() => onNavigate('PREV')}
+        aria-label="Mes anterior"
+        className={estiloFlecha}
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
 
-        <select
-          value={mesActual}
-          onChange={(e) => irA(Number(e.target.value), anioActual)}
-          aria-label="Elegir mes"
-          className={estiloSelector}
-        >
-          {NOMBRES_MESES.map((nombre, i) => (
-            <option key={nombre} value={i}>
-              {nombre}
-            </option>
-          ))}
-        </select>
+      <select
+        value={mesActual}
+        onChange={(e) => irA(Number(e.target.value), anioActual)}
+        aria-label="Elegir mes"
+        className={estiloSelector}
+      >
+        {NOMBRES_MESES.map((nombre, i) => (
+          <option key={nombre} value={i}>
+            {nombre}
+          </option>
+        ))}
+      </select>
 
-        <select
-          value={anioActual}
-          onChange={(e) => irA(mesActual, Number(e.target.value))}
-          aria-label="Elegir año"
-          className={estiloSelector}
-        >
-          {anios.map((a) => (
-            <option key={a} value={a}>
-              {a}
-            </option>
-          ))}
-        </select>
-
-        <button
-          type="button"
-          onClick={() => onNavigate('NEXT')}
-          aria-label="Mes siguiente"
-          className="p-1.5 rounded-full text-numa-500 hover:text-gold-600 hover:bg-gold-400/10 transition-colors shrink-0"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
-      </div>
+      <select
+        value={anioActual}
+        onChange={(e) => irA(mesActual, Number(e.target.value))}
+        aria-label="Elegir año"
+        className={estiloSelector}
+      >
+        {anios.map((a) => (
+          <option key={a} value={a}>
+            {a}
+          </option>
+        ))}
+      </select>
 
       <button
         type="button"
+        onClick={() => onNavigate('NEXT')}
+        aria-label="Mes siguiente"
+        className={estiloFlecha}
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
+
+      {/* "Hoy" va pegado al mismo grupo centrado, no suelto en la otra
+          punta de la barra. */}
+      <button
+        type="button"
         onClick={() => onNavigate('TODAY')}
-        className="text-[11px] font-medium text-gold-600 border border-gold-400/40 rounded-full px-2.5 py-0.5 hover:bg-gold-400/10 transition-colors shrink-0"
+        className="text-[11px] font-medium text-gold-600 border border-gold-400/40 rounded-full px-2.5 py-0.5 hover:bg-gold-400/10 transition-colors shrink-0 ml-1"
       >
         Hoy
       </button>
