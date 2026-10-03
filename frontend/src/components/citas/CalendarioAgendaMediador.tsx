@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 import { InputField, TextareaField, Spinner, ErrorAlert, Modal } from '@/components/ui';
@@ -25,6 +26,49 @@ const colorPorEstado: Record<string, string> = {
   cancelada: '#DC2626',
   reagendada: '#4A6789',
 };
+
+// Reemplaza la barra de arriba del calendario (por defecto, tres botones
+// "Hoy" / "Atrás" / "Siguiente" uno al lado del otro, del mismo tamaño que
+// el nombre del mes) por una más compacta: flechas a los lados del mes y
+// un botón pequeño de "Hoy" junto al nombre — el mismo patrón que usan
+// Google Calendar y Outlook, y además ocupa menos alto en celular.
+function BarraCalendario({ label, onNavigate }: any) {
+  return (
+    <div className="flex items-center justify-between mb-3">
+      <button
+        type="button"
+        onClick={() => onNavigate('PREV')}
+        aria-label="Mes anterior"
+        className="p-1.5 rounded-full text-numa-500 hover:text-gold-600 hover:bg-gold-400/10 transition-colors"
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+
+      <div className="flex items-center gap-2">
+        <p className="text-sm font-semibold text-numa-800 capitalize min-w-[110px] text-center">
+          {label}
+        </p>
+
+        <button
+          type="button"
+          onClick={() => onNavigate('TODAY')}
+          className="text-[11px] font-medium text-gold-600 border border-gold-400/40 rounded-full px-2.5 py-0.5 hover:bg-gold-400/10 transition-colors"
+        >
+          Hoy
+        </button>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onNavigate('NEXT')}
+        aria-label="Mes siguiente"
+        className="p-1.5 rounded-full text-numa-500 hover:text-gold-600 hover:bg-gold-400/10 transition-colors"
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
 
 // OJO: nunca usar toISOString() para sacar solo la fecha — convierte a
 // UTC, y Ecuador/Colombia están en UTC-5. En la noche (después de las
@@ -308,6 +352,7 @@ export default function CalendarioAgendaMediador({
               setHoraSeleccionada(fechaISO === hoyISO() ? '' : '09:00');
               forzarScrollAlPanel();
             }}
+            components={{ toolbar: BarraCalendario }}
             messages={{
               next: 'Siguiente',
               previous: 'Anterior',
