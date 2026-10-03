@@ -27,44 +27,92 @@ const colorPorEstado: Record<string, string> = {
   reagendada: '#4A6789',
 };
 
+const NOMBRES_MESES = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+];
+
 // Reemplaza la barra de arriba del calendario (por defecto, tres botones
 // "Hoy" / "Atrás" / "Siguiente" uno al lado del otro, del mismo tamaño que
-// el nombre del mes) por una más compacta: flechas a los lados del mes y
-// un botón pequeño de "Hoy" junto al nombre — el mismo patrón que usan
-// Google Calendar y Outlook, y además ocupa menos alto en celular.
-function BarraCalendario({ label, onNavigate }: any) {
-  return (
-    <div className="flex items-center justify-between mb-3">
-      <button
-        type="button"
-        onClick={() => onNavigate('PREV')}
-        aria-label="Mes anterior"
-        className="p-1.5 rounded-full text-numa-500 hover:text-gold-600 hover:bg-gold-400/10 transition-colors"
-      >
-        <ChevronLeft className="w-4 h-4" />
-      </button>
+// el nombre del mes) por una más compacta: flechas PEGADAS al mes (no en
+// los extremos de toda la barra), el mes y el año como selectores para
+// saltar directo sin tener que ir dando clic de uno en uno, y un botón
+// pequeño de "Hoy" aparte.
+function BarraCalendario({ date, onNavigate }: any) {
+  const mesActual: number = date.getMonth();
+  const anioActual: number = date.getFullYear();
 
-      <div className="flex items-center gap-2">
-        <p className="text-sm font-semibold text-numa-800 capitalize min-w-[110px] text-center">
-          {label}
-        </p>
+  // Un rango amplio de años (5 para atrás y 5 para adelante del año en
+  // curso) — de sobra tanto para revisar el historial de citas viejas
+  // como para agendar con bastante anticipación.
+  const anios = useMemo(() => {
+    const base = new Date().getFullYear();
+    return Array.from({ length: 11 }, (_, i) => base - 5 + i);
+  }, []);
+
+  const irA = (mes: number, anio: number) => {
+    onNavigate('DATE', new Date(anio, mes, 1));
+  };
+
+  const estiloSelector =
+    'text-sm font-semibold text-numa-800 capitalize bg-transparent border-none ' +
+    'rounded-sm px-1 py-0.5 cursor-pointer hover:bg-gold-400/10 ' +
+    'focus:outline-none focus:ring-1 focus:ring-gold-400';
+
+  return (
+    <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+      <div className="flex items-center gap-0.5">
+        <button
+          type="button"
+          onClick={() => onNavigate('PREV')}
+          aria-label="Mes anterior"
+          className="p-1.5 rounded-full text-numa-500 hover:text-gold-600 hover:bg-gold-400/10 transition-colors shrink-0"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+
+        <select
+          value={mesActual}
+          onChange={(e) => irA(Number(e.target.value), anioActual)}
+          aria-label="Elegir mes"
+          className={estiloSelector}
+        >
+          {NOMBRES_MESES.map((nombre, i) => (
+            <option key={nombre} value={i}>
+              {nombre}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={anioActual}
+          onChange={(e) => irA(mesActual, Number(e.target.value))}
+          aria-label="Elegir año"
+          className={estiloSelector}
+        >
+          {anios.map((a) => (
+            <option key={a} value={a}>
+              {a}
+            </option>
+          ))}
+        </select>
 
         <button
           type="button"
-          onClick={() => onNavigate('TODAY')}
-          className="text-[11px] font-medium text-gold-600 border border-gold-400/40 rounded-full px-2.5 py-0.5 hover:bg-gold-400/10 transition-colors"
+          onClick={() => onNavigate('NEXT')}
+          aria-label="Mes siguiente"
+          className="p-1.5 rounded-full text-numa-500 hover:text-gold-600 hover:bg-gold-400/10 transition-colors shrink-0"
         >
-          Hoy
+          <ChevronRight className="w-4 h-4" />
         </button>
       </div>
 
       <button
         type="button"
-        onClick={() => onNavigate('NEXT')}
-        aria-label="Mes siguiente"
-        className="p-1.5 rounded-full text-numa-500 hover:text-gold-600 hover:bg-gold-400/10 transition-colors"
+        onClick={() => onNavigate('TODAY')}
+        className="text-[11px] font-medium text-gold-600 border border-gold-400/40 rounded-full px-2.5 py-0.5 hover:bg-gold-400/10 transition-colors shrink-0"
       >
-        <ChevronRight className="w-4 h-4" />
+        Hoy
       </button>
     </div>
   );
