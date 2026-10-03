@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { CalendarPlus } from 'lucide-react';
 import {
   PageHeader,
@@ -40,6 +40,21 @@ export default function AgendaPage() {
   // Cambia cada vez que se crea una invitación, para forzar que el
   // calendario recargue sus propias citas (ver uso en el `key` más abajo).
   const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
+
+  // Al elegir fecha y hora en el calendario (botón "Usar esta fecha y
+  // hora"), el formulario de Observaciones aparece más abajo en la
+  // página, fuera del calendario — y se quedaba ahí sin que se notara que
+  // había que bajar a escribir la observación. Igual que con el "+N más"
+  // del calendario, se baja la pantalla sola hasta ese formulario.
+  const observacionesRef = useRef<HTMLDivElement>(null);
+
+  const bajarAObservaciones = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        observacionesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    });
+  };
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -276,12 +291,14 @@ export default function AgendaPage() {
                   setInvitacionForm({ ...invitacionForm, fecha, hora });
                   setError('');
                   setSuccessMessage('');
+                  bajarAObservaciones();
                 }}
                 onCitaActualizada={() => cargarProcesosDisponibles(Number(mediadorSeleccionadoId))}
+                onVerCitaExistente={() => setInvitacionForm({ ...invitacionForm, fecha: '', hora: '' })}
               />
 
               {procesoSeleccionado && invitacionForm.fecha && invitacionForm.hora && (
-                <div className="mt-5 border-t border-numa-100 pt-5">
+                <div ref={observacionesRef} className="mt-5 border-t border-numa-100 pt-5">
                   <p className="text-sm text-numa-700 mb-3">
                     Agendando para{' '}
                     <span className="font-semibold">
@@ -376,12 +393,14 @@ export default function AgendaPage() {
                 setInvitacionForm({ ...invitacionForm, fecha, hora });
                 setError('');
                 setSuccessMessage('');
+                bajarAObservaciones();
               }}
               onCitaActualizada={() => user?.id && cargarProcesosDisponibles(user.id)}
+              onVerCitaExistente={() => setInvitacionForm({ ...invitacionForm, fecha: '', hora: '' })}
             />
 
             {procesoSeleccionado && invitacionForm.fecha && invitacionForm.hora && (
-              <div className="mt-5 border-t border-numa-100 pt-5">
+              <div ref={observacionesRef} className="mt-5 border-t border-numa-100 pt-5">
                 <p className="text-sm text-numa-700 mb-3">
                   Agendando para{' '}
                   <span className="font-semibold">

@@ -165,6 +165,13 @@ interface CalendarioAgendaMediadorProps {
   // seguir ocultando el formulario de "nueva invitación" aunque la
   // pendiente ya se haya cancelado).
   onCitaActualizada?: () => void;
+  // Se llama al abrir una cita YA EXISTENTE (para solo verla/gestionarla),
+  // no al elegir una fecha/hora nueva. La página que contiene este
+  // calendario puede guardar la última fecha/hora confirmada con
+  // "Usar esta fecha y hora" (para mostrar el formulario de "Agendando
+  // para..."), y ese dato queda viejo/confuso si después el mediador solo
+  // abre una cita distinta para verla — este aviso le permite limpiarlo.
+  onVerCitaExistente?: () => void;
 }
 
 export default function CalendarioAgendaMediador({
@@ -175,6 +182,7 @@ export default function CalendarioAgendaMediador({
   permitirGestionarEstado = true,
   permitirCancelar = false,
   onCitaActualizada,
+  onVerCitaExistente,
 }: CalendarioAgendaMediadorProps) {
   const [citas, setCitas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -457,6 +465,7 @@ export default function CalendarioAgendaMediador({
               setDiaSeleccionado('');
               setErrorEstado('');
               setCitaActiva(event.resource);
+              onVerCitaExistente?.();
               forzarScrollAlPanel();
             }}
           />
@@ -625,6 +634,7 @@ export default function CalendarioAgendaMediador({
                     onClick={() => {
                       setDiaSeleccionado('');
                       setCitaActiva(c);
+                      onVerCitaExistente?.();
                     }}
                     className={
                       c.estado === 'pendiente'
