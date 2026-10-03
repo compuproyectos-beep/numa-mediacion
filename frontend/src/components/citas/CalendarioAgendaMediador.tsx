@@ -26,7 +26,22 @@ const colorPorEstado: Record<string, string> = {
   reagendada: '#4A6789',
 };
 
-const hoyISO = () => new Date().toISOString().slice(0, 10);
+// OJO: nunca usar toISOString() para sacar solo la fecha — convierte a
+// UTC, y Ecuador/Colombia están en UTC-5. En la noche (después de las
+// 19:00 aprox.) toISOString() ya devuelve el día siguiente, mientras que
+// toTimeString() (usada en horaActual) sigue dando la hora local real.
+// Esa mezcla fue la causa de un bug: alguien elegía "mañana" y el sistema
+// lo trataba como si fuera "hoy", y entonces una hora que todavía no
+// llegaba aparecía como "ya pasó". Por eso la fecha siempre se arma a
+// mano con los componentes LOCALES de la fecha.
+const fechaISOLocal = (date: Date) => {
+  const anio = date.getFullYear();
+  const mes = String(date.getMonth() + 1).padStart(2, '0');
+  const dia = String(date.getDate()).padStart(2, '0');
+  return `${anio}-${mes}-${dia}`;
+};
+
+const hoyISO = () => fechaISOLocal(new Date());
 const horaActual = () => new Date().toTimeString().slice(0, 5);
 
 interface CalendarioAgendaMediadorProps {
@@ -80,13 +95,27 @@ export default function CalendarioAgendaMediador({
   // cita), este panel puede quedar fuera de la vista sin que se note que
   // hay que bajar para verlo — por eso se desplaza la pantalla sola hasta
   // ahí apenas aparece.
+  //
+  // Esto se hace a mano (no con un useEffect que mire diaSeleccionado) a
+  // propósito: si ya tenías elegido, por ejemplo, el sábado y volvés a
+  // tocar "+N más" del sábado otra vez, el valor de diaSeleccionado no
+  // cambia (sigue siendo el mismo día), así que un useEffect NO se
+  // volvería a disparar y no bajaría la segunda vez. Llamando a esto
+  // directamente en cada clic, siempre baja, aunque el día elegido sea el
+  // mismo de antes.
   const panelRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if ((diaSeleccionado || citaActiva) && panelRef.current) {
-      panelRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-  }, [diaSeleccionado, citaActiva]);
+  const forzarScrollAlPanel = () => {
+    // Doble requestAnimationFrame: espera a que React ya haya pintado el
+    // panel (puede no existir todavía en este mismo instante si antes no
+    // había ningún día ni cita seleccionada) antes de intentar bajar hasta
+    // él.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    });
+  };
 
   // Elige un día para agendar una nueva invitación. Se usa tanto al hacer
   // clic/arrastrar en el espacio en blanco de una casilla (onSelectSlot)
@@ -98,7 +127,7 @@ export default function CalendarioAgendaMediador({
     (fecha: Date) => {
       if (!permitirCrear) return;
 
-      const fechaISO = new Date(fecha).toISOString().slice(0, 10);
+      const fechaISO = fechaISOLocal(new Date(fecha));
 
       // No se puede agendar una cita nueva en una fecha pasada
       if (fechaISO < hoyISO()) return;
@@ -107,6 +136,7 @@ export default function CalendarioAgendaMediador({
       setErrorEstado('');
       setDiaSeleccionado(fechaISO);
       setHoraSeleccionada(fechaISO === hoyISO() ? '' : '09:00');
+      forzarScrollAlPanel();
     },
     [permitirCrear]
   );
@@ -271,11 +301,12 @@ export default function CalendarioAgendaMediador({
               // bloquearse si la fecha ya pasó (a diferencia de elegir un
               // día para agendar), así que esto no reutiliza
               // seleccionarDiaParaNuevaInvitacion.
-              const fechaISO = new Date(fecha).toISOString().slice(0, 10);
+              const fechaISO = fechaISOLocal(new Date(fecha));
               setCitaActiva(null);
               setErrorEstado('');
               setDiaSeleccionado(fechaISO);
               setHoraSeleccionada(fechaISO === hoyISO() ? '' : '09:00');
+              forzarScrollAlPanel();
             }}
             messages={{
               next: 'Siguiente',
@@ -287,7 +318,7 @@ export default function CalendarioAgendaMediador({
             }}
             dayPropGetter={(date: Date) => {
               const esPasado = date < new Date(new Date().toDateString());
-              const fechaISO = new Date(date).toISOString().slice(0, 10);
+              const fechaISO = fechaISOLocal(date);
               // Marca en el propio calendario cuál día quedó elegido (al
               // tocarlo para una nueva invitación, o al abrir una cita
               // existente ese día), para que quede clara la relación con
@@ -323,6 +354,7 @@ export default function CalendarioAgendaMediador({
               setDiaSeleccionado('');
               setErrorEstado('');
               setCitaActiva(event.resource);
+              forzarScrollAlPanel();
             }}
           />
 

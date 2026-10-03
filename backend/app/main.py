@@ -29,6 +29,26 @@ from decimal import Decimal
 from app.database import get_db
 from app.security import obtener_usuario_actual, crear_token
 
+# El servidor (Railway) corre con reloj en UTC, no en hora de Ecuador. Para
+# cualquier "¿qué día es hoy?" que se muestre o compare como fecha de
+# calendario (no como una duración en horas), hay que usar esto en vez de
+# datetime.date.today() / datetime.datetime.now() — si no, pasadas las
+# 7pm aprox. hora de Ecuador, el servidor ya cree que es el día siguiente
+# (mismo bug ya corregido antes en la validación de invitaciones y en los
+# horarios del programador de tareas).
+#
+# Se usa un desfase fijo de -5 horas en vez de ZoneInfo("America/Guayaquil")
+# a propósito: Ecuador no tiene horario de verano, así que -5 es siempre
+# correcto, y evita depender de que el servidor tenga los datos de zonas
+# horarias (tzdata) instalados — el programador de tareas sí los necesita
+# (usa el nombre de la zona para que su librería calcule el horario), pero
+# aquí basta con la resta y es más robusto.
+ZONA_ECUADOR = datetime.timezone(datetime.timedelta(hours=-5))
+
+
+def hoy_ecuador() -> datetime.date:
+    return datetime.datetime.now(ZONA_ECUADOR).date()
+
 
 
 
@@ -40,6 +60,14 @@ def generar_recordatorios_citas():
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
     try:
+        # Se le pasan las fechas calculadas en Python (hora de Ecuador) en
+        # vez de usar CURRENT_DATE de Postgres, porque CURRENT_DATE depende
+        # de la zona horaria configurada en la base de datos — y si esa
+        # quedó en UTC, correría el mismo riesgo de "creer que ya es
+        # mañana" que tenían los otros puntos de este archivo.
+        hoy = hoy_ecuador()
+        manana = hoy + datetime.timedelta(days=1)
+
         cur.execute("""
             SELECT
                 ct.id,
@@ -59,13 +87,13 @@ def generar_recordatorios_citas():
             JOIN sucursales s ON ct.sucursal_id = s.id
             JOIN ciudades ci ON s.ciudad_id = ci.id
             WHERE ct.estado IN ('pendiente', 'reagendada')
-              AND ct.fecha IN (CURRENT_DATE, CURRENT_DATE + INTERVAL '1 day')
-        """)
+              AND ct.fecha IN (%s, %s)
+        """, (hoy, manana))
 
         citas = cur.fetchall()
 
         for cita in citas:
-            if str(cita["fecha"]) == str(datetime.date.today()):
+            if str(cita["fecha"]) == str(hoy):
                 titulo = "Invitación para hoy"
             else:
                 titulo = "Invitación para mañana"
@@ -342,7 +370,7 @@ def _generar_y_enviar_respaldo() -> dict:
             )
 
         contenido_zip = buffer_zip.getvalue()
-        fecha_hoy = datetime.date.today().isoformat()
+        fecha_hoy = hoy_ecuador().isoformat()
         tamano_mb = len(contenido_zip) / (1024 * 1024)
 
         # A quién se le manda: BACKUP_EMAIL si está configurado, o si no,
