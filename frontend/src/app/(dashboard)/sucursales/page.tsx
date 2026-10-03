@@ -41,6 +41,12 @@ export default function SucursalesPage() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
 
+  // El atributo "title" (tooltip nativo) solo aparece al pasar el mouse —
+  // en el teléfono no hay forma de verlo. El nombre completo también se
+  // puede desplegar dando clic/toque: se guarda aquí el id de la sucursal
+  // cuyo nombre está desplegado (uno solo a la vez).
+  const [nombreExpandidoId, setNombreExpandidoId] = useState<number | null>(null);
+
 const [estadoTarget, setEstadoTarget] = useState<any | null>(null);
 const [changingEstado, setChangingEstado] = useState(false);
 
@@ -237,7 +243,7 @@ const handleCambiarEstado = async () => {
             <table className="min-w-full">
               <thead className="bg-numa-50 border-b border-numa-100">
                 <tr>
-                  <th className="table-header">Nombre</th>
+                  <th className="table-header table-cell-sticky !bg-numa-50">Nombre</th>
                   <th className="table-header">Provincia</th>
                   <th className="table-header">Ciudad</th>
                   <th className="table-header">Código</th>
@@ -254,10 +260,22 @@ const handleCambiarEstado = async () => {
 
                   return (
                     <tr key={s.id} className="table-row">
-                      <td className="table-cell">
+                      <td className="table-cell table-cell-sticky max-w-[160px] sm:max-w-[240px]">
                         <div className="flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-numa-400" />
-                          <span className="font-medium">{s.nombre}</span>
+                          <Building2 className="w-4 h-4 text-numa-400 shrink-0" />
+                          <span
+                            onClick={() =>
+                              setNombreExpandidoId((prev) => (prev === s.id ? null : s.id))
+                            }
+                            className={`font-medium cursor-pointer ${
+                              nombreExpandidoId === s.id
+                                ? 'whitespace-normal break-words'
+                                : 'block truncate'
+                            }`}
+                            title={s.nombre}
+                          >
+                            {s.nombre}
+                          </span>
                         </div>
                       </td>
 

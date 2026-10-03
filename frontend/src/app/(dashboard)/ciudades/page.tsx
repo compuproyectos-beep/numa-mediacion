@@ -58,6 +58,12 @@ export default function CiudadesPage() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
 
+  // El atributo "title" (tooltip nativo) solo aparece al pasar el mouse —
+  // en el teléfono no hay forma de verlo. El nombre completo también se
+  // puede desplegar dando clic/toque: se guarda aquí el id de la ciudad
+  // cuyo nombre está desplegado (uno solo a la vez).
+  const [nombreExpandidoId, setNombreExpandidoId] = useState<number | null>(null);
+
   const admin = isAdmin();
 
   const router = useRouter();
@@ -191,7 +197,7 @@ const ciudadesFiltradas = ciudades.filter((c: any) => {
               <thead className="bg-numa-50 border-b border-numa-100">
                 <tr>
                   <th className="table-header">#</th>
-                  <th className="table-header">Nombre</th>
+                  <th className="table-header table-cell-sticky !bg-numa-50">Nombre</th>
                   <th className="table-header">Provincia</th>
                   <th className="table-header">Prefijo</th>
                   <th className="table-header">Acciones</th>
@@ -203,7 +209,21 @@ const ciudadesFiltradas = ciudades.filter((c: any) => {
                   return (
                     <tr key={c.id} className="table-row">
                       <td className="table-cell text-numa-400 code-text">{c.id}</td>
-                      <td className="table-cell font-medium">{c.nombre}</td>
+                      <td className="table-cell table-cell-sticky font-medium max-w-[140px] sm:max-w-[220px]">
+                        <span
+                          onClick={() =>
+                            setNombreExpandidoId((prev) => (prev === c.id ? null : c.id))
+                          }
+                          className={`cursor-pointer ${
+                            nombreExpandidoId === c.id
+                              ? 'whitespace-normal break-words'
+                              : 'block truncate'
+                          }`}
+                          title={c.nombre}
+                        >
+                          {c.nombre}
+                        </span>
+                      </td>
                       <td className="table-cell text-numa-600">{c.provincia || '—'}</td>
                       <td className="table-cell">
                         {c.prefijo ? (
