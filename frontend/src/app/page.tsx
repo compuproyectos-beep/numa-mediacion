@@ -391,17 +391,17 @@ export default function HomePage() {
             {valores.map(({ icon: Icon, titulo, desc }) => (
               <div
                 key={titulo}
-                className="group p-6 border border-numa-100 rounded-sm hover:border-gold-400 hover:shadow-lg transition-all duration-200"
+                className="group p-6 border border-numa-100 rounded-2xl bg-white hover:bg-numa-900 hover:border-gold-400/60 hover:shadow-xl transition-all duration-300"
               >
-                <div className="w-10 h-10 rounded-sm bg-numa-900 group-hover:bg-gold-400 flex items-center justify-center mb-4 transition-colors">
-                  <Icon className="w-5 h-5 text-white group-hover:text-numa-950" />
+                <div className="w-11 h-11 rounded-full bg-numa-900 group-hover:bg-gold-400 flex items-center justify-center mb-4 transition-colors duration-300">
+                  <Icon className="w-5 h-5 text-white group-hover:text-numa-950 transition-colors duration-300" />
                 </div>
 
-                <h3 className="text-lg font-bold text-numa-900 mb-2">
+                <h3 className="text-lg font-bold text-numa-900 group-hover:text-gold-400 mb-2 transition-colors duration-300">
                   {titulo}
                 </h3>
 
-                <p className="text-sm text-numa-500 leading-relaxed font-sans">
+                <p className="text-sm text-numa-500 group-hover:text-numa-100 leading-relaxed font-sans transition-colors duration-300">
                   {desc}
                 </p>
               </div>
@@ -465,14 +465,14 @@ export default function HomePage() {
                         setBeneficioAbierto((prev) => (prev === titulo ? null : titulo));
                       }
                     }}
-                    className={`absolute inset-x-0 top-0 min-h-full p-6 rounded-sm border cursor-pointer transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-gold-400 ${
+                    className={`absolute inset-x-0 top-0 min-h-full p-6 rounded-2xl border cursor-pointer transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-gold-400 ${
                       abierto
                         ? 'z-20 bg-numa-900 border-gold-400/60 shadow-xl'
                         : 'z-0 bg-white border-numa-100'
                     }`}
                   >
                     <div
-                      className={`w-11 h-11 rounded-sm border flex items-center justify-center mb-4 transition-colors duration-300 ${
+                      className={`w-11 h-11 rounded-full border flex items-center justify-center mb-4 transition-colors duration-300 ${
                         abierto
                           ? 'bg-gold-400/20 border-gold-400/40'
                           : 'bg-gold-400/10 border-gold-400/20'
