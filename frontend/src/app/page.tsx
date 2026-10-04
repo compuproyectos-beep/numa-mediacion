@@ -465,23 +465,37 @@ export default function HomePage() {
                         setBeneficioAbierto((prev) => (prev === titulo ? null : titulo));
                       }
                     }}
-                    className={`absolute inset-x-0 top-0 min-h-full p-6 rounded-sm border bg-white cursor-pointer transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-gold-400 ${
+                    className={`absolute inset-x-0 top-0 min-h-full p-6 rounded-sm border cursor-pointer transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-gold-400 ${
                       abierto
-                        ? 'z-20 border-gold-400/50 shadow-xl'
-                        : 'z-0 border-numa-100'
+                        ? 'z-20 bg-numa-900 border-gold-400/60 shadow-xl'
+                        : 'z-0 bg-white border-numa-100'
                     }`}
                   >
-                    <div className="w-11 h-11 rounded-sm bg-gold-400/10 border border-gold-400/20 flex items-center justify-center mb-4">
-                      <Icon className="w-5 h-5 text-gold-600" />
+                    <div
+                      className={`w-11 h-11 rounded-sm border flex items-center justify-center mb-4 transition-colors duration-300 ${
+                        abierto
+                          ? 'bg-gold-400/20 border-gold-400/40'
+                          : 'bg-gold-400/10 border-gold-400/20'
+                      }`}
+                    >
+                      <Icon
+                        className={`w-5 h-5 transition-colors duration-300 ${
+                          abierto ? 'text-gold-400' : 'text-gold-600'
+                        }`}
+                      />
                     </div>
 
-                    <h3 className="text-lg font-bold text-numa-900 mb-2">
+                    <h3
+                      className={`text-lg font-bold mb-2 transition-colors duration-300 ${
+                        abierto ? 'text-gold-400' : 'text-numa-900'
+                      }`}
+                    >
                       {titulo}
                     </h3>
 
                     <p
                       className={`text-sm leading-relaxed font-sans transition-colors duration-300 ${
-                        abierto ? 'text-numa-700' : 'text-numa-500 line-clamp-3'
+                        abierto ? 'text-numa-100' : 'text-numa-500 line-clamp-3'
                       }`}
                     >
                       {desc}
