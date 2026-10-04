@@ -84,32 +84,32 @@ const beneficios = [
   {
     icon: Gavel,
     titulo: 'Fuerza legal',
-    desc: 'El acta de mediación tiene la misma fuerza legal que una sentencia ejecutoriada de última instancia.',
+    desc: 'El acta de mediación en la que consta el acuerdo tiene la misma fuerza legal que una sentencia ejecutoriada de última instancia: es de cumplimiento obligatorio y, si alguna de las partes no cumple, se puede exigir su ejecución sin iniciar un nuevo juicio. Lo que se acuerda aquí queda firme.',
   },
   {
     icon: Wallet,
     titulo: 'Ahorro económico',
-    desc: 'Al evitar la vía judicial, la mediación supone un ahorro considerable de tiempo y dinero.',
+    desc: 'Al evitar la vía judicial, la mediación supone un ahorro considerable de tiempo y dinero. Se reducen los honorarios de largos litigios, los gastos de trámite y los costos que genera mantener un conflicto abierto durante meses o años, tanto para personas como para empresas.',
   },
   {
     icon: Zap,
     titulo: 'Agilidad',
-    desc: 'Un proceso de mediación puede resolverse entre una hora y un par de semanas.',
+    desc: 'Un proceso de mediación puede resolverse entre una hora y un par de semanas, frente a los meses o años que puede tomar un juicio. Usted y la otra parte acuerdan los horarios, sin esperar turnos de audiencia ni plazos de un juzgado, y el caso se cierra cuando hay acuerdo.',
   },
   {
     icon: HandHeart,
     titulo: 'Voluntario',
-    desc: 'Las partes participan por decisión propia, lo que reduce la confrontación y favorece acuerdos duraderos.',
+    desc: 'Las partes participan por decisión propia y pueden retirarse si lo consideran necesario. Al no haber imposición, se reduce la confrontación, se escucha de verdad a la otra persona y se favorecen acuerdos que ambos sienten justos y, por eso, duraderos en el tiempo.',
   },
   {
     icon: Lock,
     titulo: 'Confidencialidad',
-    desc: 'Todo lo que sucede en la mediación es estrictamente confidencial, se llegue o no a un acuerdo.',
+    desc: 'Todo lo que sucede en la mediación es estrictamente confidencial, se llegue o no a un acuerdo. Lo conversado no puede usarse después en un proceso judicial, lo que permite hablar con franqueza y buscar soluciones sin miedo a que sus palabras se utilicen en su contra.',
   },
   {
     icon: Users,
     titulo: 'Manejo efectivo de disputas',
-    desc: 'Las partes involucradas controlan el resultado, sin depender de la decisión de un juez.',
+    desc: 'Las partes involucradas controlan el resultado, sin depender de la decisión de un juez. Un mediador neutral e imparcial facilita el diálogo, ayuda a identificar intereses reales y a construir opciones de solución a la medida de cada caso, cuidando además la relación entre las partes.',
   },
 ];
 
@@ -119,6 +119,10 @@ export default function HomePage() {
   // ya está arriba, en el menú de PublicNavbar — así que esta página ya
   // no necesita traer la lista de sedes por su cuenta.)
   const [heroIndex, setHeroIndex] = useState(0);
+
+  // Título del beneficio desplegado (hover en escritorio, toque en
+  // celular). Solo uno a la vez.
+  const [beneficioAbierto, setBeneficioAbierto] = useState<string | null>(null);
 
   useEffect(() => {
     const intervalo = setInterval(() => {
@@ -425,25 +429,67 @@ export default function HomePage() {
             </h2>
           </div>
 
+          {/* Cada beneficio muestra un resumen recortado con "…" y se
+              despliega completo, flotando por encima de las tarjetas
+              vecinas, al pasar el mouse (escritorio) o al tocarlo
+              (celular, donde no existe el hover). La celda externa tiene
+              alto fijo para que al expandirse no se mueva el resto de
+              la cuadrícula. */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {beneficios.map(({ icon: Icon, titulo, desc }) => (
-              <div
-                key={titulo}
-                className="p-6 border border-numa-100 rounded-sm"
-              >
-                <div className="w-11 h-11 rounded-sm bg-gold-400/10 border border-gold-400/20 flex items-center justify-center mb-4">
-                  <Icon className="w-5 h-5 text-gold-600" />
+            {beneficios.map(({ icon: Icon, titulo, desc }) => {
+              const abierto = beneficioAbierto === titulo;
+              return (
+                <div key={titulo} className="relative h-[230px]">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={abierto}
+                    onPointerEnter={(e) => {
+                      if (e.pointerType === 'mouse') setBeneficioAbierto(titulo);
+                    }}
+                    onPointerLeave={(e) => {
+                      if (e.pointerType === 'mouse') {
+                        setBeneficioAbierto((prev) => (prev === titulo ? null : prev));
+                      }
+                    }}
+                    onPointerUp={(e) => {
+                      // El mouse ya abre/cierra con hover; el toque
+                      // (celular/tablet) alterna al tocar la tarjeta.
+                      if (e.pointerType !== 'mouse') {
+                        setBeneficioAbierto((prev) => (prev === titulo ? null : titulo));
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setBeneficioAbierto((prev) => (prev === titulo ? null : titulo));
+                      }
+                    }}
+                    className={`absolute inset-x-0 top-0 min-h-full p-6 rounded-sm border bg-white cursor-pointer transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-gold-400 ${
+                      abierto
+                        ? 'z-20 border-gold-400/50 shadow-xl'
+                        : 'z-0 border-numa-100'
+                    }`}
+                  >
+                    <div className="w-11 h-11 rounded-sm bg-gold-400/10 border border-gold-400/20 flex items-center justify-center mb-4">
+                      <Icon className="w-5 h-5 text-gold-600" />
+                    </div>
+
+                    <h3 className="text-lg font-bold text-numa-900 mb-2">
+                      {titulo}
+                    </h3>
+
+                    <p
+                      className={`text-sm leading-relaxed font-sans transition-colors duration-300 ${
+                        abierto ? 'text-numa-700' : 'text-numa-500 line-clamp-3'
+                      }`}
+                    >
+                      {desc}
+                    </p>
+                  </div>
                 </div>
-
-                <h3 className="text-lg font-bold text-numa-900 mb-2">
-                  {titulo}
-                </h3>
-
-                <p className="text-sm text-numa-500 leading-relaxed font-sans">
-                  {desc}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
