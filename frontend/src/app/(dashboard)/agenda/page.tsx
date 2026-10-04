@@ -64,7 +64,15 @@ export default function AgendaPage() {
 
       try {
         const data = await getUsuarios();
-        setMediadores(data.filter((u: any) => u.rol === 'mediador' && u.activo));
+        // El administrador también puede mediar sus propios procesos (no
+        // solo crearlos), así que si tiene sucursal asignada debe poder
+        // elegirse aquí igual que cualquier mediador — antes solo entraban
+        // los usuarios con rol "mediador" y el admin nunca aparecía.
+        setMediadores(
+          data.filter(
+            (u: any) => (u.rol === 'mediador' || u.rol === 'administrador') && u.activo
+          )
+        );
       } catch (err) {
         console.error(err);
         setMediadores([]);

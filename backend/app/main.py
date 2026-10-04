@@ -4560,7 +4560,12 @@ def obtener_reporte_productividad(
         # también sirve como listado del equipo (con su estado visible), así
         # que un mediador desactivado debe seguir apareciendo, marcado como
         # inactivo, en vez de desaparecer de la lista.
-        query += " WHERE u.rol = 'mediador'"
+        #
+        # El administrador también puede mediar sus propios procesos (no
+        # solo crearlos), así que si tiene sucursal asignada (el JOIN de
+        # arriba ya exige eso) también debe salir en este reporte, no solo
+        # los usuarios con rol "mediador".
+        query += " WHERE u.rol IN ('mediador', 'administrador')"
 
         # Cada mediador solo ve su propia fila; el admin ve todas y puede
         # filtrar por ciudad, sucursal o un mediador específico.

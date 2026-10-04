@@ -146,7 +146,16 @@ export default function ReportesPage() {
 
     if (admin) {
       getUsuarios()
-        .then((data) => setMediadores(data.filter((u: any) => u.rol === 'mediador' && u.activo)))
+        .then((data) =>
+          // El admin también puede mediar sus propios procesos, así que
+          // si tiene sucursal asignada debe poder elegirse en este filtro
+          // igual que cualquier mediador.
+          setMediadores(
+            data.filter(
+              (u: any) => (u.rol === 'mediador' || u.rol === 'administrador') && u.activo
+            )
+          )
+        )
         .catch(() => setMediadores([]));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
