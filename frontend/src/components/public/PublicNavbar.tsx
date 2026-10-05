@@ -13,6 +13,12 @@ export default function PublicNavbar() {
   const [openSedes, setOpenSedes] = useState(false);
 
   const sedesRef = useRef<HTMLDivElement>(null);
+  // La lista de sedes del menú móvil vive en otro bloque del DOM que la de
+  // escritorio. Sin esta segunda referencia, el cierre "al tocar fuera"
+  // trataba el primer toque sobre una sede del celular como un toque
+  // afuera: cerraba la lista antes de que el enlace recibiera el clic, y
+  // por eso en Android tocar una sede no abría nada.
+  const sedesMovilRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     api
@@ -23,10 +29,11 @@ export default function PublicNavbar() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        sedesRef.current &&
-        !sedesRef.current.contains(event.target as Node)
-      ) {
+      const destino = event.target as Node;
+      const dentroEscritorio = sedesRef.current?.contains(destino);
+      const dentroMovil = sedesMovilRef.current?.contains(destino);
+
+      if (!dentroEscritorio && !dentroMovil) {
         setOpenSedes(false);
       }
     };
@@ -220,6 +227,7 @@ export default function PublicNavbar() {
             )
           )}
 
+          <div ref={sedesMovilRef}>
           <button
             type="button"
             onClick={() => setOpenSedes((prev) => !prev)}
@@ -276,6 +284,7 @@ export default function PublicNavbar() {
               )}
             </div>
           )}
+          </div>
 
           <Link
             href="/login"
