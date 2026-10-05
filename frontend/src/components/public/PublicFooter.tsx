@@ -108,7 +108,7 @@ export default function PublicFooter() {
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-gold-400/60 text-gold-400 text-sm font-semibold hover:bg-gold-400 hover:text-numa-950 transition-colors"
           >
             <Lock className="w-4 h-4" />
-            Aviso de Privacidad
+            Aviso de Privacidad y Protección de Datos (LOPDP)
           </Link>
         </div>
 

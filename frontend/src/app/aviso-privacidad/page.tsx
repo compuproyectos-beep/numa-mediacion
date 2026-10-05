@@ -35,11 +35,11 @@ export default function AvisoPrivacidadPage() {
           </div>
 
           <h1 className="text-4xl sm:text-5xl font-bold text-numa-900 leading-tight mb-3">
-            Aviso de Privacidad
+            Aviso de Privacidad y Protección de Datos (LOPDP)
           </h1>
 
           <p className="text-numa-400 text-sm mb-12">
-            Última actualización: [pendiente de publicación]
+            Última actualización: 4 de octubre de 2026
           </p>
 
           <div className="space-y-10 text-numa-700 leading-relaxed">
