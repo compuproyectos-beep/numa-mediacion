@@ -346,8 +346,8 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-white border border-numa-200 rounded-sm p-8">
-              <div className="w-12 h-12 rounded-sm bg-gold-400/10 border border-gold-400/30 flex items-center justify-center mb-6">
+            <div className="bg-white border border-numa-200 rounded-2xl p-8">
+              <div className="w-12 h-12 rounded-full bg-gold-400/10 border border-gold-400/30 flex items-center justify-center mb-6">
                 <Scale className="w-6 h-6 text-gold-600" />
               </div>
 
@@ -361,8 +361,8 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="bg-white border border-numa-200 rounded-sm p-8">
-              <div className="w-12 h-12 rounded-sm bg-gold-400/10 border border-gold-400/30 flex items-center justify-center mb-6">
+            <div className="bg-white border border-numa-200 rounded-2xl p-8">
+              <div className="w-12 h-12 rounded-full bg-gold-400/10 border border-gold-400/30 flex items-center justify-center mb-6">
                 <Eye className="w-6 h-6 text-gold-600" />
               </div>
 
