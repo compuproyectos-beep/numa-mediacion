@@ -1,7 +1,22 @@
 import { Mail, Phone, MapPin, Lock } from 'lucide-react';
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
+import FacebookIcon from '@/components/icons/FacebookIcon';
 import RotatingLogo from '@/components/public/RotatingLogo';
 import Link from 'next/link';
+
+// Páginas oficiales de NUMA en Facebook. Cuando se abra una página de una
+// sede nueva, se agrega aquí una línea más y aparece en todo el sitio
+// (el pie de página se muestra también dentro de la página de cada sede).
+const paginasFacebook = [
+  {
+    label: 'NUMA Centro de Mediación',
+    href: 'https://www.facebook.com/profile.php?id=61594906720744',
+  },
+  {
+    label: 'Matriz Santo Domingo',
+    href: 'https://www.facebook.com/profile.php?id=61595332132489',
+  },
+];
 
 export default function PublicFooter() {
   return (
@@ -95,6 +110,21 @@ export default function PublicFooter() {
                   numamediacionec@hotmail.com
                 </span>
               </li>
+
+              {paginasFacebook.map((pagina) => (
+                <li key={pagina.href} className="flex items-center gap-3 text-sm">
+                  <FacebookIcon className="w-4 h-4 text-gold-400 shrink-0" />
+
+                  <a
+                    href={pagina.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-gold-400 transition-colors"
+                  >
+                    {pagina.label}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
