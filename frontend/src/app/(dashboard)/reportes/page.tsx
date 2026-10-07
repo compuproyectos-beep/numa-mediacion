@@ -18,6 +18,7 @@ import {
   getReporteProductividad,
   getReporteSucursales,
   getReporteClientes,
+  getReporteOperativo,
   getReporteResumen,
   ResumenReporte,
   descargarReporteExcel,
@@ -26,14 +27,40 @@ import {
 import { getCiudadesCached, getSucursalesCached } from '@/lib/catalogCache';
 import { isAdmin } from '@/lib/auth';
 
-type TipoReporte = 'procesos' | 'productividad' | 'actas' | 'sucursales' | 'clientes';
+type TipoReporte =
+  | 'procesos'
+  | 'productividad'
+  | 'actas'
+  | 'sucursales'
+  | 'clientes'
+  | 'agenda'
+  | 'sin-avance'
+  | 'actas-pendientes';
+
+const TIPOS_OPERATIVOS: TipoReporte[] = ['agenda', 'sin-avance', 'actas-pendientes'];
+
+const ETIQUETAS_CITA: Record<string, string> = {
+  pendiente: 'Pendiente',
+  confirmada: 'Confirmada',
+  realizada: 'Realizada',
+  cancelada: 'Cancelada'
+};
+
+const formatoFecha = (v: any) => {
+  if (!v) return '—';
+  const [y, m, d] = String(v).slice(0, 10).split('-');
+  return `${d}/${m}/${y}`;
+};
 
 const TIPOS: { valor: TipoReporte; titulo: string; adminOnly?: boolean }[] = [
   { valor: 'procesos', titulo: 'Procesos por periodo' },
   { valor: 'productividad', titulo: 'Equipo de mediadores', adminOnly: true },
   { valor: 'actas', titulo: 'Actas finales emitidas' },
   { valor: 'sucursales', titulo: 'Sucursales', adminOnly: true },
-  { valor: 'clientes', titulo: 'Clientes' }
+  { valor: 'clientes', titulo: 'Clientes' },
+  { valor: 'agenda', titulo: 'Agenda de reuniones' },
+  { valor: 'sin-avance', titulo: 'Procesos sin avance' },
+  { valor: 'actas-pendientes', titulo: 'Actas pendientes de subir' }
 ];
 
 // Explicación en palabras simples de qué muestra cada reporte y cómo leer
@@ -49,7 +76,13 @@ const DESCRIPCIONES: Record<TipoReporte, string> = {
   sucursales:
     'Compara cuántos procesos ha manejado cada sucursal, con su desglose por estado y el promedio de días de cierre.',
   clientes:
-    'Por cada cliente, cuántos procesos de mediación ha tenido (como solicitante o invitado) y en qué estado están. Da clic en un cliente para ver el detalle de sus procesos.'
+    'Por cada cliente, cuántos procesos de mediación ha tenido (como solicitante o invitado) y en qué estado están. Da clic en un cliente para ver el detalle de sus procesos.',
+  agenda:
+    'Las reuniones (invitaciones) programadas en el rango de fechas elegido. Las marcadas como "Atrasada" ya pasaron y siguen sin resultado registrado. Da clic en una fila para abrir el proceso.',
+  'sin-avance':
+    'Procesos que siguen en negociación y llevan al menos esos días sin que se registre ningún avance. Sirve para saber cuáles se están quedando olvidados. Los días se cuentan desde el último avance (o desde que se creó el proceso, si nunca tuvo uno).',
+  'actas-pendientes':
+    'Procesos cerrados con acuerdo cuya acta final todavía no se sube. Desde el cierre hay 48 horas para subirla; "Vencido" significa que ese plazo ya pasó.'
 };
 
 const COLOR_ESTADO: Record<string, string> = {
@@ -64,7 +97,8 @@ const getEstadoLabel = (estado: string) => {
     en_negociacion: 'En negociación',
     cerrado_con_acuerdo: 'Cerrado con acuerdo',
     cerrado_sin_acuerdo: 'Cerrado sin acuerdo',
-    archivado: 'Archivado'
+    archivado: 'Archivado',
+    anulado: 'Anulado'
   };
 
   return labels[estado] || estado;
@@ -81,6 +115,8 @@ export default function ReportesPage() {
   const tiposVisibles = TIPOS.filter((t) => !t.adminOnly || admin);
 
   const [tipo, setTipo] = useState<TipoReporte>('procesos');
+  const [diasMinimo, setDiasMinimo] = useState('7');
+  const esOperativo = TIPOS_OPERATIVOS.includes(tipo);
 
   const [filters, setFilters] = useState({
     fecha_desde: '',
@@ -169,6 +205,15 @@ export default function ReportesPage() {
     usuario_id: filters.usuario_id || undefined
   };
 
+  // Para los reportes operativos: "sin avance" no usa fechas sino un mínimo
+  // de días; "actas pendientes" tampoco usa fechas (es una foto de hoy).
+  const filtrosOperativo =
+    tipo === 'sin-avance'
+      ? { ...filtrosActivos, fecha_desde: undefined, fecha_hasta: undefined, dias_minimo: diasMinimo || '7' }
+      : tipo === 'actas-pendientes'
+      ? { ...filtrosActivos, fecha_desde: undefined, fecha_hasta: undefined }
+      : filtrosActivos;
+
   const buscar = async () => {
     setLoading(true);
     setError('');
@@ -188,6 +233,8 @@ export default function ReportesPage() {
         data = await getReporteSucursales(filtrosActivos);
       } else if (tipo === 'clientes') {
         data = await getReporteClientes(filtrosActivos);
+      } else if (esOperativo) {
+        data = await getReporteOperativo(tipo as 'agenda' | 'sin-avance' | 'actas-pendientes', filtrosOperativo);
       } else {
         data = await getActasFinales(filtrosActivos);
       }
@@ -310,7 +357,7 @@ export default function ReportesPage() {
     setError('');
 
     try {
-      const blob = await descargarReporteExcel(tipo, filtrosActivos);
+      const blob = await descargarReporteExcel(tipo, filtrosOperativo);
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
 
@@ -333,7 +380,7 @@ export default function ReportesPage() {
     const params = new URLSearchParams();
     params.set('tipo', tipo);
 
-    Object.entries(filtrosActivos).forEach(([key, value]) => {
+    Object.entries(filtrosOperativo).forEach(([key, value]) => {
       if (value) params.set(key, String(value));
     });
 
@@ -459,19 +506,33 @@ export default function ReportesPage() {
           }}
         >
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
-          <InputField
-            label="Fecha desde"
-            type="date"
-            value={filters.fecha_desde}
-            onChange={(e) => setFilters({ ...filters, fecha_desde: e.target.value })}
-          />
+          {tipo !== 'sin-avance' && tipo !== 'actas-pendientes' && (
+            <>
+              <InputField
+                label="Fecha desde"
+                type="date"
+                value={filters.fecha_desde}
+                onChange={(e) => setFilters({ ...filters, fecha_desde: e.target.value })}
+              />
 
-          <InputField
-            label="Fecha hasta"
-            type="date"
-            value={filters.fecha_hasta}
-            onChange={(e) => setFilters({ ...filters, fecha_hasta: e.target.value })}
-          />
+              <InputField
+                label="Fecha hasta"
+                type="date"
+                value={filters.fecha_hasta}
+                onChange={(e) => setFilters({ ...filters, fecha_hasta: e.target.value })}
+              />
+            </>
+          )}
+
+          {tipo === 'sin-avance' && (
+            <InputField
+              label="Mínimo de días sin avance"
+              type="number"
+              min={0}
+              value={diasMinimo}
+              onChange={(e) => setDiasMinimo(e.target.value)}
+            />
+          )}
 
           {admin && (
             <SelectField
@@ -680,6 +741,7 @@ export default function ReportesPage() {
                         <th className="table-header">Con acuerdo</th>
                         <th className="table-header">Sin acuerdo</th>
                         <th className="table-header">Archivados</th>
+                        <th className="table-header">Anulados</th>
                         <th className="table-header">Actas subidas</th>
                         <th className="table-header">Actas pendientes</th>
                         <th className="table-header">Prom. días cierre</th>
@@ -709,6 +771,7 @@ export default function ReportesPage() {
                         <th className="table-header">Con acuerdo</th>
                         <th className="table-header">Sin acuerdo</th>
                         <th className="table-header">Archivados</th>
+                        <th className="table-header">Anulados</th>
                         <th className="table-header">Actas subidas</th>
                         <th className="table-header">Actas pendientes</th>
                         <th className="table-header">Prom. días cierre</th>
@@ -727,14 +790,143 @@ export default function ReportesPage() {
                         <th className="table-header">Con acuerdo</th>
                         <th className="table-header">Sin acuerdo</th>
                         <th className="table-header">Archivados</th>
+                        <th className="table-header">Anulados</th>
                         <th className="table-header">Actas subidas</th>
                         <th className="table-header">Actas pendientes</th>
+                        <th className="table-header">Procesos (códigos)</th>
+                        <th className="table-header">Actas (códigos)</th>
+                      </>
+                    )}
+                    {tipo === 'agenda' && (
+                      <>
+                        <th className="table-header">Fecha</th>
+                        <th className="table-header">Hora</th>
+                        <th className="table-header">Proceso</th>
+                        <th className="table-header">Solicitante</th>
+                        <th className="table-header">Invitado</th>
+                        {admin && <th className="table-header">Mediador</th>}
+                        <th className="table-header">Sucursal</th>
+                        <th className="table-header">Estado</th>
+                      </>
+                    )}
+
+                    {tipo === 'sin-avance' && (
+                      <>
+                        <th className="table-header">Proceso</th>
+                        <th className="table-header">Solicitante</th>
+                        <th className="table-header">Invitado</th>
+                        {admin && <th className="table-header">Mediador</th>}
+                        <th className="table-header">Sucursal</th>
+                        <th className="table-header">Último avance</th>
+                        <th className="table-header">Avances</th>
+                        <th className="table-header">Días sin avance</th>
+                      </>
+                    )}
+
+                    {tipo === 'actas-pendientes' && (
+                      <>
+                        <th className="table-header">Proceso</th>
+                        <th className="table-header">Solicitante</th>
+                        <th className="table-header">Invitado</th>
+                        {admin && <th className="table-header">Mediador</th>}
+                        <th className="table-header">Sucursal</th>
+                        <th className="table-header">Fecha del acuerdo</th>
+                        <th className="table-header">Tiempo transcurrido</th>
+                        <th className="table-header">Plazo de 48 h</th>
                       </>
                     )}
                   </tr>
                 </thead>
 
                 <tbody>
+                  {tipo === 'agenda' &&
+                    datos.map((c: any) => (
+                      <tr
+                        key={c.id}
+                        onClick={() => c.proceso_id && window.open(`/procesos/${c.proceso_id}`, '_blank')}
+                        className="table-row cursor-pointer hover:bg-gold-400/[0.06]"
+                      >
+                        <td className="table-cell">{formatoFecha(c.fecha)}</td>
+                        <td className="table-cell">{String(c.hora).slice(0, 5)}</td>
+                        <td className="table-cell font-medium">{c.codigo_proceso}</td>
+                        <td className="table-cell">{c.demandante}</td>
+                        <td className="table-cell">{c.demandado}</td>
+                        {admin && <td className="table-cell">{c.mediador}</td>}
+                        <td className="table-cell">{c.sucursal}</td>
+                        <td className="table-cell">
+                          {c.atrasada ? (
+                            <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-medium">
+                              Atrasada
+                            </span>
+                          ) : (
+                            ETIQUETAS_CITA[c.estado] || c.estado
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+
+                  {tipo === 'sin-avance' &&
+                    datos.map((p: any) => (
+                      <tr
+                        key={p.id}
+                        onClick={() => abrirProceso(p.id)}
+                        className="table-row cursor-pointer hover:bg-gold-400/[0.06]"
+                      >
+                        <td className="table-cell font-medium">{p.codigo_proceso}</td>
+                        <td className="table-cell">{p.demandante}</td>
+                        <td className="table-cell">{p.demandado}</td>
+                        {admin && <td className="table-cell">{p.mediador}</td>}
+                        <td className="table-cell">{p.sucursal}</td>
+                        <td className="table-cell">
+                          {p.ultimo_avance ? formatoFecha(p.ultimo_avance) : 'Ninguno'}
+                        </td>
+                        <td className="table-cell">{p.total_avances}</td>
+                        <td className="table-cell">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              p.dias_sin_avance >= 30
+                                ? 'bg-red-50 text-red-700'
+                                : 'bg-amber-50 text-amber-700'
+                            }`}
+                          >
+                            {p.dias_sin_avance} {p.dias_sin_avance === 1 ? 'día' : 'días'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+
+                  {tipo === 'actas-pendientes' &&
+                    datos.map((p: any) => (
+                      <tr
+                        key={p.id}
+                        onClick={() => abrirProceso(p.id)}
+                        className="table-row cursor-pointer hover:bg-gold-400/[0.06]"
+                      >
+                        <td className="table-cell font-medium">{p.codigo_proceso}</td>
+                        <td className="table-cell">{p.demandante}</td>
+                        <td className="table-cell">{p.demandado}</td>
+                        {admin && <td className="table-cell">{p.mediador}</td>}
+                        <td className="table-cell">{p.sucursal}</td>
+                        <td className="table-cell">{formatoFecha(p.fecha_acuerdo)}</td>
+                        <td className="table-cell">
+                          {p.horas_transcurridas == null
+                            ? '—'
+                            : p.horas_transcurridas >= 24
+                            ? `${Math.floor(p.horas_transcurridas / 24)} d ${p.horas_transcurridas % 24} h`
+                            : `${p.horas_transcurridas} h`}
+                        </td>
+                        <td className="table-cell">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              p.plazo_vencido ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
+                            }`}
+                          >
+                            {p.plazo_vencido ? 'Vencido' : 'En plazo'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+
                   {tipo === 'procesos' &&
                     datos.map((p: any) => (
                       <tr
@@ -801,6 +993,7 @@ export default function ReportesPage() {
                           <td className="table-cell">{m.cerrados_con_acuerdo}</td>
                           <td className="table-cell">{m.cerrados_sin_acuerdo}</td>
                           <td className="table-cell">{m.archivados}</td>
+                          <td className="table-cell">{m.anulados}</td>
                           <td className="table-cell">{m.actas_subidas}</td>
                           <td className="table-cell">
                             {m.actas_pendientes > 0 ? (
@@ -827,7 +1020,7 @@ export default function ReportesPage() {
 
                         {mediadorExpandidoId === m.usuario_id && (
                           <tr key={`${m.usuario_id}-detalle`}>
-                            <td colSpan={13} className="bg-numa-50 px-4 py-4">
+                            <td colSpan={14} className="bg-numa-50 px-4 py-4">
                               {cargandoDetalleId === m.usuario_id ? (
                                 <Spinner />
                               ) : !detalleProcesos[m.usuario_id]?.length ? (
@@ -936,6 +1129,7 @@ export default function ReportesPage() {
                           <td className="table-cell">{s.cerrados_con_acuerdo}</td>
                           <td className="table-cell">{s.cerrados_sin_acuerdo}</td>
                           <td className="table-cell">{s.archivados}</td>
+                          <td className="table-cell">{s.anulados}</td>
                           <td className="table-cell">{s.actas_subidas}</td>
                           <td className="table-cell">
                             {s.actas_pendientes > 0 ? (
@@ -962,7 +1156,7 @@ export default function ReportesPage() {
 
                         {sucursalExpandidoId === s.sucursal_id && (
                           <tr key={`${s.sucursal_id}-detalle`}>
-                            <td colSpan={11} className="bg-numa-50 px-4 py-4">
+                            <td colSpan={12} className="bg-numa-50 px-4 py-4">
                               {cargandoDetalleSucursalId === s.sucursal_id ? (
                                 <Spinner />
                               ) : !detalleSucursal[s.sucursal_id]?.length ? (
@@ -1051,6 +1245,7 @@ export default function ReportesPage() {
                           <td className="table-cell">{c.cerrados_con_acuerdo}</td>
                           <td className="table-cell">{c.cerrados_sin_acuerdo}</td>
                           <td className="table-cell">{c.archivados}</td>
+                          <td className="table-cell">{c.anulados}</td>
                           <td className="table-cell">{c.actas_subidas}</td>
                           <td className="table-cell">
                             {c.actas_pendientes > 0 ? (
@@ -1068,11 +1263,17 @@ export default function ReportesPage() {
                               0
                             )}
                           </td>
+                          <td className="table-cell text-xs code-text min-w-[160px]">
+                            {c.codigos_procesos || '—'}
+                          </td>
+                          <td className="table-cell text-xs code-text min-w-[160px]">
+                            {c.codigos_actas || '—'}
+                          </td>
                         </tr>
 
                         {clienteExpandidoId === c.cliente_id && (
                           <tr key={`${c.cliente_id}-detalle`}>
-                            <td colSpan={11} className="bg-numa-50 px-4 py-4">
+                            <td colSpan={15} className="bg-numa-50 px-4 py-4">
                               {cargandoDetalleClienteId === c.cliente_id ? (
                                 <Spinner />
                               ) : !detalleCliente[c.cliente_id]?.length ? (

@@ -52,6 +52,16 @@ const CATEGORIAS: Record<
   }
 };
 
+// Texto legible para el estado de cada proceso (la base guarda el código
+// técnico, p. ej. "cerrado_sin_acuerdo").
+const ETIQUETAS_ESTADO: Record<string, string> = {
+  en_negociacion: 'En negociación',
+  cerrado_con_acuerdo: 'Cerrado con acuerdo',
+  cerrado_sin_acuerdo: 'Cerrado sin acuerdo',
+  archivado: 'Archivado',
+  anulado: 'Anulado'
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const { user, isAdmin } = useAuth();
@@ -381,7 +391,7 @@ export default function DashboardPage() {
                         </div>
 
                         <div className="text-right">
-                          <Badge label={p.estado} variant="enviado" />
+                          <Badge label={ETIQUETAS_ESTADO[p.estado] || p.estado} variant="enviado" />
 
                           <p className="text-xs text-numa-400 mt-2">
                             {p.fecha_creacion
@@ -439,11 +449,12 @@ export default function DashboardPage() {
                             {a.ciudad || '—'} · {a.sucursal || '—'}
                           </p>
 
-                          {isAdmin && (
-                            <p className="text-xs text-numa-400 mt-1">
-                              Mediador: {a.usuario || '—'}
-                            </p>
-                          )}
+                          <p className="text-xs text-numa-400 mt-1">
+                            Subida por: {a.subida_por || '—'}
+                            {isAdmin && a.usuario && a.usuario !== a.subida_por
+                              ? ` · Mediador del proceso: ${a.usuario}`
+                              : ''}
+                          </p>
                         </div>
 
                         <div className="text-right">

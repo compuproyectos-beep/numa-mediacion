@@ -18,7 +18,8 @@ const getEstadoLabel = (estado: string) => {
     en_negociacion: 'En negociación',
     cerrado_con_acuerdo: 'Cerrado con acuerdo',
     cerrado_sin_acuerdo: 'Cerrado sin acuerdo',
-    archivado: 'Archivado'
+    archivado: 'Archivado',
+    anulado: 'Anulado'
   };
 
   return labels[estado] || estado;

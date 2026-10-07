@@ -28,7 +28,8 @@ const getEstadoProcesoLabel = (estado: string) => {
     en_negociacion: 'En negociación',
     cerrado_con_acuerdo: 'Cerrado con acuerdo',
     cerrado_sin_acuerdo: 'Cerrado sin acuerdo',
-    archivado: 'Archivado'
+    archivado: 'Archivado',
+    anulado: 'Anulado'
   };
 
   return labels[estado] || estado;
@@ -39,7 +40,8 @@ const getEstadoProcesoClass = (estado: string) => {
     en_negociacion: 'bg-amber-50 text-amber-700',
     cerrado_con_acuerdo: 'bg-green-50 text-green-700',
     cerrado_sin_acuerdo: 'bg-red-50 text-red-700',
-    archivado: 'bg-slate-100 text-slate-600'
+    archivado: 'bg-slate-100 text-slate-600',
+    anulado: 'bg-slate-200 text-slate-500 line-through'
   };
 
   return classes[estado] || 'bg-numa-100 text-numa-600';
@@ -53,7 +55,8 @@ const getEstadoBorderClass = (estado: string) => {
     en_negociacion: 'border-l-amber-400',
     cerrado_con_acuerdo: 'border-l-green-500',
     cerrado_sin_acuerdo: 'border-l-red-500',
-    archivado: 'border-l-slate-300'
+    archivado: 'border-l-slate-300',
+    anulado: 'border-l-slate-400'
   };
 
   return classes[estado] || 'border-l-numa-200';
@@ -66,6 +69,10 @@ export default function ProcesosPage() {
   // Permite llegar aquí con un filtro de estado ya aplicado, por ejemplo
   // desde las tarjetas del dashboard (/procesos?estado=cerrado_con_acuerdo).
   const estadoDesdeUrl = searchParams?.get('estado') || '';
+
+  // Igual con la búsqueda: desde Clientes se llega con la cédula ya escrita
+  // (/procesos?q=1712345675) para ver todos los procesos de esa persona.
+  const busquedaDesdeUrl = searchParams?.get('q') || '';
 
   // Permite llegar aquí con la intención de crear de una vez, por ejemplo
   // desde el botón "Crear tu primer proceso" del dashboard cuando un
@@ -94,7 +101,7 @@ export default function ProcesosPage() {
   const [paso, setPaso] = useState(1);
 
   const [filters, setFilters] = useState({
-    q: '',
+    q: busquedaDesdeUrl,
     estado: estadoDesdeUrl,
     ciudad_id: '',
     sucursal_id: '',
@@ -319,6 +326,7 @@ export default function ProcesosPage() {
               <option value="cerrado_con_acuerdo">Cerrado con acuerdo</option>
               <option value="cerrado_sin_acuerdo">Cerrado sin acuerdo</option>
               <option value="archivado">Archivado</option>
+              <option value="anulado">Anulado</option>
             </SelectField>
 
             {isAdmin() && (
@@ -402,8 +410,14 @@ export default function ProcesosPage() {
       </div>
 
       <div className="mb-3 text-sm text-numa-500">
-        Mostrando <span className="font-semibold text-numa-800">{procesos.length}</span>{' '}
-        {procesos.length === 1 ? 'proceso' : 'procesos'}
+        {loading ? (
+          'Cargando procesos...'
+        ) : (
+          <>
+            Mostrando <span className="font-semibold text-numa-800">{procesos.length}</span>{' '}
+            {procesos.length === 1 ? 'proceso' : 'procesos'}
+          </>
+        )}
       </div>
 
       <div className="space-y-3">

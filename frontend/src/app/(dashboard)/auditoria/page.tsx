@@ -9,7 +9,7 @@ import { isAdmin } from '@/lib/auth';
 // Colores del badge por tipo de acción — para que sea fácil detectar de un
 // vistazo lo negativo (login fallido, desactivaciones) de lo neutral.
 function claseAccion(accion: string): string {
-  if (accion === 'login_fallido' || accion.includes('desactivad')) {
+  if (accion === 'login_fallido' || accion.includes('desactivad') || accion.includes('anulad')) {
     return 'bg-red-50 text-red-700 border-red-200';
   }
   if (accion.includes('creado') || accion.includes('creada') || accion.includes('activad')) {
@@ -31,6 +31,7 @@ function etiquetaAccion(accion: string): string {
     sucursal_editada: 'Sucursal editada',
     sucursal_activada: 'Sucursal activada',
     sucursal_desactivada: 'Sucursal desactivada',
+    proceso_anulado: 'Proceso anulado',
   };
   return etiquetas[accion] || accion;
 }
@@ -79,7 +80,7 @@ export default function AuditoriaPage() {
     <>
       <PageHeader
         title="Auditoría"
-        subtitle="Quién hizo qué en el sistema — usuarios, clientes, sucursales e intentos de login"
+        subtitle="Quién hizo qué en el sistema — usuarios, clientes, sucursales, procesos anulados e intentos de login"
       />
 
       {error && (
@@ -109,6 +110,7 @@ export default function AuditoriaPage() {
               <option value="sucursal_editada">Sucursal editada</option>
               <option value="sucursal_activada">Sucursal activada</option>
               <option value="sucursal_desactivada">Sucursal desactivada</option>
+              <option value="proceso_anulado">Proceso anulado</option>
             </select>
           </div>
 

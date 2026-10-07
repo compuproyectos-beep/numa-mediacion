@@ -267,6 +267,45 @@ def validar_cedula_ecuatoriana(cedula: str) -> bool:
 
     return digito_verificador == int(cedula[9])
 
+
+# =========================
+# UNA CÉDULA = UNA PERSONA (entre usuarios y clientes)
+# =========================
+
+def _normalizar_nombre_persona(nombre: str, apellido: str) -> str:
+    """Nombre completo sin tildes ni mayúsculas, con las palabras ordenadas,
+    para comparar si dos registros hablan de la misma persona aunque estén
+    escritos en distinto orden ("Pérez Juan" = "juan perez")."""
+    import unicodedata
+    texto = f"{nombre or ''} {apellido or ''}".lower()
+    texto = unicodedata.normalize("NFD", texto)
+    texto = "".join(c for c in texto if unicodedata.category(c) != "Mn")
+    return " ".join(sorted(texto.split()))
+
+
+def verificar_cedula_misma_persona(cur, cedula: str, nombre: str, apellido: str, buscar_en: str):
+    """Una cédula puede estar en usuarios Y en clientes (una persona con dos
+    papeles), pero solo si el nombre coincide. Si la misma cédula aparece en
+    la otra lista con un nombre distinto, se bloquea."""
+    if buscar_en == "usuarios":
+        cur.execute("SELECT nombre, apellido FROM usuarios WHERE cedula = %s", (cedula,))
+        donde = "usuario del sistema"
+    else:
+        cur.execute("SELECT nombre, apellido FROM clientes WHERE cedula = %s", (cedula,))
+        donde = "cliente"
+
+    for fila in cur.fetchall():
+        if _normalizar_nombre_persona(fila["nombre"], fila["apellido"]) != \
+                _normalizar_nombre_persona(nombre, apellido):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Esa cédula ya está registrada como {donde} a nombre de "
+                    f"{fila['nombre']} {fila['apellido']}. Una cédula solo puede "
+                    f"pertenecer a una persona."
+                )
+            )
+
 import re
 
 def validar_email(email: str) -> bool:
@@ -963,14 +1002,16 @@ def dashboard(usuario=Depends(obtener_usuario_actual)):
                 cdd.nombre || ' ' || cdd.apellido AS demandado,
                 s.nombre AS sucursal,
                 ci.nombre AS ciudad,
-                u.nombre || ' ' || u.apellido AS usuario
+                u.nombre || ' ' || u.apellido AS usuario,
+                us.nombre || ' ' || us.apellido AS subida_por
             FROM actas_proceso ap
             JOIN procesos_mediacion p ON ap.proceso_id = p.id
             JOIN clientes cd ON p.cliente_demandante_id = cd.id
             JOIN clientes cdd ON p.cliente_demandado_id = cdd.id
             JOIN sucursales s ON p.sucursal_id = s.id
             JOIN ciudades ci ON s.ciudad_id = ci.id
-            JOIN usuarios u ON ap.usuario_id = u.id
+            JOIN usuarios u ON p.usuario_id = u.id
+            LEFT JOIN usuarios us ON ap.usuario_id = us.id
             WHERE 1=1
             {" AND p.usuario_id = %s" if usuario["rol"] != "administrador" else ""}
             ORDER BY ap.id DESC
@@ -1071,6 +1112,8 @@ def actualizar_cliente(
 
         if cur.fetchone():
             raise HTTPException(status_code=400, detail="Ya existe otro cliente con esa cédula")
+
+        verificar_cedula_misma_persona(cur, cedula, nombre, apellido, "usuarios")
 
         cur.execute("""
             UPDATE clientes
@@ -1258,6 +1301,8 @@ def crear_cliente(
         cur.execute("SELECT id FROM clientes WHERE cedula = %s", (cedula,))
         if cur.fetchone():
             raise HTTPException(status_code=400, detail="Ya existe un cliente con esa cédula")
+
+        verificar_cedula_misma_persona(cur, cedula, nombre, apellido, "usuarios")
 
         cur.execute("""
             INSERT INTO clientes (
@@ -1854,6 +1899,8 @@ def crear_usuario(
                 detail="Ya existe un usuario con esa cédula"
             )
 
+        verificar_cedula_misma_persona(cur, cedula, nombre, apellido, "clientes")
+
         password_generada_automaticamente = not password
 
         if password_generada_automaticamente:
@@ -2054,6 +2101,8 @@ def editar_usuario(
         cur.execute("SELECT id FROM usuarios WHERE cedula = %s AND id != %s", (cedula, id))
         if cur.fetchone():
             raise HTTPException(status_code=400, detail="Ya existe otro usuario con esa cédula")
+
+        verificar_cedula_misma_persona(cur, cedula, nombre, apellido, "clientes")
 
         cur.execute("""
             UPDATE usuarios
@@ -2686,6 +2735,21 @@ def crear_proceso_mediacion(
                 detail="El tema es obligatorio"
             )
 
+        # Conflicto de interés: quien lleva el proceso no puede ser una de
+        # las partes. Se compara por cédula (misma persona = misma cédula).
+        cur.execute("SELECT cedula FROM usuarios WHERE id = %s", (usuario["id"],))
+        fila_mediador = cur.fetchone()
+        if fila_mediador and fila_mediador["cedula"]:
+            cur.execute(
+                "SELECT id FROM clientes WHERE id IN (%s, %s) AND cedula = %s",
+                (cliente_demandante_id, cliente_demandado_id, fila_mediador["cedula"])
+            )
+            if cur.fetchone():
+                raise HTTPException(
+                    status_code=400,
+                    detail="No puedes ser parte de un proceso que tú mismo llevarías como mediador. Pide a otro mediador o al administrador que lo cree."
+                )
+
         if usuario["rol"] != "administrador":
             sucursal_id = usuario["sucursal_id"]
 
@@ -2695,12 +2759,11 @@ def crear_proceso_mediacion(
                 detail="Sucursal obligatoria"
             )
 
-        cur.execute("""
-            SELECT COUNT(*) AS total
-            FROM procesos_mediacion
-        """)
+        # Contador propio en la base: nunca retrocede ni repite un número,
+        # aunque algún proceso se borre o se anule.
+        cur.execute("SELECT nextval('procesos_codigo_seq') AS n")
 
-        secuencial = cur.fetchone()["total"] + 1
+        secuencial = cur.fetchone()["n"]
         codigo_proceso = f"PRC-{str(secuencial).zfill(6)}"
 
         cur.execute("""
@@ -2775,6 +2838,7 @@ def obtener_procesos_mediacion(
                 p.finalizado,
                 p.acta_final_id,
                 p.usuario_id,
+                p.motivo_anulacion,
                 -- Id del proceso que, entre los pendientes de acta de este
                 -- mismo mediador, es el que está bloqueando a los demás
                 -- ahora mismo (el más antiguo que sigue dentro de sus 48
@@ -2858,11 +2922,11 @@ def obtener_procesos_mediacion(
                 params.append(ciudad_id)
 
         if fecha_desde:
-                query += " AND DATE(p.fecha_creacion) >= %s"
+                query += " AND DATE(p.fecha_creacion AT TIME ZONE 'America/Guayaquil') >= %s"
                 params.append(fecha_desde)
 
         if fecha_hasta:
-                query += " AND DATE(p.fecha_creacion) <= %s"
+                query += " AND DATE(p.fecha_creacion AT TIME ZONE 'America/Guayaquil') <= %s"
                 params.append(fecha_hasta)
 
         # Usado por el detalle expandible del reporte de Clientes: procesos
@@ -2993,6 +3057,12 @@ def crear_invitacion_proceso(
             raise HTTPException(
                 status_code=403,
                 detail="Solo el mediador asignado a este proceso puede crear invitaciones"
+            )
+
+        if proceso["estado"] == "anulado":
+            raise HTTPException(
+                status_code=400,
+                detail="Este proceso está anulado: no admite invitaciones"
             )
 
         if not observaciones or not observaciones.strip():
@@ -3128,6 +3198,79 @@ def crear_invitacion_proceso(
 # AVANCES POR PROCESO
 # =========================
 
+@app.put("/procesos/{proceso_id}/anular")
+def anular_proceso(
+    proceso_id: int,
+    motivo: str,
+    usuario=Depends(obtener_usuario_actual)
+):
+    # Solo el administrador anula. El proceso NO se borra: conserva su
+    # número (queda bloqueado), su historial y su motivo de anulación.
+    if usuario["rol"] != "administrador":
+        raise HTTPException(status_code=403, detail="Solo el administrador puede anular un proceso")
+
+    motivo = (motivo or "").strip()
+    if len(motivo) < 5:
+        raise HTTPException(status_code=400, detail="Debes indicar el motivo de la anulación")
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        cur.execute("SELECT id, codigo_proceso, estado FROM procesos_mediacion WHERE id = %s FOR UPDATE", (proceso_id,))
+        proceso = cur.fetchone()
+
+        if not proceso:
+            raise HTTPException(status_code=404, detail="Proceso no encontrado")
+
+        if proceso["estado"] == "anulado":
+            raise HTTPException(status_code=400, detail="Este proceso ya está anulado")
+
+        if proceso["estado"] != "en_negociacion":
+            raise HTTPException(
+                status_code=400,
+                detail="Solo se puede anular un proceso que sigue en negociación. Los procesos ya cerrados no se anulan."
+            )
+
+        cur.execute("""
+            UPDATE procesos_mediacion
+            SET estado = 'anulado',
+                motivo_anulacion = %s,
+                fecha_anulacion = NOW(),
+                anulado_por_id = %s,
+                fecha_modificacion = NOW()
+            WHERE id = %s
+        """, (motivo, usuario["id"], proceso_id))
+
+        # Las invitaciones pendientes de un proceso anulado ya no tienen
+        # sentido: se cancelan para que no queden como "atrasadas".
+        cur.execute("""
+            UPDATE citas
+            SET estado = 'cancelada',
+                motivo_cancelacion = 'Proceso anulado',
+                fecha_modificacion = NOW()
+            WHERE proceso_id = %s AND estado IN ('pendiente', 'confirmada')
+        """, (proceso_id,))
+
+        registrar_auditoria(
+            cur, usuario, "proceso_anulado", "procesos", proceso_id,
+            f"Proceso {proceso['codigo_proceso']} anulado. Motivo: {motivo}"
+        )
+
+        conn.commit()
+        return {"mensaje": "Proceso anulado", "codigo_proceso": proceso["codigo_proceso"]}
+
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.post("/procesos/{proceso_id}/avances")
 def crear_avance_proceso(
     proceso_id: int,
@@ -3155,6 +3298,12 @@ def crear_avance_proceso(
 
         if not proceso:
             raise HTTPException(status_code=404, detail="Proceso no encontrado")
+
+        if proceso["estado"] == "anulado":
+            raise HTTPException(
+                status_code=400,
+                detail="Este proceso está anulado: no admite avances"
+            )
 
         if proceso["estado"] in ["cerrado_con_acuerdo", "cerrado_sin_acuerdo", "archivado"]:
             raise HTTPException(
@@ -3776,11 +3925,11 @@ def obtener_actas_finales(
             params.append(usuario_id)
 
         if fecha_desde:
-            query += " AND DATE(ap.fecha_subida) >= %s"
+            query += " AND DATE(ap.fecha_subida AT TIME ZONE 'America/Guayaquil') >= %s"
             params.append(fecha_desde)
 
         if fecha_hasta:
-            query += " AND DATE(ap.fecha_subida) <= %s"
+            query += " AND DATE(ap.fecha_subida AT TIME ZONE 'America/Guayaquil') <= %s"
             params.append(fecha_hasta)
 
         query += " ORDER BY ap.id DESC"
@@ -4246,11 +4395,11 @@ def exportar_pdfs_actas_finales(
             params.append(sucursal_id)
 
         if fecha_desde:
-            query += " AND DATE(ap.fecha_subida) >= %s"
+            query += " AND DATE(ap.fecha_subida AT TIME ZONE 'America/Guayaquil') >= %s"
             params.append(fecha_desde)
 
         if fecha_hasta:
-            query += " AND DATE(ap.fecha_subida) <= %s"
+            query += " AND DATE(ap.fecha_subida AT TIME ZONE 'America/Guayaquil') <= %s"
             params.append(fecha_hasta)
 
         query += " ORDER BY pr.nombre, ci.nombre, s.nombre, ap.codigo_acta"
@@ -4408,7 +4557,7 @@ def obtener_reporte_resumen(
     try:
         query = """
             SELECT
-                COUNT(*) AS total_creados,
+                COUNT(*) FILTER (WHERE p.estado <> 'anulado') AS total_creados,
                 COUNT(*) FILTER (WHERE p.estado = 'en_negociacion') AS en_negociacion,
                 COUNT(*) FILTER (WHERE p.estado = 'cerrado_con_acuerdo') AS cerrados_con_acuerdo,
                 COUNT(*) FILTER (WHERE p.estado = 'cerrado_sin_acuerdo') AS cerrados_sin_acuerdo,
@@ -4453,11 +4602,11 @@ def obtener_reporte_resumen(
                 params.append(ciudad_id)
 
         if fecha_desde:
-            query += " AND DATE(p.fecha_creacion) >= %s"
+            query += " AND DATE(p.fecha_creacion AT TIME ZONE 'America/Guayaquil') >= %s"
             params.append(fecha_desde)
 
         if fecha_hasta:
-            query += " AND DATE(p.fecha_creacion) <= %s"
+            query += " AND DATE(p.fecha_creacion AT TIME ZONE 'America/Guayaquil') <= %s"
             params.append(fecha_hasta)
 
         cur.execute(query, tuple(params))
@@ -4512,11 +4661,12 @@ def obtener_reporte_productividad(
                 u.fecha_creacion AS fecha_ingreso,
                 s.nombre AS sucursal,
                 ci.nombre AS ciudad,
-                COUNT(p.id) AS total_procesos,
+                COUNT(p.id) FILTER (WHERE p.estado <> 'anulado') AS total_procesos,
                 COUNT(*) FILTER (WHERE p.estado = 'en_negociacion') AS en_negociacion,
                 COUNT(*) FILTER (WHERE p.estado = 'cerrado_con_acuerdo') AS cerrados_con_acuerdo,
                 COUNT(*) FILTER (WHERE p.estado = 'cerrado_sin_acuerdo') AS cerrados_sin_acuerdo,
                 COUNT(*) FILTER (WHERE p.estado = 'archivado') AS archivados,
+                COUNT(*) FILTER (WHERE p.estado = 'anulado') AS anulados,
                 COUNT(*) FILTER (WHERE p.finalizado = true) AS actas_subidas,
                 -- Cerrado con acuerdo pero el acta final + comprobante de
                 -- pago todavía no se han subido: para que el admin no
@@ -4546,11 +4696,11 @@ def obtener_reporte_productividad(
         condiciones_join = []
 
         if fecha_desde:
-            condiciones_join.append("DATE(p.fecha_creacion) >= %s")
+            condiciones_join.append("DATE(p.fecha_creacion AT TIME ZONE 'America/Guayaquil') >= %s")
             params.append(fecha_desde)
 
         if fecha_hasta:
-            condiciones_join.append("DATE(p.fecha_creacion) <= %s")
+            condiciones_join.append("DATE(p.fecha_creacion AT TIME ZONE 'America/Guayaquil') <= %s")
             params.append(fecha_hasta)
 
         if condiciones_join:
@@ -4626,11 +4776,12 @@ def obtener_reporte_sucursales(
                 s.id AS sucursal_id,
                 s.nombre AS sucursal,
                 ci.nombre AS ciudad,
-                COUNT(p.id) AS total_procesos,
+                COUNT(p.id) FILTER (WHERE p.estado <> 'anulado') AS total_procesos,
                 COUNT(*) FILTER (WHERE p.estado = 'en_negociacion') AS en_negociacion,
                 COUNT(*) FILTER (WHERE p.estado = 'cerrado_con_acuerdo') AS cerrados_con_acuerdo,
                 COUNT(*) FILTER (WHERE p.estado = 'cerrado_sin_acuerdo') AS cerrados_sin_acuerdo,
                 COUNT(*) FILTER (WHERE p.estado = 'archivado') AS archivados,
+                COUNT(*) FILTER (WHERE p.estado = 'anulado') AS anulados,
                 COUNT(*) FILTER (WHERE p.finalizado = true) AS actas_subidas,
                 COUNT(*) FILTER (
                     WHERE p.estado = 'cerrado_con_acuerdo' AND p.finalizado = false
@@ -4656,11 +4807,11 @@ def obtener_reporte_sucursales(
         condiciones_join = []
 
         if fecha_desde:
-            condiciones_join.append("DATE(p.fecha_creacion) >= %s")
+            condiciones_join.append("DATE(p.fecha_creacion AT TIME ZONE 'America/Guayaquil') >= %s")
             params.append(fecha_desde)
 
         if fecha_hasta:
-            condiciones_join.append("DATE(p.fecha_creacion) <= %s")
+            condiciones_join.append("DATE(p.fecha_creacion AT TIME ZONE 'America/Guayaquil') <= %s")
             params.append(fecha_hasta)
 
         if condiciones_join:
@@ -4715,18 +4866,26 @@ def obtener_reporte_clientes(
                 cl.cedula,
                 cl.telefono,
                 cl.email,
-                COUNT(DISTINCT p.id) AS total_procesos,
+                COUNT(DISTINCT p.id) FILTER (WHERE p.estado <> 'anulado') AS total_procesos,
                 COUNT(DISTINCT p.id) FILTER (WHERE p.estado = 'en_negociacion') AS en_negociacion,
                 COUNT(DISTINCT p.id) FILTER (WHERE p.estado = 'cerrado_con_acuerdo') AS cerrados_con_acuerdo,
                 COUNT(DISTINCT p.id) FILTER (WHERE p.estado = 'cerrado_sin_acuerdo') AS cerrados_sin_acuerdo,
                 COUNT(DISTINCT p.id) FILTER (WHERE p.estado = 'archivado') AS archivados,
+                COUNT(DISTINCT p.id) FILTER (WHERE p.estado = 'anulado') AS anulados,
                 COUNT(DISTINCT p.id) FILTER (WHERE p.finalizado = true) AS actas_subidas,
                 COUNT(DISTINCT p.id) FILTER (
                     WHERE p.estado = 'cerrado_con_acuerdo' AND p.finalizado = false
-                ) AS actas_pendientes
+                ) AS actas_pendientes,
+                -- Los códigos concretos, para que salgan también al imprimir
+                -- y en el Excel (no solo las cantidades).
+                STRING_AGG(DISTINCT p.codigo_proceso, ', ' ORDER BY p.codigo_proceso)
+                    FILTER (WHERE p.estado <> 'anulado') AS codigos_procesos,
+                STRING_AGG(DISTINCT af.codigo_acta, ', ' ORDER BY af.codigo_acta)
+                    FILTER (WHERE p.finalizado = true) AS codigos_actas
             FROM clientes cl
             JOIN procesos_mediacion p
                 ON p.cliente_demandante_id = cl.id OR p.cliente_demandado_id = cl.id
+            LEFT JOIN actas_proceso af ON af.id = p.acta_final_id
             JOIN sucursales s ON p.sucursal_id = s.id
             JOIN ciudades ci ON s.ciudad_id = ci.id
             WHERE 1=1
@@ -4752,11 +4911,11 @@ def obtener_reporte_clientes(
             params.append(ciudad_id)
 
         if fecha_desde:
-            query += " AND DATE(p.fecha_creacion) >= %s"
+            query += " AND DATE(p.fecha_creacion AT TIME ZONE 'America/Guayaquil') >= %s"
             params.append(fecha_desde)
 
         if fecha_hasta:
-            query += " AND DATE(p.fecha_creacion) <= %s"
+            query += " AND DATE(p.fecha_creacion AT TIME ZONE 'America/Guayaquil') <= %s"
             params.append(fecha_hasta)
 
         query += """
@@ -4772,11 +4931,168 @@ def obtener_reporte_clientes(
         conn.close()
 
 
+def _filtros_operativos(query, params, usuario, usuario_id, sucursal_id, ciudad_id):
+    # Mismo criterio de permisos: el mediador solo ve lo suyo; el admin ve
+    # todo y puede filtrar por mediador. Requiere alias p (proceso), s, ci.
+    if usuario["rol"] != "administrador":
+        query += " AND p.usuario_id = %s"
+        params.append(usuario["id"])
+    elif usuario_id:
+        query += " AND p.usuario_id = %s"
+        params.append(usuario_id)
+    if sucursal_id:
+        query += " AND s.id = %s"
+        params.append(sucursal_id)
+    if ciudad_id:
+        query += " AND ci.id = %s"
+        params.append(ciudad_id)
+    return query
+
+
+@app.get("/reportes/operativos/agenda")
+def reporte_operativo_agenda(
+    fecha_desde: str = None,
+    fecha_hasta: str = None,
+    ciudad_id: int = None,
+    sucursal_id: int = None,
+    usuario_id: int = None,
+    usuario=Depends(obtener_usuario_actual)
+):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        query = """
+            SELECT
+                c.id, c.proceso_id, c.fecha, c.hora, c.estado, c.tema,
+                p.codigo_proceso,
+                cd.nombre || ' ' || cd.apellido AS demandante,
+                cdd.nombre || ' ' || cdd.apellido AS demandado,
+                u.nombre || ' ' || u.apellido AS mediador,
+                s.nombre AS sucursal,
+                ci.nombre AS ciudad,
+                (c.estado IN ('pendiente', 'confirmada')
+                 AND (c.fecha + c.hora) < (NOW() AT TIME ZONE 'America/Guayaquil')) AS atrasada
+            FROM citas c
+            JOIN procesos_mediacion p ON c.proceso_id = p.id
+            JOIN clientes cd ON c.cliente_demandante_id = cd.id
+            JOIN clientes cdd ON c.cliente_demandado_id = cdd.id
+            JOIN usuarios u ON p.usuario_id = u.id
+            JOIN sucursales s ON p.sucursal_id = s.id
+            JOIN ciudades ci ON s.ciudad_id = ci.id
+            WHERE 1=1
+        """
+        params = []
+        query = _filtros_operativos(query, params, usuario, usuario_id, sucursal_id, ciudad_id)
+        if fecha_desde:
+            query += " AND c.fecha >= %s"
+            params.append(fecha_desde)
+        if fecha_hasta:
+            query += " AND c.fecha <= %s"
+            params.append(fecha_hasta)
+        query += " ORDER BY c.fecha ASC, c.hora ASC"
+        cur.execute(query, tuple(params))
+        return cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/reportes/operativos/sin-avance")
+def reporte_operativo_sin_avance(
+    dias_minimo: int = 7,
+    ciudad_id: int = None,
+    sucursal_id: int = None,
+    usuario_id: int = None,
+    usuario=Depends(obtener_usuario_actual)
+):
+    if dias_minimo < 0:
+        dias_minimo = 0
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        query = """
+            SELECT * FROM (
+                SELECT
+                    p.id, p.codigo_proceso, p.tema,
+                    cd.nombre || ' ' || cd.apellido AS demandante,
+                    cdd.nombre || ' ' || cdd.apellido AS demandado,
+                    u.nombre || ' ' || u.apellido AS mediador,
+                    s.nombre AS sucursal,
+                    ci.nombre AS ciudad,
+                    p.fecha_creacion,
+                    (SELECT MAX(a.fecha_creacion) FROM avances_mediacion a WHERE a.proceso_id = p.id) AS ultimo_avance,
+                    (SELECT COUNT(*) FROM avances_mediacion a WHERE a.proceso_id = p.id) AS total_avances,
+                    FLOOR(EXTRACT(EPOCH FROM (NOW() - GREATEST(
+                        p.fecha_creacion,
+                        COALESCE((SELECT MAX(a.fecha_creacion) FROM avances_mediacion a WHERE a.proceso_id = p.id), p.fecha_creacion)
+                    ))) / 86400)::int AS dias_sin_avance
+                FROM procesos_mediacion p
+                JOIN clientes cd ON p.cliente_demandante_id = cd.id
+                JOIN clientes cdd ON p.cliente_demandado_id = cdd.id
+                JOIN usuarios u ON p.usuario_id = u.id
+                JOIN sucursales s ON p.sucursal_id = s.id
+                JOIN ciudades ci ON s.ciudad_id = ci.id
+                WHERE p.estado = 'en_negociacion'
+        """
+        params = []
+        query = _filtros_operativos(query, params, usuario, usuario_id, sucursal_id, ciudad_id)
+        query += """
+            ) t
+            WHERE t.dias_sin_avance >= %s
+            ORDER BY t.dias_sin_avance DESC, t.codigo_proceso ASC
+        """
+        params.append(dias_minimo)
+        cur.execute(query, tuple(params))
+        return cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/reportes/operativos/actas-pendientes")
+def reporte_operativo_actas_pendientes(
+    ciudad_id: int = None,
+    sucursal_id: int = None,
+    usuario_id: int = None,
+    usuario=Depends(obtener_usuario_actual)
+):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        query = """
+            SELECT
+                p.id, p.codigo_proceso, p.tema, p.fecha_acuerdo,
+                cd.nombre || ' ' || cd.apellido AS demandante,
+                cdd.nombre || ' ' || cdd.apellido AS demandado,
+                u.nombre || ' ' || u.apellido AS mediador,
+                s.nombre AS sucursal,
+                ci.nombre AS ciudad,
+                FLOOR(EXTRACT(EPOCH FROM (NOW() - p.fecha_acuerdo)) / 3600)::int AS horas_transcurridas,
+                (p.fecha_acuerdo IS NOT NULL AND p.fecha_acuerdo < NOW() - INTERVAL '48 hours') AS plazo_vencido
+            FROM procesos_mediacion p
+            JOIN clientes cd ON p.cliente_demandante_id = cd.id
+            JOIN clientes cdd ON p.cliente_demandado_id = cdd.id
+            JOIN usuarios u ON p.usuario_id = u.id
+            JOIN sucursales s ON p.sucursal_id = s.id
+            JOIN ciudades ci ON s.ciudad_id = ci.id
+            WHERE p.estado = 'cerrado_con_acuerdo' AND p.finalizado = false
+        """
+        params = []
+        query = _filtros_operativos(query, params, usuario, usuario_id, sucursal_id, ciudad_id)
+        query += " ORDER BY p.fecha_acuerdo ASC NULLS LAST"
+        cur.execute(query, tuple(params))
+        return cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
+
+
 ETIQUETAS_ESTADO_REPORTE = {
     "en_negociacion": "En negociación",
     "cerrado_con_acuerdo": "Cerrado con acuerdo",
     "cerrado_sin_acuerdo": "Cerrado sin acuerdo",
-    "archivado": "Archivado"
+    "archivado": "Archivado",
+    "anulado": "Anulado"
 }
 
 
@@ -4788,9 +5104,11 @@ def exportar_reporte_excel(
     ciudad_id: int = None,
     sucursal_id: int = None,
     usuario_id: int = None,
+    dias_minimo: int = 7,
     usuario=Depends(obtener_usuario_actual)
 ):
-    if tipo not in ["procesos", "productividad", "actas", "sucursales", "clientes"]:
+    if tipo not in ["procesos", "productividad", "actas", "sucursales", "clientes",
+                    "agenda", "sin-avance", "actas-pendientes"]:
         raise HTTPException(status_code=400, detail="Tipo de reporte inválido")
 
     # Se reutilizan las mismas funciones que alimentan la pantalla (llamadas
@@ -4840,7 +5158,7 @@ def exportar_reporte_excel(
         encabezados = [
             "Mediador", "Estado", "Fecha de ingreso", "Ciudad", "Sucursal",
             "Total procesos", "En negociación", "Cerrados con acuerdo",
-            "Cerrados sin acuerdo", "Archivados", "Actas subidas",
+            "Cerrados sin acuerdo", "Archivados", "Anulados", "Actas subidas",
             "Actas pendientes", "Promedio días de cierre"
         ]
 
@@ -4856,6 +5174,7 @@ def exportar_reporte_excel(
                 f.get("cerrados_con_acuerdo"),
                 f.get("cerrados_sin_acuerdo"),
                 f.get("archivados"),
+                f.get("anulados"),
                 f.get("actas_subidas"),
                 f.get("actas_pendientes"),
                 f.get("promedio_dias_cierre") if f.get("promedio_dias_cierre") is not None else ""
@@ -4873,7 +5192,7 @@ def exportar_reporte_excel(
 
         encabezados = [
             "Sucursal", "Ciudad", "Total procesos", "En negociación",
-            "Cerrados con acuerdo", "Cerrados sin acuerdo", "Archivados",
+            "Cerrados con acuerdo", "Cerrados sin acuerdo", "Archivados", "Anulados",
             "Actas subidas", "Actas pendientes", "Promedio días de cierre"
         ]
 
@@ -4886,6 +5205,7 @@ def exportar_reporte_excel(
                 f.get("cerrados_con_acuerdo"),
                 f.get("cerrados_sin_acuerdo"),
                 f.get("archivados"),
+                f.get("anulados"),
                 f.get("actas_subidas"),
                 f.get("actas_pendientes"),
                 f.get("promedio_dias_cierre") if f.get("promedio_dias_cierre") is not None else ""
@@ -4904,7 +5224,8 @@ def exportar_reporte_excel(
         encabezados = [
             "Cliente", "Cédula", "Teléfono", "Email", "Total procesos",
             "En negociación", "Cerrados con acuerdo", "Cerrados sin acuerdo",
-            "Archivados", "Actas subidas", "Actas pendientes"
+            "Archivados", "Anulados", "Actas subidas", "Actas pendientes",
+            "Procesos (códigos)", "Actas (códigos)"
         ]
 
         filas_excel = [
@@ -4918,13 +5239,66 @@ def exportar_reporte_excel(
                 f.get("cerrados_con_acuerdo"),
                 f.get("cerrados_sin_acuerdo"),
                 f.get("archivados"),
+                f.get("anulados"),
                 f.get("actas_subidas"),
-                f.get("actas_pendientes")
+                f.get("actas_pendientes"),
+                f.get("codigos_procesos") or "",
+                f.get("codigos_actas") or ""
             ]
             for f in filas
         ]
 
         nombre_archivo = "reporte_clientes_numa.xlsx"
+
+    elif tipo == "agenda":
+        filas = reporte_operativo_agenda(
+            fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ciudad_id=ciudad_id,
+            sucursal_id=sucursal_id, usuario_id=usuario_id, usuario=usuario
+        )
+        encabezados = ["Fecha", "Hora", "Proceso", "Solicitante", "Invitado", "Mediador",
+                       "Sucursal", "Ciudad", "Estado", "Atrasada"]
+        filas_excel = [
+            [str(f.get("fecha")), str(f.get("hora"))[:5], f.get("codigo_proceso"),
+             f.get("demandante"), f.get("demandado"), f.get("mediador"),
+             f.get("sucursal"), f.get("ciudad"), f.get("estado"),
+             "Sí" if f.get("atrasada") else ""]
+            for f in filas
+        ]
+        nombre_archivo = "reporte_agenda_numa.xlsx"
+
+    elif tipo == "sin-avance":
+        filas = reporte_operativo_sin_avance(
+            dias_minimo=dias_minimo, ciudad_id=ciudad_id, sucursal_id=sucursal_id,
+            usuario_id=usuario_id, usuario=usuario
+        )
+        encabezados = ["Proceso", "Solicitante", "Invitado", "Mediador", "Sucursal", "Ciudad",
+                       "Tema", "Creado", "Último avance", "Avances", "Días sin avance"]
+        filas_excel = [
+            [f.get("codigo_proceso"), f.get("demandante"), f.get("demandado"),
+             f.get("mediador"), f.get("sucursal"), f.get("ciudad"), f.get("tema"),
+             str(f.get("fecha_creacion") or "")[:10],
+             str(f.get("ultimo_avance") or "")[:10] or "Ninguno",
+             f.get("total_avances"), f.get("dias_sin_avance")]
+            for f in filas
+        ]
+        nombre_archivo = "reporte_procesos_sin_avance_numa.xlsx"
+
+    elif tipo == "actas-pendientes":
+        filas = reporte_operativo_actas_pendientes(
+            ciudad_id=ciudad_id, sucursal_id=sucursal_id,
+            usuario_id=usuario_id, usuario=usuario
+        )
+        encabezados = ["Proceso", "Solicitante", "Invitado", "Mediador", "Sucursal", "Ciudad",
+                       "Tema", "Fecha del acuerdo", "Horas transcurridas", "Plazo de 48 h"]
+        filas_excel = [
+            [f.get("codigo_proceso"), f.get("demandante"), f.get("demandado"),
+             f.get("mediador"), f.get("sucursal"), f.get("ciudad"), f.get("tema"),
+             str(f.get("fecha_acuerdo") or "")[:16],
+             f.get("horas_transcurridas") if f.get("horas_transcurridas") is not None else "",
+             "Vencido" if f.get("plazo_vencido") else "En plazo"]
+            for f in filas
+        ]
+        nombre_archivo = "reporte_actas_pendientes_numa.xlsx"
 
     else:
         filas = obtener_actas_finales(

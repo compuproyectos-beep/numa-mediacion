@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon, Eye, Download, Receipt } from 'lucide-react';
+import { isAdmin as esAdminSesion } from '@/lib/auth';
 import CalendarioAgendaMediador from '@/components/citas/CalendarioAgendaMediador';
 import {
   Spinner,
@@ -22,6 +23,7 @@ import {
   getAvancesProceso,
   crearAvanceProceso,
   subirActaFinalProceso,
+  anularProceso,
   getExpedienteProceso,
   getCitas,
   descargarPdfActaFinal,
@@ -33,7 +35,8 @@ const getEstadoProcesoLabel = (estado: string) => {
     en_negociacion: 'En negociación',
     cerrado_con_acuerdo: 'Cerrado con acuerdo',
     cerrado_sin_acuerdo: 'Cerrado sin acuerdo',
-    archivado: 'Archivado'
+    archivado: 'Archivado',
+    anulado: 'Anulado'
   };
 
   return labels[estado] || estado;
@@ -44,7 +47,8 @@ const getEstadoProcesoClass = (estado: string) => {
     en_negociacion: 'bg-amber-50 text-amber-700',
     cerrado_con_acuerdo: 'bg-green-50 text-green-700',
     cerrado_sin_acuerdo: 'bg-red-50 text-red-700',
-    archivado: 'bg-slate-100 text-slate-600'
+    archivado: 'bg-slate-100 text-slate-600',
+    anulado: 'bg-slate-200 text-slate-500 line-through'
   };
 
   return classes[estado] || 'bg-numa-100 text-numa-600';
@@ -74,6 +78,16 @@ const getEstadoCitaBorderClass = (estado: string) => {
   };
 
   return classes[estado] || 'border-l-numa-200';
+};
+
+// Una invitación "pendiente" cuya fecha y hora ya pasaron está atrasada:
+// nadie registró cómo terminó. Se marca en rojo para que no se olvide.
+const citaEstaAtrasada = (cita: any) => {
+  if (!cita || cita.estado !== 'pendiente') return false;
+  const fecha = String(cita.fecha || '').slice(0, 10);
+  const hora = String(cita.hora || '').slice(0, 5) || '00:00';
+  const momento = new Date(`${fecha}T${hora}:00`);
+  return !isNaN(momento.getTime()) && momento.getTime() < Date.now();
 };
 
 export default function ProcesoDetallePage() {
@@ -117,6 +131,26 @@ export default function ProcesoDetallePage() {
   const [mostrarCalendarioInvitacion, setMostrarCalendarioInvitacion] = useState(false);
   const [citasMediador, setCitasMediador] = useState<any[]>([]);
 
+  // Al elegir fecha y hora en el calendario (botón "Usar esta fecha y
+  // hora"), el calendario se oculta y aparece más abajo la sección de
+  // Fecha/Hora/Observaciones — igual que en la Agenda, se baja la
+  // pantalla sola hasta ahí para que no se quede "estática" a la vista.
+  const observacionesRef = useRef<HTMLDivElement>(null);
+
+  const bajarAObservaciones = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        observacionesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    });
+  };
+
+  // Cerrar o archivar un proceso no se puede deshacer, así que antes de
+  // registrarlo se pide una confirmación en pantalla.
+  const [confirmandoCierre, setConfirmandoCierre] = useState(false);
+  const [anulando, setAnulando] = useState(false);
+  const [motivoAnulacion, setMotivoAnulacion] = useState('');
+  const [guardandoAnulacion, setGuardandoAnulacion] = useState(false);
   const [avanceForm, setAvanceForm] = useState({
     resultado: 'en_negociacion',
     observacion: ''
@@ -319,13 +353,21 @@ export default function ProcesoDetallePage() {
     }
   };
 
-  const handleCrearAvance = async () => {
+  const handleCrearAvance = async (yaConfirmado = false) => {
     if (!proceso) return;
 
     if (!avanceForm.observacion.trim()) {
       setError('Debe ingresar una observación');
       return;
     }
+
+    if (avanceForm.resultado !== 'en_negociacion' && !yaConfirmado) {
+      setError('');
+      setConfirmandoCierre(true);
+      return;
+    }
+
+    setConfirmandoCierre(false);
 
     setGuardandoAvance(true);
     setError('');
@@ -357,6 +399,32 @@ export default function ProcesoDetallePage() {
       setError(err?.response?.data?.detail || 'Error al registrar avance');
     } finally {
       setGuardandoAvance(false);
+    }
+  };
+
+  const handleAnularProceso = async () => {
+    if (!proceso) return;
+
+    if (motivoAnulacion.trim().length < 5) {
+      setError('Escribe el motivo de la anulación (mínimo 5 caracteres).');
+      return;
+    }
+
+    setGuardandoAnulacion(true);
+    setError('');
+    setSuccessMessage('');
+
+    try {
+      await anularProceso(proceso.id, motivoAnulacion.trim());
+      setAnulando(false);
+      setMotivoAnulacion('');
+      const p = await cargarProceso();
+      if (p) await cargarSeguimiento(p);
+      setSuccessMessage('Proceso anulado. Su número queda bloqueado y no se vuelve a usar.');
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'No se pudo anular el proceso');
+    } finally {
+      setGuardandoAnulacion(false);
     }
   };
 
@@ -463,6 +531,43 @@ export default function ProcesoDetallePage() {
 
   const citaPendiente = citasProceso.find((c: any) => c.estado === 'pendiente');
 
+  // "Siguiente paso": una línea que le dice al mediador qué le toca hacer
+  // ahora en este proceso, según su estado y sus invitaciones.
+  const siguientePaso = (() => {
+    if (!proceso) return null;
+
+    if (proceso.finalizado) {
+      return 'Este proceso ya está finalizado. Puedes consultar el historial y descargar el acta y el comprobante.';
+    }
+
+    if (proceso.estado === 'anulado') {
+      return 'Este proceso fue anulado. Solo puedes consultar su historial.';
+    }
+
+    if (proceso.estado === 'cerrado_con_acuerdo') {
+      return 'Sube el acta final y el comprobante de pago para finalizar el proceso.';
+    }
+
+    if (proceso.estado === 'cerrado_sin_acuerdo' || proceso.estado === 'archivado') {
+      return 'Este proceso ya está cerrado. Solo puedes consultar su historial.';
+    }
+
+    if (citaPendiente) {
+      const fechaCita = String(citaPendiente.fecha || '').slice(0, 10);
+      const horaCita = String(citaPendiente.hora || '').slice(0, 5);
+      const fechaHoraCita = new Date(`${fechaCita}T${horaCita || '00:00'}:00`);
+      const yaPaso = !isNaN(fechaHoraCita.getTime()) && fechaHoraCita.getTime() < Date.now();
+
+      return yaPaso
+        ? `La invitación del ${fechaCita} a las ${horaCita} ya pasó. Registra cómo terminó la reunión en "Registrar resultado".`
+        : `Tienes una invitación pendiente para el ${fechaCita} a las ${horaCita}. Cuando se realice, registra su resultado.`;
+    }
+
+    return citasProceso.length === 0
+      ? 'Agenda la primera invitación para iniciar la mediación.'
+      : 'Todas las invitaciones están resueltas. Agenda la siguiente invitación o cierra el proceso.';
+  })();
+
   // El backend guarda fecha_acuerdo con NOW() en UTC, pero como la columna
   // es TIMESTAMP sin zona horaria, psycopg2/FastAPI la devuelven como texto
   // "naive" (sin la "Z" al final). Si se le pasa tal cual a `new Date(...)`,
@@ -476,27 +581,27 @@ export default function ProcesoDetallePage() {
     return new Date(tieneZonaHoraria ? valor : `${valor}Z`);
   };
 
-  // Da un texto legible: "1 día, 15 horas y 30 minutos" si ya pasó un día
-  // completo, o "5h 30min" si falta menos de un día. Siempre incluye los
-  // minutos, para poder distinguir dos procesos que se cerraron casi a la
-  // misma hora.
+  // Da un texto legible, en días y horas: 36 horas se muestran como
+  // "1 día y 12 horas". Si falta menos de un día, se muestra en horas y
+  // minutos ("5 horas y 30 minutos").
   const formatDuracion = (horas: number, minutos: number) => {
-    if (horas >= 24) {
-      const dias = Math.floor(horas / 24);
-      const horasRestantes = horas % 24;
-      const textoDias = `${dias} día${dias > 1 ? 's' : ''}`;
+    const dias = Math.floor(horas / 24);
+    const horasRestantes = horas % 24;
 
-      const partes = [textoDias];
-      if (horasRestantes > 0) {
-        partes.push(`${horasRestantes} hora${horasRestantes > 1 ? 's' : ''}`);
-      }
-      partes.push(`${minutos} minuto${minutos !== 1 ? 's' : ''}`);
-
-      return partes.length > 1
-        ? `${partes.slice(0, -1).join(', ')} y ${partes[partes.length - 1]}`
-        : partes[0];
+    const partes: string[] = [];
+    if (dias > 0) partes.push(`${dias} día${dias > 1 ? 's' : ''}`);
+    if (horasRestantes > 0) {
+      partes.push(`${horasRestantes} hora${horasRestantes > 1 ? 's' : ''}`);
     }
-    return `${horas}h ${minutos}min`;
+    // Los minutos solo se muestran si no hay días completos, para que el
+    // texto sea corto ("1 día y 12 horas") y no confunda.
+    if (dias === 0 && (minutos > 0 || partes.length === 0)) {
+      partes.push(`${minutos} minuto${minutos !== 1 ? 's' : ''}`);
+    }
+
+    return partes.length > 1
+      ? `${partes.slice(0, -1).join(', ')} y ${partes[partes.length - 1]}`
+      : partes[0];
   };
 
   // Cuenta regresiva de las 48 horas que tiene el mediador, desde que el
@@ -627,6 +732,70 @@ export default function ProcesoDetallePage() {
         )
       )}
 
+      {siguientePaso && (
+        <div className="mb-4 text-sm px-4 py-3 rounded-sm border border-numa-100 bg-numa-50 text-numa-700">
+          <span className="font-semibold text-numa-900">Siguiente paso: </span>
+          {siguientePaso}
+        </div>
+      )}
+
+      {proceso.estado === 'anulado' && (
+        <div className="mb-4 text-sm px-4 py-3 rounded-sm border border-red-200 bg-red-50 text-red-700">
+          <strong>Proceso anulado.</strong>{' '}
+          {proceso.motivo_anulacion ? `Motivo: ${proceso.motivo_anulacion}` : ''}
+        </div>
+      )}
+
+      {esAdminSesion() && proceso.estado === 'en_negociacion' && (
+        <div className="mb-4">
+          {!anulando ? (
+            <button
+              type="button"
+              onClick={() => setAnulando(true)}
+              className="text-xs text-red-600 hover:text-red-700 underline underline-offset-2"
+            >
+              Anular este proceso
+            </button>
+          ) : (
+            <div className="text-sm px-4 py-3 rounded-sm border border-red-200 bg-red-50 text-red-800 space-y-2">
+              <p>
+                Anular deja el proceso como <strong>Anulado</strong>: no se borra, conserva su
+                número y su historial, y se cancelan sus invitaciones pendientes. Esto no se puede
+                deshacer.
+              </p>
+              <textarea
+                value={motivoAnulacion}
+                onChange={(e) => setMotivoAnulacion(e.target.value)}
+                rows={2}
+                placeholder="Motivo de la anulación (obligatorio)"
+                className="w-full rounded-sm border border-red-200 bg-white px-3 py-2 text-sm text-numa-800"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={guardandoAnulacion}
+                  onClick={handleAnularProceso}
+                  className="btn-primary text-xs py-1.5 px-3"
+                >
+                  {guardandoAnulacion ? 'Anulando...' : 'Sí, anular proceso'}
+                </button>
+                <button
+                  type="button"
+                  disabled={guardandoAnulacion}
+                  onClick={() => {
+                    setAnulando(false);
+                    setMotivoAnulacion('');
+                  }}
+                  className="btn-secondary text-xs py-1.5 px-3"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {error && (
         <div className="mb-4">
           <ErrorAlert message={error} />
@@ -714,11 +883,13 @@ export default function ProcesoDetallePage() {
                       </div>
 
                       <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold capitalize shrink-0 ${getEstadoCitaBadgeClass(
-                          cita.estado
-                        )}`}
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold capitalize shrink-0 ${
+                          citaEstaAtrasada(cita)
+                            ? 'bg-red-50 text-red-700'
+                            : getEstadoCitaBadgeClass(cita.estado)
+                        }`}
                       >
-                        {cita.estado}
+                        {citaEstaAtrasada(cita) ? 'Atrasada' : cita.estado}
                       </span>
                     </div>
 
@@ -779,9 +950,19 @@ export default function ProcesoDetallePage() {
                       </div>
                     ) : (
                       <div className="mt-4 border-t border-numa-100 pt-3">
-                        <p className="text-sm text-numa-400">
-                          Pendiente de registrar resultado.
-                        </p>
+                        {citaEstaAtrasada(cita) ? (
+                          <p className="text-sm font-medium text-red-700">
+                            Esta invitación ya pasó y no tiene resultado. Registra cómo terminó la reunión.
+                          </p>
+                        ) : cita.estado === 'cancelada' ? (
+                          <p className="text-sm text-numa-400">
+                            Invitación cancelada: no necesita resultado.
+                          </p>
+                        ) : (
+                          <p className="text-sm text-numa-400">
+                            Pendiente de registrar resultado.
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -916,6 +1097,7 @@ export default function ProcesoDetallePage() {
                   onConfirmar={(fecha, hora) => {
                     setInvitacionForm({ ...invitacionForm, fecha, hora });
                     setMostrarCalendarioInvitacion(false);
+                    bajarAObservaciones();
                   }}
                   onCitaActualizada={async () => {
                     // Si se cancela la invitación pendiente desde este
@@ -970,7 +1152,7 @@ export default function ProcesoDetallePage() {
               )}
             </div>
 
-            <div className="mt-4">
+            <div ref={observacionesRef} className="mt-4">
               <TextareaField
                 label="Observaciones"
                 rows={3}
@@ -1019,9 +1201,10 @@ export default function ProcesoDetallePage() {
               <SelectField
                 label="Resultado"
                 value={avanceForm.resultado}
-                onChange={(e) =>
-                  setAvanceForm({ ...avanceForm, resultado: e.target.value })
-                }
+                onChange={(e) => {
+                  setAvanceForm({ ...avanceForm, resultado: e.target.value });
+                  setConfirmandoCierre(false);
+                }}
               >
                 <option value="en_negociacion">En negociación</option>
                 <option value="cerrado_con_acuerdo">Cerrado con acuerdo</option>
@@ -1048,13 +1231,40 @@ export default function ProcesoDetallePage() {
                   </div>
                 )}
 
-                <button
-                  onClick={handleCrearAvance}
-                  disabled={guardandoAvance}
-                  className="btn-primary"
-                >
-                  {guardandoAvance ? 'Guardando...' : 'Registrar avance'}
-                </button>
+                {confirmandoCierre && (
+                  <div className="mb-3 p-3 border border-amber-300 bg-amber-50 rounded-sm text-sm text-amber-900">
+                    Vas a marcar este proceso como{' '}
+                    <strong>{getEstadoProcesoLabel(avanceForm.resultado)}</strong>.
+                    Después de esto ya no podrás cambiar el resultado. ¿Confirmas?
+                  </div>
+                )}
+
+                {confirmandoCierre ? (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleCrearAvance(true)}
+                      disabled={guardandoAvance}
+                      className="btn-primary"
+                    >
+                      {guardandoAvance ? 'Guardando...' : 'Sí, confirmar'}
+                    </button>
+                    <button
+                      onClick={() => setConfirmandoCierre(false)}
+                      disabled={guardandoAvance}
+                      className="btn-ghost"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleCrearAvance()}
+                    disabled={guardandoAvance}
+                    className="btn-primary"
+                  >
+                    {guardandoAvance ? 'Guardando...' : 'Registrar avance'}
+                  </button>
+                )}
               </div>
             </div>
           )}

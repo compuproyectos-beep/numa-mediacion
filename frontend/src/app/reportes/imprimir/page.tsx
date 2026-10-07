@@ -9,19 +9,44 @@ import {
   getReporteProductividad,
   getReporteSucursales,
   getReporteClientes,
+  getReporteOperativo,
   getReporteResumen,
   ResumenReporte
 } from '@/lib/services';
 import { BarrasResumen } from '@/components/ui';
 
-type TipoReporte = 'procesos' | 'productividad' | 'actas' | 'sucursales' | 'clientes';
+type TipoReporte =
+  | 'procesos'
+  | 'productividad'
+  | 'actas'
+  | 'sucursales'
+  | 'clientes'
+  | 'agenda'
+  | 'sin-avance'
+  | 'actas-pendientes';
+
+const ETIQUETAS_CITA: Record<string, string> = {
+  pendiente: 'Pendiente',
+  confirmada: 'Confirmada',
+  realizada: 'Realizada',
+  cancelada: 'Cancelada'
+};
+
+const fmtFecha = (v: any) => {
+  if (!v) return '—';
+  const [y, m, d] = String(v).slice(0, 10).split('-');
+  return `${d}/${m}/${y}`;
+};
 
 const TITULOS: Record<TipoReporte, string> = {
   procesos: 'Reporte de Procesos por Periodo',
   productividad: 'Reporte del Equipo de Mediadores',
   actas: 'Reporte de Actas Finales Emitidas',
   sucursales: 'Reporte por Sucursal',
-  clientes: 'Reporte de Clientes'
+  clientes: 'Reporte de Clientes',
+  agenda: 'Reporte de Agenda de Reuniones',
+  'sin-avance': 'Reporte de Procesos sin Avance',
+  'actas-pendientes': 'Reporte de Actas Pendientes de Subir'
 };
 
 const COLOR_ESTADO: Record<string, string> = {
@@ -36,7 +61,8 @@ const getEstadoLabel = (estado: string) => {
     en_negociacion: 'En negociación',
     cerrado_con_acuerdo: 'Cerrado con acuerdo',
     cerrado_sin_acuerdo: 'Cerrado sin acuerdo',
-    archivado: 'Archivado'
+    archivado: 'Archivado',
+    anulado: 'Anulado'
   };
 
   return labels[estado] || estado;
@@ -69,6 +95,7 @@ function ImprimirReporteContenido() {
   const ciudad_id = searchParams?.get('ciudad_id') || '';
   const sucursal_id = searchParams?.get('sucursal_id') || '';
   const usuario_id = searchParams?.get('usuario_id') || '';
+  const dias_minimo = searchParams?.get('dias_minimo') || '';
 
   const [datos, setDatos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,7 +109,8 @@ function ImprimirReporteContenido() {
       fecha_hasta: fecha_hasta || undefined,
       ciudad_id: ciudad_id || undefined,
       sucursal_id: sucursal_id || undefined,
-      usuario_id: usuario_id || undefined
+      usuario_id: usuario_id || undefined,
+      dias_minimo: dias_minimo || undefined
     };
 
     const cargar =
@@ -94,6 +122,8 @@ function ImprimirReporteContenido() {
         ? getReporteSucursales(filtros)
         : tipo === 'clientes'
         ? getReporteClientes(filtros)
+        : tipo === 'agenda' || tipo === 'sin-avance' || tipo === 'actas-pendientes'
+        ? getReporteOperativo(tipo, filtros)
         : getProcesos(filtros);
 
     cargar
@@ -110,7 +140,11 @@ function ImprimirReporteContenido() {
   }, []);
 
   const rangoFechas =
-    fecha_desde || fecha_hasta
+    tipo === 'actas-pendientes'
+      ? 'Situación al día de hoy'
+      : tipo === 'sin-avance'
+      ? `Procesos en negociación con ${dias_minimo || '7'} o más días sin avance`
+      : fecha_desde || fecha_hasta
       ? `Del ${fecha_desde ? new Date(fecha_desde + 'T00:00:00').toLocaleDateString('es-EC') : '—'} al ${
           fecha_hasta ? new Date(fecha_hasta + 'T00:00:00').toLocaleDateString('es-EC') : '—'
         }`
@@ -267,6 +301,52 @@ function ImprimirReporteContenido() {
                     </tr>
                   </thead>
                   <tbody>
+                {tipo === 'agenda' &&
+                  datos.map((c: any) => (
+                    <tr key={c.id} className="border-b border-numa-100">
+                      <td className="py-1.5 pr-2">{fmtFecha(c.fecha)}</td>
+                      <td className="py-1.5 pr-2">{String(c.hora).slice(0, 5)}</td>
+                      <td className="py-1.5 pr-2 code-text">{c.codigo_proceso}</td>
+                      <td className="py-1.5 pr-2">{c.demandante}</td>
+                      <td className="py-1.5 pr-2">{c.demandado}</td>
+                      <td className="py-1.5 pr-2">{c.mediador || '—'}</td>
+                      <td className="py-1.5 pr-2">{c.sucursal || '—'}</td>
+                      <td className="py-1.5 pr-2">
+                        {c.atrasada ? 'Atrasada' : ETIQUETAS_CITA[c.estado] || c.estado}
+                      </td>
+                    </tr>
+                  ))}
+
+                {tipo === 'sin-avance' &&
+                  datos.map((p: any) => (
+                    <tr key={p.id} className="border-b border-numa-100">
+                      <td className="py-1.5 pr-2 code-text">{p.codigo_proceso}</td>
+                      <td className="py-1.5 pr-2">{p.demandante}</td>
+                      <td className="py-1.5 pr-2">{p.demandado}</td>
+                      <td className="py-1.5 pr-2">{p.mediador || '—'}</td>
+                      <td className="py-1.5 pr-2">{p.sucursal || '—'}</td>
+                      <td className="py-1.5 pr-2">{p.ultimo_avance ? fmtFecha(p.ultimo_avance) : 'Ninguno'}</td>
+                      <td className="py-1.5 pr-2">{p.total_avances}</td>
+                      <td className="py-1.5 pr-2 font-semibold">{p.dias_sin_avance}</td>
+                    </tr>
+                  ))}
+
+                {tipo === 'actas-pendientes' &&
+                  datos.map((p: any) => (
+                    <tr key={p.id} className="border-b border-numa-100">
+                      <td className="py-1.5 pr-2 code-text">{p.codigo_proceso}</td>
+                      <td className="py-1.5 pr-2">{p.demandante}</td>
+                      <td className="py-1.5 pr-2">{p.demandado}</td>
+                      <td className="py-1.5 pr-2">{p.mediador || '—'}</td>
+                      <td className="py-1.5 pr-2">{p.sucursal || '—'}</td>
+                      <td className="py-1.5 pr-2">{fmtFecha(p.fecha_acuerdo)}</td>
+                      <td className="py-1.5 pr-2">{p.horas_transcurridas ?? '—'}</td>
+                      <td className={`py-1.5 pr-2 font-semibold ${p.plazo_vencido ? 'text-red-700' : ''}`}>
+                        {p.plazo_vencido ? 'Vencido' : 'En plazo'}
+                      </td>
+                    </tr>
+                  ))}
+
                     <tr>
                       <td className="py-2 pr-4 text-numa-800 text-sm font-semibold">
                         {resumenProcesos.en_negociacion || 0}
@@ -356,6 +436,7 @@ function ImprimirReporteContenido() {
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Con acuerdo</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sin acuerdo</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Archivados</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Anulados</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas subidas</th>
                       <th className="text-left py-2 pr-2 font-semibold text-red-700">Actas pendientes</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Prom. días</th>
@@ -383,6 +464,7 @@ function ImprimirReporteContenido() {
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Con acuerdo</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sin acuerdo</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Archivados</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Anulados</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas subidas</th>
                       <th className="text-left py-2 pr-2 font-semibold text-red-700">Actas pendientes</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Prom. días</th>
@@ -393,15 +475,55 @@ function ImprimirReporteContenido() {
                     <>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Cliente</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Cédula</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Teléfono</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Email</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Total</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">En negociación</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Con acuerdo</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sin acuerdo</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Archivados</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Anulados</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas subidas</th>
                       <th className="text-left py-2 pr-2 font-semibold text-red-700">Actas pendientes</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Procesos (códigos)</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas (códigos)</th>
+                    </>
+                  )}
+
+                  {tipo === 'agenda' && (
+                    <>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Fecha</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Hora</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Proceso</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Solicitante</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Invitado</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Mediador</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sucursal</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Estado</th>
+                    </>
+                  )}
+
+                  {tipo === 'sin-avance' && (
+                    <>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Proceso</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Solicitante</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Invitado</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Mediador</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sucursal</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Último avance</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Avances</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Días sin avance</th>
+                    </>
+                  )}
+
+                  {tipo === 'actas-pendientes' && (
+                    <>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Proceso</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Solicitante</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Invitado</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Mediador</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sucursal</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Fecha del acuerdo</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Horas transcurridas</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Plazo de 48 h</th>
                     </>
                   )}
                 </tr>
@@ -449,6 +571,7 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2">{m.cerrados_con_acuerdo}</td>
                       <td className="py-1.5 pr-2">{m.cerrados_sin_acuerdo}</td>
                       <td className="py-1.5 pr-2">{m.archivados}</td>
+                      <td className="py-1.5 pr-2">{m.anulados}</td>
                       <td className="py-1.5 pr-2">{m.actas_subidas}</td>
                       <td className="py-1.5 pr-2 font-semibold text-red-700">{m.actas_pendientes}</td>
                       <td className="py-1.5 pr-2">
@@ -484,6 +607,7 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2">{s.cerrados_con_acuerdo}</td>
                       <td className="py-1.5 pr-2">{s.cerrados_sin_acuerdo}</td>
                       <td className="py-1.5 pr-2">{s.archivados}</td>
+                      <td className="py-1.5 pr-2">{s.anulados}</td>
                       <td className="py-1.5 pr-2">{s.actas_subidas}</td>
                       <td className="py-1.5 pr-2 font-semibold text-red-700">{s.actas_pendientes}</td>
                       <td className="py-1.5 pr-2">
@@ -497,15 +621,16 @@ function ImprimirReporteContenido() {
                     <tr key={c.cliente_id} className="border-b border-numa-100">
                       <td className="py-1.5 pr-2">{c.cliente}</td>
                       <td className="py-1.5 pr-2 code-text">{c.cedula || '—'}</td>
-                      <td className="py-1.5 pr-2">{c.telefono || '—'}</td>
-                      <td className="py-1.5 pr-2">{c.email || '—'}</td>
                       <td className="py-1.5 pr-2">{c.total_procesos}</td>
                       <td className="py-1.5 pr-2">{c.en_negociacion}</td>
                       <td className="py-1.5 pr-2">{c.cerrados_con_acuerdo}</td>
                       <td className="py-1.5 pr-2">{c.cerrados_sin_acuerdo}</td>
                       <td className="py-1.5 pr-2">{c.archivados}</td>
+                      <td className="py-1.5 pr-2">{c.anulados}</td>
                       <td className="py-1.5 pr-2">{c.actas_subidas}</td>
                       <td className="py-1.5 pr-2 font-semibold text-red-700">{c.actas_pendientes}</td>
+                      <td className="py-1.5 pr-2 code-text">{c.codigos_procesos || '—'}</td>
+                      <td className="py-1.5 pr-2 code-text">{c.codigos_actas || '—'}</td>
                     </tr>
                   ))}
               </tbody>

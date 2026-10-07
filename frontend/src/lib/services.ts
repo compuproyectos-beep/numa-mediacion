@@ -470,6 +470,12 @@ export async function crearAvanceProceso(
 }
 
 
+export async function anularProceso(procesoId: number, motivo: string): Promise<any> {
+  const res = await api.put(`/procesos/${procesoId}/anular`, null, { params: { motivo } });
+
+  return res.data;
+}
+
 export async function subirActaFinalProceso(
   procesoId: number,
   file: File,
@@ -515,6 +521,7 @@ export interface FiltrosReporte {
   ciudad_id?: string | number;
   sucursal_id?: string | number;
   usuario_id?: string | number;
+  dias_minimo?: string | number;
 }
 
 export interface ResumenReporte {
@@ -571,8 +578,25 @@ export async function getReporteClientes(
 // Descarga el reporte (procesos, productividad, actas, sucursales o
 // clientes) como archivo .xlsx, generado en el backend con los mismos
 // filtros que se ven en pantalla.
+export async function getReporteOperativo(
+  tipo: 'agenda' | 'sin-avance' | 'actas-pendientes',
+  filters?: FiltrosReporte
+): Promise<any[]> {
+  const res = await api.get(`/reportes/operativos/${tipo}`, { params: filters });
+
+  return res.data;
+}
+
 export async function descargarReporteExcel(
-  tipo: 'procesos' | 'productividad' | 'actas' | 'sucursales' | 'clientes',
+  tipo:
+    | 'procesos'
+    | 'productividad'
+    | 'actas'
+    | 'sucursales'
+    | 'clientes'
+    | 'agenda'
+    | 'sin-avance'
+    | 'actas-pendientes',
   filters?: FiltrosReporte
 ): Promise<Blob> {
   const res = await api.get('/reportes/exportar-excel', {

@@ -327,7 +327,7 @@ export default function CalendarioAgendaMediador({
     const partes = [c.demandante, c.demandado].filter(Boolean).join(' vs ');
     const ubicacion = [c.sucursal, c.ciudad].filter(Boolean).join(' — ');
     return [
-      `${c.hora?.slice(0, 5) ?? ''} · ${c.estado}`,
+      `${c.hora?.slice(0, 5) ?? ''} · ${c.estado === 'pendiente' && event.start < new Date() ? 'atrasada (sin resultado)' : c.estado}`,
       c.tema,
       partes,
       ubicacion,
@@ -405,6 +405,9 @@ export default function CalendarioAgendaMediador({
           Agenda de <span className="font-semibold text-numa-700">{mediadorNombre}</span>.
           <span className="inline-flex items-center gap-1 ml-2">
             <span className="w-2 h-2 rounded-full bg-gold-400 inline-block" /> Pendiente
+          </span>
+          <span className="inline-flex items-center gap-1 ml-2">
+            <span className="w-2 h-2 rounded-full bg-orange-600 inline-block" /> Atrasada
           </span>
           <span className="inline-flex items-center gap-1 ml-2">
             <span className="w-2 h-2 rounded-full bg-green-600 inline-block" /> Realizada
@@ -487,8 +490,16 @@ export default function CalendarioAgendaMediador({
             }}
             eventPropGetter={(event: any) => ({
               style: {
-                backgroundColor: colorPorEstado[event.resource.estado] || '#4A6789',
-                color: event.resource.estado === 'pendiente' ? '#0E2338' : '#fff',
+                // Pendiente que ya pasó de fecha = atrasada: naranja fuerte,
+                // para distinguirla de las pendientes que aún están por venir.
+                backgroundColor:
+                  event.resource.estado === 'pendiente' && event.start < new Date()
+                    ? '#EA580C'
+                    : colorPorEstado[event.resource.estado] || '#4A6789',
+                color:
+                  event.resource.estado === 'pendiente' && event.start >= new Date()
+                    ? '#0E2338'
+                    : '#fff',
                 border: 'none',
                 fontSize: '11px',
                 fontWeight: 600,
