@@ -118,14 +118,14 @@ function DetalleProcesos({
     <tr className="border-b border-numa-100">
       <td colSpan={colSpan} className="pb-3 pt-1 pl-4">
         <p className="text-[11px] font-semibold text-numa-700 mb-1">{titulo}</p>
-        <table className="w-full text-[11px] border-collapse">
+        <table className="w-full table-fixed text-[11px] border-collapse">
           <thead>
             <tr className="border-b border-numa-200">
-              <th className={th}>Código de acta</th>
-              <th className={th}>Acta final</th>
-              <th className={th}>Fecha de subida</th>
-              <th className={th}>Proceso</th>
-              <th className={th}>Estado</th>
+              <th className={`${th} w-[15%]`}>Código de acta</th>
+              <th className={`${th} w-[12%]`}>Acta final</th>
+              <th className={`${th} w-[12%]`}>Fecha de subida</th>
+              <th className={`${th} w-[12%]`}>Proceso</th>
+              <th className={`${th} w-[16%]`}>Estado</th>
               <th className={th}>Solicitante vs Invitado</th>
               {mostrarMediador && <th className={th}>Mediador responsable</th>}
             </tr>
@@ -599,7 +599,7 @@ function ImprimirReporteContenido() {
                     <tr key={c.id} className="border-b border-numa-100">
                       <td className="py-1.5 pr-2">{fmtFecha(c.fecha)}</td>
                       <td className="py-1.5 pr-2">{String(c.hora).slice(0, 5)}</td>
-                      <td className="py-1.5 pr-2 code-text">{c.codigo_proceso}</td>
+                      <td className="py-1.5 pr-2 code-text whitespace-nowrap">{c.codigo_proceso}</td>
                       <td className="py-1.5 pr-2">{c.demandante}</td>
                       <td className="py-1.5 pr-2">{c.demandado}</td>
                       <td className="py-1.5 pr-2">{c.mediador || '—'}</td>
@@ -613,7 +613,7 @@ function ImprimirReporteContenido() {
                 {tipo === 'sin-avance' &&
                   datos.map((p: any) => (
                     <tr key={p.id} className="border-b border-numa-100">
-                      <td className="py-1.5 pr-2 code-text">{p.codigo_proceso}</td>
+                      <td className="py-1.5 pr-2 code-text whitespace-nowrap">{p.codigo_proceso}</td>
                       <td className="py-1.5 pr-2">{p.demandante}</td>
                       <td className="py-1.5 pr-2">{p.demandado}</td>
                       <td className="py-1.5 pr-2">{p.mediador || '—'}</td>
@@ -627,7 +627,7 @@ function ImprimirReporteContenido() {
                 {tipo === 'actas-pendientes' &&
                   datos.map((p: any) => (
                     <tr key={p.id} className="border-b border-numa-100">
-                      <td className="py-1.5 pr-2 code-text">{p.codigo_proceso}</td>
+                      <td className="py-1.5 pr-2 code-text whitespace-nowrap">{p.codigo_proceso}</td>
                       <td className="py-1.5 pr-2">{p.demandante}</td>
                       <td className="py-1.5 pr-2">{p.demandado}</td>
                       <td className="py-1.5 pr-2">{p.mediador || '—'}</td>
@@ -643,7 +643,7 @@ function ImprimirReporteContenido() {
                 {tipo === 'procesos' &&
                   datos.map((p: any) => (
                     <tr key={p.id} className="border-b border-numa-100">
-                      <td className="py-1.5 pr-2 code-text">{p.codigo_proceso}</td>
+                      <td className="py-1.5 pr-2 code-text whitespace-nowrap">{p.codigo_proceso}</td>
                       <td className="py-1.5 pr-2">{getEstadoLabel(p.estado)}</td>
                       <td className="py-1.5 pr-2">
                         {p.estado === 'cerrado_con_acuerdo' && !p.finalizado
@@ -696,8 +696,8 @@ function ImprimirReporteContenido() {
                 {tipo === 'actas' &&
                   datos.map((a: any) => (
                     <tr key={a.id} className="border-b border-numa-100">
-                      <td className="py-1.5 pr-2 code-text">{a.codigo_acta}</td>
-                      <td className="py-1.5 pr-2 code-text">{a.codigo_proceso}</td>
+                      <td className="py-1.5 pr-2 code-text whitespace-nowrap">{a.codigo_acta}</td>
+                      <td className="py-1.5 pr-2 code-text whitespace-nowrap">{a.codigo_proceso}</td>
                       <td className="py-1.5 pr-2">{a.demandante}</td>
                       <td className="py-1.5 pr-2">{a.demandado}</td>
                       <td className="py-1.5 pr-2">{a.sucursal ? `${a.sucursal}${a.ciudad ? ` (${a.ciudad})` : ''}` : '—'}</td>
@@ -737,7 +737,7 @@ function ImprimirReporteContenido() {
                     <Fragment key={c.cliente_id}>
                     <tr className="border-b border-numa-100">
                       <td className="py-1.5 pr-2">{c.cliente}</td>
-                      <td className="py-1.5 pr-2 code-text">{c.cedula || '—'}</td>
+                      <td className="py-1.5 pr-2 code-text whitespace-nowrap">{c.cedula || '—'}</td>
                       <td className="py-1.5 pr-2">{c.actas_subidas}</td>
                       <td className="py-1.5 pr-2 font-semibold text-red-700">{c.actas_pendientes}</td>
                       <td className="py-1.5 pr-2">{c.total_procesos}</td>

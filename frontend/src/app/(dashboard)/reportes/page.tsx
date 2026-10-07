@@ -956,7 +956,11 @@ export default function ReportesPage() {
                         <td className="table-cell">{p.demandado}</td>
                         <td className="table-cell">{p.ciudad || '—'}</td>
                         <td className="table-cell">{p.sucursal ? labelSucursal(p) : "—"}</td>
-                        {admin && <td className="table-cell">{p.usuario || '—'}</td>}
+                        {admin && (
+                          <td className="table-cell max-w-[170px] truncate" title={p.usuario}>
+                            {p.usuario || '—'}
+                          </td>
+                        )}
                         <td className="table-cell max-w-[200px] truncate" title={p.tema}>{p.tema}</td>
                         <td className="table-cell">
                           {p.fecha_creacion

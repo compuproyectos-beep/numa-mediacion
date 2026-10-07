@@ -310,7 +310,7 @@ export function BarrasResumen({
     <div className={compacto ? 'grid grid-cols-2 gap-x-8 gap-y-1' : 'space-y-2'}>
       {items.map((it) => (
         <div key={it.label} className="flex items-center gap-2">
-          <span className={`${compacto ? 'w-28' : 'w-36'} shrink-0 text-xs text-numa-600 truncate`}>
+          <span className={`${compacto ? 'w-40' : 'w-36'} shrink-0 text-xs text-numa-600 truncate`}>
             {it.label}
           </span>
           <div
