@@ -161,13 +161,13 @@ export default function HomePage() {
                 fill
                 aria-hidden="true"
                 sizes="100vw"
-                className="object-cover scale-110 blur-2xl opacity-60"
+                className="object-cover opacity-50 sm:scale-110 sm:blur-2xl sm:opacity-60"
               />
 
               {/* Foto completa, sin recortar — con un margen fijo para que
                   no quede pegada al borde ni se sienta tan grande, aunque
                   su proporción case casi exacto con la del banner. */}
-              <div className="absolute inset-x-8 sm:inset-x-16 lg:inset-x-24 inset-y-10 sm:inset-y-14 lg:inset-y-16">
+              <div className="hidden sm:block absolute inset-x-8 sm:inset-x-16 lg:inset-x-24 inset-y-10 sm:inset-y-14 lg:inset-y-16">
                 <Image
                   src={img.src}
                   alt={img.alt}
@@ -182,6 +182,8 @@ export default function HomePage() {
 
           {/* Degradado leve, solo para que el texto de la izquierda se lea
               bien — ya no oscurece toda la foto. Tono neutro, no azulado. */}
+          {/* En celular la foto va de fondo (sin recuadro encima del texto), así que se oscurece un poco más para que el título se lea. */}
+          <div className="absolute inset-0 bg-[#0B141C]/45 sm:hidden" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#0B141C]/75 via-[#0B141C]/25 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0B141C]/60 via-transparent to-[#0B141C]/10" />
         </div>
@@ -315,7 +317,7 @@ export default function HomePage() {
               {[
                 { num: '1,000+', label: 'Casos resueltos' },
                 { num: '10+', label: 'Años de experiencia' },
-                { num: '8', label: 'Sucursales activas' },
+                { num: '5', label: 'Sucursales activas' },
                 { num: '98%', label: 'Satisfacción de clientes' },
               ].map((stat) => (
                 <div

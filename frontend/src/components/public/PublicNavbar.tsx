@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { Menu, X, ChevronDown, Phone, Mail, MapPin } from 'lucide-react';
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
+import FacebookIcon from '@/components/icons/FacebookIcon';
 import RotatingLogo from '@/components/public/RotatingLogo';
 import api from '@/lib/api';
 
@@ -11,6 +12,16 @@ export default function PublicNavbar() {
   const [open, setOpen] = useState(false);
   const [sedes, setSedes] = useState<any[]>([]);
   const [openSedes, setOpenSedes] = useState(false);
+  // Al bajar, la franja de contacto se esconde y queda solo el menú, para no
+  // quitar espacio de lectura en pantallas bajitas.
+  const [bajo, setBajo] = useState(false);
+
+  useEffect(() => {
+    const alScroll = () => setBajo(window.scrollY > 40);
+    alScroll();
+    window.addEventListener('scroll', alScroll, { passive: true });
+    return () => window.removeEventListener('scroll', alScroll);
+  }, []);
 
   const sedesRef = useRef<HTMLDivElement>(null);
   // La lista de sedes del menú móvil vive en otro bloque del DOM que la de
@@ -71,7 +82,11 @@ export default function PublicNavbar() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0B141C]/95 backdrop-blur-sm border-b border-numa-800">
       {/* Barra de contacto — siempre visible, sin necesidad de bajar hasta el pie de página */}
-      <div className="hidden sm:block bg-[#101D28] border-b border-numa-800">
+      <div
+        className={`hidden sm:block bg-[#101D28] border-numa-800 overflow-hidden transition-all duration-300 ${
+          bajo ? 'max-h-0 border-b-0' : 'max-h-12 border-b'
+        }`}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-12 text-sm text-white">
             <div className="flex items-center gap-7">
@@ -86,7 +101,18 @@ export default function PublicNavbar() {
               </span>
             </div>
 
-            <a
+            <div className="flex items-center gap-6">
+              <a
+                href="https://www.facebook.com/profile.php?id=61594906720744"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-white hover:text-gold-400 transition-colors font-medium"
+              >
+                <FacebookIcon className="w-4 h-4" />
+                Facebook
+              </a>
+
+              <a
               href="https://wa.me/593981790092?text=Hola%2C%20quisiera%20informaci%C3%B3n%20sobre%20mediaci%C3%B3n"
               target="_blank"
               rel="noopener noreferrer"
@@ -95,6 +121,7 @@ export default function PublicNavbar() {
               <WhatsAppIcon className="w-4 h-4" />
               WhatsApp
             </a>
+            </div>
           </div>
         </div>
       </div>
