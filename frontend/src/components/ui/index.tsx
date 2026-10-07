@@ -294,24 +294,39 @@ export interface BarraItem {
   color?: string;
 }
 
-export function BarrasResumen({ items }: { items: BarraItem[] }) {
+export function BarrasResumen({
+  items,
+  compacto = false
+}: {
+  items: BarraItem[];
+  compacto?: boolean;
+}) {
   const max = Math.max(...items.map((i) => i.valor), 1);
+  // Los navegadores quitan los colores de fondo al imprimir; esto fuerza que
+  // las barras sí salgan en el PDF / hoja impresa.
+  const forzarColor = { WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' } as React.CSSProperties;
 
   return (
-    <div className="space-y-2">
+    <div className={compacto ? 'grid grid-cols-2 gap-x-8 gap-y-1' : 'space-y-2'}>
       {items.map((it) => (
-        <div key={it.label} className="flex items-center gap-3">
-          <span className="w-36 shrink-0 text-xs text-numa-600 truncate">{it.label}</span>
-          <div className="flex-1 h-2.5 bg-numa-100 rounded-full overflow-hidden">
+        <div key={it.label} className="flex items-center gap-2">
+          <span className={`${compacto ? 'w-28' : 'w-36'} shrink-0 text-xs text-numa-600 truncate`}>
+            {it.label}
+          </span>
+          <div
+            className={`flex-1 ${compacto ? 'h-1.5' : 'h-2.5'} bg-numa-100 rounded-full overflow-hidden`}
+            style={forzarColor}
+          >
             <div
               className="h-full rounded-full"
               style={{
+                ...forzarColor,
                 width: `${it.valor > 0 ? Math.max((it.valor / max) * 100, 3) : 0}%`,
                 backgroundColor: it.color || '#E0B84A',
               }}
             />
           </div>
-          <span className="w-8 shrink-0 text-xs font-semibold text-numa-800 text-right">
+          <span className="w-6 shrink-0 text-xs font-semibold text-numa-800 text-right">
             {it.valor}
           </span>
         </div>

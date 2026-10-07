@@ -423,33 +423,33 @@ function ImprimirReporteContenido() {
 
               {/* El gráfico de actas va primero: es el corazón del sistema. */}
               {barrasActas && barrasActas.length > 0 && (
-                <div className="mb-6 print:break-inside-avoid">
+                <div className="mb-3 print:break-inside-avoid">
                   <p className="text-[11px] font-semibold text-numa-700 uppercase tracking-wide mb-2">
                     {tipo === 'procesos'
                       ? 'Actas'
                       : 'Actas subidas por ' + (tipo === 'productividad' ? 'mediador' : 'sucursal')}
                   </p>
-                  <BarrasResumen items={barrasActas} />
+                  <BarrasResumen compacto items={barrasActas} />
                 </div>
               )}
 
               {barrasActasPendientes && barrasActasPendientes.length > 0 && (
-                <div className="mb-6 print:break-inside-avoid">
+                <div className="mb-3 print:break-inside-avoid">
                   <p className="text-[11px] font-semibold text-red-700 uppercase tracking-wide mb-2">
                     Actas pendientes de subir por {tipo === 'productividad' ? 'mediador' : 'sucursal'}
                   </p>
-                  <BarrasResumen items={barrasActasPendientes} />
+                  <BarrasResumen compacto items={barrasActasPendientes} />
                 </div>
               )}
 
               {barrasResumen && barrasResumen.length > 0 && (
-                <div className="mb-6 print:break-inside-avoid">
+                <div className="mb-3 print:break-inside-avoid">
                   <p className="text-[11px] font-semibold text-numa-700 uppercase tracking-wide mb-2">
                     {tipo === 'procesos'
                       ? 'Procesos por estado'
                       : 'Procesos por ' + (tipo === 'productividad' ? 'mediador' : tipo === 'sucursales' ? 'sucursal' : 'cliente')}
                   </p>
-                  <BarrasResumen items={barrasResumen} />
+                  <BarrasResumen compacto items={barrasResumen} />
                 </div>
               )}
 

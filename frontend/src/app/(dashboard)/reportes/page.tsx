@@ -957,7 +957,7 @@ export default function ReportesPage() {
                         <td className="table-cell">{p.ciudad || '—'}</td>
                         <td className="table-cell">{p.sucursal ? labelSucursal(p) : "—"}</td>
                         {admin && <td className="table-cell">{p.usuario || '—'}</td>}
-                        <td className="table-cell max-w-xs truncate">{p.tema}</td>
+                        <td className="table-cell max-w-[200px] truncate" title={p.tema}>{p.tema}</td>
                         <td className="table-cell">
                           {p.fecha_creacion
                             ? new Date(p.fecha_creacion).toLocaleDateString('es-EC')
