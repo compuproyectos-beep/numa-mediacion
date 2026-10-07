@@ -2840,6 +2840,7 @@ def obtener_procesos_mediacion(
                 p.usuario_id,
                 p.motivo_anulacion,
                 af.codigo_acta AS codigo_acta,
+                af.fecha_subida AS fecha_subida_acta,
                 -- Id del proceso que, entre los pendientes de acta de este
                 -- mismo mediador, es el que está bloqueando a los demás
                 -- ahora mismo (el más antiguo que sigue dentro de sus 48

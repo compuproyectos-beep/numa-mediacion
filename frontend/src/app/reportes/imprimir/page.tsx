@@ -99,6 +99,19 @@ function DetalleProcesos({
 }) {
   if (!filas.length) return null;
 
+  // Primero las que ya tienen acta subida (la más reciente arriba), luego las
+  // pendientes de acta y por último las que aún no tienen acta.
+  const rango = (p: any) =>
+    p.finalizado ? 0 : p.estado === 'cerrado_con_acuerdo' ? 1 : 2;
+  filas = [...filas].sort((a: any, b: any) => {
+    const r = rango(a) - rango(b);
+    if (r !== 0) return r;
+    if (rango(a) === 0) {
+      return (b.fecha_subida_acta || '').localeCompare(a.fecha_subida_acta || '');
+    }
+    return Number(b.id) - Number(a.id);
+  });
+
   const th = 'text-left py-1 pr-2 font-semibold text-numa-600';
 
   return (
@@ -110,6 +123,7 @@ function DetalleProcesos({
             <tr className="border-b border-numa-200">
               <th className={th}>Código de acta</th>
               <th className={th}>Acta final</th>
+              <th className={th}>Fecha de subida</th>
               <th className={th}>Proceso</th>
               <th className={th}>Estado</th>
               <th className={th}>Solicitante vs Invitado</th>
@@ -125,6 +139,11 @@ function DetalleProcesos({
                     ? 'Acta pendiente'
                     : p.finalizado
                     ? 'Acta subida'
+                    : '—'}
+                </td>
+                <td className="py-0.5 pr-2">
+                  {p.fecha_subida_acta
+                    ? new Date(p.fecha_subida_acta).toLocaleDateString('es-EC', { timeZone: 'America/Guayaquil' })
                     : '—'}
                 </td>
                 <td className="py-0.5 pr-2 code-text">{p.codigo_proceso}</td>
