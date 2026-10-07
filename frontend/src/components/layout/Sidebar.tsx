@@ -55,7 +55,11 @@ export default function Sidebar() {
     if (!userMenuOpen) return;
 
     const cerrarSiEsAfuera = (e: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+      // El menú del usuario existe dos veces en la página (barra de escritorio
+      // y menú de celular), y un mismo ref solo apunta a una de las dos. Por eso
+      // antes el clic en "Cerrar sesión" se tomaba como "clic afuera", el menú se
+      // cerraba al presionar el mouse y el clic nunca llegaba al botón.
+      if (!(e.target as HTMLElement | null)?.closest?.('[data-user-menu]')) {
         setUserMenuOpen(false);
       }
     };
@@ -118,7 +122,7 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div ref={userMenuRef} className="relative px-3 pb-3 border-t border-numa-800 pt-3 shrink-0">
+      <div ref={userMenuRef} data-user-menu className="relative px-3 pb-3 border-t border-numa-800 pt-3 shrink-0">
         {userMenuOpen && (
           <div className="absolute bottom-full left-3 right-3 mb-2 bg-numa-900 border border-numa-800 rounded-sm shadow-xl overflow-hidden">
             <Link
