@@ -653,7 +653,7 @@ function ImprimirReporteContenido() {
                       </td>
                       <td className="py-1.5 pr-2">{p.demandante}</td>
                       <td className="py-1.5 pr-2">{p.demandado}</td>
-                      <td className="py-1.5 pr-2">{p.sucursal || '—'}</td>
+                      <td className="py-1.5 pr-2">{p.sucursal ? `${p.sucursal}${p.ciudad ? ` (${p.ciudad})` : ''}` : '—'}</td>
                       <td className="py-1.5 pr-2">{p.usuario || '—'}</td>
                       <td className="py-1.5 pr-2">
                         {p.fecha_creacion
