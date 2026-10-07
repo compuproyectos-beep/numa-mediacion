@@ -94,6 +94,24 @@
     background-color: #F3F6FA;
   }
 
+  /* Versión compacta para tablas muy anchas (Reportes): letra y espaciado
+     más pequeños para que se haga menos scroll horizontal. */
+  .tabla-compacta .table-header {
+    @apply text-[10px] py-2 px-2.5 tracking-wide;
+  }
+
+  .tabla-compacta .table-cell {
+    @apply py-2 px-2.5 text-[13px];
+  }
+
+  .tabla-compacta .code-text {
+    @apply text-xs;
+  }
+
+  .tabla-compacta .badge {
+    @apply px-2 text-[11px];
+  }
+
   .code-text {
     @apply font-mono text-[13px] tracking-tight;
   }

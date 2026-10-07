@@ -712,7 +712,7 @@ export default function ReportesPage() {
             {/* La tabla tiene su propio alto máximo: así la barra de desplazamiento
                 horizontal queda siempre visible al pie de la ventana (no al final
                 de toda la lista), y los encabezados se quedan fijos arriba. */}
-            <div className="overflow-auto max-h-[70vh]">
+            <div className="overflow-auto max-h-[70vh] tabla-compacta">
               <table className="min-w-full">
                 <thead className="bg-numa-50 border-b border-numa-100 sticky top-0 z-10 [&_th]:bg-numa-50">
                   <tr>
