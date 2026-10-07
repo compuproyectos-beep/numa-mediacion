@@ -472,8 +472,8 @@ function ImprimirReporteContenido() {
                 {tipo === 'clientes' && (
                   <tr>
                     <th colSpan={2}></th>
-                    <th colSpan={3} className="text-left pt-2 pb-0.5 text-[11px] uppercase tracking-wide font-bold text-numa-800 border-b border-numa-300">Actas</th>
-                    <th colSpan={7} className="text-left pt-2 pb-0.5 text-[11px] uppercase tracking-wide font-bold text-numa-800 border-b border-numa-300">Procesos</th>
+                    <th colSpan={2} className="text-left pt-2 pb-0.5 text-[11px] uppercase tracking-wide font-bold text-numa-800 border-b border-numa-300">Actas</th>
+                    <th colSpan={6} className="text-left pt-2 pb-0.5 text-[11px] uppercase tracking-wide font-bold text-numa-800 border-b border-numa-300">Procesos</th>
                   </tr>
                 )}
                 <tr className="border-b-2 border-numa-300">
@@ -543,14 +543,12 @@ function ImprimirReporteContenido() {
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Cédula</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas subidas</th>
                       <th className="text-left py-2 pr-2 font-semibold text-red-700">Actas pendientes</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas (códigos)</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Total</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">En negociación</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Con acuerdo</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sin acuerdo</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Archivados</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Anulados</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Procesos (códigos)</th>
                     </>
                   )}
 
@@ -702,7 +700,7 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2 code-text">{a.codigo_proceso}</td>
                       <td className="py-1.5 pr-2">{a.demandante}</td>
                       <td className="py-1.5 pr-2">{a.demandado}</td>
-                      <td className="py-1.5 pr-2">{a.sucursal || '—'}</td>
+                      <td className="py-1.5 pr-2">{a.sucursal ? `${a.sucursal}${a.ciudad ? ` (${a.ciudad})` : ''}` : '—'}</td>
                       <td className="py-1.5 pr-2">{a.usuario || '—'}</td>
                       <td className="py-1.5 pr-2">
                         {a.fecha_subida
@@ -742,16 +740,14 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2 code-text">{c.cedula || '—'}</td>
                       <td className="py-1.5 pr-2">{c.actas_subidas}</td>
                       <td className="py-1.5 pr-2 font-semibold text-red-700">{c.actas_pendientes}</td>
-                      <td className="py-1.5 pr-2 code-text">{c.codigos_actas || '—'}</td>
                       <td className="py-1.5 pr-2">{c.total_procesos}</td>
                       <td className="py-1.5 pr-2">{c.en_negociacion}</td>
                       <td className="py-1.5 pr-2">{c.cerrados_con_acuerdo}</td>
                       <td className="py-1.5 pr-2">{c.cerrados_sin_acuerdo}</td>
                       <td className="py-1.5 pr-2">{c.archivados}</td>
                       <td className="py-1.5 pr-2">{c.anulados}</td>
-                      <td className="py-1.5 pr-2 code-text">{c.codigos_procesos || '—'}</td>
                     </tr>
-                    <DetalleProcesos colSpan={12} titulo={`Procesos de ${c.cliente}`} mostrarMediador={true} filas={procesosDetalle.filter((p: any) => p.demandante_cedula === c.cedula || p.demandado_cedula === c.cedula)} />
+                    <DetalleProcesos colSpan={10} titulo={`Procesos de ${c.cliente}`} mostrarMediador={true} filas={procesosDetalle.filter((p: any) => p.demandante_cedula === c.cedula || p.demandado_cedula === c.cedula)} />
                     </Fragment>
                   ))}
               </tbody>

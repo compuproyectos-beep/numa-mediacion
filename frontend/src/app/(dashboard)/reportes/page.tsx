@@ -955,7 +955,7 @@ export default function ReportesPage() {
                         <td className="table-cell">{p.demandante}</td>
                         <td className="table-cell">{p.demandado}</td>
                         <td className="table-cell">{p.ciudad || '—'}</td>
-                        <td className="table-cell">{p.sucursal || '—'}</td>
+                        <td className="table-cell">{p.sucursal ? labelSucursal(p) : "—"}</td>
                         {admin && <td className="table-cell">{p.usuario || '—'}</td>}
                         <td className="table-cell max-w-xs truncate">{p.tema}</td>
                         <td className="table-cell">
@@ -990,7 +990,7 @@ export default function ReportesPage() {
                               : '—'}
                           </td>
                           <td className="table-cell">{m.ciudad || '—'}</td>
-                          <td className="table-cell">{m.sucursal || '—'}</td>
+                          <td className="table-cell">{m.sucursal ? labelSucursal(m) : "—"}</td>
                           <td className="table-cell">{m.total_procesos}</td>
                           <td className="table-cell">{m.en_negociacion}</td>
                           <td className="table-cell">{m.cerrados_con_acuerdo}</td>
@@ -1101,7 +1101,7 @@ export default function ReportesPage() {
                         <td className="table-cell">{a.demandante}</td>
                         <td className="table-cell">{a.demandado}</td>
                         <td className="table-cell">{a.ciudad || '—'}</td>
-                        <td className="table-cell">{a.sucursal || '—'}</td>
+                        <td className="table-cell">{a.sucursal ? labelSucursal(a) : "—"}</td>
                         {admin && <td className="table-cell">{a.usuario || '—'}</td>}
                         <td className="table-cell">
                           {a.fecha_subida
