@@ -86,13 +86,36 @@ export default function ImprimirReportePage() {
   );
 }
 
-function DetalleProcesos({ filas, colSpan }: { filas: any[]; colSpan: number }) {
+function DetalleProcesos({
+  filas,
+  colSpan,
+  titulo,
+  mostrarMediador
+}: {
+  filas: any[];
+  colSpan: number;
+  titulo: string;
+  mostrarMediador: boolean;
+}) {
   if (!filas.length) return null;
+
+  const th = 'text-left py-1 pr-2 font-semibold text-numa-600';
 
   return (
     <tr className="border-b border-numa-100">
       <td colSpan={colSpan} className="pb-3 pt-1 pl-4">
+        <p className="text-[11px] font-semibold text-numa-700 mb-1">{titulo}</p>
         <table className="w-full text-[11px] border-collapse">
+          <thead>
+            <tr className="border-b border-numa-200">
+              <th className={th}>Proceso</th>
+              <th className={th}>Estado</th>
+              <th className={th}>Acta final</th>
+              <th className={th}>Código de acta</th>
+              <th className={th}>Solicitante vs Invitado</th>
+              {mostrarMediador && <th className={th}>Mediador responsable</th>}
+            </tr>
+          </thead>
           <tbody>
             {filas.map((p: any) => (
               <tr key={p.id} className="text-numa-600">
@@ -103,12 +126,13 @@ function DetalleProcesos({ filas, colSpan }: { filas: any[]; colSpan: number }) 
                     ? 'Acta pendiente'
                     : p.finalizado
                     ? 'Acta subida'
-                    : ''}
+                    : '—'}
                 </td>
+                <td className="py-0.5 pr-2 code-text">{p.codigo_acta || '—'}</td>
                 <td className="py-0.5 pr-2">
                   {p.demandante} vs {p.demandado}
                 </td>
-                <td className="py-0.5 pr-2">{p.usuario || ''}</td>
+                {mostrarMediador && <td className="py-0.5 pr-2">{p.usuario || '—'}</td>}
               </tr>
             ))}
           </tbody>
@@ -536,7 +560,7 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2">{c.demandante}</td>
                       <td className="py-1.5 pr-2">{c.demandado}</td>
                       <td className="py-1.5 pr-2">{c.mediador || '—'}</td>
-                      <td className="py-1.5 pr-2">{c.sucursal || '—'}</td>
+                      <td className="py-1.5 pr-2">{c.sucursal ? `${c.sucursal}${c.ciudad ? ` (${c.ciudad})` : ''}` : '—'}</td>
                       <td className="py-1.5 pr-2">
                         {c.atrasada ? 'Atrasada' : ETIQUETAS_CITA[c.estado] || c.estado}
                       </td>
@@ -550,7 +574,7 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2">{p.demandante}</td>
                       <td className="py-1.5 pr-2">{p.demandado}</td>
                       <td className="py-1.5 pr-2">{p.mediador || '—'}</td>
-                      <td className="py-1.5 pr-2">{p.sucursal || '—'}</td>
+                      <td className="py-1.5 pr-2">{p.sucursal ? `${p.sucursal}${p.ciudad ? ` (${p.ciudad})` : ''}` : '—'}</td>
                       <td className="py-1.5 pr-2">{p.ultimo_avance ? fmtFecha(p.ultimo_avance) : 'Ninguno'}</td>
                       <td className="py-1.5 pr-2">{p.total_avances}</td>
                       <td className="py-1.5 pr-2 font-semibold">{p.dias_sin_avance}</td>
@@ -564,7 +588,7 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2">{p.demandante}</td>
                       <td className="py-1.5 pr-2">{p.demandado}</td>
                       <td className="py-1.5 pr-2">{p.mediador || '—'}</td>
-                      <td className="py-1.5 pr-2">{p.sucursal || '—'}</td>
+                      <td className="py-1.5 pr-2">{p.sucursal ? `${p.sucursal}${p.ciudad ? ` (${p.ciudad})` : ''}` : '—'}</td>
                       <td className="py-1.5 pr-2">{fmtFecha(p.fecha_acuerdo)}</td>
                       <td className="py-1.5 pr-2">{p.horas_transcurridas ?? '—'}</td>
                       <td className={`py-1.5 pr-2 font-semibold ${p.plazo_vencido ? 'text-red-700' : ''}`}>
@@ -609,7 +633,7 @@ function ImprimirReporteContenido() {
                           ? new Date(m.fecha_ingreso).toLocaleDateString('es-EC')
                           : '—'}
                       </td>
-                      <td className="py-1.5 pr-2">{m.sucursal || '—'}</td>
+                      <td className="py-1.5 pr-2">{m.sucursal ? `${m.sucursal}${m.ciudad ? ` (${m.ciudad})` : ''}` : '—'}</td>
                       <td className="py-1.5 pr-2">{m.total_procesos}</td>
                       <td className="py-1.5 pr-2">{m.en_negociacion}</td>
                       <td className="py-1.5 pr-2">{m.cerrados_con_acuerdo}</td>
@@ -622,7 +646,7 @@ function ImprimirReporteContenido() {
                         {m.promedio_dias_cierre != null ? `${m.promedio_dias_cierre}` : '—'}
                       </td>
                     </tr>
-                    <DetalleProcesos colSpan={13} filas={procesosDetalle.filter((p: any) => p.usuario_id === m.usuario_id)} />
+                    <DetalleProcesos colSpan={14} titulo={`Procesos de ${m.mediador}`} mostrarMediador={false} filas={procesosDetalle.filter((p: any) => Number(p.usuario_id) === Number(m.usuario_id))} />
                     </Fragment>
                   ))}
 
@@ -661,7 +685,7 @@ function ImprimirReporteContenido() {
                         {s.promedio_dias_cierre != null ? `${s.promedio_dias_cierre}` : '—'}
                       </td>
                     </tr>
-                    <DetalleProcesos colSpan={11} filas={procesosDetalle.filter((p: any) => p.sucursal_id === s.sucursal_id)} />
+                    <DetalleProcesos colSpan={11} titulo={`Procesos de la sucursal ${s.sucursal} (${s.ciudad})`} mostrarMediador={true} filas={procesosDetalle.filter((p: any) => Number(p.sucursal_id) === Number(s.sucursal_id))} />
                     </Fragment>
                   ))}
 
@@ -682,7 +706,7 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2 code-text">{c.codigos_procesos || '—'}</td>
                       <td className="py-1.5 pr-2 code-text">{c.codigos_actas || '—'}</td>
                     </tr>
-                    <DetalleProcesos colSpan={11} filas={procesosDetalle.filter((p: any) => p.demandante_cedula === c.cedula || p.demandado_cedula === c.cedula)} />
+                    <DetalleProcesos colSpan={12} titulo={`Procesos de ${c.cliente}`} mostrarMediador={true} filas={procesosDetalle.filter((p: any) => p.demandante_cedula === c.cedula || p.demandado_cedula === c.cedula)} />
                     </Fragment>
                   ))}
               </tbody>

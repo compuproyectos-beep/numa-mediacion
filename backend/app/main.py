@@ -2839,6 +2839,7 @@ def obtener_procesos_mediacion(
                 p.acta_final_id,
                 p.usuario_id,
                 p.motivo_anulacion,
+                af.codigo_acta AS codigo_acta,
                 -- Id del proceso que, entre los pendientes de acta de este
                 -- mismo mediador, es el que está bloqueando a los demás
                 -- ahora mismo (el más antiguo que sigue dentro de sus 48
@@ -2878,6 +2879,7 @@ def obtener_procesos_mediacion(
             JOIN sucursales s ON p.sucursal_id = s.id
             JOIN ciudades ci ON s.ciudad_id = ci.id
             JOIN usuarios u ON p.usuario_id = u.id
+            LEFT JOIN actas_proceso af ON af.id = p.acta_final_id
             WHERE 1=1
         """
 

@@ -855,7 +855,7 @@ export default function ReportesPage() {
                         <td className="table-cell">{c.demandante}</td>
                         <td className="table-cell">{c.demandado}</td>
                         {admin && <td className="table-cell">{c.mediador}</td>}
-                        <td className="table-cell">{c.sucursal}</td>
+                        <td className="table-cell">{labelSucursal(c)}</td>
                         <td className="table-cell">
                           {c.atrasada ? (
                             <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-medium">
@@ -879,7 +879,7 @@ export default function ReportesPage() {
                         <td className="table-cell">{p.demandante}</td>
                         <td className="table-cell">{p.demandado}</td>
                         {admin && <td className="table-cell">{p.mediador}</td>}
-                        <td className="table-cell">{p.sucursal}</td>
+                        <td className="table-cell">{labelSucursal(p)}</td>
                         <td className="table-cell">
                           {p.ultimo_avance ? formatoFecha(p.ultimo_avance) : 'Ninguno'}
                         </td>
@@ -909,7 +909,7 @@ export default function ReportesPage() {
                         <td className="table-cell">{p.demandante}</td>
                         <td className="table-cell">{p.demandado}</td>
                         {admin && <td className="table-cell">{p.mediador}</td>}
-                        <td className="table-cell">{p.sucursal}</td>
+                        <td className="table-cell">{labelSucursal(p)}</td>
                         <td className="table-cell">{formatoFecha(p.fecha_acuerdo)}</td>
                         <td className="table-cell">
                           {p.horas_transcurridas == null
