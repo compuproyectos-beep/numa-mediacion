@@ -655,9 +655,12 @@ export default function ProcesoDetallePage() {
         Volver a Procesos
       </button>
 
-      <div className="page-header items-start">
+      {/* En celular el título y los botones van uno debajo del otro (para que el
+          código y los nombres no queden apretados); desde pantallas medianas
+          vuelven a ir lado a lado como antes. */}
+      <div className="page-header items-start flex-col gap-3 sm:flex-row sm:gap-0">
         <div>
-          <h1 className="section-title">{proceso.codigo_proceso}</h1>
+          <h1 className="section-title whitespace-nowrap">{proceso.codigo_proceso}</h1>
           <p className="text-numa-700 mt-1">
             {proceso.demandante} vs {proceso.demandado}
           </p>
@@ -666,7 +669,7 @@ export default function ProcesoDetallePage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <span
             className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${getEstadoProcesoClass(
               proceso.estado
