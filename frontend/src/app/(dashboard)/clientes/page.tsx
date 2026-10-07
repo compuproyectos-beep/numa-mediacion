@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { Plus, Pencil, Search, FolderOpen } from 'lucide-react';
+import { Plus, Pencil, Search } from 'lucide-react';
 import {
   Modal, Spinner, EmptyState,
   InputField, SelectField, PageHeader, ErrorAlert
@@ -346,12 +345,6 @@ export default function ClientesPage() {
                           <Pencil className="w-3 h-3" /> Editar
                         </button>
 
-                        <Link
-                          href={`/procesos?q=${encodeURIComponent(c.cedula)}`}
-                          className="btn-ghost text-xs py-1 px-2"
-                        >
-                          <FolderOpen className="w-3 h-3" /> Ver procesos
-                        </Link>
                       </div>
                     </td>
                   </tr>
