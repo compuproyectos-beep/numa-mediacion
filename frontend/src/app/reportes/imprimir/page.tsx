@@ -414,18 +414,23 @@ function ImprimirReporteContenido() {
                 </div>
               )}
 
-              {barrasResumen && barrasResumen.length > 0 && (
-                <div className="mb-6 print:break-inside-avoid">
-                  <BarrasResumen items={barrasResumen} />
-                </div>
-              )}
-
               {barrasActasPendientes && barrasActasPendientes.length > 0 && (
                 <div className="mb-6 print:break-inside-avoid">
                   <p className="text-[11px] font-semibold text-red-700 uppercase tracking-wide mb-2">
                     Actas pendientes de subir por {tipo === 'productividad' ? 'mediador' : 'sucursal'}
                   </p>
                   <BarrasResumen items={barrasActasPendientes} />
+                </div>
+              )}
+
+              {barrasResumen && barrasResumen.length > 0 && (
+                <div className="mb-6 print:break-inside-avoid">
+                  <p className="text-[11px] font-semibold text-numa-700 uppercase tracking-wide mb-2">
+                    {tipo === 'procesos'
+                      ? 'Procesos por estado'
+                      : 'Procesos por ' + (tipo === 'productividad' ? 'mediador' : tipo === 'sucursales' ? 'sucursal' : 'cliente')}
+                  </p>
+                  <BarrasResumen items={barrasResumen} />
                 </div>
               )}
 
