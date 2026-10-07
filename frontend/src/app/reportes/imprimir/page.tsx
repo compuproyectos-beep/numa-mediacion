@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Fragment, Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Printer } from 'lucide-react';
 import {
@@ -86,6 +86,38 @@ export default function ImprimirReportePage() {
   );
 }
 
+function DetalleProcesos({ filas, colSpan }: { filas: any[]; colSpan: number }) {
+  if (!filas.length) return null;
+
+  return (
+    <tr className="border-b border-numa-100">
+      <td colSpan={colSpan} className="pb-3 pt-1 pl-4">
+        <table className="w-full text-[11px] border-collapse">
+          <tbody>
+            {filas.map((p: any) => (
+              <tr key={p.id} className="text-numa-600">
+                <td className="py-0.5 pr-2 code-text">{p.codigo_proceso}</td>
+                <td className="py-0.5 pr-2">{getEstadoLabel(p.estado)}</td>
+                <td className="py-0.5 pr-2">
+                  {p.estado === 'cerrado_con_acuerdo' && !p.finalizado
+                    ? 'Acta pendiente'
+                    : p.finalizado
+                    ? 'Acta subida'
+                    : ''}
+                </td>
+                <td className="py-0.5 pr-2">
+                  {p.demandante} vs {p.demandado}
+                </td>
+                <td className="py-0.5 pr-2">{p.usuario || ''}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </td>
+    </tr>
+  );
+}
+
 function ImprimirReporteContenido() {
   const searchParams = useSearchParams();
 
@@ -102,6 +134,10 @@ function ImprimirReporteContenido() {
   // Igual que en pantalla: indicadores de resultado (tasa de acuerdo, tiempo
   // promedio de resolución), que solo aplican al reporte de Procesos.
   const [resumenIndicadores, setResumenIndicadores] = useState<ResumenReporte | null>(null);
+  // En pantalla, Equipo / Sucursales / Clientes tienen un detalle que solo se
+  // ve al dar clic en cada fila. Para que también salga al imprimir, aquí se
+  // cargan los procesos del mismo periodo y se muestran debajo de cada fila.
+  const [procesosDetalle, setProcesosDetalle] = useState<any[]>([]);
 
   useEffect(() => {
     const filtros = {
@@ -130,6 +166,13 @@ function ImprimirReporteContenido() {
       .then(setDatos)
       .catch(() => setDatos([]))
       .finally(() => setLoading(false));
+
+    if (tipo === 'productividad' || tipo === 'sucursales' || tipo === 'clientes') {
+      const { dias_minimo: _omitido, ...filtrosProcesos } = filtros;
+      getProcesos(filtrosProcesos)
+        .then(setProcesosDetalle)
+        .catch(() => setProcesosDetalle([]));
+    }
 
     if (tipo === 'procesos') {
       getReporteResumen(filtros)
@@ -301,52 +344,6 @@ function ImprimirReporteContenido() {
                     </tr>
                   </thead>
                   <tbody>
-                {tipo === 'agenda' &&
-                  datos.map((c: any) => (
-                    <tr key={c.id} className="border-b border-numa-100">
-                      <td className="py-1.5 pr-2">{fmtFecha(c.fecha)}</td>
-                      <td className="py-1.5 pr-2">{String(c.hora).slice(0, 5)}</td>
-                      <td className="py-1.5 pr-2 code-text">{c.codigo_proceso}</td>
-                      <td className="py-1.5 pr-2">{c.demandante}</td>
-                      <td className="py-1.5 pr-2">{c.demandado}</td>
-                      <td className="py-1.5 pr-2">{c.mediador || '—'}</td>
-                      <td className="py-1.5 pr-2">{c.sucursal || '—'}</td>
-                      <td className="py-1.5 pr-2">
-                        {c.atrasada ? 'Atrasada' : ETIQUETAS_CITA[c.estado] || c.estado}
-                      </td>
-                    </tr>
-                  ))}
-
-                {tipo === 'sin-avance' &&
-                  datos.map((p: any) => (
-                    <tr key={p.id} className="border-b border-numa-100">
-                      <td className="py-1.5 pr-2 code-text">{p.codigo_proceso}</td>
-                      <td className="py-1.5 pr-2">{p.demandante}</td>
-                      <td className="py-1.5 pr-2">{p.demandado}</td>
-                      <td className="py-1.5 pr-2">{p.mediador || '—'}</td>
-                      <td className="py-1.5 pr-2">{p.sucursal || '—'}</td>
-                      <td className="py-1.5 pr-2">{p.ultimo_avance ? fmtFecha(p.ultimo_avance) : 'Ninguno'}</td>
-                      <td className="py-1.5 pr-2">{p.total_avances}</td>
-                      <td className="py-1.5 pr-2 font-semibold">{p.dias_sin_avance}</td>
-                    </tr>
-                  ))}
-
-                {tipo === 'actas-pendientes' &&
-                  datos.map((p: any) => (
-                    <tr key={p.id} className="border-b border-numa-100">
-                      <td className="py-1.5 pr-2 code-text">{p.codigo_proceso}</td>
-                      <td className="py-1.5 pr-2">{p.demandante}</td>
-                      <td className="py-1.5 pr-2">{p.demandado}</td>
-                      <td className="py-1.5 pr-2">{p.mediador || '—'}</td>
-                      <td className="py-1.5 pr-2">{p.sucursal || '—'}</td>
-                      <td className="py-1.5 pr-2">{fmtFecha(p.fecha_acuerdo)}</td>
-                      <td className="py-1.5 pr-2">{p.horas_transcurridas ?? '—'}</td>
-                      <td className={`py-1.5 pr-2 font-semibold ${p.plazo_vencido ? 'text-red-700' : ''}`}>
-                        {p.plazo_vencido ? 'Vencido' : 'En plazo'}
-                      </td>
-                    </tr>
-                  ))}
-
                     <tr>
                       <td className="py-2 pr-4 text-numa-800 text-sm font-semibold">
                         {resumenProcesos.en_negociacion || 0}
@@ -530,6 +527,52 @@ function ImprimirReporteContenido() {
               </thead>
 
               <tbody>
+                {tipo === 'agenda' &&
+                  datos.map((c: any) => (
+                    <tr key={c.id} className="border-b border-numa-100">
+                      <td className="py-1.5 pr-2">{fmtFecha(c.fecha)}</td>
+                      <td className="py-1.5 pr-2">{String(c.hora).slice(0, 5)}</td>
+                      <td className="py-1.5 pr-2 code-text">{c.codigo_proceso}</td>
+                      <td className="py-1.5 pr-2">{c.demandante}</td>
+                      <td className="py-1.5 pr-2">{c.demandado}</td>
+                      <td className="py-1.5 pr-2">{c.mediador || '—'}</td>
+                      <td className="py-1.5 pr-2">{c.sucursal || '—'}</td>
+                      <td className="py-1.5 pr-2">
+                        {c.atrasada ? 'Atrasada' : ETIQUETAS_CITA[c.estado] || c.estado}
+                      </td>
+                    </tr>
+                  ))}
+
+                {tipo === 'sin-avance' &&
+                  datos.map((p: any) => (
+                    <tr key={p.id} className="border-b border-numa-100">
+                      <td className="py-1.5 pr-2 code-text">{p.codigo_proceso}</td>
+                      <td className="py-1.5 pr-2">{p.demandante}</td>
+                      <td className="py-1.5 pr-2">{p.demandado}</td>
+                      <td className="py-1.5 pr-2">{p.mediador || '—'}</td>
+                      <td className="py-1.5 pr-2">{p.sucursal || '—'}</td>
+                      <td className="py-1.5 pr-2">{p.ultimo_avance ? fmtFecha(p.ultimo_avance) : 'Ninguno'}</td>
+                      <td className="py-1.5 pr-2">{p.total_avances}</td>
+                      <td className="py-1.5 pr-2 font-semibold">{p.dias_sin_avance}</td>
+                    </tr>
+                  ))}
+
+                {tipo === 'actas-pendientes' &&
+                  datos.map((p: any) => (
+                    <tr key={p.id} className="border-b border-numa-100">
+                      <td className="py-1.5 pr-2 code-text">{p.codigo_proceso}</td>
+                      <td className="py-1.5 pr-2">{p.demandante}</td>
+                      <td className="py-1.5 pr-2">{p.demandado}</td>
+                      <td className="py-1.5 pr-2">{p.mediador || '—'}</td>
+                      <td className="py-1.5 pr-2">{p.sucursal || '—'}</td>
+                      <td className="py-1.5 pr-2">{fmtFecha(p.fecha_acuerdo)}</td>
+                      <td className="py-1.5 pr-2">{p.horas_transcurridas ?? '—'}</td>
+                      <td className={`py-1.5 pr-2 font-semibold ${p.plazo_vencido ? 'text-red-700' : ''}`}>
+                        {p.plazo_vencido ? 'Vencido' : 'En plazo'}
+                      </td>
+                    </tr>
+                  ))}
+
                 {tipo === 'procesos' &&
                   datos.map((p: any) => (
                     <tr key={p.id} className="border-b border-numa-100">
@@ -557,7 +600,8 @@ function ImprimirReporteContenido() {
 
                 {tipo === 'productividad' &&
                   datos.map((m: any) => (
-                    <tr key={m.usuario_id} className="border-b border-numa-100">
+                    <Fragment key={m.usuario_id}>
+                    <tr className="border-b border-numa-100">
                       <td className="py-1.5 pr-2">{m.mediador}</td>
                       <td className="py-1.5 pr-2">{m.activo ? 'Activo' : 'Inactivo'}</td>
                       <td className="py-1.5 pr-2">
@@ -578,6 +622,8 @@ function ImprimirReporteContenido() {
                         {m.promedio_dias_cierre != null ? `${m.promedio_dias_cierre}` : '—'}
                       </td>
                     </tr>
+                    <DetalleProcesos colSpan={13} filas={procesosDetalle.filter((p: any) => p.usuario_id === m.usuario_id)} />
+                    </Fragment>
                   ))}
 
                 {tipo === 'actas' &&
@@ -599,7 +645,8 @@ function ImprimirReporteContenido() {
 
                 {tipo === 'sucursales' &&
                   datos.map((s: any) => (
-                    <tr key={s.sucursal_id} className="border-b border-numa-100">
+                    <Fragment key={s.sucursal_id}>
+                    <tr className="border-b border-numa-100">
                       <td className="py-1.5 pr-2">{s.sucursal}</td>
                       <td className="py-1.5 pr-2">{s.ciudad || '—'}</td>
                       <td className="py-1.5 pr-2">{s.total_procesos}</td>
@@ -614,11 +661,14 @@ function ImprimirReporteContenido() {
                         {s.promedio_dias_cierre != null ? `${s.promedio_dias_cierre}` : '—'}
                       </td>
                     </tr>
+                    <DetalleProcesos colSpan={11} filas={procesosDetalle.filter((p: any) => p.sucursal_id === s.sucursal_id)} />
+                    </Fragment>
                   ))}
 
                 {tipo === 'clientes' &&
                   datos.map((c: any) => (
-                    <tr key={c.cliente_id} className="border-b border-numa-100">
+                    <Fragment key={c.cliente_id}>
+                    <tr className="border-b border-numa-100">
                       <td className="py-1.5 pr-2">{c.cliente}</td>
                       <td className="py-1.5 pr-2 code-text">{c.cedula || '—'}</td>
                       <td className="py-1.5 pr-2">{c.total_procesos}</td>
@@ -632,6 +682,8 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2 code-text">{c.codigos_procesos || '—'}</td>
                       <td className="py-1.5 pr-2 code-text">{c.codigos_actas || '—'}</td>
                     </tr>
+                    <DetalleProcesos colSpan={11} filas={procesosDetalle.filter((p: any) => p.demandante_cedula === c.cedula || p.demandado_cedula === c.cedula)} />
+                    </Fragment>
                   ))}
               </tbody>
             </table>
