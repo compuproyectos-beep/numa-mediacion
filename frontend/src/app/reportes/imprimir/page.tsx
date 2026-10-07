@@ -484,7 +484,6 @@ function ImprimirReporteContenido() {
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Acta final</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Solicitante</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Invitado</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Ciudad</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sucursal</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Mediador</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Fecha</th>
@@ -654,7 +653,6 @@ function ImprimirReporteContenido() {
                       </td>
                       <td className="py-1.5 pr-2">{p.demandante}</td>
                       <td className="py-1.5 pr-2">{p.demandado}</td>
-                      <td className="py-1.5 pr-2">{p.ciudad || '—'}</td>
                       <td className="py-1.5 pr-2">{p.sucursal || '—'}</td>
                       <td className="py-1.5 pr-2">{p.usuario || '—'}</td>
                       <td className="py-1.5 pr-2">

@@ -723,7 +723,6 @@ export default function ReportesPage() {
                         <th className="table-header">Acta final</th>
                         <th className="table-header">Solicitante</th>
                         <th className="table-header">Invitado</th>
-                        <th className="table-header">Ciudad</th>
                         <th className="table-header">Sucursal</th>
                         {admin && <th className="table-header">Mediador</th>}
                         <th className="table-header">Tema</th>
@@ -952,9 +951,8 @@ export default function ReportesPage() {
                             <span className="text-numa-300">—</span>
                           )}
                         </td>
-                        <td className="table-cell">{p.demandante}</td>
-                        <td className="table-cell">{p.demandado}</td>
-                        <td className="table-cell">{p.ciudad || '—'}</td>
+                        <td className="table-cell max-w-[170px] truncate" title={p.demandante}>{p.demandante}</td>
+                        <td className="table-cell max-w-[170px] truncate" title={p.demandado}>{p.demandado}</td>
                         <td className="table-cell">{p.sucursal ? labelSucursal(p) : "—"}</td>
                         {admin && (
                           <td className="table-cell max-w-[170px] truncate" title={p.usuario}>
