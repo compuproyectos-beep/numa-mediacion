@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import '@fontsource-variable/newsreader/index.css';
+import '@fontsource-variable/playfair-display/index.css';
 import './globals.css';
 
 export const metadata: Metadata = {

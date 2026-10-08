@@ -160,6 +160,7 @@
 .font-brand h1,
 .font-brand h2,
 .font-brand h3 {
+  font-family: "Playfair Display Variable", "Newsreader Variable", Georgia, serif;
   text-wrap: balance;
   letter-spacing: -0.01em;
 }
