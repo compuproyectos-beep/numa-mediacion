@@ -132,7 +132,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white font-display">
+    <div className="min-h-screen bg-white font-brand">
       <PublicNavbar />
 
       {/* HERO — banner a todo lo ancho con las fotos ocupando toda la
@@ -208,7 +208,7 @@ export default function HomePage() {
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 pb-24 w-full">
           <div className="max-w-2xl">
-            <div className="flex items-center gap-2 mb-6">
+            <div className="hero-rise flex items-center gap-2 mb-6">
               <div className="h-px w-12 bg-gold-500" />
 
               <span className="text-gold-400 text-xs uppercase tracking-[0.3em] font-sans">
@@ -216,7 +216,7 @@ export default function HomePage() {
               </span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.1] mb-6">
+            <h1 className="hero-rise hero-d1 text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.08] mb-6">
               Centro de
               <br />
               <span className="text-gold-400">Mediación</span>
@@ -224,7 +224,7 @@ export default function HomePage() {
               NUMA
             </h1>
 
-            <p className="text-lg text-numa-100 leading-relaxed mb-8 max-w-[22rem]">
+            <p className="hero-rise hero-d2 text-lg text-numa-100 leading-relaxed mb-8 max-w-[22rem]">
               Promovemos el diálogo, la justicia y el entendimiento entre las
               partes.
             </p>
@@ -233,7 +233,7 @@ export default function HomePage() {
                 menú de arriba, no hace falta repetirlos aquí. */}
             <a
               href="#nosotros"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 text-numa-950 text-sm font-semibold rounded-sm hover:bg-gold-500 btn-press"
+              className="hero-rise hero-d3 inline-flex items-center gap-2 px-6 py-3 bg-gold-400 text-numa-950 text-sm font-semibold rounded-sm hover:bg-gold-500 btn-press"
             >
               Conoce más <ArrowRight className="w-4 h-4" />
             </a>
@@ -324,7 +324,7 @@ export default function HomePage() {
                   key={stat.label}
                   className="bg-numa-50 border border-numa-100 rounded-sm p-6"
                 >
-                  <div className="text-3xl font-bold text-numa-900 mb-1">
+                  <div className="text-3xl font-bold text-numa-900 mb-1 tabular-nums">
                     {stat.num}
                   </div>
 

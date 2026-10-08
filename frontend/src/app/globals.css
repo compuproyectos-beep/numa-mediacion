@@ -150,3 +150,49 @@
   .btn-press, .card-lift { transition: none; }
   .btn-press:active, .card-lift:hover { transform: none; }
 }
+
+
+/* ===== Tipografía y detalles de la página pública (criterios Impeccable) ===== */
+.font-brand {
+  font-optical-sizing: auto;
+  text-rendering: optimizeLegibility;
+}
+.font-brand h1,
+.font-brand h2,
+.font-brand h3 {
+  text-wrap: balance;
+  letter-spacing: -0.01em;
+}
+.font-brand p {
+  text-wrap: pretty;
+}
+
+/* Detalles del navegador con los colores de la marca */
+::selection {
+  background: rgba(224, 184, 74, 0.35);
+  color: #081524;
+}
+:focus-visible {
+  outline: 2px solid #E0B84A;
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #9FB4CE transparent;
+}
+
+/* Un solo momento de movimiento: la entrada de la portada */
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hero-rise {
+  animation: hero-rise 700ms var(--ease-out) backwards;
+}
+.hero-d1 { animation-delay: 90ms; }
+.hero-d2 { animation-delay: 190ms; }
+.hero-d3 { animation-delay: 290ms; }
+@media (prefers-reduced-motion: reduce) {
+  .hero-rise { animation: none; }
+}

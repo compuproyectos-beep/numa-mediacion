@@ -39,6 +39,8 @@ const config: Config = {
         // A more literary serif stack (no external font needed): falls back
         // gracefully through distinctive system serifs before Georgia.
         display: ['Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', 'Georgia', 'Cambria', 'serif'],
+        // Tipografía institucional de la página pública (se descarga junto con el sitio, se ve igual en todos los equipos).
+        brand: ['"Newsreader Variable"', 'Iowan Old Style', 'Palatino Linotype', 'Georgia', 'serif'],
         body: ['system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
         // Used sparingly for fixed-width identifiers: cédulas, códigos de acta/proceso.
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
