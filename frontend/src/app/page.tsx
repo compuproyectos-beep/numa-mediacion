@@ -233,7 +233,7 @@ export default function HomePage() {
                 menú de arriba, no hace falta repetirlos aquí. */}
             <a
               href="#nosotros"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 text-numa-950 text-sm font-semibold rounded-sm hover:bg-gold-500 transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 text-numa-950 text-sm font-semibold rounded-sm hover:bg-gold-500 btn-press"
             >
               Conoce más <ArrowRight className="w-4 h-4" />
             </a>
@@ -393,7 +393,7 @@ export default function HomePage() {
             {valores.map(({ icon: Icon, titulo, desc }) => (
               <div
                 key={titulo}
-                className="group p-6 border border-numa-100 rounded-2xl bg-white hover:bg-numa-900 hover:border-gold-400/60 hover:shadow-xl transition-all duration-300"
+                className="group p-6 border border-numa-100 rounded-2xl bg-white hover:bg-numa-900 hover:border-gold-400/60 hover:shadow-xl card-lift"
               >
                 <div className="w-11 h-11 rounded-full bg-numa-900 group-hover:bg-gold-400 flex items-center justify-center mb-4 transition-colors duration-300">
                   <Icon className="w-5 h-5 text-white group-hover:text-numa-950 transition-colors duration-300" />
@@ -539,7 +539,7 @@ export default function HomePage() {
 
               <a
                 href="#contacto-footer"
-                className="mt-8 inline-flex items-center gap-2 px-5 py-2.5 bg-gold-400 text-numa-950 text-sm font-semibold rounded-sm hover:bg-gold-500 transition-colors"
+                className="mt-8 inline-flex items-center gap-2 px-5 py-2.5 bg-gold-400 text-numa-950 text-sm font-semibold rounded-sm hover:bg-gold-500 btn-press"
               >
                 Contáctenos <ArrowRight className="w-4 h-4" />
               </a>
@@ -576,7 +576,7 @@ export default function HomePage() {
                 href="https://wa.me/593981790092?text=Hola%2C%20quisiera%20una%20asesor%C3%ADa%20gratuita%20sobre%20mi%20caso"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 text-white text-sm font-semibold rounded-sm hover:bg-green-600 transition-colors"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 text-white text-sm font-semibold rounded-sm hover:bg-green-600 btn-press"
               >
                 <WhatsAppIcon className="w-4 h-4" />
                 Escríbenos por WhatsApp
@@ -584,7 +584,7 @@ export default function HomePage() {
 
               <a
                 href="mailto:numamediacionec@hotmail.com"
-                className="inline-flex items-center gap-2 px-6 py-3 border border-numa-300 text-numa-700 text-sm font-medium rounded-sm hover:border-gold-500 hover:text-gold-600 transition-colors"
+                className="inline-flex items-center gap-2 px-6 py-3 border border-numa-300 text-numa-700 text-sm font-medium rounded-sm hover:border-gold-500 hover:text-gold-600 btn-press"
               >
                 Escríbenos un correo
               </a>
@@ -606,7 +606,7 @@ export default function HomePage() {
 
           <Link
             href="/login"
-            className="inline-flex items-center gap-2 px-8 py-3.5 bg-numa-950 text-white text-sm font-semibold rounded-sm hover:bg-numa-800 transition-colors"
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-numa-950 text-white text-sm font-semibold rounded-sm hover:bg-numa-800 btn-press"
           >
             Acceso al Sistema <ArrowRight className="w-4 h-4" />
           </Link>
@@ -620,7 +620,7 @@ export default function HomePage() {
         href="https://wa.me/593981790092?text=Hola%2C%20quisiera%20informaci%C3%B3n%20sobre%20mediaci%C3%B3n"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-green-500 hover:bg-green-600 rounded-full shadow-2xl flex items-center justify-center transition-colors"
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-green-500 hover:bg-green-600 rounded-full shadow-2xl flex items-center justify-center btn-press"
         aria-label="Escríbenos por WhatsApp"
       >
         <WhatsAppIcon className="w-7 h-7 text-white" />

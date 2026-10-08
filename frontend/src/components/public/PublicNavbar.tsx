@@ -167,7 +167,7 @@ export default function PublicNavbar() {
               <button
                 type="button"
                 onClick={() => setOpenSedes((prev) => !prev)}
-                className="px-5 py-2 text-sm font-medium text-white border border-white/20 rounded-sm hover:border-gold-400 hover:text-gold-400 transition-colors duration-200 tracking-wide inline-flex items-center gap-1"
+                className="px-5 py-2 text-sm font-medium text-white border border-white/20 rounded-sm hover:border-gold-400 hover:text-gold-400 btn-press tracking-wide inline-flex items-center gap-1"
               >
                 Sedes
                 <ChevronDown className="w-4 h-4" />
@@ -229,7 +229,7 @@ export default function PublicNavbar() {
 
             <Link
               href="/login"
-              className="px-5 py-2 text-sm font-medium text-numa-950 bg-gold-400 rounded-sm hover:bg-gold-500 transition-colors duration-200 tracking-wide"
+              className="px-5 py-2 text-sm font-medium text-numa-950 bg-gold-400 rounded-sm hover:bg-gold-500 btn-press tracking-wide"
             >
               Acceso al Sistema
             </Link>
