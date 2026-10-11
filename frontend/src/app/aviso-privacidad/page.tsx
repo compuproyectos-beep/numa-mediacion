@@ -59,7 +59,7 @@ export default function AvisoPrivacidadPage() {
                 <br />
                 Dirección: Av. Tulcán y Calle Machala, Santo Domingo, Ecuador
                 <br />
-                Correo de contacto: numamediacionec@hotmail.com
+                Correo de contacto: numacentromediacion@gmail.com
                 <br />
                 Teléfono: 0981790092
               </p>
@@ -173,8 +173,8 @@ export default function AvisoPrivacidadPage() {
               </ul>
               <p className="mt-3">
                 Para ejercer cualquiera de estos derechos, escríbenos a{' '}
-                <a href="mailto:numamediacionec@hotmail.com" className="text-gold-600 underline hover:text-gold-700">
-                  numamediacionec@hotmail.com
+                <a href="mailto:numacentromediacion@gmail.com" className="text-gold-600 underline hover:text-gold-700">
+                  numacentromediacion@gmail.com
                 </a>
                 . Responderemos tu solicitud dentro de los diez (10) días
                 establecidos por la ley.
@@ -212,8 +212,8 @@ export default function AvisoPrivacidadPage() {
                 Si tienes preguntas sobre este aviso o sobre cómo tratamos tus
                 datos personales, contáctanos a:
                 <br />
-                <a href="mailto:numamediacionec@hotmail.com" className="text-gold-600 underline hover:text-gold-700">
-                  numamediacionec@hotmail.com
+                <a href="mailto:numacentromediacion@gmail.com" className="text-gold-600 underline hover:text-gold-700">
+                  numacentromediacion@gmail.com
                 </a>
                 <br />
                 0981790092

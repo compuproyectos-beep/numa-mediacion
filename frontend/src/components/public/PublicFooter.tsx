@@ -107,7 +107,7 @@ export default function PublicFooter() {
                 <Mail className="w-4 h-4 text-gold-400 shrink-0" />
 
                 <span className="text-white min-w-0 break-all">
-                  numamediacionec@hotmail.com
+                  numacentromediacion@gmail.com
                 </span>
               </li>
 

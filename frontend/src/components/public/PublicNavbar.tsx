@@ -98,7 +98,7 @@ export default function PublicNavbar() {
 
               <span className="hidden lg:flex items-center gap-2 text-white">
                 <Mail className="w-4 h-4" />
-                numamediacionec@hotmail.com
+                numacentromediacion@gmail.com
               </span>
             </div>
 
