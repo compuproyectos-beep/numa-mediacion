@@ -166,7 +166,7 @@ export default function HomePage() {
           Cada foto se ve COMPLETA (sin recortar) de fondo desenfocado de
           la misma foto, ampliada, rellena los bordes para que no queden
           franjas vacías — así no se pierde nada de la imagen original. */}
-      <section className="relative min-h-[640px] sm:min-h-[720px] lg:min-h-[820px] flex items-center overflow-hidden">
+      <section className="relative min-h-[640px] sm:min-h-[720px] lg:min-h-[820px] flex items-center overflow-hidden rounded-b-[2rem] sm:rounded-b-[3.5rem]">
         {/* Carrusel de fondo, a todo lo ancho y alto de la sección.
             Tono oscuro neutro (no el azul intenso de numa-950) para que el
             fondo no se sienta "muy azulado". */}
@@ -257,9 +257,9 @@ export default function HomePage() {
                 menú de arriba, no hace falta repetirlos aquí. */}
             <a
               href="#nosotros"
-              className="hero-rise hero-d3 inline-flex items-center gap-2 px-6 py-3 bg-gold-400 text-numa-950 text-sm font-semibold rounded-sm hover:bg-gold-500 btn-press"
+              className="hero-rise hero-d3 inline-flex items-center gap-3 pl-6 pr-2 py-2 bg-gold-400 text-numa-950 text-sm font-semibold rounded-full group hover:bg-gold-500 btn-press"
             >
-              Conoce más <ArrowRight className="w-4 h-4" />
+              Conoce más <span className="btn-ico"><ArrowRight className="w-4 h-4" /></span>
             </a>
           </div>
         </div>
@@ -272,7 +272,7 @@ export default function HomePage() {
       <section id="numa-pompilio" className="py-12 bg-parchment border-b border-gold-400/30">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-[150px_1fr] gap-5 sm:gap-8 items-center">
-            <div className="relative mx-auto sm:mx-0 w-32 sm:w-full rounded-sm overflow-hidden shadow-md border border-numa-200">
+            <div className="relative mx-auto sm:mx-0 w-32 sm:w-full rounded-t-full rounded-b-2xl overflow-hidden shadow-xl border border-numa-200">
               <Image
                 src="/images/numa-pompilio.jpg"
                 alt="Numa Pompilio, segundo rey de Roma, símbolo histórico de la mediación"
@@ -283,12 +283,8 @@ export default function HomePage() {
             </div>
 
             <div className="text-center sm:text-left">
-              <div className="flex items-center justify-center sm:justify-start gap-2 mb-2">
-                <div className="h-px w-6 bg-gold-400" />
-
-                <span className="text-gold-600 text-xs uppercase tracking-[0.2em] font-sans">
-                  El origen de nuestro nombre
-                </span>
+              <div className="flex justify-center sm:justify-start mb-2">
+                <span className="inline-block rounded-full border border-gold-400/40 bg-gold-400/10 px-3.5 py-1 text-[11px] uppercase tracking-[0.2em] text-gold-600 font-sans">El origen de nuestro nombre</span>
               </div>
 
               <h2 className="text-xl sm:text-2xl font-bold text-numa-900 mb-2 leading-tight">
@@ -309,16 +305,12 @@ export default function HomePage() {
       </section>
 
       {/* NOSOTROS */}
-      <section id="nosotros" className="relative py-24 bg-glow-white overflow-hidden">
+      <section id="nosotros" className="relative py-24 sm:py-32 bg-glow-white overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="h-px w-8 bg-gold-400" />
-
-                <span className="text-gold-600 text-xs uppercase tracking-[0.2em] font-sans">
-                  Quiénes Somos
-                </span>
+              <div className="flex mb-4">
+                <span className="inline-block rounded-full border border-gold-400/40 bg-gold-400/10 px-3.5 py-1 text-[11px] uppercase tracking-[0.2em] text-gold-600 font-sans">Quiénes Somos</span>
               </div>
 
               <h2 className="text-4xl font-bold text-numa-900 mb-6 leading-tight">
@@ -344,10 +336,8 @@ export default function HomePage() {
                 { num: '5', label: 'Sucursales activas' },
                 { num: '98%', label: 'Satisfacción de clientes' },
               ].map((stat) => (
-                <div
-                  key={stat.label}
-                  className="bg-numa-900 border border-numa-800 rounded-sm p-6 shadow-lg shadow-numa-950/20"
-                >
+                <div key={stat.label} className="reveal bezel">
+                <div className="bg-numa-900 rounded-[1.6rem] p-6 shadow-soft inner-hl">
                   <div className="text-3xl font-bold text-gold-400 mb-1 tabular-nums">
                     {stat.num}
                   </div>
@@ -356,6 +346,7 @@ export default function HomePage() {
                     {stat.label}
                   </div>
                 </div>
+                </div>
               ))}
             </div>
           </div>
@@ -363,7 +354,8 @@ export default function HomePage() {
       </section>
 
       {/* MISION */}
-      <section id="misión" className="relative py-24 sm:py-28 bg-night overflow-hidden">
+      <div className="bg-white px-3 sm:px-6 py-3 sm:py-6">
+      <section id="misión" className="relative py-20 sm:py-28 bg-night overflow-hidden rounded-[2rem] sm:rounded-[3.5rem]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-[1fr_1px_1fr] gap-12 md:gap-16 items-start">
             <div className="reveal">
@@ -396,9 +388,10 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      </div>
 
       {/* VALORES */}
-      <section id="valores" className="py-24 bg-dots">
+      <section id="valores" className="py-24 sm:py-32 bg-dots">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
             <h2 className="text-4xl font-bold text-numa-900">
@@ -413,8 +406,10 @@ export default function HomePage() {
                 className="reveal group"
                 style={{ transitionDelay: `${idx * 70}ms` }}
               >
-                <div className="h-px bg-numa-300 group-hover:bg-gold-500 transition-colors duration-300 mb-6" />
-                <Icon className="w-7 h-7 text-gold-600 mb-4 transition-transform duration-300 group-hover:-translate-y-0.5" />
+                
+                <div className="w-12 h-14 rounded-t-full rounded-b-xl bg-numa-900 group-hover:bg-numa-800 flex items-center justify-center mb-5 transition-colors duration-300">
+                  <Icon className="w-5 h-5 text-gold-400" />
+                </div>
                 <h3 className="text-xl font-bold text-numa-900 mb-2">{titulo}</h3>
                 <p className="text-sm text-numa-600 leading-relaxed font-sans">{desc}</p>
               </div>
@@ -424,18 +419,12 @@ export default function HomePage() {
       </section>
 
       {/* BENEFICIOS */}
-      <section id="beneficios" className="py-24 bg-parchment">
+      <section id="beneficios" className="py-24 sm:py-32 bg-parchment">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <div className="h-px w-8 bg-gold-400" />
-
-              <span className="text-gold-600 text-xs uppercase tracking-[0.2em] font-sans">
-                ¿Por qué mediar?
-              </span>
-
-              <div className="h-px w-8 bg-gold-400" />
-            </div>
+            <div className="flex justify-center mb-4">
+                <span className="inline-block rounded-full border border-gold-400/40 bg-gold-400/10 px-3.5 py-1 text-[11px] uppercase tracking-[0.2em] text-gold-600 font-sans">¿Por qué mediar?</span>
+              </div>
 
             <h2 className="text-4xl font-bold text-numa-900">
               Beneficios de la Mediación
@@ -478,7 +467,7 @@ export default function HomePage() {
                         setBeneficioAbierto((prev) => (prev === titulo ? null : titulo));
                       }
                     }}
-                    className={`absolute inset-x-0 top-0 min-h-full p-6 rounded-2xl border cursor-pointer transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-gold-400 ${
+                    className={`absolute inset-x-0 top-0 min-h-full p-6 rounded-3xl border cursor-pointer transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-gold-400 ${
                       abierto
                         ? 'z-20 bg-numa-900 border-gold-400/60 shadow-xl'
                         : 'z-0 bg-white border-numa-100'
@@ -522,7 +511,7 @@ export default function HomePage() {
       </section>
 
       {/* SERVICIOS */}
-      <section id="servicios" className="py-24 bg-numa-50">
+      <section id="servicios" className="py-24 sm:py-32 bg-numa-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
@@ -543,35 +532,30 @@ export default function HomePage() {
               </ul>
             </div>
 
-            <div className="bg-numa-900 rounded-sm p-10 text-white">
+            <div className="reveal bezel"><div className="bg-numa-900 rounded-[1.6rem] p-10 sm:p-12 text-white shadow-soft inner-hl">
               <h3 className="text-2xl font-bold mb-3">
                 ¿Necesita ayuda?
               </h3>
 
               <a
                 href="#contacto-footer"
-                className="mt-8 inline-flex items-center gap-2 px-5 py-2.5 bg-gold-400 text-numa-950 text-sm font-semibold rounded-sm hover:bg-gold-500 btn-press"
+                className="mt-8 inline-flex items-center gap-3 pl-5 pr-2 py-2 group bg-gold-400 text-numa-950 text-sm font-semibold rounded-full hover:bg-gold-500 btn-press"
               >
-                Contáctenos <ArrowRight className="w-4 h-4" />
+                Contáctenos <span className="btn-ico"><ArrowRight className="w-4 h-4" /></span>
               </a>
+            </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* SOLICITA TU ASESORÍA */}
-      <section id="contacto" className="py-24 bg-numa-50">
+      <section id="contacto" className="py-24 sm:py-32 bg-numa-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="bg-white border border-numa-200 rounded-sm shadow-sm p-10 sm:p-14">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <div className="h-px w-8 bg-gold-400" />
-
-              <span className="text-gold-600 text-xs uppercase tracking-[0.2em] font-sans">
-                ¿Tienes un conflicto que resolver?
-              </span>
-
-              <div className="h-px w-8 bg-gold-400" />
-            </div>
+          <div className="reveal bezel"><div className="bg-white rounded-[1.6rem] shadow-soft inner-hl-light p-10 sm:p-14">
+            <div className="flex justify-center mb-4">
+                <span className="inline-block rounded-full border border-gold-400/40 bg-gold-400/10 px-3.5 py-1 text-[11px] uppercase tracking-[0.2em] text-gold-600 font-sans">¿Tienes un conflicto que resolver?</span>
+              </div>
 
             <h2 className="text-4xl font-bold text-numa-900 mb-4">
               Solicita una asesoría gratuita
@@ -587,7 +571,7 @@ export default function HomePage() {
                 href="https://wa.me/593981790092?text=Hola%2C%20quisiera%20una%20asesor%C3%ADa%20gratuita%20sobre%20mi%20caso"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 text-white text-sm font-semibold rounded-sm hover:bg-green-600 btn-press"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 text-white text-sm font-semibold rounded-full hover:bg-green-600 btn-press"
               >
                 <WhatsAppIcon className="w-4 h-4" />
                 Escríbenos por WhatsApp
@@ -595,11 +579,12 @@ export default function HomePage() {
 
               <a
                 href="mailto:numamediacionec@hotmail.com"
-                className="inline-flex items-center gap-2 px-6 py-3 border border-numa-300 text-numa-700 text-sm font-medium rounded-sm hover:border-gold-500 hover:text-gold-600 btn-press"
+                className="inline-flex items-center gap-2 px-6 py-3 border border-numa-300 text-numa-700 text-sm font-medium rounded-full hover:border-gold-500 hover:text-gold-600 btn-press"
               >
                 Escríbenos un correo
               </a>
             </div>
+          </div>
           </div>
         </div>
       </section>
@@ -617,9 +602,9 @@ export default function HomePage() {
 
           <Link
             href="/login"
-            className="inline-flex items-center gap-2 px-8 py-3.5 bg-numa-950 text-white text-sm font-semibold rounded-sm hover:bg-numa-800 btn-press"
+            className="inline-flex items-center gap-3 pl-8 pr-2.5 py-2.5 group bg-numa-950 text-white text-sm font-semibold rounded-full hover:bg-numa-800 btn-press"
           >
-            Acceso al Sistema <ArrowRight className="w-4 h-4" />
+            Acceso al Sistema <span className="btn-ico btn-ico-light"><ArrowRight className="w-4 h-4" /></span>
           </Link>
         </div>
       </section>
