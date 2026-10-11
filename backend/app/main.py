@@ -5070,8 +5070,7 @@ def reporte_operativo_actas_pendientes(
                 u.nombre || ' ' || u.apellido AS mediador,
                 s.nombre AS sucursal,
                 ci.nombre AS ciudad,
-                FLOOR(EXTRACT(EPOCH FROM (NOW() - p.fecha_acuerdo)) / 3600)::int AS horas_transcurridas,
-                (p.fecha_acuerdo IS NOT NULL AND p.fecha_acuerdo < NOW() - INTERVAL '48 hours') AS plazo_vencido
+                FLOOR(EXTRACT(EPOCH FROM (NOW() - p.fecha_acuerdo)) / 3600)::int AS horas_transcurridas
             FROM procesos_mediacion p
             JOIN clientes cd ON p.cliente_demandante_id = cd.id
             JOIN clientes cdd ON p.cliente_demandado_id = cdd.id
@@ -5291,13 +5290,12 @@ def exportar_reporte_excel(
             usuario_id=usuario_id, usuario=usuario
         )
         encabezados = ["Solicitante", "Invitado", "Mediador", "Sucursal", "Ciudad",
-                       "Tema", "Fecha del acuerdo", "Horas transcurridas", "Plazo de 48 h"]
+                       "Tema", "Fecha del acuerdo", "Días pendientes"]
         filas_excel = [
             [f.get("demandante"), f.get("demandado"),
              f.get("mediador"), f.get("sucursal"), f.get("ciudad"), f.get("tema"),
              str(f.get("fecha_acuerdo") or "")[:16],
-             f.get("horas_transcurridas") if f.get("horas_transcurridas") is not None else "",
-             "Vencido" if f.get("plazo_vencido") else "En plazo"]
+             (f.get("horas_transcurridas") // 24) if f.get("horas_transcurridas") is not None else ""]
             for f in filas
         ]
         nombre_archivo = "reporte_actas_pendientes_numa.xlsx"

@@ -82,7 +82,7 @@ const DESCRIPCIONES: Record<TipoReporte, string> = {
   'sin-avance':
     'Procesos que siguen en negociación y llevan al menos esos días sin que se registre ningún avance. Sirve para saber cuáles se están quedando olvidados. Los días se cuentan desde el último avance (o desde que se creó el proceso, si nunca tuvo uno).',
   'actas-pendientes':
-    'Procesos cerrados con acuerdo cuya acta final todavía no se sube. Desde el cierre hay 48 horas para subirla; "Vencido" significa que ese plazo ya pasó.'
+    'Procesos cerrados con acuerdo cuya acta final todavía no se sube. Se muestra cuánto tiempo lleva pendiente desde la fecha del acuerdo.'
 };
 
 const COLOR_ESTADO: Record<string, string> = {
@@ -828,8 +828,7 @@ export default function ReportesPage() {
                         {admin && <th className="table-header">Mediador</th>}
                         <th className="table-header">Sucursal</th>
                         <th className="table-header">Fecha del acuerdo</th>
-                        <th className="table-header">Tiempo transcurrido</th>
-                        <th className="table-header">Plazo de 48 h</th>
+                        <th className="table-header">Días pendientes</th>
                       </>
                     )}
                   </tr>
@@ -905,18 +904,7 @@ export default function ReportesPage() {
                         <td className="table-cell">
                           {p.horas_transcurridas == null
                             ? '—'
-                            : p.horas_transcurridas >= 24
-                            ? `${Math.floor(p.horas_transcurridas / 24)} d ${p.horas_transcurridas % 24} h`
-                            : `${p.horas_transcurridas} h`}
-                        </td>
-                        <td className="table-cell">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                              p.plazo_vencido ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
-                            }`}
-                          >
-                            {p.plazo_vencido ? 'Vencido' : 'En plazo'}
-                          </span>
+                            : `${Math.floor(p.horas_transcurridas / 24)} ${Math.floor(p.horas_transcurridas / 24) === 1 ? 'día' : 'días'}`}
                         </td>
                       </tr>
                     ))}

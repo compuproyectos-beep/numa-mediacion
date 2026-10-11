@@ -578,8 +578,7 @@ function ImprimirReporteContenido() {
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Mediador</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sucursal</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Fecha del acuerdo</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Horas transcurridas</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Plazo de 48 h</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Días pendientes</th>
                     </>
                   )}
                 </tr>
@@ -622,10 +621,7 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2">{p.mediador || '—'}</td>
                       <td className="py-1.5 pr-2">{p.sucursal ? `${p.sucursal}${p.ciudad ? ` (${p.ciudad})` : ''}` : '—'}</td>
                       <td className="py-1.5 pr-2">{fmtFecha(p.fecha_acuerdo)}</td>
-                      <td className="py-1.5 pr-2">{p.horas_transcurridas ?? '—'}</td>
-                      <td className={`py-1.5 pr-2 font-semibold ${p.plazo_vencido ? 'text-red-700' : ''}`}>
-                        {p.plazo_vencido ? 'Vencido' : 'En plazo'}
-                      </td>
+                      <td className="py-1.5 pr-2">{p.horas_transcurridas == null ? '—' : Math.floor(p.horas_transcurridas / 24)}</td>
                     </tr>
                   ))}
 
