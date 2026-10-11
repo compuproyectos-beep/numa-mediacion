@@ -17,6 +17,7 @@ import {
   Zap,
   HandHeart,
   Lock,
+  MapPin,
 } from 'lucide-react';
 
 import PublicNavbar from '@/components/public/PublicNavbar';
@@ -604,11 +605,39 @@ export default function HomePage() {
               </a>
 
               <a
-                href="mailto:numamediacionec@hotmail.com"
+                href="mailto:numacentromediacion@gmail.com"
                 className="inline-flex items-center gap-2 px-6 py-3 border border-numa-300 text-numa-700 text-sm font-medium rounded-full hover:border-gold-500 hover:text-gold-600 btn-press"
               >
                 Escríbenos un correo
               </a>
+            </div>
+
+            <div className="mt-10 pt-8 border-t border-numa-100 text-left">
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-numa-900 mb-1">Visítanos en Santo Domingo</h3>
+                  <p className="text-sm text-numa-600 font-sans">Av. Tulcán y Calle Machala, Santo Domingo, Ecuador</p>
+                </div>
+                <a
+                  href="https://www.google.com/maps/search/?api=1&query=Av.+Tulc%C3%A1n+y+Calle+Machala%2C+Santo+Domingo%2C+Ecuador"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 self-start sm:self-auto px-5 py-2.5 bg-numa-900 text-white text-sm font-semibold rounded-full hover:bg-numa-800 btn-press whitespace-nowrap font-sans"
+                >
+                  <MapPin className="w-4 h-4 text-gold-400" />
+                  Cómo llegar
+                </a>
+              </div>
+              <div className="overflow-hidden rounded-2xl ring-1 ring-numa-100 bg-numa-50">
+                <iframe
+                  title="Ubicación del Centro de Mediación NUMA en Santo Domingo"
+                  src="https://www.google.com/maps?q=Av.+Tulc%C3%A1n+y+Calle+Machala%2C+Santo+Domingo%2C+Ecuador&hl=es&z=16&output=embed"
+                  className="block w-full h-[260px] sm:h-[340px] border-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  allowFullScreen
+                />
+              </div>
             </div>
           </div>
           </div>
