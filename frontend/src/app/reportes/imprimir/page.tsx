@@ -729,7 +729,7 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2">{c.archivados}</td>
                       <td className="py-1.5 pr-2">{c.anulados}</td>
                     </tr>
-                    <DetalleProcesos colSpan={10} titulo={`Procesos de ${c.cliente}`} mostrarMediador={true} filas={procesosDetalle.filter((p: any) => p.demandante_cedula === c.cedula || p.demandado_cedula === c.cedula)} />
+                    <DetalleProcesos colSpan={10} titulo={`Procesos de ${c.cliente}`} mostrarMediador={true} filas={procesosDetalle.filter((p: any) => (p.partes_ids || []).includes(c.cliente_id))} />
                     </Fragment>
                   ))}
               </tbody>

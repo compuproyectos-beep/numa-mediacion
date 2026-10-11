@@ -112,6 +112,8 @@ export default function ProcesosPage() {
   const [form, setForm] = useState({
     cliente_demandante_id: '',
     cliente_demandado_id: '',
+    empresa_solicitante_id: '',
+    empresa_invitado_id: '',
     sucursal_id: '',
     tema: ''
   });
@@ -165,6 +167,8 @@ export default function ProcesosPage() {
     setForm({
       cliente_demandante_id: '',
       cliente_demandado_id: '',
+      empresa_solicitante_id: '',
+      empresa_invitado_id: '',
       sucursal_id: '',
       tema: ''
     });
@@ -222,6 +226,16 @@ export default function ProcesosPage() {
     setPaso((p) => Math.max(p - 1, 1));
   };
 
+  const etiquetaCliente = (c: any) =>
+    c.tipo === 'empresa'
+      ? `${c.nombre} (empresa · RUC ${c.ruc || '—'})`
+      : `${c.nombre} ${c.apellido}`;
+
+  const empresas = clientes.filter((c: any) => c.tipo === 'empresa');
+
+  const esPersona = (id: string) =>
+    !!id && clientes.find((c: any) => String(c.id) === String(id))?.tipo !== 'empresa';
+
   const nombreCliente = (id: string) =>
     clientes.find((c: any) => String(c.id) === String(id));
 
@@ -251,6 +265,12 @@ export default function ProcesosPage() {
         cliente_demandante_id: Number(form.cliente_demandante_id),
         cliente_demandado_id: Number(form.cliente_demandado_id),
         tema: form.tema,
+        ...(form.empresa_solicitante_id
+          ? { empresa_solicitante_id: Number(form.empresa_solicitante_id) }
+          : {}),
+        ...(form.empresa_invitado_id
+          ? { empresa_invitado_id: Number(form.empresa_invitado_id) }
+          : {}),
         ...(isAdmin() ? { sucursal_id: Number(form.sucursal_id) } : {})
       });
 
@@ -260,6 +280,8 @@ export default function ProcesosPage() {
       setForm({
         cliente_demandante_id: '',
         cliente_demandado_id: '',
+        empresa_solicitante_id: '',
+        empresa_invitado_id: '',
         sucursal_id: '',
         tema: ''
       });
@@ -486,11 +508,18 @@ export default function ProcesosPage() {
                   </div>
 
                   <div className="text-sm text-numa-800">
-                    {p.demandante} vs {p.demandado}
+                    {p.demandante}
+                    {p.total_solicitantes > 1 && (
+                      <span className="text-numa-400"> y {p.total_solicitantes - 1} más</span>
+                    )}{' '}
+                    vs {p.demandado}
+                    {p.total_invitados > 1 && (
+                      <span className="text-numa-400"> y {p.total_invitados - 1} más</span>
+                    )}
                   </div>
 
                   <div className="text-xs text-numa-400 code-text">
-                    {p.demandante_cedula} · {p.demandado_cedula}
+                    {p.demandante_cedula || '—'} · {p.demandado_cedula || '—'}
                   </div>
 
                   <div className="text-xs text-numa-500">
@@ -608,10 +637,27 @@ export default function ProcesosPage() {
 
               {clientes.map((c: any) => (
                 <option key={c.id} value={c.id}>
-                  {c.nombre} {c.apellido}
+                  {etiquetaCliente(c)}
                 </option>
               ))}
             </SelectField>
+
+            {esPersona(form.cliente_demandante_id) && empresas.length > 0 && (
+              <SelectField
+                label="Solicitante: en representación de (opcional)"
+                value={form.empresa_solicitante_id}
+                onChange={(e) =>
+                  setForm({ ...form, empresa_solicitante_id: e.target.value })
+                }
+              >
+                <option value="">Actúa a título personal</option>
+                {empresas.map((c: any) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre}
+                  </option>
+                ))}
+              </SelectField>
+            )}
 
             <SelectField
               label="Invitado"
@@ -624,10 +670,27 @@ export default function ProcesosPage() {
 
               {clientes.map((c: any) => (
                 <option key={c.id} value={c.id}>
-                  {c.nombre} {c.apellido}
+                  {etiquetaCliente(c)}
                 </option>
               ))}
             </SelectField>
+
+            {esPersona(form.cliente_demandado_id) && empresas.length > 0 && (
+              <SelectField
+                label="Invitado: en representación de (opcional)"
+                value={form.empresa_invitado_id}
+                onChange={(e) =>
+                  setForm({ ...form, empresa_invitado_id: e.target.value })
+                }
+              >
+                <option value="">Actúa a título personal</option>
+                {empresas.map((c: any) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre}
+                  </option>
+                ))}
+              </SelectField>
+            )}
 
             {clientes.length === 0 && (
               <p className="text-xs text-numa-400">
@@ -675,6 +738,8 @@ export default function ProcesosPage() {
                 <span className="font-medium text-numa-800">
                   {nombreCliente(form.cliente_demandante_id)?.nombre}{' '}
                   {nombreCliente(form.cliente_demandante_id)?.apellido}
+                  {form.empresa_solicitante_id &&
+                    ` — en representación de ${nombreCliente(form.empresa_solicitante_id)?.nombre}`}
                 </span>
               </div>
 
@@ -683,6 +748,8 @@ export default function ProcesosPage() {
                 <span className="font-medium text-numa-800">
                   {nombreCliente(form.cliente_demandado_id)?.nombre}{' '}
                   {nombreCliente(form.cliente_demandado_id)?.apellido}
+                  {form.empresa_invitado_id &&
+                    ` — en representación de ${nombreCliente(form.empresa_invitado_id)?.nombre}`}
                 </span>
               </div>
 

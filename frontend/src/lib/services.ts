@@ -218,9 +218,14 @@ export async function getClientes(): Promise<Cliente[]> {
 export async function createCliente(payload: CreateClientePayload): Promise<Cliente> {
   const res = await api.post<Cliente>('/clientes', null, {
     params: {
-      cedula: payload.cedula,
-      nombre: payload.nombre,
-      apellido: payload.apellido,
+      tipo: payload.tipo || 'persona',
+      cedula: payload.tipo === 'empresa' ? undefined : payload.cedula,
+      nombre: payload.tipo === 'empresa' ? undefined : payload.nombre,
+      apellido: payload.tipo === 'empresa' ? undefined : payload.apellido,
+      razon_social: payload.razon_social,
+      ruc: payload.ruc,
+      representante_nombre: payload.representante_nombre,
+      representante_cedula: payload.representante_cedula,
       telefono: payload.telefono,
       email: payload.email,
       ciudad_id: payload.ciudad_id,
@@ -237,9 +242,14 @@ export async function updateCliente(
 ): Promise<Cliente> {
   const res = await api.put<Cliente>(`/clientes/${id}`, null, {
     params: {
-      cedula: payload.cedula,
-      nombre: payload.nombre,
-      apellido: payload.apellido,
+      tipo: payload.tipo || 'persona',
+      cedula: payload.tipo === 'empresa' ? undefined : payload.cedula,
+      nombre: payload.tipo === 'empresa' ? undefined : payload.nombre,
+      apellido: payload.tipo === 'empresa' ? undefined : payload.apellido,
+      razon_social: payload.razon_social,
+      ruc: payload.ruc,
+      representante_nombre: payload.representante_nombre,
+      representante_cedula: payload.representante_cedula,
       telefono: payload.telefono,
       email: payload.email,
       ciudad_id: payload.ciudad_id,
@@ -397,9 +407,35 @@ export async function createProceso(
       cliente_demandado_id: payload.cliente_demandado_id,
       sucursal_id: payload.sucursal_id,
       tema: payload.tema,
+      empresa_solicitante_id: payload.empresa_solicitante_id,
+      empresa_invitado_id: payload.empresa_invitado_id,
     },
   });
 
+  return res.data;
+}
+
+// ── PARTES DEL PROCESO (varios solicitantes / invitados) ─────────────────────
+export async function getPartesProceso(procesoId: number): Promise<any[]> {
+  const res = await api.get(`/procesos/${procesoId}/partes`);
+  return res.data;
+}
+
+export async function agregarParteProceso(
+  procesoId: number,
+  payload: { rol: 'solicitante' | 'invitado'; cliente_id: number; empresa_representada_id?: number }
+): Promise<any[]> {
+  const res = await api.post(`/procesos/${procesoId}/partes`, null, { params: payload });
+  return res.data;
+}
+
+export async function cambiarResponsableParte(procesoId: number, parteId: number): Promise<any[]> {
+  const res = await api.put(`/procesos/${procesoId}/partes/${parteId}/responsable`);
+  return res.data;
+}
+
+export async function quitarParteProceso(procesoId: number, parteId: number): Promise<any[]> {
+  const res = await api.delete(`/procesos/${procesoId}/partes/${parteId}`);
   return res.data;
 }
 

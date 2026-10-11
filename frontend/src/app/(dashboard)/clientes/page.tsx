@@ -33,6 +33,11 @@ const getAvatarClass = (id: number | string) => {
 };
 
 const empty: CreateClientePayload = {
+  tipo: 'persona',
+  razon_social: '',
+  ruc: '',
+  representante_nombre: '',
+  representante_cedula: '',
   nombre: '',
   apellido: '',
   cedula: '',
@@ -51,6 +56,8 @@ export default function ClientesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [cedulaError, setCedulaError] = useState('');
+  const [rucError, setRucError] = useState('');
+  const [repCedulaError, setRepCedulaError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [telefonoError, setTelefonoError] = useState('');
   const [search, setSearch] = useState('');
@@ -121,7 +128,9 @@ export default function ClientesPage() {
     return (
       c.nombre.toLowerCase().includes(q) ||
       c.apellido.toLowerCase().includes(q) ||
-      c.cedula.includes(q) ||
+      (c.cedula || '').includes(q) ||
+      (c.ruc || '').includes(q) ||
+      (c.representante_nombre || '').toLowerCase().includes(q) ||
       (c.email || '').toLowerCase().includes(q) ||
       (c.telefono || '').includes(q) ||
       (c.ciudad || '').toLowerCase().includes(q) ||
@@ -136,6 +145,8 @@ export default function ClientesPage() {
     setForm(empty);
     setError('');
     setCedulaError('');
+    setRucError('');
+    setRepCedulaError('');
     setEmailError('');
     setTelefonoError('');
     setShowForm(true);
@@ -150,6 +161,11 @@ export default function ClientesPage() {
     setProvinciaId(ciudad?.provincia_id ? String(ciudad.provincia_id) : '');
 
     setForm({
+      tipo: c.tipo || 'persona',
+      razon_social: c.razon_social || '',
+      ruc: c.ruc || '',
+      representante_nombre: c.representante_nombre || '',
+      representante_cedula: c.representante_cedula || '',
       nombre: c.nombre || '',
       apellido: c.apellido || '',
       cedula: c.cedula || '',
@@ -161,6 +177,8 @@ export default function ClientesPage() {
 
     setError('');
     setCedulaError('');
+    setRucError('');
+    setRepCedulaError('');
     setEmailError('');
     setTelefonoError('');
     setShowForm(true);
@@ -183,18 +201,35 @@ export default function ClientesPage() {
     setEmailError('');
     setTelefonoError('');
 
-    if (!form.nombre.trim() || !form.apellido.trim() || !form.cedula.trim()) {
-      setError('Completa nombre, apellido y cédula');
-      return;
-    }
+    const esEmpresa = form.tipo === 'empresa';
 
-    if (!validarCedula(form.cedula)) {
-      setCedulaError(
-        form.cedula.length !== 10
-          ? 'La cédula debe tener 10 dígitos'
-          : 'Cédula ecuatoriana inválida'
-      );
-      return;
+    if (esEmpresa) {
+      if (!form.razon_social?.trim() || !form.representante_nombre?.trim()) {
+        setError('Completa la razón social y el nombre del representante legal');
+        return;
+      }
+      if (!/^\d{13}$/.test(form.ruc || '')) {
+        setRucError('El RUC debe tener 13 dígitos');
+        return;
+      }
+      if (!validarCedula(form.representante_cedula || '')) {
+        setRepCedulaError('Cédula del representante inválida');
+        return;
+      }
+    } else {
+      if (!form.nombre.trim() || !form.apellido.trim() || !form.cedula.trim()) {
+        setError('Completa nombre, apellido y cédula');
+        return;
+      }
+
+      if (!validarCedula(form.cedula)) {
+        setCedulaError(
+          form.cedula.length !== 10
+            ? 'La cédula debe tener 10 dígitos'
+            : 'Cédula ecuatoriana inválida'
+        );
+        return;
+      }
     }
 
     if (!validarEmail(form.email)) {
@@ -225,7 +260,9 @@ export default function ClientesPage() {
         err?.response?.data?.detail ||
         'Error al guardar cliente';
 
-      if (detail.toLowerCase().includes('cédula')) {
+      if (detail.toLowerCase().includes('ruc')) {
+        setRucError(detail);
+      } else if (detail.toLowerCase().includes('cédula')) {
         setCedulaError(detail);
       } else {
         setError(detail);
@@ -284,7 +321,7 @@ export default function ClientesPage() {
               <thead className="bg-numa-50 border-b border-numa-100">
                 <tr>
                   <th className="table-header table-cell-sticky !bg-numa-50">Nombre</th>
-                  <th className="table-header">Cédula</th>
+                  <th className="table-header">Cédula / RUC</th>
                   <th className="table-header">Email</th>
                   <th className="table-header">Teléfono</th>
                   <th className="table-header">Ciudad domicilio</th>
@@ -304,8 +341,9 @@ export default function ClientesPage() {
                           )}`}
                         >
                           <span className="text-xs font-bold">
-                            {c.nombre.charAt(0)}
-                            {c.apellido.charAt(0)}
+                            {c.tipo === 'empresa'
+                              ? c.nombre.slice(0, 2).toUpperCase()
+                              : `${c.nombre.charAt(0)}${c.apellido.charAt(0)}`}
                           </span>
                         </div>
 
@@ -319,11 +357,18 @@ export default function ClientesPage() {
                           title={`${c.nombre} ${c.apellido}`}
                         >
                           {c.nombre} {c.apellido}
+                          {c.tipo === 'empresa' && (
+                            <span className="ml-2 align-middle text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gold-400/20 text-gold-700">
+                              Empresa
+                            </span>
+                          )}
                         </p>
                       </div>
                     </td>
 
-                    <td className="table-cell text-numa-500 code-text">{c.cedula}</td>
+                    <td className="table-cell text-numa-500 code-text">
+                      {c.tipo === 'empresa' ? `RUC ${c.ruc || '—'}` : c.cedula}
+                    </td>
                     <td className="table-cell text-numa-500">{c.email || '—'}</td>
                     <td className="table-cell text-numa-500">{c.telefono || '—'}</td>
                     <td className="table-cell text-numa-500">
@@ -367,50 +412,126 @@ export default function ClientesPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4">
-          <InputField
-            label="Nombres"
-            value={form.nombre}
-            onChange={(e) =>
-              setForm({ ...form, nombre: e.target.value })
-            }
-            placeholder="Juan"
-          />
-
-          <InputField
-            label="Apellidos"
-            value={form.apellido}
-            onChange={(e) =>
-              setForm({ ...form, apellido: e.target.value })
-            }
-            placeholder="Pérez"
-          />
-
-          <div>
-            <InputField
-              label="Cédula"
-              value={form.cedula}
-              onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, '').slice(0, 10);
-                setForm({ ...form, cedula: value });
-
-                if (value.length > 0 && value.length < 10) {
-                  setCedulaError('La cédula debe tener 10 dígitos');
-                } else if (value.length === 10 && !validarCedula(value)) {
-                  setCedulaError('Cédula ecuatoriana inválida');
-                } else {
-                  setCedulaError('');
-                }
-              }}
-              placeholder="0923456789"
-            />
-
-            {cedulaError && (
-              <p className="text-xs text-red-500 mt-1">
-                {cedulaError}
-              </p>
-            )}
+        {!editing && (
+          <div className="mb-4 flex gap-2">
+            {(['persona', 'empresa'] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => {
+                  setForm({ ...form, tipo: t });
+                  setError('');
+                }}
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                  form.tipo === t
+                    ? 'bg-numa-900 text-white border-numa-900'
+                    : 'bg-white text-numa-600 border-numa-200 hover:border-gold-400'
+                }`}
+              >
+                {t === 'persona' ? 'Persona natural' : 'Empresa o institución'}
+              </button>
+            ))}
           </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-4">
+          {form.tipo === 'empresa' ? (
+            <>
+              <div className="col-span-2">
+                <InputField
+                  label="Razón social"
+                  value={form.razon_social || ''}
+                  onChange={(e) => setForm({ ...form, razon_social: e.target.value })}
+                  placeholder="Comercial Ejemplo S.A."
+                />
+              </div>
+
+              <div>
+                <InputField
+                  label="RUC"
+                  value={form.ruc || ''}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 13);
+                    setForm({ ...form, ruc: value });
+                    setRucError(
+                      value.length > 0 && value.length < 13 ? 'El RUC debe tener 13 dígitos' : ''
+                    );
+                  }}
+                  placeholder="1790000000001"
+                />
+                {rucError && <p className="text-xs text-red-500 mt-1">{rucError}</p>}
+              </div>
+
+              <div />
+
+              <InputField
+                label="Representante legal (nombre completo)"
+                value={form.representante_nombre || ''}
+                onChange={(e) => setForm({ ...form, representante_nombre: e.target.value })}
+                placeholder="Juan Pérez"
+              />
+
+              <div>
+                <InputField
+                  label="Cédula del representante"
+                  value={form.representante_cedula || ''}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setForm({ ...form, representante_cedula: value });
+                    if (value.length > 0 && value.length < 10) {
+                      setRepCedulaError('La cédula debe tener 10 dígitos');
+                    } else if (value.length === 10 && !validarCedula(value)) {
+                      setRepCedulaError('Cédula ecuatoriana inválida');
+                    } else {
+                      setRepCedulaError('');
+                    }
+                  }}
+                  placeholder="0923456789"
+                />
+                {repCedulaError && <p className="text-xs text-red-500 mt-1">{repCedulaError}</p>}
+              </div>
+            </>
+          ) : (
+            <>
+              <InputField
+                label="Nombres"
+                value={form.nombre}
+                onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+                placeholder="Juan"
+              />
+
+              <InputField
+                label="Apellidos"
+                value={form.apellido}
+                onChange={(e) => setForm({ ...form, apellido: e.target.value })}
+                placeholder="Pérez"
+              />
+
+              <div>
+                <InputField
+                  label="Cédula"
+                  value={form.cedula}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setForm({ ...form, cedula: value });
+
+                    if (value.length > 0 && value.length < 10) {
+                      setCedulaError('La cédula debe tener 10 dígitos');
+                    } else if (value.length === 10 && !validarCedula(value)) {
+                      setCedulaError('Cédula ecuatoriana inválida');
+                    } else {
+                      setCedulaError('');
+                    }
+                  }}
+                  placeholder="0923456789"
+                />
+
+                {cedulaError && (
+                  <p className="text-xs text-red-500 mt-1">{cedulaError}</p>
+                )}
+              </div>
+            </>
+          )}
 
           <div>
             <InputField

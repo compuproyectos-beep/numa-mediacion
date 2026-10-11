@@ -58,6 +58,17 @@ export default function ImprimirExpedientePage() {
 
   const { proceso, linea_tiempo, acta_final, historial_pdf } = data;
 
+  // Todas las partes de cada lado; el responsable va primero y marcado.
+  const partes: any[] = data.partes || [];
+  const nombreParte = (p: any) =>
+    `${p.nombre} ${p.apellido || ''}`.trim() +
+    (p.es_responsable ? ' (responsable)' : '') +
+    (p.empresa_nombre ? ` — en representación de ${p.empresa_nombre}` : '');
+  const listaPartes = (rol: string, respaldo: string) => {
+    const lista = partes.filter((p) => p.rol === rol).map(nombreParte);
+    return lista.length > 0 ? lista : [respaldo];
+  };
+
   return (
     <main className="min-h-screen bg-numa-100 print:bg-white py-10 print:py-0">
       <div className="max-w-3xl mx-auto bg-white shadow-md print:shadow-none border border-numa-200 print:border-0 rounded-sm">
@@ -111,16 +122,20 @@ export default function ImprimirExpedientePage() {
               <div className="p-4 space-y-3">
                 <div>
                   <p className="text-[11px] uppercase tracking-wide text-numa-400">
-                    Solicitante
+                    Solicitante(s)
                   </p>
-                  <p className="text-sm text-numa-800">{proceso.demandante}</p>
+                  {listaPartes('solicitante', proceso.demandante).map((n, i) => (
+                    <p key={i} className="text-sm text-numa-800">{n}</p>
+                  ))}
                 </div>
 
                 <div>
                   <p className="text-[11px] uppercase tracking-wide text-numa-400">
-                    Invitado
+                    Invitado(s)
                   </p>
-                  <p className="text-sm text-numa-800">{proceso.demandado}</p>
+                  {listaPartes('invitado', proceso.demandado).map((n, i) => (
+                    <p key={i} className="text-sm text-numa-800">{n}</p>
+                  ))}
                 </div>
 
                 <div>

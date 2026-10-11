@@ -101,7 +101,12 @@ export interface Cliente {
   id: number;
   nombre: string;
   apellido: string;
-  cedula: string;
+  cedula: string | null;
+  tipo?: 'persona' | 'empresa';
+  razon_social?: string | null;
+  ruc?: string | null;
+  representante_nombre?: string | null;
+  representante_cedula?: string | null;
   email: string;
   telefono: string;
   ciudad_id?: number;
@@ -112,6 +117,11 @@ export interface Cliente {
 }
 
 export interface CreateClientePayload {
+  tipo?: 'persona' | 'empresa';
+  razon_social?: string;
+  ruc?: string;
+  representante_nombre?: string;
+  representante_cedula?: string;
   nombre: string;
   apellido: string;
   cedula: string;
@@ -181,4 +191,6 @@ export interface CreateProcesoPayload {
   cliente_demandado_id: number;
   sucursal_id?: number;
   tema: string;
+  empresa_solicitante_id?: number;
+  empresa_invitado_id?: number;
 }

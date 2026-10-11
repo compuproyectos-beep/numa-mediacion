@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon, Eye, Download, Receipt } from 'lucide-react';
 import { isAdmin as esAdminSesion } from '@/lib/auth';
+import PartesProceso from '@/components/procesos/PartesProceso';
 import CalendarioAgendaMediador from '@/components/citas/CalendarioAgendaMediador';
 import {
   Spinner,
@@ -662,10 +663,17 @@ export default function ProcesoDetallePage() {
         <div>
           <h1 className="section-title whitespace-nowrap">{proceso.codigo_proceso}</h1>
           <p className="text-numa-700 mt-1">
-            {proceso.demandante} vs {proceso.demandado}
+            {proceso.demandante}
+            {proceso.total_solicitantes > 1 && (
+              <span className="text-numa-400"> y {proceso.total_solicitantes - 1} más</span>
+            )}{' '}
+            vs {proceso.demandado}
+            {proceso.total_invitados > 1 && (
+              <span className="text-numa-400"> y {proceso.total_invitados - 1} más</span>
+            )}
           </p>
           <p className="text-xs text-numa-400 mt-1">
-            {proceso.demandante_cedula} · {proceso.demandado_cedula}
+            {proceso.demandante_cedula || '—'} · {proceso.demandado_cedula || '—'}
           </p>
         </div>
 
@@ -697,6 +705,12 @@ export default function ProcesoDetallePage() {
           </button>
         </div>
       </div>
+
+      <PartesProceso
+        procesoId={proceso.id}
+        editable={proceso.estado === 'en_negociacion'}
+        onCambio={cargarProceso}
+      />
 
       {/* Se muestra justo debajo del encabezado (no al fondo de la página)
           para que el mediador vea de una vez si este proceso tiene su acta

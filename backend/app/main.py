@@ -1045,6 +1045,11 @@ def obtener_clientes(usuario=Depends(obtener_usuario_actual)):
                 cl.cedula,
                 cl.nombre,
                 cl.apellido,
+                cl.tipo,
+                cl.razon_social,
+                cl.ruc,
+                cl.representante_nombre,
+                cl.representante_cedula,
                 cl.telefono,
                 cl.email,
                 cl.ciudad_id,
@@ -1071,84 +1076,156 @@ def obtener_clientes(usuario=Depends(obtener_usuario_actual)):
 # ACTUALIZAR CLIENTES
 # =========================
 
+def _validar_datos_cliente(cur, tipo, cedula, nombre, apellido, telefono, email,
+                          ciudad_id, razon_social, ruc, representante_nombre,
+                          representante_cedula, excluir_id=None):
+    """Valida y normaliza los datos de un cliente (persona o empresa).
+    Devuelve el diccionario listo para guardar."""
+    tipo = (tipo or "persona").strip().lower()
+    if tipo not in ("persona", "empresa"):
+        raise HTTPException(status_code=400, detail="Tipo de cliente inválido")
+
+    if email and not validar_email(email):
+        raise HTTPException(status_code=400, detail="Email inválido")
+
+    if telefono:
+        telefono_limpio = re.sub(r"\D", "", telefono)
+        if len(telefono_limpio) != 10:
+            raise HTTPException(status_code=400, detail="El teléfono debe tener 10 dígitos")
+        telefono = telefono_limpio
+
+    if ciudad_id:
+        cur.execute("SELECT id FROM ciudades WHERE id = %s AND activo = true", (ciudad_id,))
+        if not cur.fetchone():
+            raise HTTPException(status_code=404, detail="Ciudad de domicilio no encontrada")
+
+    if tipo == "persona":
+        if not cedula or not (nombre or "").strip() or not (apellido or "").strip():
+            raise HTTPException(status_code=400, detail="Cédula, nombre y apellido son obligatorios")
+        if not validar_cedula_ecuatoriana(cedula):
+            raise HTTPException(status_code=400, detail="Cédula ecuatoriana inválida")
+
+        if excluir_id is None:
+            cur.execute("SELECT id FROM clientes WHERE cedula = %s", (cedula,))
+        else:
+            cur.execute("SELECT id FROM clientes WHERE cedula = %s AND id <> %s", (cedula, excluir_id))
+        if cur.fetchone():
+            raise HTTPException(status_code=400, detail="Ya existe un cliente con esa cédula")
+
+        verificar_cedula_misma_persona(cur, cedula, nombre, apellido, "usuarios")
+
+        return {
+            "tipo": "persona", "cedula": cedula, "nombre": nombre.strip(),
+            "apellido": apellido.strip(), "razon_social": None, "ruc": None,
+            "representante_nombre": None, "representante_cedula": None,
+            "telefono": telefono, "email": email, "ciudad_id": ciudad_id,
+        }
+
+    # ---- empresa / institución ----
+    razon_social = (razon_social or "").strip()
+    ruc = re.sub(r"\D", "", ruc or "")
+    representante_nombre = (representante_nombre or "").strip()
+    representante_cedula = (representante_cedula or "").strip()
+
+    if not razon_social:
+        raise HTTPException(status_code=400, detail="La razón social es obligatoria")
+    if len(ruc) != 13 or ruc.endswith("000"):
+        raise HTTPException(status_code=400, detail="El RUC debe tener 13 dígitos")
+    if not representante_nombre:
+        raise HTTPException(status_code=400, detail="El nombre del representante legal es obligatorio")
+    if not representante_cedula or not validar_cedula_ecuatoriana(representante_cedula):
+        raise HTTPException(status_code=400, detail="La cédula del representante legal es inválida")
+
+    if excluir_id is None:
+        cur.execute("SELECT id FROM clientes WHERE ruc = %s", (ruc,))
+    else:
+        cur.execute("SELECT id FROM clientes WHERE ruc = %s AND id <> %s", (ruc, excluir_id))
+    if cur.fetchone():
+        raise HTTPException(status_code=400, detail="Ya existe una empresa con ese RUC")
+
+    # nombre = razón social y apellido vacío: así todas las listas y reportes
+    # que arman "nombre + apellido" siguen mostrando bien a la empresa.
+    return {
+        "tipo": "empresa", "cedula": None, "nombre": razon_social, "apellido": "",
+        "razon_social": razon_social, "ruc": ruc,
+        "representante_nombre": representante_nombre,
+        "representante_cedula": representante_cedula,
+        "telefono": telefono, "email": email, "ciudad_id": ciudad_id,
+    }
+
+
+_CAMPOS_CLIENTE_RETURN = """id, tipo, cedula, nombre, apellido, razon_social, ruc,
+                      representante_nombre, representante_cedula, telefono, email,
+                      ciudad_id, direccion, fecha_creacion, fecha_modificacion"""
+
+
 @app.put("/clientes/{id}")
 def actualizar_cliente(
     id: int,
-    cedula: str,
-    nombre: str,
-    apellido: str,
+    cedula: str = None,
+    nombre: str = None,
+    apellido: str = None,
     telefono: str = None,
     email: str = None,
     ciudad_id: int = None,
     direccion: str = None,
+    tipo: str = "persona",
+    razon_social: str = None,
+    ruc: str = None,
+    representante_nombre: str = None,
+    representante_cedula: str = None,
     usuario=Depends(obtener_usuario_actual)
 ):
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
     try:
-        if not validar_cedula_ecuatoriana(cedula):
-            raise HTTPException(status_code=400, detail="Cédula ecuatoriana inválida")
+        cur.execute("SELECT tipo FROM clientes WHERE id = %s", (id,))
+        actual = cur.fetchone()
+        if not actual:
+            raise HTTPException(status_code=404, detail="Cliente no encontrado")
+        if actual["tipo"] != (tipo or "persona"):
+            raise HTTPException(
+                status_code=400,
+                detail="No se puede cambiar una persona a empresa (ni al revés). Crea un cliente nuevo."
+            )
 
-        if email and not validar_email(email):
-            raise HTTPException(status_code=400, detail="Email inválido")
+        d = _validar_datos_cliente(
+            cur, tipo, cedula, nombre, apellido, telefono, email, ciudad_id,
+            razon_social, ruc, representante_nombre, representante_cedula,
+            excluir_id=id
+        )
 
-        if telefono:
-            telefono_limpio = re.sub(r"\D", "", telefono)
-            if len(telefono_limpio) != 10:
-                raise HTTPException(status_code=400, detail="El teléfono debe tener 10 dígitos")
-            telefono = telefono_limpio
-
-        if ciudad_id:
-            cur.execute("SELECT id FROM ciudades WHERE id = %s AND activo = true", (ciudad_id,))
-            if not cur.fetchone():
-                raise HTTPException(status_code=404, detail="Ciudad de domicilio no encontrada")
-
-        cur.execute("""
-            SELECT id
-            FROM clientes
-            WHERE cedula = %s AND id <> %s
-        """, (cedula, id))
-
-        if cur.fetchone():
-            raise HTTPException(status_code=400, detail="Ya existe otro cliente con esa cédula")
-
-        verificar_cedula_misma_persona(cur, cedula, nombre, apellido, "usuarios")
-
-        cur.execute("""
+        cur.execute(f"""
             UPDATE clientes
             SET
                 cedula = %s,
                 nombre = %s,
                 apellido = %s,
+                razon_social = %s,
+                ruc = %s,
+                representante_nombre = %s,
+                representante_cedula = %s,
                 telefono = %s,
                 email = %s,
                 ciudad_id = %s,
                 direccion = %s,
                 fecha_modificacion = NOW()
             WHERE id = %s
-            RETURNING id, cedula, nombre, apellido, telefono, email,
-                      ciudad_id, direccion, fecha_creacion, fecha_modificacion
+            RETURNING {_CAMPOS_CLIENTE_RETURN}
         """, (
-            cedula,
-            nombre,
-            apellido,
-            telefono,
-            email,
-            ciudad_id,
-            direccion,
-            id
+            d["cedula"], d["nombre"], d["apellido"], d["razon_social"], d["ruc"],
+            d["representante_nombre"], d["representante_cedula"],
+            d["telefono"], d["email"], d["ciudad_id"], direccion, id
         ))
 
         cliente = cur.fetchone()
 
-        if not cliente:
-            raise HTTPException(status_code=404, detail="Cliente no encontrado")
-
-        registrar_auditoria(
-            cur, usuario, "cliente_editado", "clientes", id,
-            f"Editó al cliente {nombre} {apellido} (cédula {cedula})"
+        etiqueta = (
+            f"la empresa {d['nombre']} (RUC {d['ruc']})" if d["tipo"] == "empresa"
+            else f"al cliente {d['nombre']} {d['apellido']} (cédula {d['cedula']})"
         )
+        registrar_auditoria(cur, usuario, "cliente_editado", "clientes", id, f"Editó {etiqueta}")
 
         conn.commit()
         return cliente
@@ -1268,67 +1345,51 @@ def obtener_sucursales(
 # =========================
 @app.post("/clientes")
 def crear_cliente(
-    cedula: str,
-    nombre: str,
-    apellido: str,
+    cedula: str = None,
+    nombre: str = None,
+    apellido: str = None,
     telefono: str = None,
     email: str = None,
     ciudad_id: int = None,
     direccion: str = None,
+    tipo: str = "persona",
+    razon_social: str = None,
+    ruc: str = None,
+    representante_nombre: str = None,
+    representante_cedula: str = None,
     usuario=Depends(obtener_usuario_actual)
 ):
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
     try:
-        if not validar_cedula_ecuatoriana(cedula):
-            raise HTTPException(status_code=400, detail="Cédula ecuatoriana inválida")
+        d = _validar_datos_cliente(
+            cur, tipo, cedula, nombre, apellido, telefono, email, ciudad_id,
+            razon_social, ruc, representante_nombre, representante_cedula
+        )
 
-        if email and not validar_email(email):
-            raise HTTPException(status_code=400, detail="Email inválido")
-
-        if telefono:
-            telefono_limpio = re.sub(r"\D", "", telefono)
-            if len(telefono_limpio) != 10:
-                raise HTTPException(status_code=400, detail="El teléfono debe tener 10 dígitos")
-            telefono = telefono_limpio
-
-        if ciudad_id:
-            cur.execute("SELECT id FROM ciudades WHERE id = %s AND activo = true", (ciudad_id,))
-            if not cur.fetchone():
-                raise HTTPException(status_code=404, detail="Ciudad de domicilio no encontrada")
-
-        cur.execute("SELECT id FROM clientes WHERE cedula = %s", (cedula,))
-        if cur.fetchone():
-            raise HTTPException(status_code=400, detail="Ya existe un cliente con esa cédula")
-
-        verificar_cedula_misma_persona(cur, cedula, nombre, apellido, "usuarios")
-
-        cur.execute("""
+        cur.execute(f"""
             INSERT INTO clientes (
-                cedula, nombre, apellido, telefono, email,
-                ciudad_id, direccion,
+                tipo, cedula, nombre, apellido, razon_social, ruc,
+                representante_nombre, representante_cedula,
+                telefono, email, ciudad_id, direccion,
                 fecha_creacion, fecha_modificacion
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
-            RETURNING id, cedula, nombre, apellido, telefono, email,
-                      ciudad_id, direccion, fecha_creacion, fecha_modificacion
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+            RETURNING {_CAMPOS_CLIENTE_RETURN}
         """, (
-            cedula,
-            nombre,
-            apellido,
-            telefono,
-            email,
-            ciudad_id,
-            direccion
+            d["tipo"], d["cedula"], d["nombre"], d["apellido"], d["razon_social"], d["ruc"],
+            d["representante_nombre"], d["representante_cedula"],
+            d["telefono"], d["email"], d["ciudad_id"], direccion
         ))
 
         cliente = cur.fetchone()
 
-        registrar_auditoria(
-            cur, usuario, "cliente_creado", "clientes", cliente["id"],
-            f"Creó al cliente {nombre} {apellido} (cédula {cedula})"
+        etiqueta = (
+            f"la empresa {d['nombre']} (RUC {d['ruc']})" if d["tipo"] == "empresa"
+            else f"al cliente {d['nombre']} {d['apellido']} (cédula {d['cedula']})"
         )
+        registrar_auditoria(cur, usuario, "cliente_creado", "clientes", cliente["id"], f"Creó {etiqueta}")
 
         conn.commit()
         return cliente
@@ -2717,12 +2778,20 @@ def crear_proceso_mediacion(
     cliente_demandado_id: int,
     tema: str,
     sucursal_id: int = None,
+    empresa_solicitante_id: int = None,
+    empresa_invitado_id: int = None,
     usuario=Depends(obtener_usuario_actual)
 ):
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
     try:
+        for _eid in (empresa_solicitante_id, empresa_invitado_id):
+            if _eid:
+                cur.execute("SELECT id FROM clientes WHERE id = %s AND tipo = 'empresa'", (_eid,))
+                if not cur.fetchone():
+                    raise HTTPException(status_code=400, detail="La empresa elegida no existe")
+
         if cliente_demandante_id == cliente_demandado_id:
             raise HTTPException(
                 status_code=400,
@@ -2790,6 +2859,15 @@ def crear_proceso_mediacion(
         ))
 
         proceso = cur.fetchone()
+
+        cur.execute("""
+            INSERT INTO proceso_partes (proceso_id, rol, cliente_id, es_responsable, empresa_representada_id)
+            VALUES (%s, 'solicitante', %s, true, %s),
+                   (%s, 'invitado', %s, true, %s)
+        """, (
+            proceso["id"], cliente_demandante_id, empresa_solicitante_id,
+            proceso["id"], cliente_demandado_id, empresa_invitado_id
+        ))
 
         conn.commit()
 
@@ -2871,6 +2949,12 @@ def obtener_procesos_mediacion(
                 cd.cedula AS demandante_cedula,
                 cdd.nombre || ' ' || cdd.apellido AS demandado,
                 cdd.cedula AS demandado_cedula,
+                ARRAY(SELECT pp.cliente_id FROM proceso_partes pp
+                      WHERE pp.proceso_id = p.id) AS partes_ids,
+                (SELECT COUNT(*) FROM proceso_partes pp
+                  WHERE pp.proceso_id = p.id AND pp.rol = 'solicitante')::int AS total_solicitantes,
+                (SELECT COUNT(*) FROM proceso_partes pp
+                  WHERE pp.proceso_id = p.id AND pp.rol = 'invitado')::int AS total_invitados,
                 s.nombre AS sucursal,
                 ci.nombre AS ciudad,
                 u.nombre || ' ' || u.apellido AS usuario
@@ -2914,11 +2998,19 @@ def obtener_procesos_mediacion(
                     cdd.nombre ILIKE %s OR
                     cdd.apellido ILIKE %s OR
                     cd.cedula ILIKE %s OR
-                    cdd.cedula ILIKE %s
+                    cdd.cedula ILIKE %s OR
+                    EXISTS (
+                        SELECT 1 FROM proceso_partes pp
+                        JOIN clientes cx ON cx.id = pp.cliente_id
+                        WHERE pp.proceso_id = p.id AND (
+                            cx.nombre ILIKE %s OR cx.apellido ILIKE %s OR
+                            cx.cedula ILIKE %s OR cx.ruc ILIKE %s
+                        )
+                    )
                 )
             """
             like = f"%{q}%"
-            params.extend([like] * 8)
+            params.extend([like] * 12)
 
         if ciudad_id and usuario["rol"] == "administrador":
                 query += " AND ci.id = %s"
@@ -2935,8 +3027,10 @@ def obtener_procesos_mediacion(
         # Usado por el detalle expandible del reporte de Clientes: procesos
         # donde el cliente participó, ya sea como solicitante o invitado.
         if cliente_id:
-                query += " AND (p.cliente_demandante_id = %s OR p.cliente_demandado_id = %s)"
-                params.extend([cliente_id, cliente_id])
+                query += """ AND (p.cliente_demandante_id = %s OR p.cliente_demandado_id = %s
+                    OR EXISTS (SELECT 1 FROM proceso_partes pp
+                               WHERE pp.proceso_id = p.id AND pp.cliente_id = %s))"""
+                params.extend([cliente_id, cliente_id, cliente_id])
 
         query += " ORDER BY p.id DESC"
 
@@ -2962,6 +3056,243 @@ def obtener_procesos_mediacion(
     finally:
         cur.close()
         conn.close()
+
+# =========================
+# PARTES DEL PROCESO (varios solicitantes / invitados)
+# =========================
+def _consulta_partes(cur, proceso_id):
+    cur.execute("""
+        SELECT
+            pp.id, pp.rol, pp.es_responsable, pp.cliente_id,
+            pp.empresa_representada_id,
+            c.tipo, c.nombre, c.apellido, c.cedula, c.ruc, c.razon_social,
+            c.representante_nombre, c.representante_cedula, c.telefono, c.email,
+            e.nombre AS empresa_nombre, e.ruc AS empresa_ruc,
+            e.representante_nombre AS empresa_representante_nombre,
+            e.representante_cedula AS empresa_representante_cedula
+        FROM proceso_partes pp
+        JOIN clientes c ON c.id = pp.cliente_id
+        LEFT JOIN clientes e ON e.id = pp.empresa_representada_id
+        WHERE pp.proceso_id = %s
+        ORDER BY pp.rol DESC, pp.es_responsable DESC, pp.id ASC
+    """, (proceso_id,))
+    return cur.fetchall()
+
+
+def _proceso_para_editar_partes(cur, proceso_id, usuario):
+    cur.execute(
+        "SELECT id, usuario_id, estado, cliente_demandante_id, cliente_demandado_id "
+        "FROM procesos_mediacion WHERE id = %s FOR UPDATE",
+        (proceso_id,)
+    )
+    proceso = cur.fetchone()
+    if not proceso:
+        raise HTTPException(status_code=404, detail="Proceso no encontrado")
+    if usuario["rol"] != "administrador" and proceso["usuario_id"] != usuario["id"]:
+        raise HTTPException(status_code=403, detail="No puedes modificar este proceso")
+    if proceso["estado"] != "en_negociacion":
+        raise HTTPException(
+            status_code=400,
+            detail="Solo se pueden cambiar las partes mientras el proceso sigue en negociación"
+        )
+    return proceso
+
+
+def _sincronizar_responsables(cur, proceso_id):
+    """Mantiene en procesos_mediacion al responsable de cada lado (así
+    reportes, agenda y listas siguen funcionando sin cambios)."""
+    cur.execute("""
+        UPDATE procesos_mediacion p
+        SET cliente_demandante_id = COALESCE((
+                SELECT cliente_id FROM proceso_partes
+                WHERE proceso_id = p.id AND rol = 'solicitante' AND es_responsable LIMIT 1
+            ), cliente_demandante_id),
+            cliente_demandado_id = COALESCE((
+                SELECT cliente_id FROM proceso_partes
+                WHERE proceso_id = p.id AND rol = 'invitado' AND es_responsable LIMIT 1
+            ), cliente_demandado_id),
+            fecha_modificacion = NOW()
+        WHERE p.id = %s
+    """, (proceso_id,))
+
+
+@app.get("/procesos/{proceso_id}/partes")
+def obtener_partes_proceso(proceso_id: int, usuario=Depends(obtener_usuario_actual)):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("SELECT usuario_id FROM procesos_mediacion WHERE id = %s", (proceso_id,))
+        proceso = cur.fetchone()
+        if not proceso:
+            raise HTTPException(status_code=404, detail="Proceso no encontrado")
+        if usuario["rol"] != "administrador" and proceso["usuario_id"] != usuario["id"]:
+            raise HTTPException(status_code=403, detail="No puedes ver este proceso")
+        return _consulta_partes(cur, proceso_id)
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/procesos/{proceso_id}/partes")
+def agregar_parte_proceso(
+    proceso_id: int,
+    rol: str,
+    cliente_id: int,
+    empresa_representada_id: int = None,
+    usuario=Depends(obtener_usuario_actual)
+):
+    if rol not in ("solicitante", "invitado"):
+        raise HTTPException(status_code=400, detail="Rol inválido")
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        _proceso_para_editar_partes(cur, proceso_id, usuario)
+
+        cur.execute("SELECT id, tipo, nombre, apellido, cedula FROM clientes WHERE id = %s", (cliente_id,))
+        cliente = cur.fetchone()
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+        if empresa_representada_id:
+            if cliente["tipo"] == "empresa":
+                raise HTTPException(status_code=400, detail="Una empresa no representa a otra empresa")
+            cur.execute("SELECT id FROM clientes WHERE id = %s AND tipo = 'empresa'", (empresa_representada_id,))
+            if not cur.fetchone():
+                raise HTTPException(status_code=400, detail="La empresa elegida no existe")
+
+        # Una misma persona no puede estar dos veces en el proceso (ni de
+        # los dos lados a la vez).
+        cur.execute(
+            "SELECT rol FROM proceso_partes WHERE proceso_id = %s AND cliente_id = %s",
+            (proceso_id, cliente_id)
+        )
+        existe = cur.fetchone()
+        if existe:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Ese cliente ya está en este proceso como {existe['rol']}"
+            )
+
+        # El mediador del proceso no puede ser parte (compara por cédula).
+        cur.execute("SELECT cedula FROM usuarios WHERE id = (SELECT usuario_id FROM procesos_mediacion WHERE id = %s)", (proceso_id,))
+        med = cur.fetchone()
+        if med and med["cedula"] and cliente["cedula"] and med["cedula"] == cliente["cedula"]:
+            raise HTTPException(
+                status_code=400,
+                detail="El mediador que lleva el proceso no puede ser una de las partes"
+            )
+
+        cur.execute("""
+            INSERT INTO proceso_partes (proceso_id, rol, cliente_id, es_responsable, empresa_representada_id)
+            VALUES (%s, %s, %s, false, %s)
+        """, (proceso_id, rol, cliente_id, empresa_representada_id))
+
+        registrar_auditoria(
+            cur, usuario, "proceso_parte_agregada", "procesos", proceso_id,
+            f"Agregó a {cliente['nombre']} {cliente['apellido']} como {rol}"
+        )
+        conn.commit()
+        return _consulta_partes(cur, proceso_id)
+
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.put("/procesos/{proceso_id}/partes/{parte_id}/responsable")
+def cambiar_responsable_parte(
+    proceso_id: int,
+    parte_id: int,
+    usuario=Depends(obtener_usuario_actual)
+):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        _proceso_para_editar_partes(cur, proceso_id, usuario)
+
+        cur.execute(
+            "SELECT id, rol FROM proceso_partes WHERE id = %s AND proceso_id = %s",
+            (parte_id, proceso_id)
+        )
+        parte = cur.fetchone()
+        if not parte:
+            raise HTTPException(status_code=404, detail="Parte no encontrada")
+
+        cur.execute(
+            "UPDATE proceso_partes SET es_responsable = false WHERE proceso_id = %s AND rol = %s",
+            (proceso_id, parte["rol"])
+        )
+        cur.execute("UPDATE proceso_partes SET es_responsable = true WHERE id = %s", (parte_id,))
+        _sincronizar_responsables(cur, proceso_id)
+
+        registrar_auditoria(
+            cur, usuario, "proceso_responsable_cambiado", "procesos", proceso_id,
+            f"Cambió el responsable de los {parte['rol']}s"
+        )
+        conn.commit()
+        return _consulta_partes(cur, proceso_id)
+
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.delete("/procesos/{proceso_id}/partes/{parte_id}")
+def quitar_parte_proceso(
+    proceso_id: int,
+    parte_id: int,
+    usuario=Depends(obtener_usuario_actual)
+):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        _proceso_para_editar_partes(cur, proceso_id, usuario)
+
+        cur.execute(
+            "SELECT id, rol, es_responsable, cliente_id FROM proceso_partes WHERE id = %s AND proceso_id = %s",
+            (parte_id, proceso_id)
+        )
+        parte = cur.fetchone()
+        if not parte:
+            raise HTTPException(status_code=404, detail="Parte no encontrada")
+        if parte["es_responsable"]:
+            raise HTTPException(
+                status_code=400,
+                detail="No puedes quitar al responsable. Primero marca a otra persona como responsable."
+            )
+
+        cur.execute("DELETE FROM proceso_partes WHERE id = %s", (parte_id,))
+
+        registrar_auditoria(
+            cur, usuario, "proceso_parte_quitada", "procesos", proceso_id,
+            f"Quitó a un {parte['rol']} (cliente {parte['cliente_id']})"
+        )
+        conn.commit()
+        return _consulta_partes(cur, proceso_id)
+
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+        conn.close()
+
 
 # =========================
 # OBTENER CITAS DE PROCESO
@@ -4865,8 +5196,8 @@ def obtener_reporte_clientes(
         query = """
             SELECT
                 cl.id AS cliente_id,
-                cl.nombre || ' ' || cl.apellido AS cliente,
-                cl.cedula,
+                TRIM(cl.nombre || ' ' || cl.apellido) AS cliente,
+                COALESCE(cl.cedula, cl.ruc) AS cedula,
                 cl.telefono,
                 cl.email,
                 COUNT(DISTINCT p.id) FILTER (WHERE p.estado <> 'anulado') AS total_procesos,
@@ -4886,8 +5217,8 @@ def obtener_reporte_clientes(
                 STRING_AGG(DISTINCT af.codigo_acta, ', ' ORDER BY af.codigo_acta)
                     FILTER (WHERE p.finalizado = true) AS codigos_actas
             FROM clientes cl
-            JOIN procesos_mediacion p
-                ON p.cliente_demandante_id = cl.id OR p.cliente_demandado_id = cl.id
+            JOIN proceso_partes pp ON pp.cliente_id = cl.id
+            JOIN procesos_mediacion p ON p.id = pp.proceso_id
             LEFT JOIN actas_proceso af ON af.id = p.acta_final_id
             JOIN sucursales s ON p.sucursal_id = s.id
             JOIN ciudades ci ON s.ciudad_id = ci.id
@@ -4922,7 +5253,7 @@ def obtener_reporte_clientes(
             params.append(fecha_hasta)
 
         query += """
-            GROUP BY cl.id, cl.nombre, cl.apellido, cl.cedula, cl.telefono, cl.email
+            GROUP BY cl.id, cl.nombre, cl.apellido, cl.cedula, cl.ruc, cl.telefono, cl.email
             ORDER BY total_procesos DESC, cliente ASC
         """
 
@@ -5463,6 +5794,7 @@ def obtener_expediente_proceso(
 
         return {
             "proceso": proceso,
+            "partes": _consulta_partes(cur, proceso_id),
             "linea_tiempo": linea_tiempo,
             "acta_final": acta_final,
             "historial_pdf": historial_pdf
