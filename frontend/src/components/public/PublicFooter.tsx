@@ -75,11 +75,17 @@ export default function PublicFooter() {
               <li className="flex items-start gap-3 text-sm">
                 <MapPin className="w-4 h-4 mt-0.5 text-gold-400 shrink-0" />
 
-                <span>
+                <a
+                  href="https://www.google.com/maps/search/?api=1&query=-0.2527971%2C-79.1692147"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-gold-400 transition-colors"
+                  aria-label="Ver la dirección en Google Maps"
+                >
                   Av. Tulcán y Calle Machala,
                   <br />
                   Santo Domingo - Ecuador
-                </span>
+                </a>
               </li>
 
               <li className="flex items-center gap-3 text-sm">

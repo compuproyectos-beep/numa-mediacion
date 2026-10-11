@@ -18,11 +18,13 @@ import {
   HandHeart,
   Lock,
   MapPin,
+  Mail,
 } from 'lucide-react';
 
 import PublicNavbar from '@/components/public/PublicNavbar';
 import PublicFooter from '@/components/public/PublicFooter';
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
+import FacebookIcon from '@/components/icons/FacebookIcon';
 
 const valores = [
   {
@@ -593,7 +595,7 @@ export default function HomePage() {
               de mediación, en el menor tiempo posible.
             </p>
 
-            <div className="flex flex-wrap justify-center gap-4">
+            <div className="flex flex-wrap justify-center gap-3 sm:gap-4 font-ui">
               <a
                 href="https://wa.me/593981790092?text=Hola%2C%20quisiera%20una%20asesor%C3%ADa%20gratuita%20sobre%20mi%20caso"
                 target="_blank"
@@ -605,14 +607,25 @@ export default function HomePage() {
               </a>
 
               <a
+                href="https://www.facebook.com/profile.php?id=61594906720744"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-[#1877F2] text-white text-sm font-semibold rounded-full hover:bg-[#1465d6] btn-press"
+              >
+                <FacebookIcon className="w-4 h-4" />
+                Síguenos en Facebook
+              </a>
+
+              <a
                 href="mailto:numacentromediacion@gmail.com"
                 className="inline-flex items-center gap-2 px-6 py-3 border border-numa-300 text-numa-700 text-sm font-medium rounded-full hover:border-gold-500 hover:text-gold-600 btn-press"
               >
+                <Mail className="w-4 h-4" />
                 Escríbenos un correo
               </a>
             </div>
 
-            <div className="mt-10 pt-8 border-t border-numa-100 text-left">
+            <div className="mt-8 pt-6 border-t border-numa-100 text-left">
               <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
                 <div>
                   <h3 className="text-xl font-bold text-numa-900 mb-1">Visítanos</h3>
@@ -632,7 +645,7 @@ export default function HomePage() {
                 <iframe
                   title="Ubicación del Centro de Mediación NUMA"
                   src="https://www.google.com/maps?q=-0.2527971,-79.1692147&hl=es&z=18&output=embed"
-                  className="block w-full h-[260px] sm:h-[340px] border-0"
+                  className="block w-full h-[170px] sm:h-[210px] border-0"
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                   allowFullScreen
