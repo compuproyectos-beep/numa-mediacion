@@ -189,7 +189,7 @@ export default function HomePage() {
           Cada foto se ve COMPLETA (sin recortar) de fondo desenfocado de
           la misma foto, ampliada, rellena los bordes para que no queden
           franjas vacías — así no se pierde nada de la imagen original. */}
-      <section className="relative min-h-[560px] sm:min-h-[600px] lg:min-h-[640px] flex items-center overflow-hidden rounded-b-[2rem] sm:rounded-b-[3.5rem]">
+      <section className="relative min-h-[560px] sm:min-h-[600px] lg:min-h-[640px] flex items-center overflow-hidden">
         {/* Carrusel de fondo, a todo lo ancho y alto de la sección.
             Tono oscuro neutro (no el azul intenso de numa-950) para que el
             fondo no se sienta "muy azulado". */}
