@@ -80,7 +80,7 @@ export default function PublicNavbar() {
   }, {});
 
   return (
-    <nav className="fixed top-0 inset-x-0 z-50 px-3 sm:px-6 pointer-events-none font-sans antialiased">
+    <nav className="fixed top-0 inset-x-0 z-50 px-3 sm:px-6 pointer-events-none font-ui antialiased">
       <div className="pointer-events-auto mx-auto mt-2 sm:mt-3 max-w-6xl rounded-[1.75rem] bg-[#0B141C]/92 backdrop-blur-xl ring-1 ring-white/10 shadow-[0_24px_50px_-24px_rgba(0,0,0,0.7)] transition-shadow">
       {/* Barra de contacto — siempre visible, sin necesidad de bajar hasta el pie de página */}
       <div

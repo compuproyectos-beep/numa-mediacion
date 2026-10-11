@@ -41,6 +41,7 @@ const config: Config = {
         display: ['Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', 'Georgia', 'Cambria', 'serif'],
         // Tipografía institucional de la página pública (se descarga junto con el sitio, se ve igual en todos los equipos).
         brand: ['"Newsreader Variable"', 'Iowan Old Style', 'Palatino Linotype', 'Georgia', 'serif'],
+        ui: ['"Jost Variable"', 'system-ui', 'Segoe UI', 'sans-serif'],
         body: ['system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
         // Used sparingly for fixed-width identifiers: cédulas, códigos de acta/proceso.
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
