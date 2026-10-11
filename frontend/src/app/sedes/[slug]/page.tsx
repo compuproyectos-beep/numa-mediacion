@@ -8,8 +8,10 @@ import {
   Phone,
   ArrowLeft,
   Building2,
-  ArrowRight
+  ArrowRight,
 } from 'lucide-react';
+import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
+import FacebookIcon from '@/components/icons/FacebookIcon';
 
 import PublicNavbar from '@/components/public/PublicNavbar';
 import PublicFooter from '@/components/public/PublicFooter';
@@ -31,34 +33,20 @@ export default function SedePage() {
       .finally(() => setLoading(false));
   }, [slug]);
 
+  const telefonoLimpio = (sede?.telefono || '').replace(/[^0-9+]/g, '');
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white font-brand">
       <PublicNavbar />
 
-      <section className="relative pt-32 pb-20 bg-white text-numa-900 overflow-hidden">
-        {/* Formas azules decorativas */}
-        <div className="absolute -bottom-40 -left-24 w-96 h-96 bg-numa-50 rounded-full blur-3xl opacity-90" />
-        <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-gold-400/10 rounded-full blur-3xl" />
-
-        {/* Pattern */}
-        <div className="absolute inset-0 opacity-[0.08]">
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage:
-                'repeating-linear-gradient(45deg, #C9D6E5 0, #C9D6E5 1px, transparent 0, transparent 50%)',
-              backgroundSize: '22px 22px',
-            }}
-          />
-        </div>
-
-        {/* Top line */}
+      <section className="relative pt-40 sm:pt-44 pb-16 sm:pb-20 bg-soft overflow-hidden">
+        {/* Línea dorada superior (la misma de la portada) */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-numa-800 via-gold-500 to-numa-800" />
 
-        <div className="relative max-w-7xl mx-auto px-4">
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-numa-800 hover:text-gold-600 border border-numa-200 hover:border-gold-400 hover:bg-gold-50 rounded-full px-4 py-2 mb-10 transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-numa-800 hover:text-gold-600 border border-numa-200 hover:border-gold-400 hover:bg-white rounded-full px-4 py-2 mb-10 btn-press"
           >
             <ArrowLeft className="w-4 h-4" />
             Volver al inicio
@@ -72,20 +60,15 @@ export default function SedePage() {
               <p className="text-numa-600">{error}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-10 lg:gap-14 items-center">
               <div>
-                <div className="flex items-center gap-2 mb-5">
-                  <div className="h-px w-12 bg-gold-500" />
-                  <span className="text-gold-600 text-xs uppercase tracking-[0.3em]">
-                    Sede NUMA
-                  </span>
-                </div>
+                <span className="inline-block rounded-full border border-gold-400/40 bg-gold-400/10 px-3.5 py-1 text-[11px] uppercase tracking-[0.2em] text-gold-600 font-sans mb-5">
+                  Sede NUMA
+                </span>
 
-                <h1 className="text-5xl font-bold leading-tight mb-4 text-numa-900">
+                <h1 className="text-4xl sm:text-5xl font-bold leading-tight mb-4 text-numa-900">
                   Centro de Mediación
-                  <span className="block text-gold-600">
-                    {sede.nombre}
-                  </span>
+                  <span className="block text-gold-600">{sede.nombre}</span>
                 </h1>
 
                 <div className="flex items-center gap-2 mb-6">
@@ -100,85 +83,85 @@ export default function SedePage() {
                   resolución pacífica de conflictos en {sede.ciudad}.
                 </p>
 
-                <div className="mt-8 flex flex-wrap gap-4">
-                  <button
-                   type="button"
-                   className="inline-flex items-center gap-2 px-6 py-3 bg-gold-400 text-numa-950 text-sm font-semibold rounded-sm hover:bg-gold-500 transition-colors"
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <a
+                    href={`https://wa.me/593981790092?text=${encodeURIComponent(
+                      `Hola, quisiera información sobre la sede ${sede.nombre} de ${sede.ciudad}`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 text-white text-sm font-semibold rounded-full hover:bg-green-600 btn-press"
                   >
-                    Consúltanos ahora
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
+                    <WhatsAppIcon className="w-4 h-4" />
+                    Consúltanos por WhatsApp
+                  </a>
 
                   <Link
                     href="/login"
-                    className="inline-flex items-center gap-2 px-6 py-3 border border-numa-300 text-numa-700 text-sm font-medium rounded-sm hover:border-gold-400 hover:text-gold-600 hover:bg-gold-50 transition-colors"
+                    className="inline-flex items-center gap-2 px-6 py-3 border border-numa-300 text-numa-700 text-sm font-medium rounded-full hover:border-gold-500 hover:text-gold-600 hover:bg-white btn-press"
                   >
                     Acceso al sistema
                   </Link>
                 </div>
               </div>
 
-              <div className="bg-white border border-numa-200 shadow-xl rounded-sm p-8">
-                <div className="w-14 h-14 bg-gold-400 text-numa-950 rounded-sm flex items-center justify-center mb-6">
-                  <Building2 className="w-7 h-7" />
-                </div>
+              <div className="bezel">
+                <div className="bg-white rounded-[1.6rem] shadow-soft inner-hl-light p-7 sm:p-9">
+                  <div className="w-12 h-14 rounded-t-full rounded-b-xl bg-numa-900 flex items-center justify-center mb-6">
+                    <Building2 className="w-5 h-5 text-gold-400" />
+                  </div>
 
-                <h2 className="text-2xl font-bold mb-6 text-numa-900">
-                  Información de la sede
-                </h2>
+                  <h2 className="text-2xl font-bold mb-6 text-numa-900">
+                    Información de la sede
+                  </h2>
 
-                <div className="space-y-5">
-                  <div className="flex gap-3">
-                    <MapPin className="w-5 h-5 text-gold-600 shrink-0 mt-1" />
-                    <div>
-                      <p className="font-semibold text-numa-900">Dirección</p>
-                      <p className="text-numa-600">
-                        {sede.direccion || 'Dirección no registrada'}
-                      </p>
-                      <p className="text-numa-400 text-sm">
-                        {sede.ciudad}, {sede.provincia}
-                      </p>
+                  <dl className="divide-y divide-numa-100">
+                    <div className="flex gap-4 py-4 first:pt-0">
+                      <MapPin className="w-5 h-5 text-gold-600 shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <dt className="font-semibold text-numa-900">Dirección</dt>
+                        <dd className="text-numa-600">
+                          {sede.direccion || 'Dirección no registrada'}
+                        </dd>
+                        <dd className="text-numa-400 text-sm">
+                          {sede.ciudad}, {sede.provincia}
+                        </dd>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex gap-3">
-                    <Phone className="w-5 h-5 text-gold-600 shrink-0 mt-1" />
-                    <div>
-                      <p className="font-semibold text-numa-900">Teléfono</p>
-                      <p className="text-numa-600">
-                        {sede.telefono || 'No registrado'}
-                      </p>
+                    <div className="flex gap-4 py-4">
+                      <Phone className="w-5 h-5 text-gold-600 shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <dt className="font-semibold text-numa-900">Teléfono</dt>
+                        <dd className="text-numa-600">
+                          {sede.telefono ? (
+                            <a href={`tel:${telefonoLimpio}`} className="hover:text-gold-600">
+                              {sede.telefono}
+                            </a>
+                          ) : (
+                            'No registrado'
+                          )}
+                        </dd>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-3 pt-2">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                      className="w-5 h-5 text-gold-600"
-                    >
-                      <path d="M22 12.07C22 6.503 17.523 2 12 2S2 6.503 2 12.07c0 5.017 3.657 9.177 8.438 9.93v-7.03H7.898v-2.9h2.54V9.845c0-2.52 1.492-3.913 3.777-3.913 1.094 0 2.238.196 2.238.196v2.474h-1.26c-1.243 0-1.63.776-1.63 1.572v1.887h2.773l-.443 2.9h-2.33V22c4.78-.753 8.437-4.913 8.437-9.93z" />
-                    </svg>
-
-                    <a
-                      href="https://facebook.com/numamediacionec"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-base font-semibold text-numa-900 hover:text-gold-600 transition-colors"
-                    >
-                      Facebook 
-                    </a>
-                  </div>
-
-                  <div className="border-t border-numa-100 pt-5">
-                    <p className="text-xs uppercase tracking-[0.2em] text-gold-600 mb-2">
-                      Código de sede
-                    </p>
-                    <p className="text-numa-600">
-                      {sede.codigo} · {sede.prefijo}
-                    </p>
-                  </div>
+                    <div className="flex gap-4 py-4 last:pb-0">
+                      <FacebookIcon className="w-5 h-5 text-gold-600 shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <dt className="font-semibold text-numa-900">Facebook</dt>
+                        <dd>
+                          <a
+                            href="https://www.facebook.com/profile.php?id=61594906720744"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-numa-600 hover:text-gold-600"
+                          >
+                            NUMA Centro de Mediación
+                          </a>
+                        </dd>
+                      </div>
+                    </div>
+                  </dl>
                 </div>
               </div>
             </div>
@@ -186,19 +169,21 @@ export default function SedePage() {
         </div>
       </section>
 
-      <section className="py-20 bg-white">
-        <div className="max-w-5xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold text-numa-900 mb-4">
-            Mediación cercana, profesional y confiable
-          </h2>
+      <div className="bg-white px-3 sm:px-6 py-2 sm:py-4">
+        <section className="relative py-12 sm:py-16 bg-night overflow-hidden rounded-[1.75rem] sm:rounded-[2.5rem]">
+          <div className="max-w-3xl mx-auto px-5 text-center">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
+              Mediación cercana, profesional y confiable
+            </h2>
 
-          <p className="text-numa-600 leading-relaxed max-w-3xl mx-auto">
-            En NUMA promovemos soluciones pacíficas mediante procesos de
-            mediación eficientes, confidenciales y orientados al entendimiento
-            entre las partes.
-          </p>
-        </div>
-      </section>
+            <p className="text-numa-100 leading-relaxed">
+              En NUMA promovemos soluciones pacíficas mediante procesos de
+              mediación eficientes, confidenciales y orientados al
+              entendimiento entre las partes.
+            </p>
+          </div>
+        </section>
+      </div>
 
       <PublicFooter />
     </div>
