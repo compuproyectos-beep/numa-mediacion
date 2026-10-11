@@ -245,7 +245,7 @@ export default function HomePage() {
           Va justo debajo del banner de fotos (antes de "Quiénes somos"),
           como una franja informativa chica — no una sección a página
           completa — con la foto más reducida. */}
-      <section id="numa-pompilio" className="py-10 bg-white border-b border-numa-100">
+      <section id="numa-pompilio" className="py-12 bg-parchment border-b border-gold-400/30">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-[150px_1fr] gap-5 sm:gap-8 items-center">
             <div className="relative mx-auto sm:mx-0 w-32 sm:w-full rounded-sm overflow-hidden shadow-md border border-numa-200">
@@ -285,7 +285,7 @@ export default function HomePage() {
       </section>
 
       {/* NOSOTROS */}
-      <section id="nosotros" className="py-24 bg-white">
+      <section id="nosotros" className="relative py-24 bg-glow-white overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
@@ -322,13 +322,13 @@ export default function HomePage() {
               ].map((stat) => (
                 <div
                   key={stat.label}
-                  className="bg-numa-50 border border-numa-100 rounded-sm p-6"
+                  className="bg-numa-900 border border-numa-800 rounded-sm p-6 shadow-lg shadow-numa-950/20"
                 >
-                  <div className="text-3xl font-bold text-numa-900 mb-1 tabular-nums">
+                  <div className="text-3xl font-bold text-gold-400 mb-1 tabular-nums">
                     {stat.num}
                   </div>
 
-                  <div className="text-sm text-numa-500 font-sans">
+                  <div className="text-sm text-numa-200 font-sans">
                     {stat.label}
                   </div>
                 </div>
@@ -339,40 +339,40 @@ export default function HomePage() {
       </section>
 
       {/* MISION */}
-      <section id="misión" className="py-24 bg-numa-50">
+      <section id="misión" className="relative py-24 bg-night overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <h2 className="text-4xl font-bold text-numa-900">
+            <h2 className="text-4xl font-bold text-white">
               Misión y Visión
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-white border border-numa-200 rounded-2xl p-8">
+            <div className="bg-numa-950/60 border border-gold-400/25 rounded-2xl p-8 shadow-xl shadow-black/20">
               <div className="w-12 h-12 rounded-full bg-gold-400/10 border border-gold-400/30 flex items-center justify-center mb-6">
                 <Scale className="w-6 h-6 text-gold-600" />
               </div>
 
-              <h3 className="text-xl font-bold text-numa-900 mb-4">
+              <h3 className="text-xl font-bold text-gold-400 mb-4">
                 Misión
               </h3>
 
-              <p className="text-numa-600 leading-relaxed">
+              <p className="text-numa-100 leading-relaxed">
                 Brindar servicios de mediación y resolución alternativa de
                 conflictos de alta calidad.
               </p>
             </div>
 
-            <div className="bg-white border border-numa-200 rounded-2xl p-8">
+            <div className="bg-numa-950/60 border border-gold-400/25 rounded-2xl p-8 shadow-xl shadow-black/20">
               <div className="w-12 h-12 rounded-full bg-gold-400/10 border border-gold-400/30 flex items-center justify-center mb-6">
                 <Eye className="w-6 h-6 text-gold-600" />
               </div>
 
-              <h3 className="text-xl font-bold text-numa-900 mb-4">
+              <h3 className="text-xl font-bold text-gold-400 mb-4">
                 Visión
               </h3>
 
-              <p className="text-numa-600 leading-relaxed">
+              <p className="text-numa-100 leading-relaxed">
                 Ser el centro de mediación líder reconocido por su excelencia.
               </p>
             </div>
@@ -381,7 +381,7 @@ export default function HomePage() {
       </section>
 
       {/* VALORES */}
-      <section id="valores" className="py-24 bg-white">
+      <section id="valores" className="py-24 bg-dots">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
             <h2 className="text-4xl font-bold text-numa-900">
@@ -413,7 +413,7 @@ export default function HomePage() {
       </section>
 
       {/* BENEFICIOS */}
-      <section id="beneficios" className="py-24 bg-white">
+      <section id="beneficios" className="py-24 bg-parchment">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
             <div className="flex items-center justify-center gap-2 mb-4">
