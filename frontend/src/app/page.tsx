@@ -113,6 +113,29 @@ const beneficios = [
   },
 ];
 
+// Arcos decorativos que flotan despacio detrás de las secciones claras
+// (el arco es el símbolo de la página). Solo se ven en pantallas anchas.
+function Arcos() {
+  const arcos = [
+    { left: '2%', top: '10%', w: 64, h: 96, d: '0s' },
+    { left: '5%', top: '58%', w: 44, h: 68, d: '-3s' },
+    { right: '3%', top: '16%', w: 52, h: 80, d: '-5s' },
+    { right: '1.5%', top: '64%', w: 72, h: 108, d: '-8s' },
+  ] as const;
+  return (
+    <>
+      {arcos.map((a, i) => (
+        <span
+          key={i}
+          aria-hidden="true"
+          className="deco-arch hidden xl:block"
+          style={{ left: (a as any).left, right: (a as any).right, top: a.top, width: a.w, height: a.h, animationDelay: a.d }}
+        />
+      ))}
+    </>
+  );
+}
+
 export default function HomePage() {
   // Índice de la foto que se muestra ahora mismo en el carrusel del hero.
   // (El desplegable de Sedes que antes vivía aquí se quitó del banner —
@@ -230,7 +253,7 @@ export default function HomePage() {
           ))}
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 pb-24 w-full">
+        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-40 pb-20 w-full">
           <div className="max-w-2xl">
             <div className="hero-rise flex items-center gap-2 mb-6">
               <div className="h-px w-12 bg-gold-500" />
@@ -391,7 +414,8 @@ export default function HomePage() {
       </div>
 
       {/* VALORES */}
-      <section id="valores" className="py-14 sm:py-20 bg-dots">
+      <section id="valores" className="py-14 sm:py-20 bg-aurora aurora-a">
+        <Arcos />
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <h2 className="text-4xl font-bold text-numa-900">
@@ -411,7 +435,7 @@ export default function HomePage() {
                   <Icon className="w-5 h-5 text-gold-400" />
                 </div>
                 <h3 className="text-xl font-bold text-numa-900 mb-2">{titulo}</h3>
-                <p className="text-sm text-numa-600 leading-relaxed font-sans">{desc}</p>
+                <p className="text-sm text-numa-700 leading-relaxed font-sans">{desc}</p>
               </div>
             ))}
           </div>
@@ -419,7 +443,8 @@ export default function HomePage() {
       </section>
 
       {/* BENEFICIOS */}
-      <section id="beneficios" className="py-14 sm:py-20 bg-soft">
+      <section id="beneficios" className="py-14 sm:py-20 bg-aurora aurora-b">
+        <Arcos />
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <div className="flex justify-center mb-4">
@@ -511,7 +536,8 @@ export default function HomePage() {
       </section>
 
       {/* SERVICIOS */}
-      <section id="servicios" className="py-14 sm:py-20 bg-numa-50">
+      <section id="servicios" className="py-14 sm:py-20 bg-aurora aurora-c">
+        <Arcos />
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 items-center">
             <div>
@@ -524,7 +550,7 @@ export default function HomePage() {
                   <li key={s} className="flex items-center gap-3">
                     <CheckCircle className="w-5 h-5 text-gold-500 shrink-0" />
 
-                    <span className="text-numa-700 font-sans text-sm">
+                    <span className="text-numa-800 font-sans text-sm">
                       {s}
                     </span>
                   </li>
@@ -550,7 +576,7 @@ export default function HomePage() {
       </section>
 
       {/* SOLICITA TU ASESORÍA */}
-      <section id="contacto" className="py-14 sm:py-20 bg-numa-50">
+      <section id="contacto" className="relative overflow-hidden py-14 sm:py-20 bg-night">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="reveal bezel"><div className="bg-white rounded-[1.6rem] shadow-soft inner-hl-light p-10 sm:p-14">
             <div className="flex justify-center mb-4">

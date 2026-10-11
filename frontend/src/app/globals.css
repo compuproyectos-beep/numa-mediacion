@@ -221,3 +221,18 @@ html {
 @media (hover:hover){.group:hover .btn-ico{transform:translate(2px,-1px) scale(1.06)}}
 .font-brand svg.lucide{stroke-width:1.6}
 @media (prefers-reduced-motion: reduce){.js-reveal .reveal{filter:none!important}.btn-ico{transition:none}}
+
+/* Fondos con color de marca (azul y dorado del logo) detrás de las secciones claras */
+.bg-aurora{position:relative;isolation:isolate;overflow:hidden;background:var(--a-base)}
+.bg-aurora::before{content:"";position:absolute;inset:-25%;z-index:-1;pointer-events:none;
+  background:radial-gradient(38% 42% at 18% 28%,var(--a1),transparent 70%),radial-gradient(34% 40% at 82% 72%,var(--a2),transparent 70%),radial-gradient(28% 34% at 62% 8%,var(--a3),transparent 70%);
+  animation:aurora 18s ease-in-out infinite alternate}
+.aurora-a{--a-base:#E1EAF6;--a1:rgba(74,103,137,.46);--a2:rgba(224,184,74,.46);--a3:rgba(109,137,172,.34)}
+.aurora-b{--a-base:#DAE5F3;--a1:rgba(224,184,74,.58);--a2:rgba(74,103,137,.58);--a3:rgba(224,184,74,.34)}
+.aurora-c{--a-base:#E3EBF6;--a1:rgba(109,137,172,.46);--a2:rgba(224,184,74,.44);--a3:rgba(74,103,137,.32)}
+@keyframes aurora{0%{transform:translate3d(-6%,-4%,0) rotate(-3deg) scale(1)}100%{transform:translate3d(6%,4%,0) rotate(3deg) scale(1.12)}}
+@media (prefers-reduced-motion: reduce){.bg-aurora::before{animation:none}}
+
+.deco-arch{position:absolute;z-index:-1;pointer-events:none;border:1.5px solid rgba(201,154,46,.55);border-bottom:0;border-radius:9999px 9999px 0 0;animation:arch-float 10s ease-in-out infinite alternate}
+@keyframes arch-float{0%{transform:translate3d(0,0,0)}100%{transform:translate3d(0,-18px,0)}}
+@media (prefers-reduced-motion: reduce){.deco-arch{animation:none}}
