@@ -619,7 +619,7 @@ export default function HomePage() {
                   <p className="text-sm text-numa-600 font-sans">Av. Tulcán y Calle Machala, Santo Domingo, Ecuador</p>
                 </div>
                 <a
-                  href="https://www.google.com/maps/search/?api=1&query=Av.+Tulc%C3%A1n+y+Calle+Machala%2C+Santo+Domingo%2C+Ecuador"
+                  href="https://www.google.com/maps/search/?api=1&query=-0.2527971%2C-79.1692147"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 self-start sm:self-auto px-5 py-2.5 bg-numa-900 text-white text-sm font-semibold rounded-full hover:bg-numa-800 btn-press whitespace-nowrap font-sans"
@@ -631,7 +631,7 @@ export default function HomePage() {
               <div className="overflow-hidden rounded-2xl ring-1 ring-numa-100 bg-numa-50">
                 <iframe
                   title="Ubicación del Centro de Mediación NUMA en Santo Domingo"
-                  src="https://www.google.com/maps?q=Av.+Tulc%C3%A1n+y+Calle+Machala%2C+Santo+Domingo%2C+Ecuador&hl=es&z=16&output=embed"
+                  src="https://www.google.com/maps?q=-0.2527971,-79.1692147&hl=es&z=18&output=embed"
                   className="block w-full h-[260px] sm:h-[340px] border-0"
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
