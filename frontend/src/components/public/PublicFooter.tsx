@@ -106,7 +106,7 @@ export default function PublicFooter() {
               <li className="flex items-center gap-3 text-sm">
                 <Mail className="w-4 h-4 text-gold-400 shrink-0" />
 
-                <span className="text-white">
+                <span className="text-white min-w-0 break-all">
                   numamediacionec@hotmail.com
                 </span>
               </li>

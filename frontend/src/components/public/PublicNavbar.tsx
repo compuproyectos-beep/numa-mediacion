@@ -80,10 +80,11 @@ export default function PublicNavbar() {
   }, {});
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0B141C]/95 backdrop-blur-sm border-b border-numa-800">
+    <nav className="fixed top-0 inset-x-0 z-50 px-3 sm:px-6 pointer-events-none">
+      <div className="pointer-events-auto mx-auto mt-2 sm:mt-3 max-w-6xl rounded-[1.75rem] bg-[#0B141C]/85 backdrop-blur-xl ring-1 ring-white/10 shadow-[0_24px_50px_-24px_rgba(0,0,0,0.7)] transition-shadow">
       {/* Barra de contacto — siempre visible, sin necesidad de bajar hasta el pie de página */}
       <div
-        className={`hidden sm:block bg-[#101D28] border-numa-800 overflow-hidden transition-all duration-300 ${
+        className={`hidden sm:block bg-[#101D28]/80 border-numa-800 overflow-hidden rounded-t-[1.75rem] transition-all duration-300 ${
           bajo ? 'max-h-0 border-b-0' : 'max-h-12 border-b'
         }`}
       >
@@ -126,8 +127,8 @@ export default function PublicNavbar() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8">
+        <div className="flex items-center justify-between h-[4.5rem]">
           {/* Logo — a la izquierda en escritorio (posición original) */}
           <Link href="/" className="hidden md:flex items-center">
             <RotatingLogo className="h-14 w-40 sm:h-16 sm:w-48" />
@@ -240,7 +241,7 @@ export default function PublicNavbar() {
       </div>
 
       {open && (
-        <div className="md:hidden bg-[#0B141C] border-t border-numa-800 px-4 pb-4 pt-2 space-y-2">
+        <div className="md:hidden border-t border-white/10 px-5 pb-5 pt-2 space-y-2 rounded-b-[1.75rem]">
           {['Nosotros', 'Misión', 'Valores', 'Servicios', 'Contacto'].map(
             (item) => (
               <a
@@ -322,6 +323,7 @@ export default function PublicNavbar() {
           </Link>
         </div>
       )}
+      </div>
     </nav>
   );
 }

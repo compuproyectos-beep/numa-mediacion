@@ -166,7 +166,7 @@ export default function HomePage() {
           Cada foto se ve COMPLETA (sin recortar) de fondo desenfocado de
           la misma foto, ampliada, rellena los bordes para que no queden
           franjas vacías — así no se pierde nada de la imagen original. */}
-      <section className="relative min-h-[640px] sm:min-h-[720px] lg:min-h-[820px] flex items-center overflow-hidden rounded-b-[2rem] sm:rounded-b-[3.5rem]">
+      <section className="relative min-h-[560px] sm:min-h-[600px] lg:min-h-[640px] flex items-center overflow-hidden rounded-b-[2rem] sm:rounded-b-[3.5rem]">
         {/* Carrusel de fondo, a todo lo ancho y alto de la sección.
             Tono oscuro neutro (no el azul intenso de numa-950) para que el
             fondo no se sienta "muy azulado". */}
@@ -269,7 +269,7 @@ export default function HomePage() {
           Va justo debajo del banner de fotos (antes de "Quiénes somos"),
           como una franja informativa chica — no una sección a página
           completa — con la foto más reducida. */}
-      <section id="numa-pompilio" className="py-12 bg-parchment border-b border-gold-400/30">
+      <section id="numa-pompilio" className="py-8 bg-numa-50 border-b border-numa-100">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-[150px_1fr] gap-5 sm:gap-8 items-center">
             <div className="relative mx-auto sm:mx-0 w-32 sm:w-full rounded-t-full rounded-b-2xl overflow-hidden shadow-xl border border-numa-200">
@@ -305,9 +305,9 @@ export default function HomePage() {
       </section>
 
       {/* NOSOTROS */}
-      <section id="nosotros" className="relative py-24 sm:py-32 bg-glow-white overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+      <section id="nosotros" className="relative py-14 sm:py-20 bg-glow-white overflow-hidden">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 items-center">
             <div>
               <div className="flex mb-4">
                 <span className="inline-block rounded-full border border-gold-400/40 bg-gold-400/10 px-3.5 py-1 text-[11px] uppercase tracking-[0.2em] text-gold-600 font-sans">Quiénes Somos</span>
@@ -354,18 +354,18 @@ export default function HomePage() {
       </section>
 
       {/* MISION */}
-      <div className="bg-white px-3 sm:px-6 py-3 sm:py-6">
-      <section id="misión" className="relative py-20 sm:py-28 bg-night overflow-hidden rounded-[2rem] sm:rounded-[3.5rem]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_1px_1fr] gap-12 md:gap-16 items-start">
+      <div className="bg-white px-3 sm:px-6 py-2 sm:py-4">
+      <section id="misión" className="relative py-12 sm:py-14 bg-night overflow-hidden rounded-[1.75rem] sm:rounded-[2.5rem]">
+        <div className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_1px_1fr] gap-8 md:gap-12 items-start">
             <div className="reveal">
-              <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-3 mb-4">
                 <Scale className="w-6 h-6 text-gold-400" />
                 <h2 className="text-base font-sans font-semibold uppercase tracking-[0.25em] text-gold-400">
                   Misión
                 </h2>
               </div>
-              <p className="text-2xl sm:text-3xl lg:text-[2.1rem] text-white leading-snug">
+              <p className="text-xl sm:text-2xl text-white leading-snug">
                 Brindar servicios de mediación y resolución alternativa de
                 conflictos de alta calidad.
               </p>
@@ -375,13 +375,13 @@ export default function HomePage() {
             <div className="md:hidden h-px bg-gradient-to-r from-transparent via-gold-400/60 to-transparent" />
 
             <div className="reveal reveal-d1">
-              <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-3 mb-4">
                 <Eye className="w-6 h-6 text-gold-400" />
                 <h2 className="text-base font-sans font-semibold uppercase tracking-[0.25em] text-gold-400">
                   Visión
                 </h2>
               </div>
-              <p className="text-2xl sm:text-3xl lg:text-[2.1rem] text-white leading-snug">
+              <p className="text-xl sm:text-2xl text-white leading-snug">
                 Ser el centro de mediación líder reconocido por su excelencia.
               </p>
             </div>
@@ -391,9 +391,9 @@ export default function HomePage() {
       </div>
 
       {/* VALORES */}
-      <section id="valores" className="py-24 sm:py-32 bg-dots">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
+      <section id="valores" className="py-14 sm:py-20 bg-dots">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
             <h2 className="text-4xl font-bold text-numa-900">
               Valores Institucionales
             </h2>
@@ -419,9 +419,9 @@ export default function HomePage() {
       </section>
 
       {/* BENEFICIOS */}
-      <section id="beneficios" className="py-24 sm:py-32 bg-parchment">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
+      <section id="beneficios" className="py-14 sm:py-20 bg-soft">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
             <div className="flex justify-center mb-4">
                 <span className="inline-block rounded-full border border-gold-400/40 bg-gold-400/10 px-3.5 py-1 text-[11px] uppercase tracking-[0.2em] text-gold-600 font-sans">¿Por qué mediar?</span>
               </div>
@@ -511,9 +511,9 @@ export default function HomePage() {
       </section>
 
       {/* SERVICIOS */}
-      <section id="servicios" className="py-24 sm:py-32 bg-numa-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+      <section id="servicios" className="py-14 sm:py-20 bg-numa-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 items-center">
             <div>
               <h2 className="text-4xl font-bold text-numa-900 mb-4">
                 Nuestros Servicios
@@ -550,7 +550,7 @@ export default function HomePage() {
       </section>
 
       {/* SOLICITA TU ASESORÍA */}
-      <section id="contacto" className="py-24 sm:py-32 bg-numa-50">
+      <section id="contacto" className="py-14 sm:py-20 bg-numa-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="reveal bezel"><div className="bg-white rounded-[1.6rem] shadow-soft inner-hl-light p-10 sm:p-14">
             <div className="flex justify-center mb-4">
@@ -590,7 +590,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA */}
-      <section id="acceso" className="py-20 bg-gold-400">
+      <section id="acceso" className="py-14 bg-gold-400">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-4xl font-bold text-numa-950 mb-4">
             Comience su proceso de mediación hoy
