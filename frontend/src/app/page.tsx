@@ -615,7 +615,7 @@ export default function HomePage() {
             <div className="mt-10 pt-8 border-t border-numa-100 text-left">
               <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
                 <div>
-                  <h3 className="text-xl font-bold text-numa-900 mb-1">Visítanos en Santo Domingo</h3>
+                  <h3 className="text-xl font-bold text-numa-900 mb-1">Visítanos</h3>
                   <p className="text-sm text-numa-600 font-sans">Av. Tulcán y Calle Machala, Santo Domingo, Ecuador</p>
                 </div>
                 <a
@@ -630,7 +630,7 @@ export default function HomePage() {
               </div>
               <div className="overflow-hidden rounded-2xl ring-1 ring-numa-100 bg-numa-50">
                 <iframe
-                  title="Ubicación del Centro de Mediación NUMA en Santo Domingo"
+                  title="Ubicación del Centro de Mediación NUMA"
                   src="https://www.google.com/maps?q=-0.2527971,-79.1692147&hl=es&z=18&output=embed"
                   className="block w-full h-[260px] sm:h-[340px] border-0"
                   loading="lazy"
