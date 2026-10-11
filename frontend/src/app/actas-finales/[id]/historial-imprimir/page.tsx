@@ -5,13 +5,6 @@ import { useParams } from 'next/navigation';
 import { getHistorialActaFinal } from '@/lib/services';
 import { Printer } from 'lucide-react';
 
-const primerNombre = (valor?: string) => (valor ? valor.trim().split(/\s+/)[0] : '');
-
-const nombreCorto = (nombre?: string, apellido?: string) => {
-  const n = primerNombre(nombre);
-  const a = primerNombre(apellido);
-  return [n, a].filter(Boolean).join(' ');
-};
 
 export default function ImprimirHistorialActaPage() {
   const params = useParams();
@@ -130,15 +123,6 @@ export default function ImprimirHistorialActaPage() {
               <div className="p-4 space-y-3">
                 <div>
                   <p className="text-[11px] uppercase tracking-wide text-numa-400">
-                    Proceso
-                  </p>
-                  <p className="text-sm text-numa-800 code-text">
-                    {acta.codigo_proceso || '—'}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-[11px] uppercase tracking-wide text-numa-400">
                     Partes
                   </p>
                   <p className="text-sm text-numa-800">
@@ -199,46 +183,6 @@ export default function ImprimirHistorialActaPage() {
               ))}
             </div>
           )}
-        </div>
-
-        {/* Firmas */}
-        <div className="px-10 pb-8 pt-4 break-inside-avoid">
-          <h3 className="font-display text-base font-bold text-numa-900 mb-6 pb-2 border-b border-numa-200">
-            Firmas
-          </h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {[
-              {
-                rol: 'Mediador',
-                nombre: nombreCorto(acta.mediador_nombre, acta.mediador_apellido),
-                cedula: acta.mediador_cedula
-              },
-              {
-                rol: 'Solicitante',
-                nombre: nombreCorto(acta.demandante_nombre, acta.demandante_apellido),
-                cedula: acta.demandante_cedula
-              },
-              {
-                rol: 'Invitado',
-                nombre: nombreCorto(acta.demandado_nombre, acta.demandado_apellido),
-                cedula: acta.demandado_cedula
-              }
-            ].map((firmante) => (
-              <div key={firmante.rol} className="text-center">
-                <div className="h-16 border-b border-numa-400" />
-                <p className="text-sm font-semibold text-numa-900 mt-2">
-                  {firmante.nombre || '—'}
-                </p>
-                <p className="text-xs text-numa-500">
-                  C.I. {firmante.cedula || '—'}
-                </p>
-                <p className="text-[11px] uppercase tracking-wide text-numa-400 mt-1">
-                  {firmante.rol}
-                </p>
-              </div>
-            ))}
-          </div>
         </div>
 
         {/* Pie de página */}

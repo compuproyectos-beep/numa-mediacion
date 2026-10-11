@@ -5125,13 +5125,12 @@ def exportar_reporte_excel(
         )
 
         encabezados = [
-            "Código", "Estado", "Acta final", "Solicitante", "Invitado", "Ciudad",
+            "Estado", "Acta final", "Solicitante", "Invitado", "Ciudad",
             "Sucursal", "Mediador", "Tema", "Fecha de creación"
         ]
 
         filas_excel = [
             [
-                f.get("codigo_proceso"),
                 ETIQUETAS_ESTADO_REPORTE.get(f.get("estado"), f.get("estado")),
                 # Para que "cerrado" no se confunda con "acta ya subida": un
                 # proceso puede estar cerrado con acuerdo y seguir esperando
@@ -5258,10 +5257,10 @@ def exportar_reporte_excel(
             fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ciudad_id=ciudad_id,
             sucursal_id=sucursal_id, usuario_id=usuario_id, usuario=usuario
         )
-        encabezados = ["Fecha", "Hora", "Proceso", "Solicitante", "Invitado", "Mediador",
+        encabezados = ["Fecha", "Hora", "Solicitante", "Invitado", "Mediador",
                        "Sucursal", "Ciudad", "Estado", "Atrasada"]
         filas_excel = [
-            [str(f.get("fecha")), str(f.get("hora"))[:5], f.get("codigo_proceso"),
+            [str(f.get("fecha")), str(f.get("hora"))[:5],
              f.get("demandante"), f.get("demandado"), f.get("mediador"),
              f.get("sucursal"), f.get("ciudad"), f.get("estado"),
              "Sí" if f.get("atrasada") else ""]
@@ -5274,10 +5273,10 @@ def exportar_reporte_excel(
             dias_minimo=dias_minimo, ciudad_id=ciudad_id, sucursal_id=sucursal_id,
             usuario_id=usuario_id, usuario=usuario
         )
-        encabezados = ["Proceso", "Solicitante", "Invitado", "Mediador", "Sucursal", "Ciudad",
+        encabezados = ["Solicitante", "Invitado", "Mediador", "Sucursal", "Ciudad",
                        "Tema", "Creado", "Último avance", "Avances", "Días sin avance"]
         filas_excel = [
-            [f.get("codigo_proceso"), f.get("demandante"), f.get("demandado"),
+            [f.get("demandante"), f.get("demandado"),
              f.get("mediador"), f.get("sucursal"), f.get("ciudad"), f.get("tema"),
              str(f.get("fecha_creacion") or "")[:10],
              str(f.get("ultimo_avance") or "")[:10] or "Ninguno",
@@ -5291,10 +5290,10 @@ def exportar_reporte_excel(
             ciudad_id=ciudad_id, sucursal_id=sucursal_id,
             usuario_id=usuario_id, usuario=usuario
         )
-        encabezados = ["Proceso", "Solicitante", "Invitado", "Mediador", "Sucursal", "Ciudad",
+        encabezados = ["Solicitante", "Invitado", "Mediador", "Sucursal", "Ciudad",
                        "Tema", "Fecha del acuerdo", "Horas transcurridas", "Plazo de 48 h"]
         filas_excel = [
-            [f.get("codigo_proceso"), f.get("demandante"), f.get("demandado"),
+            [f.get("demandante"), f.get("demandado"),
              f.get("mediador"), f.get("sucursal"), f.get("ciudad"), f.get("tema"),
              str(f.get("fecha_acuerdo") or "")[:16],
              f.get("horas_transcurridas") if f.get("horas_transcurridas") is not None else "",
@@ -5310,14 +5309,13 @@ def exportar_reporte_excel(
         )
 
         encabezados = [
-            "Código de acta", "Proceso", "Solicitante", "Invitado", "Ciudad",
+            "Código de acta", "Solicitante", "Invitado", "Ciudad",
             "Sucursal", "Mediador", "Fecha de subida"
         ]
 
         filas_excel = [
             [
                 f.get("codigo_acta"),
-                f.get("codigo_proceso"),
                 f.get("demandante"),
                 f.get("demandado"),
                 f.get("ciudad"),

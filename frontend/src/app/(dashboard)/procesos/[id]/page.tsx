@@ -998,6 +998,8 @@ export default function ProcesoDetallePage() {
                 </span>
               </p>
 
+              {/* Solo el administrador ve los botones de acta y comprobante. */}
+              {esAdminSesion() && (
               <div className="flex flex-wrap gap-2 flex-1 justify-center">
                 <button
                   type="button"
@@ -1050,6 +1052,7 @@ export default function ProcesoDetallePage() {
                   </>
                 )}
               </div>
+              )}
             </div>
 
             <p className="text-sm text-green-700 mt-1">

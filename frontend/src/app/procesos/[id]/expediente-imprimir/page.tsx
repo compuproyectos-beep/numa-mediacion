@@ -96,12 +96,6 @@ export default function ImprimirExpedientePage() {
               <h2 className="font-display text-xl font-bold text-numa-900">
                 Expediente de Mediación
               </h2>
-              <p className="text-sm text-numa-500 mt-1">
-                Proceso{' '}
-                <span className="font-semibold text-numa-800 code-text">
-                  {proceso.codigo_proceso}
-                </span>
-              </p>
             </div>
 
             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gold-500/10 text-gold-700 border border-gold-500/30">
@@ -253,43 +247,25 @@ export default function ImprimirExpedientePage() {
           </div>
         )}
 
-        {/* Firmas */}
+        {/* Firma: solo la del mediador (las partes ya no firman el expediente) */}
         <div className="px-10 pb-8 pt-4 break-inside-avoid">
           <h3 className="font-display text-base font-bold text-numa-900 mb-6 pb-2 border-b border-numa-200">
-            Firmas
+            Firma del mediador
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {[
-              {
-                rol: 'Mediador',
-                nombre: nombreCorto(proceso.mediador_nombre, proceso.mediador_apellido),
-                cedula: proceso.mediador_cedula
-              },
-              {
-                rol: 'Solicitante',
-                nombre: nombreCorto(proceso.demandante_nombre, proceso.demandante_apellido),
-                cedula: proceso.demandante_cedula
-              },
-              {
-                rol: 'Invitado',
-                nombre: nombreCorto(proceso.demandado_nombre, proceso.demandado_apellido),
-                cedula: proceso.demandado_cedula
-              }
-            ].map((firmante) => (
-              <div key={firmante.rol} className="text-center">
-                <div className="h-16 border-b border-numa-400" />
-                <p className="text-sm font-semibold text-numa-900 mt-2">
-                  {firmante.nombre || '—'}
-                </p>
-                <p className="text-xs text-numa-500">
-                  C.I. {firmante.cedula || '—'}
-                </p>
-                <p className="text-[11px] uppercase tracking-wide text-numa-400 mt-1">
-                  {firmante.rol}
-                </p>
-              </div>
-            ))}
+          <div className="flex justify-center">
+            <div className="w-full max-w-xs text-center">
+              <div className="h-16 border-b border-numa-400" />
+              <p className="text-sm font-semibold text-numa-900 mt-2">
+                {nombreCorto(proceso.mediador_nombre, proceso.mediador_apellido) || '—'}
+              </p>
+              <p className="text-xs text-numa-500">
+                C.I. {proceso.mediador_cedula || '—'}
+              </p>
+              <p className="text-[11px] uppercase tracking-wide text-numa-400 mt-1">
+                Mediador
+              </p>
+            </div>
           </div>
         </div>
 

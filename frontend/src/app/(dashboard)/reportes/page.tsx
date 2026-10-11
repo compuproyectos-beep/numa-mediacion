@@ -718,7 +718,6 @@ export default function ReportesPage() {
                   <tr>
                     {tipo === 'procesos' && (
                       <>
-                        <th className="table-header">Código</th>
                         <th className="table-header">Estado</th>
                         <th className="table-header">Acta final</th>
                         <th className="table-header">Solicitante</th>
@@ -753,7 +752,6 @@ export default function ReportesPage() {
                     {tipo === 'actas' && (
                       <>
                         <th className="table-header">Código de acta</th>
-                        <th className="table-header">Proceso</th>
                         <th className="table-header">Solicitante</th>
                         <th className="table-header">Invitado</th>
                         <th className="table-header">Ciudad</th>
@@ -803,7 +801,6 @@ export default function ReportesPage() {
                       <>
                         <th className="table-header">Fecha</th>
                         <th className="table-header">Hora</th>
-                        <th className="table-header">Proceso</th>
                         <th className="table-header">Solicitante</th>
                         <th className="table-header">Invitado</th>
                         {admin && <th className="table-header">Mediador</th>}
@@ -814,7 +811,6 @@ export default function ReportesPage() {
 
                     {tipo === 'sin-avance' && (
                       <>
-                        <th className="table-header">Proceso</th>
                         <th className="table-header">Solicitante</th>
                         <th className="table-header">Invitado</th>
                         {admin && <th className="table-header">Mediador</th>}
@@ -827,7 +823,6 @@ export default function ReportesPage() {
 
                     {tipo === 'actas-pendientes' && (
                       <>
-                        <th className="table-header">Proceso</th>
                         <th className="table-header">Solicitante</th>
                         <th className="table-header">Invitado</th>
                         {admin && <th className="table-header">Mediador</th>}
@@ -850,7 +845,6 @@ export default function ReportesPage() {
                       >
                         <td className="table-cell">{formatoFecha(c.fecha)}</td>
                         <td className="table-cell">{String(c.hora).slice(0, 5)}</td>
-                        <td className="table-cell font-medium">{c.codigo_proceso}</td>
                         <td className="table-cell">{c.demandante}</td>
                         <td className="table-cell">{c.demandado}</td>
                         {admin && <td className="table-cell">{c.mediador}</td>}
@@ -874,7 +868,6 @@ export default function ReportesPage() {
                         onClick={() => abrirProceso(p.id)}
                         className="table-row cursor-pointer hover:bg-gold-400/[0.06]"
                       >
-                        <td className="table-cell font-medium">{p.codigo_proceso}</td>
                         <td className="table-cell">{p.demandante}</td>
                         <td className="table-cell">{p.demandado}</td>
                         {admin && <td className="table-cell">{p.mediador}</td>}
@@ -904,7 +897,6 @@ export default function ReportesPage() {
                         onClick={() => abrirProceso(p.id)}
                         className="table-row cursor-pointer hover:bg-gold-400/[0.06]"
                       >
-                        <td className="table-cell font-medium">{p.codigo_proceso}</td>
                         <td className="table-cell">{p.demandante}</td>
                         <td className="table-cell">{p.demandado}</td>
                         {admin && <td className="table-cell">{p.mediador}</td>}
@@ -936,7 +928,6 @@ export default function ReportesPage() {
                         onClick={() => abrirProceso(p.id)}
                         className="table-row cursor-pointer hover:bg-gold-400/[0.06]"
                       >
-                        <td className="table-cell font-medium">{p.codigo_proceso}</td>
                         <td className="table-cell">{getEstadoLabel(p.estado)}</td>
                         <td className="table-cell">
                           {p.estado === 'cerrado_con_acuerdo' && !p.finalizado ? (
@@ -1067,9 +1058,6 @@ export default function ReportesPage() {
                                       className="bg-white border border-numa-200 rounded-sm p-3 cursor-pointer hover:shadow-md transition-shadow duration-200 flex items-center justify-between gap-3 flex-wrap"
                                     >
                                       <div>
-                                        <span className="font-medium text-numa-800 code-text text-xs">
-                                          {p.codigo_proceso}
-                                        </span>
                                         <span className="text-xs text-numa-600 ml-2">
                                           {p.demandante} vs {p.demandado}
                                         </span>
@@ -1099,7 +1087,6 @@ export default function ReportesPage() {
                         className="table-row cursor-pointer hover:bg-gold-400/[0.06]"
                       >
                         <td className="table-cell font-medium">{a.codigo_acta}</td>
-                        <td className="table-cell">{a.codigo_proceso}</td>
                         <td className="table-cell">{a.demandante}</td>
                         <td className="table-cell">{a.demandado}</td>
                         <td className="table-cell">{a.ciudad || '—'}</td>
@@ -1203,9 +1190,6 @@ export default function ReportesPage() {
                                       className="bg-white border border-numa-200 rounded-sm p-3 cursor-pointer hover:shadow-md transition-shadow duration-200 flex items-center justify-between gap-3 flex-wrap"
                                     >
                                       <div>
-                                        <span className="font-medium text-numa-800 code-text text-xs">
-                                          {p.codigo_proceso}
-                                        </span>
                                         <span className="text-xs text-numa-600 ml-2">
                                           {p.demandante} vs {p.demandado}
                                         </span>
@@ -1320,9 +1304,6 @@ export default function ReportesPage() {
                                       className="bg-white border border-numa-200 rounded-sm p-3 cursor-pointer hover:shadow-md transition-shadow duration-200 flex items-center justify-between gap-3 flex-wrap"
                                     >
                                       <div>
-                                        <span className="font-medium text-numa-800 code-text text-xs">
-                                          {p.codigo_proceso}
-                                        </span>
                                         <span className="text-xs text-numa-600 ml-2">
                                           {p.demandante} vs {p.demandado}
                                         </span>

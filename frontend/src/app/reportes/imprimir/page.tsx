@@ -124,7 +124,6 @@ function DetalleProcesos({
               <th className={`${th} w-[15%]`}>Código de acta</th>
               <th className={`${th} w-[12%]`}>Acta final</th>
               <th className={`${th} w-[12%]`}>Fecha de subida</th>
-              <th className={`${th} w-[12%]`}>Proceso</th>
               <th className={`${th} w-[16%]`}>Estado</th>
               <th className={th}>Solicitante vs Invitado</th>
               {mostrarMediador && <th className={th}>Mediador responsable</th>}
@@ -146,7 +145,6 @@ function DetalleProcesos({
                     ? new Date(p.fecha_subida_acta).toLocaleDateString('es-EC', { timeZone: 'America/Guayaquil' })
                     : '—'}
                 </td>
-                <td className="py-0.5 pr-2 code-text">{p.codigo_proceso}</td>
                 <td className="py-0.5 pr-2">{getEstadoLabel(p.estado)}</td>
                 <td className="py-0.5 pr-2">
                   {p.demandante} vs {p.demandado}
@@ -479,7 +477,6 @@ function ImprimirReporteContenido() {
                 <tr className="border-b-2 border-numa-300">
                   {tipo === 'procesos' && (
                     <>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Código</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Estado</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Acta final</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Solicitante</th>
@@ -511,8 +508,7 @@ function ImprimirReporteContenido() {
                   {tipo === 'actas' && (
                     <>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Código acta</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Proceso</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Solicitante</th>
+                                            <th className="text-left py-2 pr-2 font-semibold text-numa-700">Solicitante</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Invitado</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sucursal</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Mediador</th>
@@ -555,8 +551,7 @@ function ImprimirReporteContenido() {
                     <>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Fecha</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Hora</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Proceso</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Solicitante</th>
+                                            <th className="text-left py-2 pr-2 font-semibold text-numa-700">Solicitante</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Invitado</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Mediador</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sucursal</th>
@@ -566,8 +561,7 @@ function ImprimirReporteContenido() {
 
                   {tipo === 'sin-avance' && (
                     <>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Proceso</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Solicitante</th>
+                                            <th className="text-left py-2 pr-2 font-semibold text-numa-700">Solicitante</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Invitado</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Mediador</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sucursal</th>
@@ -579,8 +573,7 @@ function ImprimirReporteContenido() {
 
                   {tipo === 'actas-pendientes' && (
                     <>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Proceso</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Solicitante</th>
+                                            <th className="text-left py-2 pr-2 font-semibold text-numa-700">Solicitante</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Invitado</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Mediador</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sucursal</th>
@@ -598,7 +591,6 @@ function ImprimirReporteContenido() {
                     <tr key={c.id} className="border-b border-numa-100">
                       <td className="py-1.5 pr-2">{fmtFecha(c.fecha)}</td>
                       <td className="py-1.5 pr-2">{String(c.hora).slice(0, 5)}</td>
-                      <td className="py-1.5 pr-2 code-text whitespace-nowrap">{c.codigo_proceso}</td>
                       <td className="py-1.5 pr-2">{c.demandante}</td>
                       <td className="py-1.5 pr-2">{c.demandado}</td>
                       <td className="py-1.5 pr-2">{c.mediador || '—'}</td>
@@ -612,7 +604,6 @@ function ImprimirReporteContenido() {
                 {tipo === 'sin-avance' &&
                   datos.map((p: any) => (
                     <tr key={p.id} className="border-b border-numa-100">
-                      <td className="py-1.5 pr-2 code-text whitespace-nowrap">{p.codigo_proceso}</td>
                       <td className="py-1.5 pr-2">{p.demandante}</td>
                       <td className="py-1.5 pr-2">{p.demandado}</td>
                       <td className="py-1.5 pr-2">{p.mediador || '—'}</td>
@@ -626,7 +617,6 @@ function ImprimirReporteContenido() {
                 {tipo === 'actas-pendientes' &&
                   datos.map((p: any) => (
                     <tr key={p.id} className="border-b border-numa-100">
-                      <td className="py-1.5 pr-2 code-text whitespace-nowrap">{p.codigo_proceso}</td>
                       <td className="py-1.5 pr-2">{p.demandante}</td>
                       <td className="py-1.5 pr-2">{p.demandado}</td>
                       <td className="py-1.5 pr-2">{p.mediador || '—'}</td>
@@ -642,7 +632,6 @@ function ImprimirReporteContenido() {
                 {tipo === 'procesos' &&
                   datos.map((p: any) => (
                     <tr key={p.id} className="border-b border-numa-100">
-                      <td className="py-1.5 pr-2 code-text whitespace-nowrap">{p.codigo_proceso}</td>
                       <td className="py-1.5 pr-2">{getEstadoLabel(p.estado)}</td>
                       <td className="py-1.5 pr-2">
                         {p.estado === 'cerrado_con_acuerdo' && !p.finalizado
@@ -695,7 +684,6 @@ function ImprimirReporteContenido() {
                   datos.map((a: any) => (
                     <tr key={a.id} className="border-b border-numa-100">
                       <td className="py-1.5 pr-2 code-text whitespace-nowrap">{a.codigo_acta}</td>
-                      <td className="py-1.5 pr-2 code-text whitespace-nowrap">{a.codigo_proceso}</td>
                       <td className="py-1.5 pr-2">{a.demandante}</td>
                       <td className="py-1.5 pr-2">{a.demandado}</td>
                       <td className="py-1.5 pr-2">{a.sucursal ? `${a.sucursal}${a.ciudad ? ` (${a.ciudad})` : ''}` : '—'}</td>

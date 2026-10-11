@@ -465,6 +465,10 @@ const handleExportarZip = async () => {
               </div>
 
               <div className="flex flex-wrap gap-2 lg:justify-end">
+                {/* Ver/descargar acta y comprobante: solo el administrador.
+                    El mediador ya no ve estos botones (pedido del abogado). */}
+                {isAdmin && (
+                <>
                 <button
                   type="button"
                   onClick={() => handleVerPdf(a.id)}
@@ -512,6 +516,8 @@ const handleExportarZip = async () => {
                       Descargar comprobante
                     </button>
                   </>
+                )}
+                </>
                 )}
 
                 <button
