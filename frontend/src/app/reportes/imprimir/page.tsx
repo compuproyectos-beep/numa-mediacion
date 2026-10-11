@@ -578,6 +578,7 @@ function ImprimirReporteContenido() {
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Mediador</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sucursal</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Fecha del acuerdo</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Estado</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Días pendientes</th>
                     </>
                   )}
@@ -621,6 +622,7 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2">{p.mediador || '—'}</td>
                       <td className="py-1.5 pr-2">{p.sucursal ? `${p.sucursal}${p.ciudad ? ` (${p.ciudad})` : ''}` : '—'}</td>
                       <td className="py-1.5 pr-2">{fmtFecha(p.fecha_acuerdo)}</td>
+                      <td className="py-1.5 pr-2">{p.etapa || '—'}</td>
                       <td className="py-1.5 pr-2">{p.horas_transcurridas == null ? '—' : Math.floor(p.horas_transcurridas / 24)}</td>
                     </tr>
                   ))}

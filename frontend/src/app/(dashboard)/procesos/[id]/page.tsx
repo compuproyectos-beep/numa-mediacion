@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon, Eye, Download, Receipt } from 'lucide-react';
 import { isAdmin as esAdminSesion } from '@/lib/auth';
 import PartesProceso from '@/components/procesos/PartesProceso';
+import ActaFlujoProceso from '@/components/procesos/ActaFlujoProceso';
 import CalendarioAgendaMediador from '@/components/citas/CalendarioAgendaMediador';
 import {
   Spinner,
@@ -158,16 +159,6 @@ export default function ProcesoDetallePage() {
   });
   const [guardandoAvance, setGuardandoAvance] = useState(false);
 
-  // Se refresca cada minuto para que el contador de las 48 horas del acta
-  // final se vea actualizado sin que el mediador tenga que recargar la
-  // página.
-  const [ahora, setAhora] = useState(() => new Date());
-
-  useEffect(() => {
-    const intervalo = setInterval(() => setAhora(new Date()), 60000);
-    return () => clearInterval(intervalo);
-  }, []);
-
   const [showActaFinal, setShowActaFinal] = useState(false);
   const [archivoActaFinal, setArchivoActaFinal] = useState<File | null>(null);
   const [archivoComprobantePago, setArchivoComprobantePago] = useState<File | null>(null);
@@ -188,22 +179,11 @@ export default function ProcesoDetallePage() {
 
       setProceso(encontrado);
 
-      // Si este proceso está pendiente de acta pero no es el primero en la
-      // fila, se busca cuál sí lo es (mismo mediador), para nombrarlo en el
-      // aviso en vez de dejarlo genérico.
-      if (
-        encontrado &&
-        encontrado.estado === 'cerrado_con_acuerdo' &&
-        !encontrado.finalizado &&
-        !encontrado.acta_primero_en_fila
-      ) {
-        const primero = procesos.find(
-          (p: any) =>
-            p.usuario_id === encontrado.usuario_id &&
-            p.estado === 'cerrado_con_acuerdo' &&
-            !p.finalizado &&
-            p.acta_primero_en_fila
-        );
+      // Si este proceso espera su acta pero otro del mismo mediador va
+      // primero en la fila, se busca cuál es para nombrarlo en el aviso. El
+      // administrador no está sujeto a la fila.
+      if (encontrado && encontrado.bloqueante_id && !esAdminSesion()) {
+        const primero = procesos.find((p: any) => p.id === encontrado.bloqueante_id);
         setProcesoPrimeroEnFila(primero || null);
       } else {
         setProcesoPrimeroEnFila(null);
@@ -537,8 +517,16 @@ export default function ProcesoDetallePage() {
   const siguientePaso = (() => {
     if (!proceso) return null;
 
+    if (proceso.etapa_acta === 'suspendido') {
+      return 'Este proceso está suspendido por el administrador.';
+    }
+
+    if (proceso.etapa_acta === 'falta_firmada') {
+      return 'Imprime el acta, haz que la firmen las partes y sube el acta firmada en PDF para completar el proceso.';
+    }
+
     if (proceso.finalizado) {
-      return 'Este proceso ya está finalizado. Puedes consultar el historial y descargar el acta y el comprobante.';
+      return 'Este proceso está completo. Puedes consultar el historial.';
     }
 
     if (proceso.estado === 'anulado') {
@@ -604,29 +592,6 @@ export default function ProcesoDetallePage() {
       ? `${partes.slice(0, -1).join(', ')} y ${partes[partes.length - 1]}`
       : partes[0];
   };
-
-  // Cuenta regresiva de las 48 horas que tiene el mediador, desde que el
-  // proceso pasó a "cerrado con acuerdo", para subir el acta final junto
-  // con el comprobante de pago.
-  const plazoActaInfo = (() => {
-    // Una vez que el acta final ya se subió (finalizado = true), el plazo
-    // de 48 horas deja de tener sentido — si no, el aviso se quedaba
-    // mostrando "venció hace..." para siempre, aunque ya se hubiera subido.
-    if (proceso?.finalizado) return null;
-
-    const inicio = parseFechaUTC(proceso?.fecha_acuerdo);
-    if (!inicio) return null;
-
-    const limiteMs = inicio.getTime() + 48 * 60 * 60 * 1000;
-    const msRestante = limiteMs - ahora.getTime();
-    const vencido = msRestante <= 0;
-
-    const totalMinutos = Math.floor(Math.abs(msRestante) / 60000);
-    const horas = Math.floor(totalMinutos / 60);
-    const minutos = totalMinutos % 60;
-
-    return { vencido, horas, minutos, texto: formatDuracion(horas, minutos) };
-  })();
 
   if (loadingProceso) {
     return (
@@ -719,10 +684,10 @@ export default function ProcesoDetallePage() {
       {procesoPrimeroEnFila ? (
         <div className="mb-4 text-sm px-4 py-3 rounded-sm border font-medium bg-blue-50 border-blue-100 text-blue-700 flex items-center justify-between gap-3 flex-wrap">
           <span>
-            Este proceso también tiene el acta final pendiente, pero primero
-            debes subir la del proceso{' '}
-            <strong>{procesoPrimeroEnFila.codigo_proceso}</strong> — es el
-            primero en la fila. Súbela ahí para poder continuar con este.
+            Este proceso también tiene su acta pendiente, pero primero debes
+            completar el proceso{' '}
+            <strong>{procesoPrimeroEnFila.codigo_proceso}</strong> (acta,
+            comprobante y acta firmada) — es el primero en la fila.
           </span>
 
           <button
@@ -733,21 +698,7 @@ export default function ProcesoDetallePage() {
             Ir a {procesoPrimeroEnFila.codigo_proceso}
           </button>
         </div>
-      ) : (
-        plazoActaInfo && (
-          <div
-            className={`mb-4 text-sm px-4 py-3 rounded-sm border font-medium ${
-              plazoActaInfo.vencido
-                ? 'bg-red-50 border-red-100 text-red-700'
-                : 'bg-gold-50 border-gold-100 text-gold-700'
-            }`}
-          >
-            {plazoActaInfo.vencido
-              ? `Ya pasó el plazo recomendado de 48 horas para subir el acta final y el comprobante de pago de este proceso (hace ${plazoActaInfo.texto}). Súbelos cuanto antes — este proceso ya no bloquea la subida de otros, pero sigue pendiente.`
-              : `Te quedan ${plazoActaInfo.texto} del plazo recomendado de 48 horas para subir el acta final y el comprobante de pago. Mientras esté dentro de este plazo, no podrás subir actas de otros procesos pendientes.`}
-          </div>
-        )
-      )}
+      ) : null}
 
       {siguientePaso && (
         <div className="mb-4 text-sm px-4 py-3 rounded-sm border border-numa-100 bg-numa-50 text-numa-700">
@@ -989,7 +940,7 @@ export default function ProcesoDetallePage() {
           )}
         </div>
 
-        {proceso.finalizado && (
+        {proceso.finalizado && proceso.etapa_acta !== 'falta_firmada' && (
           <div className="p-4 bg-green-50 border border-green-100 rounded-sm text-sm text-green-700">
             Este proceso ya fue finalizado. Solo se permite consultar el historial.
           </div>
@@ -1234,7 +1185,11 @@ export default function ProcesoDetallePage() {
 
               <div className="mt-4">
                 <TextareaField
-                  label="Observación / registro de reunión"
+                  label={
+                    avanceForm.resultado === 'cerrado_con_acuerdo'
+                      ? 'Detalle del acuerdo (se imprimirá tal cual en el acta)'
+                      : 'Observación / registro de reunión'
+                  }
                   rows={4}
                   value={avanceForm.observacion}
                   onChange={(e) =>
@@ -1251,11 +1206,32 @@ export default function ProcesoDetallePage() {
                   </div>
                 )}
 
+                {avanceForm.resultado === 'cerrado_con_acuerdo' && !confirmandoCierre && (
+                  <div className="mb-3 p-3 border border-gold-200 bg-gold-50 rounded-sm text-xs text-gold-800">
+                    Este texto es el acuerdo oficial: se escribe una sola vez y sale en
+                    el acta que firmarán las partes. Revísalo bien; después solo el
+                    administrador podrá corregirlo.
+                  </div>
+                )}
+
                 {confirmandoCierre && (
                   <div className="mb-3 p-3 border border-amber-300 bg-amber-50 rounded-sm text-sm text-amber-900">
-                    Vas a marcar este proceso como{' '}
-                    <strong>{getEstadoProcesoLabel(avanceForm.resultado)}</strong>.
-                    Después de esto ya no podrás cambiar el resultado. ¿Confirmas?
+                    {avanceForm.resultado === 'cerrado_con_acuerdo' ? (
+                      <>
+                        <p className="font-semibold mb-1">¿Está seguro de este acuerdo?</p>
+                        <p className="whitespace-pre-line mb-2">{avanceForm.observacion}</p>
+                        <p>
+                          Después de confirmar no podrás cambiarlo ni cambiar el resultado
+                          del proceso.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        Vas a marcar este proceso como{' '}
+                        <strong>{getEstadoProcesoLabel(avanceForm.resultado)}</strong>.
+                        Después de esto ya no podrás cambiar el resultado. ¿Confirmas?
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -1266,14 +1242,14 @@ export default function ProcesoDetallePage() {
                       disabled={guardandoAvance}
                       className="btn-primary"
                     >
-                      {guardandoAvance ? 'Guardando...' : 'Sí, confirmar'}
+                      {guardandoAvance ? 'Guardando...' : 'Confirmar'}
                     </button>
                     <button
                       onClick={() => setConfirmandoCierre(false)}
                       disabled={guardandoAvance}
                       className="btn-ghost"
                     >
-                      Cancelar
+                      {avanceForm.resultado === 'cerrado_con_acuerdo' ? 'Volver a editar' : 'Cancelar'}
                     </button>
                   </div>
                 ) : (
@@ -1289,12 +1265,12 @@ export default function ProcesoDetallePage() {
             </div>
           )}
 
-        {proceso.estado === 'cerrado_con_acuerdo' && !proceso.finalizado && (
+        {proceso.estado === 'cerrado_con_acuerdo' && !proceso.finalizado && !proceso.suspendido && (
           <div className="card p-4">
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <p className="text-sm text-numa-600">
                 {procesoPrimeroEnFila
-                  ? `Este proceso llegó a un acuerdo, pero primero debes subir el acta de ${procesoPrimeroEnFila.codigo_proceso} (es el primero en la fila).`
+                  ? `Este proceso llegó a un acuerdo, pero primero debes completar el proceso ${procesoPrimeroEnFila.codigo_proceso} (es el primero en la fila).`
                   : 'El proceso llegó a un acuerdo. Sube el acta final y el comprobante de pago para cerrarlo.'}
               </p>
 
@@ -1323,6 +1299,17 @@ export default function ProcesoDetallePage() {
             </div>
           </div>
         )}
+
+        <ActaFlujoProceso
+          proceso={proceso}
+          esAdmin={esAdminSesion()}
+          onCambio={async () => {
+            await cargarProceso();
+            try {
+              setExpedienteProceso(await getExpedienteProceso(proceso.id));
+            } catch {}
+          }}
+        />
       </div>
 
       <Modal
@@ -1344,28 +1331,11 @@ export default function ProcesoDetallePage() {
 
         <div className="space-y-4">
           <p className="text-sm text-numa-600">
-            Debe subir el acta final y el comprobante de pago juntos: el proceso no
-            queda finalizado hasta que ambos archivos estén cargados. El plazo
-            recomendado es de 48 horas desde que el proceso pasó a &quot;Cerrado con
-            acuerdo&quot;. Si tiene más de un proceso pendiente a la vez, no podrá
-            subir actas de los demás mientras este siga dentro de su plazo de 48
-            horas — pero si se le pasa el plazo sin subirlo, deja de bloquear a los
-            otros (aunque sigue pendiente).
+            Debes subir el acta final y el comprobante de pago juntos. Después
+            podrás imprimir el acta con el acuerdo y las firmas, y subirla firmada.
+            Mientras este proceso no esté completo, no podrás subir actas de tus
+            otros procesos.
           </p>
-
-          {plazoActaInfo && (
-            <div
-              className={`text-xs px-3 py-2 rounded-sm border ${
-                plazoActaInfo.vencido
-                  ? 'bg-red-50 border-red-100 text-red-700'
-                  : 'bg-gold-50 border-gold-100 text-gold-700'
-              }`}
-            >
-              {plazoActaInfo.vencido
-                ? `Ya pasó el plazo recomendado de 48 horas (hace ${plazoActaInfo.texto}).`
-                : `Te quedan ${plazoActaInfo.texto} del plazo recomendado de 48 horas.`}
-            </div>
-          )}
 
           <div>
             <label className="block text-sm font-medium text-numa-700 mb-1">

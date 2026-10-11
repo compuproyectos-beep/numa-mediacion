@@ -82,7 +82,7 @@ const DESCRIPCIONES: Record<TipoReporte, string> = {
   'sin-avance':
     'Procesos que siguen en negociación y llevan al menos esos días sin que se registre ningún avance. Sirve para saber cuáles se están quedando olvidados. Los días se cuentan desde el último avance (o desde que se creó el proceso, si nunca tuvo uno).',
   'actas-pendientes':
-    'Procesos cerrados con acuerdo cuya acta final todavía no se sube. Se muestra cuánto tiempo lleva pendiente desde la fecha del acuerdo.'
+    'Procesos cerrados con acuerdo que aún no están completos: les falta subir el acta y el comprobante, o el acta firmada (o están suspendidos). Se muestra cuántos días llevan pendientes desde la fecha del acuerdo.'
 };
 
 const COLOR_ESTADO: Record<string, string> = {
@@ -828,6 +828,7 @@ export default function ReportesPage() {
                         {admin && <th className="table-header">Mediador</th>}
                         <th className="table-header">Sucursal</th>
                         <th className="table-header">Fecha del acuerdo</th>
+                        <th className="table-header">Estado</th>
                         <th className="table-header">Días pendientes</th>
                       </>
                     )}
@@ -901,6 +902,7 @@ export default function ReportesPage() {
                         {admin && <td className="table-cell">{p.mediador}</td>}
                         <td className="table-cell">{labelSucursal(p)}</td>
                         <td className="table-cell">{formatoFecha(p.fecha_acuerdo)}</td>
+                        <td className="table-cell">{p.etapa || '—'}</td>
                         <td className="table-cell">
                           {p.horas_transcurridas == null
                             ? '—'

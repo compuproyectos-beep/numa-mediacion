@@ -184,6 +184,20 @@ export interface ProcesoMediacion {
   // true si este proceso ya tiene una invitación pendiente agendada — no
   // se puede elegir para agendar otra hasta que esa se resuelva.
   tiene_invitacion_pendiente?: boolean;
+  total_solicitantes?: number;
+  total_invitados?: number;
+  partes_ids?: number[];
+  // Fase 3: acuerdo, acta firmada y suspensión.
+  acuerdo_texto?: string | null;
+  suspendido?: boolean;
+  motivo_suspension?: string | null;
+  requiere_acta_firmada?: boolean;
+  tiene_acta_firmada?: boolean;
+  acta_firmada_fecha?: string | null;
+  // 'falta_acta' | 'falta_firmada' | 'completa' | 'suspendido' | null
+  etapa_acta?: string | null;
+  // Id del proceso del mismo mediador que va primero en la fila (si no es este).
+  bloqueante_id?: number | null;
 }
 
 export interface CreateProcesoPayload {

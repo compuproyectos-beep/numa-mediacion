@@ -1,5 +1,6 @@
 'use client';
 
+import { etapaActaBadge } from '@/lib/etapaActa';
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus, Check } from 'lucide-react';
@@ -494,15 +495,11 @@ export default function ProcesosPage() {
                         pendiente a la vez, se distingue cuál es el que debe
                         subir primero (fila FIFO) de los que están detrás
                         esperando su turno. */}
-                    {p.estado === 'cerrado_con_acuerdo' && !p.finalizado && (
+                    {etapaActaBadge(p) && (
                       <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${
-                          p.acta_primero_en_fila
-                            ? 'bg-red-50 text-red-700 border-red-200'
-                            : 'bg-numa-100 text-numa-500 border-numa-200'
-                        }`}
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${etapaActaBadge(p)!.className}`}
                       >
-                        {p.acta_primero_en_fila ? 'Falta subir acta' : 'Acta pendiente (en espera)'}
+                        {etapaActaBadge(p)!.label}
                       </span>
                     )}
                   </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import { etapaActaBadge } from '@/lib/etapaActa';
 import { useEffect, useRef, useState } from 'react';
 import {
   FileText,
@@ -18,6 +19,8 @@ import { StatCard, Spinner, ErrorAlert, PageHeader, Badge, EmptyState } from '@/
 import { getDashboard, getUsoAlmacenamiento, getProcesos, getActasFinales, enviarRespaldoManual } from '@/lib/services';
 import { useAuth } from '@/hooks/useAuth';
 import { GuiaBienvenida, useGuiaBienvenida } from '@/components/dashboard/GuiaBienvenida';
+import ResumenActasMes from '@/components/dashboard/ResumenActasMes';
+import AlertaActasAtrasadas from '@/components/dashboard/AlertaActasAtrasadas';
 
 // Cada tarjeta clickeable del resumen corresponde a un filtro de estado de
 // procesos, salvo "actas_finales" que no es un estado de proceso sino la
@@ -193,6 +196,8 @@ export default function DashboardPage() {
         <Spinner />
       ) : stats ? (
         <div className="space-y-6 animate-fade-in">
+          {isAdmin && <AlertaActasAtrasadas />}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
             <StatCard
               label="En negociación"
@@ -293,17 +298,11 @@ export default function DashboardPage() {
                             comprobante. Esto lo hace visible de una vez en
                             este panel rápido del Dashboard, igual que ya pasa
                             en el listado de Procesos. */}
-                        {categoriaAbierta === 'cerrado_con_acuerdo' && !item.finalizado && (
+                        {categoriaAbierta === 'cerrado_con_acuerdo' && etapaActaBadge(item) && (
                           <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${
-                              item.acta_primero_en_fila
-                                ? 'bg-red-50 text-red-700 border-red-200'
-                                : 'bg-numa-100 text-numa-500 border-numa-200'
-                            }`}
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${etapaActaBadge(item)!.className}`}
                           >
-                            {item.acta_primero_en_fila
-                              ? 'Falta subir acta y comprobante'
-                              : 'Acta pendiente (en espera)'}
+                            {etapaActaBadge(item)!.label}
                           </span>
                         )}
                       </div>
@@ -475,6 +474,8 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
+
+          <ResumenActasMes />
 
           {isAdmin && (
             <div className="card p-6">

@@ -2919,24 +2919,24 @@ def obtener_procesos_mediacion(
                 p.motivo_anulacion,
                 af.codigo_acta AS codigo_acta,
                 af.fecha_subida AS fecha_subida_acta,
-                -- Id del proceso que, entre los pendientes de acta de este
-                -- mismo mediador, es el que está bloqueando a los demás
-                -- ahora mismo (el más antiguo que sigue dentro de sus 48
-                -- horas — ver la misma regla en subir_acta_final_proceso).
-                -- NULL si ninguno está pendiente, o si ninguno sigue
-                -- fresco (en ese caso no hay bloqueante y todos se pueden
-                -- subir).
+                -- Id del proceso que, entre los pendientes de este mismo
+                -- mediador, va primero en la fila (el más antiguo que sigue
+                -- sin completar acta + comprobante + acta firmada y no está
+                -- suspendido). Ya no hay plazo de 48 horas.
                 (
                     SELECT p2.id
                     FROM procesos_mediacion p2
                     WHERE p2.usuario_id = p.usuario_id
-                      AND p2.estado = 'cerrado_con_acuerdo'
-                      AND p2.finalizado = false
-                      AND p2.fecha_acuerdo IS NOT NULL
-                      AND p2.fecha_acuerdo > NOW() - INTERVAL '48 hours'
-                    ORDER BY p2.fecha_acuerdo ASC, p2.id ASC
+                      AND """ + _sql_acta_pendiente("p2") + """
+                    ORDER BY p2.fecha_acuerdo ASC NULLS LAST, p2.id ASC
                     LIMIT 1
                 ) AS _id_bloqueante,
+                p.suspendido,
+                p.motivo_suspension,
+                p.acuerdo_texto,
+                p.requiere_acta_firmada,
+                (p.acta_firmada_ruta IS NOT NULL) AS tiene_acta_firmada,
+                p.acta_firmada_fecha,
                 -- Si ya tiene una invitación pendiente, no se puede agendar
                 -- otra hasta que esa se resuelva (realizada/cancelada) —
                 -- usado para saber qué procesos se pueden elegir al crear
@@ -3043,19 +3043,62 @@ def obtener_procesos_mediacion(
         # frontend solo necesita el booleano.
         for fila in filas:
             id_bloqueante = fila.pop("_id_bloqueante", None)
+            # Qué proceso lo bloquea (si no es él mismo).
+            fila["bloqueante_id"] = (
+                id_bloqueante
+                if (fila["estado"] == "cerrado_con_acuerdo" and not fila["suspendido"]
+                    and id_bloqueante is not None and id_bloqueante != fila["id"])
+                else None
+            )
             fila["acta_primero_en_fila"] = bool(
                 fila["estado"] == "cerrado_con_acuerdo"
                 and not fila["finalizado"]
-                # Sin bloqueante (nadie fresco pendiente) -> todos libres.
-                # Con bloqueante -> solo ese id puede subir.
+                and not fila["suspendido"]
+                # Sin bloqueante -> libre. Con bloqueante -> solo ese id
+                # puede subir su acta + comprobante ahora.
                 and (id_bloqueante is None or id_bloqueante == fila["id"])
             )
+
+            # Etapa del acta de un proceso cerrado con acuerdo:
+            # falta_acta -> falta_firmada -> completa (o suspendido).
+            etapa = None
+            if fila["estado"] == "cerrado_con_acuerdo":
+                if fila["suspendido"]:
+                    etapa = "suspendido"
+                elif not fila["finalizado"]:
+                    etapa = "falta_acta"
+                elif fila["requiere_acta_firmada"] and not fila["tiene_acta_firmada"]:
+                    etapa = "falta_firmada"
+                else:
+                    etapa = "completa"
+            fila["etapa_acta"] = etapa
 
         return filas
 
     finally:
         cur.close()
         conn.close()
+
+
+# Un proceso "en la fila" de actas es uno cerrado con acuerdo, no suspendido
+# por el administrador, al que todavía le falta subir el acta + comprobante
+# o el acta firmada. Ya no hay plazo de 48 horas: bloquea hasta que se
+# complete (o el administrador lo suspenda).
+def _sql_acta_pendiente(a: str = "p") -> str:
+    return (
+        f"({a}.estado = 'cerrado_con_acuerdo' AND {a}.suspendido = false AND "
+        f"({a}.finalizado = false OR "
+        f"({a}.requiere_acta_firmada AND {a}.acta_firmada_ruta IS NULL)))"
+    )
+
+
+def _supabase_config():
+    url = os.getenv("SUPABASE_URL")
+    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    bucket = os.getenv("SUPABASE_BUCKET", "actas-pdf")
+    if not url or not key:
+        raise HTTPException(status_code=500, detail="Supabase no está configurado en el backend")
+    return url.rstrip("/"), key, bucket
 
 # =========================
 # PARTES DEL PROCESO (varios solicitantes / invitados)
@@ -3768,17 +3811,20 @@ def crear_avance_proceso(
         avance = cur.fetchone()
 
         if resultado == "cerrado_con_acuerdo":
-            # Desde aquí empieza a correr el plazo de 48 horas para subir
-            # el acta final + comprobante de pago de este proceso.
+            # El texto del acuerdo se escribe una sola vez, aquí (en el
+            # resultado de la última invitación), y es el que sale en el
+            # acta imprimible. Solo el administrador lo puede corregir luego.
             cur.execute("""
                 UPDATE procesos_mediacion
                 SET
                     estado = %s,
                     fecha_acuerdo = NOW(),
+                    acuerdo_texto = %s,
                     fecha_modificacion = NOW()
                 WHERE id = %s
             """, (
                 resultado,
+                observacion.strip(),
                 proceso_id
             ))
         else:
@@ -3922,6 +3968,7 @@ async def subir_acta_final_proceso(
                 p.usuario_id,
                 p.estado,
                 p.finalizado,
+                p.suspendido,
                 p.fecha_acuerdo,
                 s.nombre AS sucursal,
                 s.codigo_corto,
@@ -3956,50 +4003,43 @@ async def subir_acta_final_proceso(
                 detail="Solo el mediador asignado a este proceso puede subir el acta final"
             )
 
-        # Fila de espera: de todos los procesos "cerrado con acuerdo" de
-        # este mediador que aún no tienen acta subida, el que está
-        # "bloqueando" a los demás es el MÁS ANTIGUO que sigue DENTRO de
-        # su propia ventana de 48 horas (fresco). Ese es el único que se
-        # puede subir mientras tanto.
-        #
-        # Si a ESE bloqueante se le pasan las 48 horas sin que se suba su
-        # acta, deja de bloquear — no porque "ya se liberó todo", sino
-        # porque pasa el turno al siguiente más antiguo que siga fresco
-        # (si hay uno). Así, el bloqueante nunca frena el trabajo para
-        # siempre: si nadie tiene un proceso fresco pendiente en este
-        # momento, no hay ningún bloqueo y se puede subir cualquiera.
-        #
-        # Y si aparece un proceso NUEVO fresco mientras uno viejo (ya
-        # vencido) sigue sin acta, ese nuevo si puede volver a bloquear a
-        # los demás — incluido el viejo — porque lo que importa es cuál es
-        # el más antiguo entre los que siguen frescos, no el orden en que
-        # se intenten subir.
+        if proceso["suspendido"]:
+            raise HTTPException(
+                status_code=400,
+                detail="Este proceso está suspendido por el administrador. Pídele que lo reactive."
+            )
+
+        # Fila de espera por mediador: el proceso pendiente más antiguo
+        # (sin completar acta + comprobante + acta firmada, y no suspendido)
+        # va primero. Mientras no se complete, el mediador no puede subir
+        # el acta de otros. El administrador no tiene esta restricción y
+        # puede suspender el proceso bloqueante para desbloquear al mediador.
         if usuario["rol"] != "administrador":
-            cur.execute("""
-                SELECT id, codigo_proceso, fecha_acuerdo
-                FROM procesos_mediacion
-                WHERE usuario_id = %s
-                  AND estado = 'cerrado_con_acuerdo'
-                  AND finalizado = false
-                  AND fecha_acuerdo IS NOT NULL
-                  AND fecha_acuerdo > NOW() - INTERVAL '48 hours'
-                ORDER BY fecha_acuerdo ASC, id ASC
-                LIMIT 1
-            """, (usuario["id"],))
+            cur.execute(
+                "SELECT id, codigo_proceso, fecha_acuerdo, finalizado FROM procesos_mediacion p "
+                "WHERE p.usuario_id = %s AND " + _sql_acta_pendiente("p") +
+                " ORDER BY p.fecha_acuerdo ASC NULLS LAST, p.id ASC LIMIT 1",
+                (usuario["id"],)
+            )
 
             bloqueante = cur.fetchone()
 
             if bloqueante and bloqueante["id"] != proceso_id:
+                faltante = (
+                    "el acta firmada" if bloqueante["finalizado"]
+                    else "el acta final y el comprobante de pago"
+                )
+                fecha_txt = (
+                    bloqueante["fecha_acuerdo"].strftime("%d/%m/%Y %H:%M")
+                    if bloqueante["fecha_acuerdo"] else "—"
+                )
                 raise HTTPException(
                     status_code=400,
                     detail=(
-                        f"Primero debes subir el acta final y el comprobante de pago del "
-                        f"proceso {bloqueante['codigo_proceso']} — es el que está dentro de "
-                        f"su plazo de 48 horas y va primero en la fila (se cerró con "
-                        f"acuerdo el "
-                        f"{bloqueante['fecha_acuerdo'].strftime('%d/%m/%Y %H:%M')}). "
-                        f"Los demás procesos pendientes quedan bloqueados hasta que subas "
-                        f"esa, o hasta que a esa le pasen las 48 horas."
+                        f"Primero debes completar el proceso {bloqueante['codigo_proceso']} "
+                        f"(cerrado con acuerdo el {fecha_txt}): falta subir {faltante}. "
+                        f"Hasta entonces no puedes subir actas de otros procesos. Si no se "
+                        f"puede completar, pide al administrador que lo suspenda."
                     )
                 )
 
@@ -4170,6 +4210,492 @@ async def subir_acta_final_proceso(
     finally:
         cur.close()
         conn.close()
+
+# =========================
+# ACTA FIRMADA (PDF firmado por las partes)
+# =========================
+@app.post("/procesos/{proceso_id}/acta-firmada")
+async def subir_acta_firmada(
+    proceso_id: int,
+    archivo: UploadFile = File(...),
+    confirmo: bool = Form(False),
+    usuario=Depends(obtener_usuario_actual)
+):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        if not confirmo:
+            raise HTTPException(
+                status_code=400,
+                detail="Debes confirmar que el documento es el acta firmada por todas las partes"
+            )
+
+        if archivo.content_type != "application/pdf":
+            raise HTTPException(
+                status_code=400,
+                detail="El acta firmada solo se puede subir en PDF (no fotos)"
+            )
+
+        cur.execute("""
+            SELECT p.id, p.codigo_proceso, p.usuario_id, p.estado, p.finalizado,
+                   p.suspendido, p.requiere_acta_firmada, p.acta_firmada_ruta,
+                   ap.codigo_acta
+            FROM procesos_mediacion p
+            LEFT JOIN actas_proceso ap ON ap.id = p.acta_final_id
+            WHERE p.id = %s
+            FOR UPDATE OF p
+        """, (proceso_id,))
+        proceso = cur.fetchone()
+
+        if not proceso:
+            raise HTTPException(status_code=404, detail="Proceso no encontrado")
+
+        if usuario["rol"] != "administrador" and proceso["usuario_id"] != usuario["id"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Solo el mediador asignado a este proceso puede subir el acta firmada"
+            )
+
+        if proceso["estado"] != "cerrado_con_acuerdo" or not proceso["finalizado"]:
+            raise HTTPException(
+                status_code=400,
+                detail="Primero se debe subir el acta final y el comprobante de pago"
+            )
+
+        if proceso["suspendido"]:
+            raise HTTPException(
+                status_code=400,
+                detail="Este proceso está suspendido por el administrador"
+            )
+
+        if proceso["acta_firmada_ruta"]:
+            raise HTTPException(status_code=400, detail="El acta firmada ya fue subida")
+
+        if not proceso["requiere_acta_firmada"]:
+            raise HTTPException(
+                status_code=400,
+                detail="Este proceso es anterior a la regla del acta firmada y no la requiere"
+            )
+
+        contenido = comprimir_pdf(await archivo.read())
+
+        base_url, key, bucket = _supabase_config()
+        ruta = f"actas-firmadas/{proceso['codigo_acta'] or proceso['codigo_proceso']}/{uuid.uuid4()}.pdf"
+
+        resp = requests.post(
+            f"{base_url}/storage/v1/object/{bucket}/{quote(ruta, safe='/')}",
+            headers={
+                "Authorization": f"Bearer {key}",
+                "apikey": key,
+                "Content-Type": "application/pdf",
+                "x-upsert": "true",
+            },
+            data=contenido
+        )
+        if resp.status_code not in [200, 201]:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error subiendo el acta firmada a Supabase: {resp.text}"
+            )
+
+        cur.execute("""
+            UPDATE procesos_mediacion
+            SET acta_firmada_ruta = %s,
+                acta_firmada_nombre = %s,
+                acta_firmada_tamano = %s,
+                acta_firmada_fecha = NOW(),
+                acta_firmada_usuario_id = %s,
+                fecha_modificacion = NOW()
+            WHERE id = %s
+        """, (ruta, archivo.filename, len(contenido), usuario["id"], proceso_id))
+
+        cur.execute("SELECT id FROM usuarios WHERE rol = 'administrador' AND activo = true")
+        for admin in cur.fetchall():
+            crear_notificacion(
+                cur, admin["id"], "Acta firmada subida",
+                f"Se subió el acta firmada del proceso {proceso['codigo_proceso']}. El proceso quedó completo.",
+                "acta", "proceso_mediacion", proceso_id
+            )
+
+        registrar_auditoria(
+            cur, usuario, "acta_firmada_subida", "procesos", proceso_id,
+            f"Subió el acta firmada del proceso {proceso['codigo_proceso']}"
+        )
+
+        conn.commit()
+        return {"mensaje": "Acta firmada subida. El proceso quedó completo."}
+
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/procesos/{proceso_id}/acta-firmada")
+def ver_acta_firmada(proceso_id: int, usuario=Depends(obtener_usuario_actual)):
+    # Igual que el acta escaneada y el comprobante: solo el administrador
+    # puede verla/descargarla; el mediador solo la sube.
+    if usuario["rol"] != "administrador":
+        raise HTTPException(status_code=403, detail="Solo el administrador puede ver el acta firmada")
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute(
+            "SELECT codigo_proceso, acta_firmada_ruta FROM procesos_mediacion WHERE id = %s",
+            (proceso_id,)
+        )
+        p = cur.fetchone()
+        if not p or not p["acta_firmada_ruta"]:
+            raise HTTPException(status_code=404, detail="Acta firmada no encontrada")
+
+        base_url, key, bucket = _supabase_config()
+        resp = requests.get(
+            f"{base_url}/storage/v1/object/{bucket}/{quote(p['acta_firmada_ruta'], safe='/')}",
+            headers={"Authorization": f"Bearer {key}", "apikey": key}
+        )
+        if resp.status_code != 200:
+            raise HTTPException(status_code=404, detail="PDF no encontrado en Storage")
+
+        return Response(
+            content=resp.content,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'inline; filename="acta-firmada-{p["codigo_proceso"]}.pdf"'}
+        )
+    finally:
+        cur.close()
+        conn.close()
+
+
+# =========================
+# ACUERDO: corrección (solo administrador) e historial
+# =========================
+@app.put("/procesos/{proceso_id}/acuerdo")
+def corregir_acuerdo(
+    proceso_id: int,
+    texto: str,
+    motivo: str,
+    usuario=Depends(obtener_usuario_actual)
+):
+    if usuario["rol"] != "administrador":
+        raise HTTPException(status_code=403, detail="Solo el administrador puede corregir el acuerdo")
+
+    texto = (texto or "").strip()
+    motivo = (motivo or "").strip()
+    if not texto:
+        raise HTTPException(status_code=400, detail="El texto del acuerdo no puede quedar vacío")
+    if len(motivo) < 5:
+        raise HTTPException(status_code=400, detail="Indica el motivo de la corrección")
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute(
+            "SELECT id, codigo_proceso, estado, acuerdo_texto FROM procesos_mediacion WHERE id = %s FOR UPDATE",
+            (proceso_id,)
+        )
+        p = cur.fetchone()
+        if not p:
+            raise HTTPException(status_code=404, detail="Proceso no encontrado")
+        if p["estado"] != "cerrado_con_acuerdo":
+            raise HTTPException(status_code=400, detail="Solo se corrige el acuerdo de un proceso cerrado con acuerdo")
+        if (p["acuerdo_texto"] or "").strip() == texto:
+            raise HTTPException(status_code=400, detail="El texto es igual al actual")
+
+        cur.execute("""
+            INSERT INTO proceso_acuerdo_historial (proceso_id, texto_anterior, texto_nuevo, motivo, usuario_id)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (proceso_id, p["acuerdo_texto"], texto, motivo, usuario["id"]))
+
+        cur.execute(
+            "UPDATE procesos_mediacion SET acuerdo_texto = %s, fecha_modificacion = NOW() WHERE id = %s",
+            (texto, proceso_id)
+        )
+
+        registrar_auditoria(
+            cur, usuario, "acuerdo_corregido", "procesos", proceso_id,
+            f"Corrigió el acuerdo del proceso {p['codigo_proceso']}. Motivo: {motivo}"
+        )
+        conn.commit()
+        return {"mensaje": "Acuerdo corregido", "acuerdo_texto": texto}
+
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/procesos/{proceso_id}/acuerdo/historial")
+def historial_acuerdo(proceso_id: int, usuario=Depends(obtener_usuario_actual)):
+    if usuario["rol"] != "administrador":
+        raise HTTPException(status_code=403, detail="Solo el administrador puede ver el historial del acuerdo")
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT h.id, h.texto_anterior, h.texto_nuevo, h.motivo, h.fecha,
+                   u.nombre || ' ' || u.apellido AS usuario
+            FROM proceso_acuerdo_historial h
+            JOIN usuarios u ON u.id = h.usuario_id
+            WHERE h.proceso_id = %s
+            ORDER BY h.id DESC
+        """, (proceso_id,))
+        return cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
+
+
+# =========================
+# SUSPENDER / REACTIVAR (desbloquea al mediador, solo administrador)
+# =========================
+@app.put("/procesos/{proceso_id}/suspender")
+def suspender_proceso(proceso_id: int, motivo: str, usuario=Depends(obtener_usuario_actual)):
+    if usuario["rol"] != "administrador":
+        raise HTTPException(status_code=403, detail="Solo el administrador puede suspender un proceso")
+
+    motivo = (motivo or "").strip()
+    if len(motivo) < 5:
+        raise HTTPException(status_code=400, detail="Indica el motivo de la suspensión")
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute(
+            "SELECT id, codigo_proceso, usuario_id, estado, suspendido FROM procesos_mediacion WHERE id = %s FOR UPDATE",
+            (proceso_id,)
+        )
+        p = cur.fetchone()
+        if not p:
+            raise HTTPException(status_code=404, detail="Proceso no encontrado")
+        if p["estado"] != "cerrado_con_acuerdo":
+            raise HTTPException(status_code=400, detail="Solo se suspende un proceso cerrado con acuerdo que espera su acta")
+        if p["suspendido"]:
+            raise HTTPException(status_code=400, detail="El proceso ya está suspendido")
+
+        cur.execute("""
+            UPDATE procesos_mediacion
+            SET suspendido = true, motivo_suspension = %s, fecha_suspension = NOW(),
+                suspendido_por_id = %s, fecha_modificacion = NOW()
+            WHERE id = %s
+        """, (motivo, usuario["id"], proceso_id))
+
+        crear_notificacion(
+            cur, p["usuario_id"], "Proceso suspendido",
+            f"El administrador suspendió el proceso {p['codigo_proceso']}. Ya puedes subir las actas de tus otros procesos. Motivo: {motivo}",
+            "proceso", "proceso_mediacion", proceso_id
+        )
+        registrar_auditoria(
+            cur, usuario, "proceso_suspendido", "procesos", proceso_id,
+            f"Suspendió el proceso {p['codigo_proceso']}. Motivo: {motivo}"
+        )
+        conn.commit()
+        return {"mensaje": "Proceso suspendido. El mediador ya no está bloqueado por este proceso."}
+
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.put("/procesos/{proceso_id}/reactivar")
+def reactivar_proceso(proceso_id: int, usuario=Depends(obtener_usuario_actual)):
+    if usuario["rol"] != "administrador":
+        raise HTTPException(status_code=403, detail="Solo el administrador puede reactivar un proceso")
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute(
+            "SELECT id, codigo_proceso, usuario_id, suspendido FROM procesos_mediacion WHERE id = %s FOR UPDATE",
+            (proceso_id,)
+        )
+        p = cur.fetchone()
+        if not p:
+            raise HTTPException(status_code=404, detail="Proceso no encontrado")
+        if not p["suspendido"]:
+            raise HTTPException(status_code=400, detail="El proceso no está suspendido")
+
+        cur.execute("""
+            UPDATE procesos_mediacion
+            SET suspendido = false, fecha_modificacion = NOW()
+            WHERE id = %s
+        """, (proceso_id,))
+
+        crear_notificacion(
+            cur, p["usuario_id"], "Proceso reactivado",
+            f"El administrador reactivó el proceso {p['codigo_proceso']}: vuelve a la fila para completar su acta.",
+            "proceso", "proceso_mediacion", proceso_id
+        )
+        registrar_auditoria(
+            cur, usuario, "proceso_reactivado", "procesos", proceso_id,
+            f"Reactivó el proceso {p['codigo_proceso']}"
+        )
+        conn.commit()
+        return {"mensaje": "Proceso reactivado"}
+
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+        conn.close()
+
+
+# =========================
+# DATOS DEL ACTA IMPRIMIBLE
+# =========================
+@app.get("/procesos/{proceso_id}/acta-datos")
+def datos_acta_imprimible(proceso_id: int, usuario=Depends(obtener_usuario_actual)):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT
+                p.id, p.usuario_id, p.estado, p.finalizado, p.tema,
+                p.fecha_acuerdo, p.acuerdo_texto,
+                ap.codigo_acta,
+                s.nombre AS sucursal, s.direccion AS sucursal_direccion,
+                ci.nombre AS ciudad,
+                u.nombre AS mediador_nombre, u.apellido AS mediador_apellido,
+                u.cedula AS mediador_cedula
+            FROM procesos_mediacion p
+            JOIN sucursales s ON s.id = p.sucursal_id
+            JOIN ciudades ci ON ci.id = s.ciudad_id
+            JOIN usuarios u ON u.id = p.usuario_id
+            LEFT JOIN actas_proceso ap ON ap.id = p.acta_final_id
+            WHERE p.id = %s
+        """, (proceso_id,))
+        p = cur.fetchone()
+
+        if not p:
+            raise HTTPException(status_code=404, detail="Proceso no encontrado")
+        if usuario["rol"] != "administrador" and p["usuario_id"] != usuario["id"]:
+            raise HTTPException(status_code=403, detail="No puedes ver esta acta")
+        if p["estado"] != "cerrado_con_acuerdo" or not p["finalizado"]:
+            raise HTTPException(
+                status_code=400,
+                detail="El acta imprimible se habilita cuando ya se subió el acta final y el comprobante de pago"
+            )
+
+        return {"proceso": p, "partes": _consulta_partes(cur, proceso_id)}
+    finally:
+        cur.close()
+        conn.close()
+
+
+# =========================
+# CONTADORES DE ACTAS COMPLETAS (visibles para todos los mediadores)
+# =========================
+@app.get("/actas/resumen-mes")
+def resumen_actas_mes(mes: str = None, usuario=Depends(obtener_usuario_actual)):
+    """Actas COMPLETAS (con acta firmada subida) por mediador y sucursal en
+    un mes (formato YYYY-MM; por defecto el mes actual, hora de Ecuador).
+    Solo cuenta lo terminado: lo que está a medias no suma."""
+    if mes is None:
+        mes = datetime.datetime.now(
+            datetime.timezone(datetime.timedelta(hours=-5))
+        ).strftime("%Y-%m")
+    if not re.match(r"^\d{4}-(0[1-9]|1[0-2])$", mes):
+        raise HTTPException(status_code=400, detail="Mes inválido (usa AAAA-MM)")
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT
+                u.id AS usuario_id,
+                u.nombre || ' ' || u.apellido AS mediador,
+                s.id AS sucursal_id,
+                s.nombre AS sucursal,
+                ci.nombre AS ciudad,
+                COUNT(p.id) FILTER (
+                    WHERE p.acta_firmada_ruta IS NOT NULL
+                      AND to_char(p.acta_firmada_fecha AT TIME ZONE 'America/Guayaquil', 'YYYY-MM') = %s
+                )::int AS total
+            FROM usuarios u
+            JOIN sucursales s ON s.id = u.sucursal_id
+            JOIN ciudades ci ON ci.id = s.ciudad_id
+            LEFT JOIN procesos_mediacion p ON p.usuario_id = u.id
+            WHERE u.rol = 'mediador' AND u.activo = true
+            GROUP BY u.id, u.nombre, u.apellido, s.id, s.nombre, ci.nombre
+            ORDER BY total DESC, mediador ASC
+        """, (mes,))
+        mediadores = cur.fetchall()
+
+        por_sucursal = {}
+        for m in mediadores:
+            k = m["sucursal_id"]
+            if k not in por_sucursal:
+                por_sucursal[k] = {
+                    "sucursal_id": k, "sucursal": m["sucursal"],
+                    "ciudad": m["ciudad"], "total": 0
+                }
+            por_sucursal[k]["total"] += m["total"]
+
+        return {
+            "mes": mes,
+            "mediadores": mediadores,
+            "sucursales": sorted(por_sucursal.values(), key=lambda x: (-x["total"], x["sucursal"])),
+            "total": sum(m["total"] for m in mediadores),
+        }
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/actas/atrasadas")
+def actas_atrasadas(dias: int = 5, usuario=Depends(obtener_usuario_actual)):
+    """Para el administrador: procesos cerrados con acuerdo que llevan más
+    de N días (5 por defecto) sin completar acta + comprobante + acta
+    firmada. No incluye los suspendidos."""
+    if usuario["rol"] != "administrador":
+        raise HTTPException(status_code=403, detail="Solo el administrador puede ver este aviso")
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT
+                p.id, p.codigo_proceso,
+                u.nombre || ' ' || u.apellido AS mediador,
+                s.nombre AS sucursal,
+                p.fecha_acuerdo,
+                FLOOR(EXTRACT(EPOCH FROM (NOW() - p.fecha_acuerdo)) / 86400)::int AS dias,
+                CASE WHEN p.finalizado = false THEN 'Falta acta y comprobante'
+                     ELSE 'Falta acta firmada' END AS etapa
+            FROM procesos_mediacion p
+            JOIN usuarios u ON u.id = p.usuario_id
+            JOIN sucursales s ON s.id = p.sucursal_id
+            WHERE """ + _sql_acta_pendiente("p") + """
+              AND p.fecha_acuerdo < NOW() - (%s || ' days')::interval
+            ORDER BY p.fecha_acuerdo ASC
+        """, (str(max(dias, 1)),))
+        return cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
+
 
 # =========================
 # ACTAS FINALES
@@ -5401,14 +5927,24 @@ def reporte_operativo_actas_pendientes(
                 u.nombre || ' ' || u.apellido AS mediador,
                 s.nombre AS sucursal,
                 ci.nombre AS ciudad,
-                FLOOR(EXTRACT(EPOCH FROM (NOW() - p.fecha_acuerdo)) / 3600)::int AS horas_transcurridas
+                FLOOR(EXTRACT(EPOCH FROM (NOW() - p.fecha_acuerdo)) / 3600)::int AS horas_transcurridas,
+                CASE
+                    WHEN p.suspendido THEN 'Suspendido'
+                    WHEN p.finalizado = false THEN 'Falta acta y comprobante'
+                    ELSE 'Falta acta firmada'
+                END AS etapa
             FROM procesos_mediacion p
             JOIN clientes cd ON p.cliente_demandante_id = cd.id
             JOIN clientes cdd ON p.cliente_demandado_id = cdd.id
             JOIN usuarios u ON p.usuario_id = u.id
             JOIN sucursales s ON p.sucursal_id = s.id
             JOIN ciudades ci ON s.ciudad_id = ci.id
-            WHERE p.estado = 'cerrado_con_acuerdo' AND p.finalizado = false
+            WHERE p.estado = 'cerrado_con_acuerdo'
+              AND (
+                    p.suspendido = true
+                    OR p.finalizado = false
+                    OR (p.requiere_acta_firmada AND p.acta_firmada_ruta IS NULL)
+                  )
         """
         params = []
         query = _filtros_operativos(query, params, usuario, usuario_id, sucursal_id, ciudad_id)
@@ -5621,11 +6157,12 @@ def exportar_reporte_excel(
             usuario_id=usuario_id, usuario=usuario
         )
         encabezados = ["Solicitante", "Invitado", "Mediador", "Sucursal", "Ciudad",
-                       "Tema", "Fecha del acuerdo", "Días pendientes"]
+                       "Tema", "Fecha del acuerdo", "Estado", "Días pendientes"]
         filas_excel = [
             [f.get("demandante"), f.get("demandado"),
              f.get("mediador"), f.get("sucursal"), f.get("ciudad"), f.get("tema"),
              str(f.get("fecha_acuerdo") or "")[:16],
+             f.get("etapa"),
              (f.get("horas_transcurridas") // 24) if f.get("horas_transcurridas") is not None else ""]
             for f in filas
         ]

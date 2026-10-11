@@ -715,3 +715,57 @@ export async function getExpedienteProceso(
   const res = await api.get(`/procesos/${procesoId}/expediente`);
   return res.data;
 }
+
+
+// ── ACTA FIRMADA / ACUERDO / SUSPENSIÓN (Fase 3) ─────────────────────────────
+export async function subirActaFirmada(procesoId: number, file: File): Promise<any> {
+  const formData = new FormData();
+  formData.append('archivo', file);
+  formData.append('confirmo', 'true');
+
+  const res = await api.post(`/procesos/${procesoId}/acta-firmada`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+
+  return res.data;
+}
+
+export async function descargarActaFirmada(procesoId: number): Promise<Blob> {
+  const res = await api.get(`/procesos/${procesoId}/acta-firmada`, { responseType: 'blob' });
+  return res.data;
+}
+
+export async function corregirAcuerdo(procesoId: number, texto: string, motivo: string): Promise<any> {
+  const res = await api.put(`/procesos/${procesoId}/acuerdo`, null, { params: { texto, motivo } });
+  return res.data;
+}
+
+export async function getHistorialAcuerdo(procesoId: number): Promise<any[]> {
+  const res = await api.get(`/procesos/${procesoId}/acuerdo/historial`);
+  return res.data;
+}
+
+export async function suspenderProceso(procesoId: number, motivo: string): Promise<any> {
+  const res = await api.put(`/procesos/${procesoId}/suspender`, null, { params: { motivo } });
+  return res.data;
+}
+
+export async function reactivarProceso(procesoId: number): Promise<any> {
+  const res = await api.put(`/procesos/${procesoId}/reactivar`);
+  return res.data;
+}
+
+export async function getDatosActa(procesoId: number): Promise<any> {
+  const res = await api.get(`/procesos/${procesoId}/acta-datos`);
+  return res.data;
+}
+
+export async function getResumenActasMes(mes?: string): Promise<any> {
+  const res = await api.get('/actas/resumen-mes', { params: mes ? { mes } : {} });
+  return res.data;
+}
+
+export async function getActasAtrasadas(): Promise<any[]> {
+  const res = await api.get('/actas/atrasadas');
+  return res.data;
+}
