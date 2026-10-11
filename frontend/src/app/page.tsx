@@ -336,7 +336,7 @@ export default function HomePage() {
                 <span className="inline-block rounded-full border border-gold-400/40 bg-gold-400/10 px-3.5 py-1 text-[11px] uppercase tracking-[0.2em] text-gold-600 font-sans">Quiénes Somos</span>
               </div>
 
-              <h2 className="text-4xl font-bold text-numa-900 mb-6 leading-tight">
+              <h2 className="text-3xl sm:text-4xl font-bold text-numa-900 mb-6 leading-tight">
                 Más de una década construyendo puentes de paz
               </h2>
 
@@ -378,17 +378,17 @@ export default function HomePage() {
 
       {/* MISION */}
       <div className="bg-white px-3 sm:px-6 py-2 sm:py-4">
-      <section id="misión" className="relative py-12 sm:py-14 bg-night overflow-hidden rounded-[1.75rem] sm:rounded-[2.5rem]">
+      <section id="misión" className="relative py-9 sm:py-14 bg-night overflow-hidden rounded-[1.75rem] sm:rounded-[2.5rem]">
         <div className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_1px_1fr] gap-8 md:gap-12 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_1px_1fr] gap-6 md:gap-12 items-start">
             <div className="reveal">
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-2.5 sm:mb-4">
                 <Scale className="w-6 h-6 text-gold-400" />
-                <h2 className="text-base font-sans font-semibold uppercase tracking-[0.25em] text-gold-400">
+                <h2 className="text-sm sm:text-base font-sans font-semibold uppercase tracking-[0.25em] text-gold-400">
                   Misión
                 </h2>
               </div>
-              <p className="text-xl sm:text-2xl text-white leading-snug">
+              <p className="text-lg sm:text-2xl text-white leading-snug">
                 Brindar servicios de mediación y resolución alternativa de
                 conflictos de alta calidad.
               </p>
@@ -398,13 +398,13 @@ export default function HomePage() {
             <div className="md:hidden h-px bg-gradient-to-r from-transparent via-gold-400/60 to-transparent" />
 
             <div className="reveal reveal-d1">
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-2.5 sm:mb-4">
                 <Eye className="w-6 h-6 text-gold-400" />
-                <h2 className="text-base font-sans font-semibold uppercase tracking-[0.25em] text-gold-400">
+                <h2 className="text-sm sm:text-base font-sans font-semibold uppercase tracking-[0.25em] text-gold-400">
                   Visión
                 </h2>
               </div>
-              <p className="text-xl sm:text-2xl text-white leading-snug">
+              <p className="text-lg sm:text-2xl text-white leading-snug">
                 Ser el centro de mediación líder reconocido por su excelencia.
               </p>
             </div>
@@ -418,12 +418,12 @@ export default function HomePage() {
         <Arcos />
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
-            <h2 className="text-4xl font-bold text-numa-900">
+            <h2 className="text-3xl sm:text-4xl font-bold text-numa-900">
               Valores Institucionales
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-10 gap-y-12">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 sm:gap-x-10 gap-y-8 sm:gap-y-12">
             {valores.map(({ icon: Icon, titulo, desc }, idx) => (
               <div
                 key={titulo}
@@ -431,11 +431,11 @@ export default function HomePage() {
                 style={{ transitionDelay: `${idx * 70}ms` }}
               >
                 
-                <div className="w-12 h-14 rounded-t-full rounded-b-xl bg-numa-900 group-hover:bg-numa-800 flex items-center justify-center mb-5 transition-colors duration-300">
+                <div className="w-10 h-12 sm:w-12 sm:h-14 rounded-t-full rounded-b-xl bg-numa-900 group-hover:bg-numa-800 flex items-center justify-center mb-3 sm:mb-5 transition-colors duration-300">
                   <Icon className="w-5 h-5 text-gold-400" />
                 </div>
-                <h3 className="text-xl font-bold text-numa-900 mb-2">{titulo}</h3>
-                <p className="text-sm text-numa-700 leading-relaxed font-sans">{desc}</p>
+                <h3 className="text-base sm:text-xl font-bold text-numa-900 mb-1.5 sm:mb-2">{titulo}</h3>
+                <p className="text-[13px] sm:text-sm text-numa-700 leading-relaxed font-sans">{desc}</p>
               </div>
             ))}
           </div>
@@ -451,7 +451,7 @@ export default function HomePage() {
                 <span className="inline-block rounded-full border border-gold-400/40 bg-gold-400/10 px-3.5 py-1 text-[11px] uppercase tracking-[0.2em] text-gold-600 font-sans">¿Por qué mediar?</span>
               </div>
 
-            <h2 className="text-4xl font-bold text-numa-900">
+            <h2 className="text-3xl sm:text-4xl font-bold text-numa-900">
               Beneficios de la Mediación
             </h2>
           </div>
@@ -462,11 +462,11 @@ export default function HomePage() {
               (celular, donde no existe el hover). La celda externa tiene
               alto fijo para que al expandirse no se mueva el resto de
               la cuadrícula. */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             {beneficios.map(({ icon: Icon, titulo, desc }) => {
               const abierto = beneficioAbierto === titulo;
               return (
-                <div key={titulo} className="relative h-[230px]">
+                <div key={titulo} className="relative h-[246px] sm:h-[230px]">
                   <div
                     role="button"
                     tabIndex={0}
@@ -492,14 +492,14 @@ export default function HomePage() {
                         setBeneficioAbierto((prev) => (prev === titulo ? null : titulo));
                       }
                     }}
-                    className={`absolute inset-x-0 top-0 min-h-full p-6 rounded-3xl border cursor-pointer transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-gold-400 ${
+                    className={`absolute inset-x-0 top-0 min-h-full p-4 sm:p-6 rounded-3xl border cursor-pointer transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-gold-400 ${
                       abierto
                         ? 'z-20 bg-numa-900 border-gold-400/60 shadow-xl'
                         : 'z-0 bg-white border-numa-100'
                     }`}
                   >
                     <div
-                      className={`w-11 h-11 rounded-full border flex items-center justify-center mb-4 transition-colors duration-300 ${
+                      className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full border flex items-center justify-center mb-3 sm:mb-4 transition-colors duration-300 ${
                         abierto
                           ? 'bg-gold-400/20 border-gold-400/40'
                           : 'bg-gold-400/10 border-gold-400/20'
@@ -513,7 +513,7 @@ export default function HomePage() {
                     </div>
 
                     <h3
-                      className={`text-lg font-bold mb-2 transition-colors duration-300 ${
+                      className={`text-base sm:text-lg font-bold mb-1.5 sm:mb-2 transition-colors duration-300 ${
                         abierto ? 'text-gold-400' : 'text-numa-900'
                       }`}
                     >
@@ -521,8 +521,8 @@ export default function HomePage() {
                     </h3>
 
                     <p
-                      className={`text-sm leading-relaxed font-sans transition-colors duration-300 ${
-                        abierto ? 'text-numa-100' : 'text-numa-500 line-clamp-3'
+                      className={`text-[13px] sm:text-sm leading-relaxed font-sans transition-colors duration-300 ${
+                        abierto ? 'text-numa-100' : 'text-numa-600 line-clamp-4 sm:line-clamp-3'
                       }`}
                     >
                       {desc}
@@ -541,7 +541,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 items-center">
             <div>
-              <h2 className="text-4xl font-bold text-numa-900 mb-4">
+              <h2 className="text-3xl sm:text-4xl font-bold text-numa-900 mb-4">
                 Nuestros Servicios
               </h2>
 
@@ -583,7 +583,7 @@ export default function HomePage() {
                 <span className="inline-block rounded-full border border-gold-400/40 bg-gold-400/10 px-3.5 py-1 text-[11px] uppercase tracking-[0.2em] text-gold-600 font-sans">¿Tienes un conflicto que resolver?</span>
               </div>
 
-            <h2 className="text-4xl font-bold text-numa-900 mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-numa-900 mb-4">
               Solicita una asesoría gratuita
             </h2>
 
@@ -618,7 +618,7 @@ export default function HomePage() {
       {/* CTA */}
       <section id="acceso" className="py-14 bg-gold-400">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold text-numa-950 mb-4">
+          <h2 className="text-3xl sm:text-4xl font-bold text-numa-950 mb-4">
             Comience su proceso de mediación hoy
           </h2>
 
