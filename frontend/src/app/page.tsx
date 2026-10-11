@@ -388,7 +388,7 @@ export default function HomePage() {
                   Misión
                 </h2>
               </div>
-              <p className="text-lg sm:text-2xl text-white leading-snug">
+              <p className="text-lg sm:text-2xl text-white leading-snug justify-es">
                 Brindar servicios de mediación y resolución alternativa de
                 conflictos de alta calidad.
               </p>
@@ -404,7 +404,7 @@ export default function HomePage() {
                   Visión
                 </h2>
               </div>
-              <p className="text-lg sm:text-2xl text-white leading-snug">
+              <p className="text-lg sm:text-2xl text-white leading-snug justify-es">
                 Ser el centro de mediación líder reconocido por su excelencia.
               </p>
             </div>
@@ -423,7 +423,7 @@ export default function HomePage() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 sm:gap-x-10 gap-y-8 sm:gap-y-12">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 sm:gap-x-6 gap-y-8 sm:gap-y-12">
             {valores.map(({ icon: Icon, titulo, desc }, idx) => (
               <div
                 key={titulo}
@@ -435,7 +435,7 @@ export default function HomePage() {
                   <Icon className="w-5 h-5 text-gold-400" />
                 </div>
                 <h3 className="text-base sm:text-xl font-bold text-numa-900 mb-1.5 sm:mb-2">{titulo}</h3>
-                <p className="text-[13px] sm:text-sm text-numa-700 leading-relaxed font-sans">{desc}</p>
+                <p className="text-[13px] sm:text-sm text-numa-700 leading-relaxed font-sans justify-es">{desc}</p>
               </div>
             ))}
           </div>
@@ -521,7 +521,7 @@ export default function HomePage() {
                     </h3>
 
                     <p
-                      className={`text-[13px] leading-relaxed font-sans transition-colors duration-300 ${
+                      className={`text-[13px] leading-relaxed font-sans justify-es transition-colors duration-300 ${
                         abierto ? 'text-numa-100' : 'text-numa-600 line-clamp-4 sm:line-clamp-2'
                       }`}
                     >
