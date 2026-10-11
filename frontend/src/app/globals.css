@@ -236,3 +236,7 @@ html {
 .deco-arch{position:absolute;z-index:-1;pointer-events:none;border:1.5px solid rgba(201,154,46,.55);border-bottom:0;border-radius:9999px 9999px 0 0;animation:arch-float 10s ease-in-out infinite alternate}
 @keyframes arch-float{0%{transform:translate3d(0,0,0)}100%{transform:translate3d(0,-18px,0)}}
 @media (prefers-reduced-motion: reduce){.deco-arch{animation:none}}
+
+/* Párrafos justificados en pantallas medianas y grandes (en celular queda alineado a la izquierda para no abrir huecos). */
+.justify-es{hyphens:auto;-webkit-hyphens:auto}
+@media (min-width:640px){.justify-es{text-align:justify;text-justify:inter-word}}

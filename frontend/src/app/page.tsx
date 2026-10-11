@@ -314,7 +314,7 @@ export default function HomePage() {
                 Numa Pompilio, símbolo de mediador
               </h2>
 
-              <p className="text-sm text-numa-600 leading-relaxed">
+              <p className="text-sm text-numa-600 leading-relaxed justify-es">
                 Numa Pompilio (c. 753-674 a.C.) fue el segundo rey de Roma,
                 sucesor de Rómulo, reconocido como un monarca sabio, religioso
                 y pacífico. Como símbolo de mediador, se destacó por
@@ -340,13 +340,13 @@ export default function HomePage() {
                 Más de una década construyendo puentes de paz
               </h2>
 
-              <p className="text-numa-600 leading-relaxed mb-6">
+              <p className="text-numa-600 leading-relaxed mb-6 justify-es">
                 El Centro de Mediación NUMA es una institución reconocida en
                 Ecuador por su compromiso con la resolución alternativa de
                 disputas.
               </p>
 
-              <p className="text-numa-600 leading-relaxed">
+              <p className="text-numa-600 leading-relaxed justify-es">
                 Contamos con sucursales en las principales ciudades del país y
                 hemos facilitado la resolución exitosa de conflictos.
               </p>
@@ -443,10 +443,10 @@ export default function HomePage() {
       </section>
 
       {/* BENEFICIOS */}
-      <section id="beneficios" className="py-14 sm:py-20 bg-aurora aurora-b">
+      <section id="beneficios" className="py-12 sm:py-14 bg-aurora aurora-b">
         <Arcos />
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10">
+          <div className="text-center mb-8 sm:mb-7">
             <div className="flex justify-center mb-4">
                 <span className="inline-block rounded-full border border-gold-400/40 bg-gold-400/10 px-3.5 py-1 text-[11px] uppercase tracking-[0.2em] text-gold-600 font-sans">¿Por qué mediar?</span>
               </div>
@@ -462,11 +462,11 @@ export default function HomePage() {
               (celular, donde no existe el hover). La celda externa tiene
               alto fijo para que al expandirse no se mueva el resto de
               la cuadrícula. */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:max-w-5xl lg:mx-auto">
             {beneficios.map(({ icon: Icon, titulo, desc }) => {
               const abierto = beneficioAbierto === titulo;
               return (
-                <div key={titulo} className="relative h-[246px] sm:h-[230px]">
+                <div key={titulo} className="relative h-[246px] sm:h-[172px]">
                   <div
                     role="button"
                     tabIndex={0}
@@ -492,14 +492,14 @@ export default function HomePage() {
                         setBeneficioAbierto((prev) => (prev === titulo ? null : titulo));
                       }
                     }}
-                    className={`absolute inset-x-0 top-0 min-h-full p-4 sm:p-6 rounded-3xl border cursor-pointer transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-gold-400 ${
+                    className={`absolute inset-x-0 top-0 min-h-full p-4 sm:p-5 rounded-3xl border cursor-pointer transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-gold-400 ${
                       abierto
                         ? 'z-20 bg-numa-900 border-gold-400/60 shadow-xl'
                         : 'z-0 bg-white border-numa-100'
                     }`}
                   >
                     <div
-                      className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full border flex items-center justify-center mb-3 sm:mb-4 transition-colors duration-300 ${
+                      className={`w-9 h-9 rounded-full border flex items-center justify-center mb-3 sm:mb-2.5 transition-colors duration-300 ${
                         abierto
                           ? 'bg-gold-400/20 border-gold-400/40'
                           : 'bg-gold-400/10 border-gold-400/20'
@@ -513,7 +513,7 @@ export default function HomePage() {
                     </div>
 
                     <h3
-                      className={`text-base sm:text-lg font-bold mb-1.5 sm:mb-2 transition-colors duration-300 ${
+                      className={`text-base font-bold mb-1.5 sm:mb-1 transition-colors duration-300 ${
                         abierto ? 'text-gold-400' : 'text-numa-900'
                       }`}
                     >
@@ -521,8 +521,8 @@ export default function HomePage() {
                     </h3>
 
                     <p
-                      className={`text-[13px] sm:text-sm leading-relaxed font-sans transition-colors duration-300 ${
-                        abierto ? 'text-numa-100' : 'text-numa-600 line-clamp-4 sm:line-clamp-3'
+                      className={`text-[13px] leading-relaxed font-sans transition-colors duration-300 ${
+                        abierto ? 'text-numa-100' : 'text-numa-600 line-clamp-4 sm:line-clamp-2'
                       }`}
                     >
                       {desc}
