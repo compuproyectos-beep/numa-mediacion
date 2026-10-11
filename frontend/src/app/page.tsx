@@ -131,6 +131,30 @@ export default function HomePage() {
     return () => clearInterval(intervalo);
   }, []);
 
+  // Aparición suave al hacer scroll (un solo efecto, discreto). Si el
+  // navegador pide "reducir movimiento" o falla el script, todo se ve normal.
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const els = document.querySelectorAll<HTMLElement>('.reveal');
+    document.documentElement.classList.add('js-reveal');
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add('is-in');
+            io.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -6% 0px' }
+    );
+    els.forEach((el) => io.observe(el));
+    return () => {
+      io.disconnect();
+      document.documentElement.classList.remove('js-reveal');
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-white font-brand">
       <PublicNavbar />
@@ -339,40 +363,33 @@ export default function HomePage() {
       </section>
 
       {/* MISION */}
-      <section id="misión" className="relative py-24 bg-night overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <h2 className="text-4xl font-bold text-white">
-              Misión y Visión
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-numa-950/60 border border-gold-400/25 rounded-2xl p-8 shadow-xl shadow-black/20">
-              <div className="w-12 h-12 rounded-full bg-gold-400/10 border border-gold-400/30 flex items-center justify-center mb-6">
-                <Scale className="w-6 h-6 text-gold-600" />
+      <section id="misión" className="relative py-24 sm:py-28 bg-night overflow-hidden">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_1px_1fr] gap-12 md:gap-16 items-start">
+            <div className="reveal">
+              <div className="flex items-center gap-3 mb-6">
+                <Scale className="w-6 h-6 text-gold-400" />
+                <h2 className="text-base font-sans font-semibold uppercase tracking-[0.25em] text-gold-400">
+                  Misión
+                </h2>
               </div>
-
-              <h3 className="text-xl font-bold text-gold-400 mb-4">
-                Misión
-              </h3>
-
-              <p className="text-numa-100 leading-relaxed">
+              <p className="text-2xl sm:text-3xl lg:text-[2.1rem] text-white leading-snug">
                 Brindar servicios de mediación y resolución alternativa de
                 conflictos de alta calidad.
               </p>
             </div>
 
-            <div className="bg-numa-950/60 border border-gold-400/25 rounded-2xl p-8 shadow-xl shadow-black/20">
-              <div className="w-12 h-12 rounded-full bg-gold-400/10 border border-gold-400/30 flex items-center justify-center mb-6">
-                <Eye className="w-6 h-6 text-gold-600" />
+            <div className="hidden md:block self-stretch w-px bg-gradient-to-b from-transparent via-gold-400/60 to-transparent" />
+            <div className="md:hidden h-px bg-gradient-to-r from-transparent via-gold-400/60 to-transparent" />
+
+            <div className="reveal reveal-d1">
+              <div className="flex items-center gap-3 mb-6">
+                <Eye className="w-6 h-6 text-gold-400" />
+                <h2 className="text-base font-sans font-semibold uppercase tracking-[0.25em] text-gold-400">
+                  Visión
+                </h2>
               </div>
-
-              <h3 className="text-xl font-bold text-gold-400 mb-4">
-                Visión
-              </h3>
-
-              <p className="text-numa-100 leading-relaxed">
+              <p className="text-2xl sm:text-3xl lg:text-[2.1rem] text-white leading-snug">
                 Ser el centro de mediación líder reconocido por su excelencia.
               </p>
             </div>
@@ -389,23 +406,17 @@ export default function HomePage() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {valores.map(({ icon: Icon, titulo, desc }) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-10 gap-y-12">
+            {valores.map(({ icon: Icon, titulo, desc }, idx) => (
               <div
                 key={titulo}
-                className="group p-6 border border-numa-100 rounded-2xl bg-white hover:bg-numa-900 hover:border-gold-400/60 hover:shadow-xl card-lift"
+                className="reveal group"
+                style={{ transitionDelay: `${idx * 70}ms` }}
               >
-                <div className="w-11 h-11 rounded-full bg-numa-900 group-hover:bg-gold-400 flex items-center justify-center mb-4 transition-colors duration-300">
-                  <Icon className="w-5 h-5 text-white group-hover:text-numa-950 transition-colors duration-300" />
-                </div>
-
-                <h3 className="text-lg font-bold text-numa-900 group-hover:text-gold-400 mb-2 transition-colors duration-300">
-                  {titulo}
-                </h3>
-
-                <p className="text-sm text-numa-500 group-hover:text-numa-100 leading-relaxed font-sans transition-colors duration-300">
-                  {desc}
-                </p>
+                <div className="h-px bg-numa-300 group-hover:bg-gold-500 transition-colors duration-300 mb-6" />
+                <Icon className="w-7 h-7 text-gold-600 mb-4 transition-transform duration-300 group-hover:-translate-y-0.5" />
+                <h3 className="text-xl font-bold text-numa-900 mb-2">{titulo}</h3>
+                <p className="text-sm text-numa-600 leading-relaxed font-sans">{desc}</p>
               </div>
             ))}
           </div>
