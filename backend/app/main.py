@@ -120,6 +120,10 @@ def generar_recordatorios_citas():
                 usuarios_destino.append(admin["id"])
 
             for usuario_id in set(usuarios_destino):
+                # Se compara también el mensaje (trae fecha y hora de la
+                # invitación): así un mismo proceso con una segunda
+                # invitación otro día sí recibe su propio recordatorio,
+                # y esta misma no se repite aunque corra varias veces.
                 cur.execute("""
                     SELECT id
                     FROM notificaciones
@@ -127,10 +131,12 @@ def generar_recordatorios_citas():
                       AND referencia_tipo = 'proceso_mediacion'
                       AND referencia_id = %s
                       AND titulo = %s
+                      AND mensaje = %s
                 """, (
                     usuario_id,
                     cita["proceso_id"],
-                    titulo
+                    titulo,
+                    mensaje
                 ))
 
                 existe = cur.fetchone()
@@ -531,6 +537,11 @@ def iniciar_scheduler():
             hour=8,
             minute=0,
             timezone="America/Guayaquil",
+            # Si el servidor estaba reiniciándose justo a las 8:00 (por
+            # ejemplo en una publicación), todavía corre si vuelve dentro
+            # de las siguientes 4 horas.
+            misfire_grace_time=4 * 3600,
+            coalesce=True,
         )
     except Exception:
         # Si por lo que sea el servidor no tiene los datos de zonas horarias
@@ -542,6 +553,8 @@ def iniciar_scheduler():
             "cron",
             hour=8,
             minute=0,
+            misfire_grace_time=4 * 3600,
+            coalesce=True,
         )
 
     try:
@@ -564,6 +577,14 @@ def iniciar_scheduler():
         )
 
     _scheduler.start()
+
+    # Al arrancar también se revisan los recordatorios una vez: si el
+    # servidor se reinició después de las 8am, no se pierde el aviso del día.
+    # No duplica nada (cada aviso se registra una sola vez).
+    try:
+        _scheduler.add_job(generar_recordatorios_citas)
+    except Exception as e:
+        print("No se pudo programar el recordatorio de arranque:", e)
 
 
 # =========================
@@ -3557,6 +3578,15 @@ def crear_invitacion_proceso(
             )
 
         conn.commit()
+
+        # Si la invitación es para hoy o mañana, se avisa de inmediato al
+        # mediador y a los admins (el recordatorio diario corre a las 8am,
+        # así que una invitación creada después de esa hora no se avisaba).
+        # No repite avisos que ya existan.
+        try:
+            generar_recordatorios_citas()
+        except Exception as e:
+            print("No se pudo generar el recordatorio inmediato:", e)
 
         return cita
 

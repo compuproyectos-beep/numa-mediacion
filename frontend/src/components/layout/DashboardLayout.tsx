@@ -44,8 +44,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const iconoPorTipo = (tipo: string) => {
     switch (tipo) {
-      case 'cita':
       case 'recordatorio':
+        // Las invitaciones de hoy/mañana llaman más la atención.
+        return { Icon: Calendar, className: 'bg-amber-100 text-amber-700' };
+      case 'cita':
         return { Icon: Calendar, className: 'bg-blue-50 text-blue-600' };
       case 'acta':
         return { Icon: FileText, className: 'bg-green-50 text-green-600' };
@@ -151,25 +153,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </button>
 
               {open && (
-                <div className="absolute right-0 mt-3 w-80 bg-white border border-numa-100 rounded-sm shadow-xl z-50 overflow-hidden">
+                <div className="absolute right-0 mt-3 w-[26rem] max-w-[calc(100vw-2rem)] bg-white border border-numa-100 rounded-md shadow-xl z-50 overflow-hidden">
                   <div className="px-4 py-3 border-b border-numa-100 flex items-center justify-between">
-                    <p className="font-semibold text-sm text-numa-800">
+                    <p className="font-semibold text-base text-numa-800">
                       Notificaciones
                     </p>
 
                     {noLeidas > 0 && (
                       <button
                         onClick={marcarTodas}
-                        className="text-xs text-gold-600 hover:text-gold-700"
+                        className="text-sm font-medium text-gold-700 hover:text-gold-800"
                       >
-                        Marcar todas
+                        Marcar todas como leídas
                       </button>
                     )}
                   </div>
 
-                  <div className="max-h-96 overflow-y-auto">
+                  <div className="max-h-[28rem] overflow-y-auto">
                     {notificaciones.length === 0 ? (
-                      <div className="px-4 py-6 text-sm text-numa-400 text-center">
+                      <div className="px-4 py-8 text-sm text-numa-500 text-center">
                         Sin notificaciones
                       </div>
                     ) : (
@@ -180,27 +182,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           <button
                             key={n.id}
                             onClick={() => abrirNotificacion(n)}
-                            className={`w-full text-left px-4 py-3 border-b border-numa-50 hover:bg-numa-50 transition flex gap-3 ${
+                            className={`w-full text-left px-4 py-3.5 border-b border-numa-100 hover:bg-numa-50 transition flex gap-3 ${
                               !n.leida ? 'bg-gold-50/60' : ''
                             }`}
                           >
                             <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${className}`}
+                              className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${className}`}
                             >
-                              <Icon className="w-4 h-4" />
+                              <Icon className="w-5 h-5" />
                             </div>
 
                             <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold text-numa-800">
+                              <p className="text-[15px] font-semibold text-numa-900 flex items-center gap-2">
                                 {n.titulo}
+                                {!n.leida && (
+                                  <span
+                                    className="w-2 h-2 rounded-full bg-gold-500 shrink-0"
+                                    aria-label="No leída"
+                                  />
+                                )}
                               </p>
 
-                              <p className="text-xs text-numa-500 mt-1">
+                              <p className="text-sm text-numa-600 mt-0.5 leading-snug break-words">
                                 {n.mensaje}
                               </p>
 
-                              <p className="text-[11px] text-numa-400 mt-2">
-                                {new Date(n.fecha_creacion).toLocaleString('es-EC')}
+                              <p className="text-xs text-numa-500 mt-1.5">
+                                {new Date(n.fecha_creacion).toLocaleString('es-EC', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: 'numeric',
+                                  minute: '2-digit'
+                                })}
                               </p>
                             </div>
                           </button>
