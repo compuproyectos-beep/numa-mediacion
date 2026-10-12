@@ -126,9 +126,9 @@ export default function ImprimirActaPage() {
           <div className="flex items-center justify-center gap-3 text-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/images/logo-numa-claro.jpg"
-              alt="Centro de Mediación NUMA"
-              className="h-20 w-auto object-contain"
+              src="/images/logo-numa-simbolo.png"
+              alt="Logo NUMA"
+              className="h-14 w-14 object-contain"
             />
             <div>
               <p className="text-[11px] tracking-[0.2em] text-gold-600 font-semibold uppercase mb-1">
