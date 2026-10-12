@@ -158,7 +158,13 @@
   }
 
   .tabla-compacta .table-cell {
-    @apply py-2 px-2.5 text-[13px];
+    @apply py-2.5 px-2.5 text-[13px];
+  }
+
+  /* En los reportes cada fila se separa con una línea más marcada para que
+     un cliente/proceso no se confunda con el de abajo. */
+  .tabla-compacta .table-row {
+    @apply border-b border-numa-200;
   }
 
   .tabla-compacta .code-text {
