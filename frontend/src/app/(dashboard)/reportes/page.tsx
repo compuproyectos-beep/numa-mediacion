@@ -706,6 +706,15 @@ export default function ReportesPage() {
             </div>
           )}
 
+          {((barrasActas && barrasActas.length > 0) ||
+            (barrasResumen && barrasResumen.length > 0) ||
+            (barrasActasPendientes && barrasActasPendientes.length > 0)) && (
+            <div className="flex items-center gap-3 pt-4">
+            <span className="text-[11px] font-bold text-numa-700 uppercase tracking-[0.14em] whitespace-nowrap">Gráficos</span>
+            <span className="h-px flex-1 bg-numa-300" aria-hidden="true" />
+          </div>
+          )}
+
           {/* El gráfico de actas va primero: es el corazón del sistema,
               antes que el desglose general de procesos. */}
           {barrasActas && barrasActas.length > 0 && (
@@ -736,6 +745,11 @@ export default function ReportesPage() {
               <BarrasResumen items={barrasActasPendientes} />
             </div>
           )}
+
+          <div className="flex items-center gap-3 pt-4">
+            <span className="text-[11px] font-bold text-numa-700 uppercase tracking-[0.14em] whitespace-nowrap">Detalle</span>
+            <span className="h-px flex-1 bg-numa-300" aria-hidden="true" />
+          </div>
 
           <div className="card overflow-hidden">
             {/* La tabla tiene su propio alto máximo: así la barra de desplazamiento

@@ -122,7 +122,7 @@ function DetalleProcesos({
   const th = 'text-left py-1 pr-2 font-semibold text-numa-600';
 
   return (
-    <tr className="border-b border-numa-100">
+    <tr className="border-b border-numa-200">
       <td colSpan={colSpan} className="pb-3 pt-1 pl-4">
         <p className="text-[11px] font-semibold text-numa-700 mb-1">{titulo}</p>
         <table className="w-full table-fixed text-[11px] border-collapse">
@@ -360,13 +360,13 @@ function ImprimirReporteContenido() {
           ) : (
             <>
               {resumenProcesos && (
-                <section className="mb-7 print:break-inside-avoid">
-                <h3 className="text-[11px] font-bold text-numa-900 uppercase tracking-[0.12em] mb-3 pb-1.5 border-b border-numa-200">
+                <section className="print:break-inside-avoid">
+                <h3 className="text-[11px] font-bold text-numa-900 uppercase tracking-[0.12em] mb-3 pb-1.5 border-b-2 border-gold-500">
                   Resumen
                 </h3>
                 <table className="w-full text-xs border-collapse">
                   <thead>
-                    <tr className="border-b-2 border-numa-300">
+                    <tr className="border-b-2 border-numa-800">
                       <th className="text-left py-2 pr-4 font-semibold text-numa-700">
                         En negociación
                       </th>
@@ -434,14 +434,14 @@ function ImprimirReporteContenido() {
               {((barrasActas && barrasActas.length > 0) ||
                 (barrasResumen && barrasResumen.length > 0) ||
                 (barrasActasPendientes && barrasActasPendientes.length > 0)) && (
-                <h3 className="text-[11px] font-bold text-numa-900 uppercase tracking-[0.12em] mb-3 pb-1.5 border-b border-numa-200">
+                <h3 className="mt-8 text-[11px] font-bold text-numa-900 uppercase tracking-[0.12em] mb-3 pb-1.5 border-b-2 border-gold-500">
                   Gráficos
                 </h3>
               )}
 
               {/* El gráfico de actas va primero: es el corazón del sistema. */}
               {barrasActas && barrasActas.length > 0 && (
-                <div className="mb-3 print:break-inside-avoid">
+                <div className="mb-5 pb-4 border-b border-dashed border-numa-200 last:border-b-0 print:break-inside-avoid">
                   <p className="text-[11px] font-semibold text-numa-700 uppercase tracking-wide mb-2">
                     {tipo === 'procesos'
                       ? 'Actas'
@@ -452,7 +452,7 @@ function ImprimirReporteContenido() {
               )}
 
               {barrasActasPendientes && barrasActasPendientes.length > 0 && (
-                <div className="mb-3 print:break-inside-avoid">
+                <div className="mb-5 pb-4 border-b border-dashed border-numa-200 last:border-b-0 print:break-inside-avoid">
                   <p className="text-[11px] font-semibold text-amber-700 uppercase tracking-wide mb-2">
                     Actas pendientes de subir por {tipo === 'productividad' ? 'mediador' : 'sucursal'}
                   </p>
@@ -461,7 +461,7 @@ function ImprimirReporteContenido() {
               )}
 
               {barrasResumen && barrasResumen.length > 0 && (
-                <div className="mb-3 print:break-inside-avoid">
+                <div className="mb-5 pb-4 border-b border-dashed border-numa-200 last:border-b-0 print:break-inside-avoid">
                   <p className="text-[11px] font-semibold text-numa-700 uppercase tracking-wide mb-2">
                     {tipo === 'procesos'
                       ? 'Procesos por estado'
@@ -471,7 +471,7 @@ function ImprimirReporteContenido() {
                 </div>
               )}
 
-              <h3 className="mt-7 text-[11px] font-bold text-numa-900 uppercase tracking-[0.12em] mb-1 pb-1.5 border-b border-numa-200">
+              <h3 className="mt-9 text-[11px] font-bold text-numa-900 uppercase tracking-[0.12em] mb-1 pb-1.5 border-b-2 border-gold-500">
                 Detalle · {datos.length} {datos.length === 1 ? 'registro' : 'registros'}
               </h3>
               <table className="w-full text-xs border-collapse">
@@ -497,7 +497,7 @@ function ImprimirReporteContenido() {
                     <th colSpan={6} className="text-left pt-2 pb-0.5 text-[11px] uppercase tracking-wide font-bold text-numa-800 border-b border-numa-300">Procesos</th>
                   </tr>
                 )}
-                <tr className="border-b-2 border-numa-300">
+                <tr className="border-b-2 border-numa-800">
                   {tipo === 'procesos' && (
                     <>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Estado</th>
@@ -611,7 +611,7 @@ function ImprimirReporteContenido() {
               <tbody>
                 {tipo === 'agenda' &&
                   datos.map((c: any) => (
-                    <tr key={c.id} className="border-b border-numa-100">
+                    <tr key={c.id} className="border-b border-numa-200">
                       <td className="py-1.5 pr-2">{fmtFecha(c.fecha)}</td>
                       <td className="py-1.5 pr-2">{String(c.hora).slice(0, 5)}</td>
                       <td className="py-1.5 pr-2">{c.demandante}</td>
@@ -626,7 +626,7 @@ function ImprimirReporteContenido() {
 
                 {tipo === 'sin-avance' &&
                   datos.map((p: any) => (
-                    <tr key={p.id} className="border-b border-numa-100">
+                    <tr key={p.id} className="border-b border-numa-200">
                       <td className="py-1.5 pr-2">{p.demandante}</td>
                       <td className="py-1.5 pr-2">{p.demandado}</td>
                       <td className="py-1.5 pr-2">{p.mediador || '—'}</td>
@@ -639,7 +639,7 @@ function ImprimirReporteContenido() {
 
                 {tipo === 'actas-pendientes' &&
                   datos.map((p: any) => (
-                    <tr key={p.id} className="border-b border-numa-100">
+                    <tr key={p.id} className="border-b border-numa-200">
                       <td className="py-1.5 pr-2">{p.demandante}</td>
                       <td className="py-1.5 pr-2">{p.demandado}</td>
                       <td className="py-1.5 pr-2">{p.mediador || '—'}</td>
@@ -652,7 +652,7 @@ function ImprimirReporteContenido() {
 
                 {tipo === 'procesos' &&
                   datos.map((p: any) => (
-                    <tr key={p.id} className="border-b border-numa-100">
+                    <tr key={p.id} className="border-b border-numa-200">
                       <td className="py-1.5 pr-2">{getEstadoLabel(p.estado)}</td>
                       <td className="py-1.5 pr-2">
                         {p.estado === 'cerrado_con_acuerdo' && !p.finalizado
@@ -676,7 +676,7 @@ function ImprimirReporteContenido() {
                 {tipo === 'productividad' &&
                   datos.map((m: any) => (
                     <Fragment key={m.usuario_id}>
-                    <tr className="border-b border-numa-100">
+                    <tr className="border-b border-numa-200">
                       <td className="py-1.5 pr-2">{m.mediador}</td>
                       <td className="py-1.5 pr-2">{m.activo ? 'Activo' : 'Inactivo'}</td>
                       <td className="py-1.5 pr-2">
@@ -703,7 +703,7 @@ function ImprimirReporteContenido() {
 
                 {tipo === 'actas' &&
                   datos.map((a: any) => (
-                    <tr key={a.id} className="border-b border-numa-100">
+                    <tr key={a.id} className="border-b border-numa-200">
                       <td className="py-1.5 pr-2 code-text whitespace-nowrap">{a.codigo_acta}</td>
                       <td className="py-1.5 pr-2">{a.demandante}</td>
                       <td className="py-1.5 pr-2">{a.demandado}</td>
@@ -720,7 +720,7 @@ function ImprimirReporteContenido() {
                 {tipo === 'sucursales' &&
                   datos.map((s: any) => (
                     <Fragment key={s.sucursal_id}>
-                    <tr className="border-b border-numa-100">
+                    <tr className="border-b border-numa-200">
                       <td className="py-1.5 pr-2">{s.sucursal}</td>
                       <td className="py-1.5 pr-2">{s.ciudad || '—'}</td>
                       <td className="py-1.5 pr-2">{s.actas_subidas}</td>
@@ -742,7 +742,7 @@ function ImprimirReporteContenido() {
                 {tipo === 'clientes' &&
                   datos.map((c: any) => (
                     <Fragment key={c.cliente_id}>
-                    <tr className="border-b border-numa-100">
+                    <tr className="border-b border-numa-200">
                       <td className="py-1.5 pr-2">{c.cliente}</td>
                       <td className="py-1.5 pr-2 code-text whitespace-nowrap">{c.cedula || '—'}</td>
                       <td className="py-1.5 pr-2">{c.actas_subidas}</td>

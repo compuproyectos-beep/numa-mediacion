@@ -307,6 +307,7 @@ html {
   }
 }
 @media print {
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   thead { display: table-header-group; }
   tr, img { break-inside: avoid; }
   h2, h3 { break-after: avoid; }
