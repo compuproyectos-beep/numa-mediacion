@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { FileText, Download } from 'lucide-react';
+import { FileText, Download, Eye, CheckCircle2, Clock } from 'lucide-react';
 import DocFila from '@/components/procesos/DocFila';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -31,7 +31,7 @@ function formatearPeso(bytes?: number | null): string | null {
   if (bytes == null || bytes <= 0) return null;
 
   if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   }
 
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -512,14 +512,40 @@ const handleExportarZip = async () => {
                     />
                   )}
                   {a.requiere_acta_firmada && (
-                    <DocFila
-                      etiqueta="Acta firmada (partes)"
-                      pendiente={a.tiene_acta_firmada ? undefined : 'Pendiente de subir'}
-                      onVer={() => handleVerFirmada(a.proceso_id)}
-                      onDescargar={
-                        isAdmin ? () => handleDescargarFirmada(a.proceso_id, a.codigo_acta) : undefined
-                      }
-                    />
+                    a.tiene_acta_firmada ? (
+                      <div className="flex items-center gap-2 pt-1">
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Acta firmada subida
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleVerFirmada(a.proceso_id)}
+                          className="btn-secondary text-xs py-1 px-2"
+                        >
+                          <Eye className="w-4 h-4" /> Ver acta firmada
+                        </button>
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => handleDescargarFirmada(a.proceso_id, a.codigo_acta)}
+                            title="Descargar acta firmada"
+                            aria-label="Descargar acta firmada"
+                            className="btn-ghost p-1.5"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 pt-1">
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                          <Clock className="w-3.5 h-3.5" /> Falta subir el acta firmada
+                        </span>
+                        <a href={`/procesos/${a.proceso_id}`} className="btn-secondary text-xs py-1 px-2">
+                          Ir al proceso
+                        </a>
+                      </div>
+                    )
                   )}
                 </div>
 

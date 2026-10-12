@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Printer, Upload, Eye, PauseCircle, PlayCircle, Pencil } from 'lucide-react';
-import DocFila from './DocFila';
+import { Printer, Upload, Eye, Download, PauseCircle, PlayCircle, Pencil } from 'lucide-react';
 import { Modal, ErrorAlert, TextareaField } from '@/components/ui';
 import {
   subirActaFirmada,
@@ -239,15 +238,24 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
               ? `El acta firmada se subió el ${fmt(proceso.acta_firmada_fecha)}.`
               : 'Proceso anterior a la regla del acta firmada.'}
           </p>
-          <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
             {proceso.tiene_acta_firmada && (
-              <DocFila
-                etiqueta="Acta firmada (partes)"
-                onVer={verFirmada}
-                onDescargar={esAdmin ? descargarFirmada : undefined}
-              />
+              <button type="button" onClick={verFirmada} className="btn-secondary text-xs">
+                <Eye className="w-3.5 h-3.5" /> Ver acta firmada
+              </button>
             )}
-            <div>{botonImprimir}</div>
+            {esAdmin && proceso.tiene_acta_firmada && (
+              <button
+                type="button"
+                onClick={descargarFirmada}
+                title="Descargar acta firmada"
+                aria-label="Descargar acta firmada"
+                className="btn-ghost p-1.5"
+              >
+                <Download className="w-4 h-4" />
+              </button>
+            )}
+            {botonImprimir}
           </div>
         </div>
       )}
