@@ -683,23 +683,6 @@ export default function ProcesoDetallePage() {
         </div>
       </div>
 
-      <PartesProceso
-        procesoId={proceso.id}
-        editable={proceso.estado === 'en_negociacion'}
-        onCambio={cargarProceso}
-      />
-
-      {proceso.estado !== 'anulado' && (
-        <div id="bloque-facturacion">
-          <FacturacionProceso
-            procesoId={proceso.id}
-            editable={esAdminSesion() || !proceso.finalizado}
-            onEstado={setTieneFacturacion}
-            finalizado={!!proceso.finalizado}
-          />
-        </div>
-      )}
-
       {/* Se muestra justo debajo del encabezado (no al fondo de la página)
           para que el mediador vea de una vez si este proceso tiene su acta
           pendiente, y si es el que debe subir primero (fila FIFO) o si hay
@@ -734,6 +717,64 @@ export default function ProcesoDetallePage() {
         <div className="mb-4 text-sm px-4 py-3 rounded-sm border border-red-200 bg-red-50 text-red-700">
           <strong>Proceso anulado.</strong>{' '}
           {proceso.motivo_anulacion ? `Motivo: ${proceso.motivo_anulacion}` : ''}
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-4">
+          <ErrorAlert message={error} />
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="mb-4">
+          <SuccessAlert message={successMessage} />
+        </div>
+      )}
+
+      <div className="card p-5 mb-4 grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+        <div>
+          <p className="text-numa-400 text-xs mb-1">Ciudad · Sucursal</p>
+          <p className="text-numa-800 font-medium">
+            {proceso.ciudad || '—'} · {proceso.sucursal || '—'}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-numa-400 text-xs mb-1">Mediador</p>
+          <p className="text-numa-800 font-medium">{proceso.usuario || '—'}</p>
+        </div>
+
+        <div>
+          <p className="text-numa-400 text-xs mb-1">Tema</p>
+          <p className="text-numa-800 font-medium">{proceso.tema}</p>
+        </div>
+
+        <div>
+          <p className="text-numa-400 text-xs mb-1">Fecha de apertura</p>
+          <p className="text-numa-800 font-medium">
+            {proceso.fecha_creacion
+              ? new Date(proceso.fecha_creacion).toLocaleDateString('es-EC')
+              : '—'}
+          </p>
+        </div>
+      </div>
+
+      <PartesProceso
+        procesoId={proceso.id}
+        editable={proceso.estado === 'en_negociacion'}
+        onCambio={cargarProceso}
+      />
+
+      {proceso.estado !== 'anulado' && (
+        <div id="bloque-facturacion">
+          <FacturacionProceso
+            procesoId={proceso.id}
+            editable={esAdminSesion() || proceso.etapa_acta !== 'completa'}
+            onEstado={setTieneFacturacion}
+            finalizado={!!proceso.finalizado}
+            estado={proceso.estado}
+          />
         </div>
       )}
 
@@ -786,46 +827,6 @@ export default function ProcesoDetallePage() {
           )}
         </div>
       )}
-
-      {error && (
-        <div className="mb-4">
-          <ErrorAlert message={error} />
-        </div>
-      )}
-
-      {successMessage && (
-        <div className="mb-4">
-          <SuccessAlert message={successMessage} />
-        </div>
-      )}
-
-      <div className="card p-5 mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-        <div>
-          <p className="text-numa-400 text-xs mb-1">Ciudad · Sucursal</p>
-          <p className="text-numa-800 font-medium">
-            {proceso.ciudad || '—'} · {proceso.sucursal || '—'}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-numa-400 text-xs mb-1">Mediador</p>
-          <p className="text-numa-800 font-medium">{proceso.usuario || '—'}</p>
-        </div>
-
-        <div>
-          <p className="text-numa-400 text-xs mb-1">Tema</p>
-          <p className="text-numa-800 font-medium">{proceso.tema}</p>
-        </div>
-
-        <div>
-          <p className="text-numa-400 text-xs mb-1">Fecha de apertura</p>
-          <p className="text-numa-800 font-medium">
-            {proceso.fecha_creacion
-              ? new Date(proceso.fecha_creacion).toLocaleDateString('es-EC')
-              : '—'}
-          </p>
-        </div>
-      </div>
 
       <div className="space-y-6">
         <div>

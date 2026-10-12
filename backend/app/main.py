@@ -4726,7 +4726,8 @@ def guardar_facturacion_proceso(
     cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
         cur.execute(
-            "SELECT id, usuario_id, estado, finalizado, codigo_proceso "
+            "SELECT id, usuario_id, estado, finalizado, codigo_proceso, "
+            "requiere_acta_firmada, acta_firmada_ruta "
             "FROM procesos_mediacion WHERE id = %s FOR UPDATE",
             (proceso_id,)
         )
@@ -4738,12 +4739,16 @@ def guardar_facturacion_proceso(
             raise HTTPException(status_code=403, detail="No puedes modificar este proceso")
         if p["estado"] == "anulado":
             raise HTTPException(status_code=400, detail="El proceso está anulado")
-        # Después de subir el acta y el comprobante, solo el administrador
-        # puede corregir los datos de facturación.
-        if p["finalizado"] and not es_admin:
+        # El mediador puede corregir la facturación hasta subir el acta
+        # firmada (por si cambian a último momento). Con el proceso completo,
+        # solo el administrador puede corregirla.
+        proceso_completo = p["finalizado"] and (
+            p["acta_firmada_ruta"] is not None or not p["requiere_acta_firmada"]
+        )
+        if proceso_completo and not es_admin:
             raise HTTPException(
                 status_code=400,
-                detail="El acta ya se subió: solo el administrador puede corregir los datos de facturación"
+                detail="El proceso ya está completo: solo el administrador puede corregir los datos de facturación"
             )
 
         origen = (origen or "").strip()
