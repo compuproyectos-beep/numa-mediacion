@@ -534,6 +534,10 @@ export default function ProcesoDetallePage() {
       return 'Este proceso fue anulado. Solo puedes consultar su historial.';
     }
 
+    if (proceso.estado === 'cerrado_con_acuerdo' && procesoPrimeroEnFila) {
+      return `Espera tu turno: primero completa el proceso ${procesoPrimeroEnFila.codigo_proceso}.`;
+    }
+
     if (proceso.estado === 'cerrado_con_acuerdo') {
       return 'Sube el acta final y el comprobante de pago para finalizar el proceso.';
     }

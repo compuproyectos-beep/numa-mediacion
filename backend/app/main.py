@@ -4030,7 +4030,9 @@ async def subir_acta_final_proceso(
                     else "el acta final y el comprobante de pago"
                 )
                 fecha_txt = (
-                    bloqueante["fecha_acuerdo"].strftime("%d/%m/%Y %H:%M")
+                    # fecha_acuerdo se guarda en UTC (NOW() del servidor):
+                    # se muestra en hora de Ecuador (UTC-5).
+                    (bloqueante["fecha_acuerdo"] - datetime.timedelta(hours=5)).strftime("%d/%m/%Y %H:%M")
                     if bloqueante["fecha_acuerdo"] else "—"
                 )
                 raise HTTPException(
