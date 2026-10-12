@@ -93,6 +93,26 @@ export default function ImprimirReportePage() {
   );
 }
 
+// Fila pequeña con los títulos de las columnas, que se repite encima de cada
+// cliente / mediador / sucursal: así, al bajar por un reporte largo con el
+// detalle de procesos de por medio, siempre se sabe qué es cada número.
+function RotulosGrupo({ etiquetas }: { etiquetas: string[] }) {
+  return (
+    <tr className="border-t-2 border-numa-800 bg-numa-50">
+      {etiquetas.map((e) => (
+        <td
+          key={e}
+          className={`pt-1 pb-0 pr-2 text-[9px] uppercase tracking-wide font-semibold ${
+            e === 'Actas pendientes' ? 'text-amber-700' : 'text-numa-500'
+          }`}
+        >
+          {e}
+        </td>
+      ))}
+    </tr>
+  );
+}
+
 function DetalleProcesos({
   filas,
   colSpan,
@@ -471,7 +491,16 @@ function ImprimirReporteContenido() {
                 </div>
               )}
 
-              <h3 className="mt-9 text-[11px] font-bold text-numa-900 uppercase tracking-[0.12em] mb-1 pb-1.5 border-b-2 border-gold-500">
+              <h3
+                className={`${
+                  resumenProcesos ||
+                  (barrasActas && barrasActas.length > 0) ||
+                  (barrasResumen && barrasResumen.length > 0) ||
+                  (barrasActasPendientes && barrasActasPendientes.length > 0)
+                    ? 'mt-9'
+                    : 'mt-0'
+                } text-[11px] font-bold text-numa-900 uppercase tracking-[0.12em] mb-1 pb-1.5 border-b-2 border-gold-500`}
+              >
                 Detalle · {datos.length} {datos.length === 1 ? 'registro' : 'registros'}
               </h3>
               <table className="w-full text-xs border-collapse">
@@ -674,9 +703,10 @@ function ImprimirReporteContenido() {
                   ))}
 
                 {tipo === 'productividad' &&
-                  datos.map((m: any) => (
+                  datos.map((m: any, i: number) => (
                     <Fragment key={m.usuario_id}>
-                    <tr className="border-t-2 border-numa-800 first:border-t-0 bg-numa-50">
+                    {i > 0 && <RotulosGrupo etiquetas={['Mediador', 'Estado', 'Ingreso', 'Sucursal', 'Actas subidas', 'Actas pendientes', 'Total', 'En negociación', 'Con acuerdo', 'Sin acuerdo', 'Archivados', 'Anulados', 'Prom. días']} />}
+                    <tr className="bg-numa-50">
                       <td className="py-1.5 pr-2 font-semibold text-numa-900">{m.mediador}</td>
                       <td className="py-1.5 pr-2">{m.activo ? 'Activo' : 'Inactivo'}</td>
                       <td className="py-1.5 pr-2">
@@ -718,9 +748,10 @@ function ImprimirReporteContenido() {
                   ))}
 
                 {tipo === 'sucursales' &&
-                  datos.map((s: any) => (
+                  datos.map((s: any, i: number) => (
                     <Fragment key={s.sucursal_id}>
-                    <tr className="border-t-2 border-numa-800 first:border-t-0 bg-numa-50">
+                    {i > 0 && <RotulosGrupo etiquetas={['Sucursal', 'Ciudad', 'Actas subidas', 'Actas pendientes', 'Total', 'En negociación', 'Con acuerdo', 'Sin acuerdo', 'Archivados', 'Anulados', 'Prom. días']} />}
+                    <tr className="bg-numa-50">
                       <td className="py-1.5 pr-2 font-semibold text-numa-900">{s.sucursal}</td>
                       <td className="py-1.5 pr-2">{s.ciudad || '—'}</td>
                       <td className="py-1.5 pr-2">{s.actas_subidas}</td>
@@ -740,9 +771,10 @@ function ImprimirReporteContenido() {
                   ))}
 
                 {tipo === 'clientes' &&
-                  datos.map((c: any) => (
+                  datos.map((c: any, i: number) => (
                     <Fragment key={c.cliente_id}>
-                    <tr className="border-t-2 border-numa-800 first:border-t-0 bg-numa-50">
+                    {i > 0 && <RotulosGrupo etiquetas={['Cliente', 'Cédula', 'Actas subidas', 'Actas pendientes', 'Total', 'En negociación', 'Con acuerdo', 'Sin acuerdo', 'Archivados', 'Anulados']} />}
+                    <tr className="bg-numa-50">
                       <td className="py-1.5 pr-2 font-semibold text-numa-900">{c.cliente}</td>
                       <td className="py-1.5 pr-2 code-text whitespace-nowrap">{c.cedula || '—'}</td>
                       <td className="py-1.5 pr-2">{c.actas_subidas}</td>
