@@ -158,7 +158,7 @@
   }
 
   .tabla-compacta .table-cell {
-    @apply py-2.5 px-2.5 text-[13px];
+    @apply py-2 px-2.5 text-[13px];
   }
 
   /* En los reportes cada fila se separa con una línea más marcada para que
