@@ -5166,13 +5166,11 @@ def obtener_historial_acta_final(
                 detail="Acta final no encontrada"
             )
 
-        if (
-            usuario["rol"] != "administrador"
-            and acta["usuario_id"] != usuario["id"]
-        ):
+        # Solo el administrador ve el historial (incluye los reemplazos del PDF).
+        if usuario["rol"] != "administrador":
             raise HTTPException(
                 status_code=403,
-                detail="No puedes ver el historial de esta acta"
+                detail="Solo el administrador puede ver el historial del acta"
             )
 
         # 2) Historial de reemplazos

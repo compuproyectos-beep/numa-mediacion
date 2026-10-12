@@ -556,6 +556,7 @@ const handleExportarZip = async () => {
                 </div>
 
                 <div className="flex flex-wrap gap-2 lg:justify-end">
+{isAdmin && (
                 <button
                   type="button"
                   onClick={() =>
@@ -568,6 +569,7 @@ const handleExportarZip = async () => {
                 >
                   Historial
                 </button>
+                )}
 
                 {isAdmin && (
                   <button
