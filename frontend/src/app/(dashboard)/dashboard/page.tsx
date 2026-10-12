@@ -204,7 +204,7 @@ export default function DashboardPage() {
               label="En negociación"
               value={procesos.en_negociacion ?? 0}
               icon={Clock}
-              color="bg-sky-50 text-sky-700 ring-1 ring-sky-100"
+              color="bg-sky-600 text-white" relleno="bg-sky-50 border-sky-200"
               onClick={() => toggleCategoria('en_negociacion')}
               active={categoriaAbierta === 'en_negociacion'}
             />
@@ -213,7 +213,7 @@ export default function DashboardPage() {
               label="Con acuerdo"
               value={procesos.cerrados_con_acuerdo ?? 0}
               icon={CheckCircle}
-              color="bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
+              color="bg-emerald-600 text-white" relleno="bg-emerald-50 border-emerald-200"
               onClick={() => toggleCategoria('cerrado_con_acuerdo')}
               active={categoriaAbierta === 'cerrado_con_acuerdo'}
             />
@@ -222,7 +222,7 @@ export default function DashboardPage() {
               label="Sin acuerdo"
               value={procesos.cerrados_sin_acuerdo ?? 0}
               icon={FileText}
-              color="bg-stone-100 text-stone-600 ring-1 ring-stone-200"
+              color="bg-stone-500 text-white" relleno="bg-stone-100 border-stone-200"
               onClick={() => toggleCategoria('cerrado_sin_acuerdo')}
               active={categoriaAbierta === 'cerrado_sin_acuerdo'}
             />
@@ -231,7 +231,7 @@ export default function DashboardPage() {
               label="Archivados"
               value={procesos.archivados ?? 0}
               icon={Archive}
-              color="bg-slate-100 text-slate-500 ring-1 ring-slate-200"
+              color="bg-slate-400 text-white" relleno="bg-slate-100 border-slate-200"
               onClick={() => toggleCategoria('archivado')}
               active={categoriaAbierta === 'archivado'}
             />
@@ -240,7 +240,7 @@ export default function DashboardPage() {
               label="Actas finales"
               value={stats.actas_finales ?? 0}
               icon={FileCheck}
-              color="bg-numa-900 text-gold-400"
+              color="bg-numa-900 text-gold-400" relleno="bg-gold-400/10 border-gold-400/40"
               onClick={() => toggleCategoria('actas_finales')}
               active={categoriaAbierta === 'actas_finales'}
             />
@@ -274,7 +274,7 @@ export default function DashboardPage() {
               ) : listaCategoria.length === 0 ? (
                 <EmptyState message="No hay registros en esta categoría." />
               ) : (
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {listaCategoria.slice(0, 10).map((item: any) => (
                     <div
                       key={item.id}
@@ -285,57 +285,44 @@ export default function DashboardPage() {
                           }`
                         )
                       }
-                      className="p-4 border border-numa-100 rounded-sm bg-numa-50 cursor-pointer hover:shadow-md transition-shadow duration-200"
+                      className="p-4 border border-numa-200/80 rounded-md bg-white cursor-pointer card-lift hover:border-numa-300 hover:shadow-md"
                     >
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-semibold text-numa-800">
-                          {categoriaAbierta === 'actas_finales'
-                            ? item.codigo_acta
-                            : item.codigo_proceso}
-                        </p>
-
-                        {/* Un proceso "cerrado con acuerdo" no significa que ya
-                            esté todo listo: falta que se suba el acta final +
-                            comprobante. Esto lo hace visible de una vez en
-                            este panel rápido del Dashboard, igual que ya pasa
-                            en el listado de Procesos. */}
-                        {categoriaAbierta === 'cerrado_con_acuerdo' && etapaActaBadge(item) && (
-                          <Pill {...etapaActaBadge(item)!} />
-                        )}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
+                          <p className="font-semibold text-numa-900 code-text">
+                            {categoriaAbierta === 'actas_finales'
+                              ? item.codigo_acta
+                              : item.codigo_proceso}
+                          </p>
+                          {/* Un proceso "cerrado con acuerdo" no significa que ya
+                              esté todo listo: se muestra qué le falta. */}
+                          {categoriaAbierta === 'cerrado_con_acuerdo' && etapaActaBadge(item) && (
+                            <Pill {...etapaActaBadge(item)!} />
+                          )}
+                        </div>
+                        <span className="text-xs text-numa-400 shrink-0">
+                          {(item.fecha_creacion || item.fecha_subida)
+                            ? new Date(
+                                item.fecha_creacion || item.fecha_subida
+                              ).toLocaleDateString('es-EC')
+                            : '—'}
+                        </span>
                       </div>
 
-                      <p className="text-sm text-numa-600 mt-1">
-                        {item.demandante} vs {item.demandado}
+                      <p className="text-sm font-medium text-numa-800 mt-1.5 line-clamp-2">
+                        {item.demandante} <span className="font-normal text-numa-400">vs</span> {item.demandado}
                       </p>
 
-                      {categoriaAbierta === 'actas_finales' && (
-                        <p className="text-xs text-numa-400 mt-1">
-                          Proceso: {item.codigo_proceso}
-                        </p>
-                      )}
-
-                      <p className="text-xs text-numa-400 mt-1">
-                        {item.ciudad || '—'} · {item.sucursal || '—'}
-                      </p>
-
-                      {isAdmin && (
-                        <p className="text-xs text-numa-400 mt-1">
-                          Mediador: {item.usuario || '—'}
-                        </p>
-                      )}
-
-                      <p className="text-xs text-numa-400 mt-1">
-                        {(item.fecha_creacion || item.fecha_subida)
-                          ? new Date(
-                              item.fecha_creacion || item.fecha_subida
-                            ).toLocaleDateString('es-EC')
-                          : '—'}
+                      <p className="text-xs text-numa-500 mt-1 flex flex-wrap gap-x-3">
+                        {categoriaAbierta === 'actas_finales' && <span>Proceso: {item.codigo_proceso}</span>}
+                        <span>{item.ciudad || '—'} · {item.sucursal || '—'}</span>
+                        {isAdmin && <span>Mediador: {item.usuario || '—'}</span>}
                       </p>
                     </div>
                   ))}
 
                   {listaCategoria.length > 10 && (
-                    <p className="text-xs text-numa-400 text-center pt-1">
+                    <p className="text-xs text-numa-400 text-center pt-1 md:col-span-2">
                       Mostrando 10 de {listaCategoria.length}. Usa &quot;Mostrar todo&quot;
                       para ver la lista completa.
                     </p>

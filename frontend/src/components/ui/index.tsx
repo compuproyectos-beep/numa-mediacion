@@ -229,28 +229,40 @@ export function PageHeader({ title, subtitle, action }: {
 }
 
 // ── STAT CARD ─────────────────────────────────────────────────────────────────
-export function StatCard({ label, value, icon: Icon, color, onClick, active }: {
+export function StatCard({ label, value, icon: Icon, color, relleno, onClick, active }: {
   label: string;
   value: number | string;
   icon: React.ComponentType<{ className?: string }>;
   color: string;
+  // Si se pasa, toda la caja lleva ese fondo suave (y su borde).
+  relleno?: string;
   onClick?: () => void;
   active?: boolean;
 }) {
   const contenido = (
     <>
-      <div className={clsx('w-10 h-10 rounded-md flex items-center justify-center shrink-0', color)}>
+      <div
+        className={clsx(
+          'w-10 h-10 rounded-md flex items-center justify-center shrink-0',
+          color
+        )}
+      >
         <Icon className="w-5 h-5" />
       </div>
       <div>
-        <p className="text-2xl font-bold text-numa-900">{value}</p>
-        <p className="text-xs text-numa-500 uppercase tracking-wide">{label}</p>
+        <p className="text-2xl font-bold tabular-nums text-numa-900">{value}</p>
+        <p className="text-xs uppercase tracking-wide font-medium text-numa-600">{label}</p>
       </div>
     </>
   );
 
+  const base = clsx(
+    'p-5 flex items-center gap-4 rounded-md',
+    relleno ? clsx(relleno, 'border shadow-sm') : 'card'
+  );
+
   if (!onClick) {
-    return <div className="card p-5 flex items-center gap-4">{contenido}</div>;
+    return <div className={base}>{contenido}</div>;
   }
 
   return (
@@ -258,8 +270,10 @@ export function StatCard({ label, value, icon: Icon, color, onClick, active }: {
       type="button"
       onClick={onClick}
       className={clsx(
-        'card p-5 flex items-center gap-4 w-full text-left transition-shadow hover:shadow-lg cursor-pointer',
-        active && 'ring-2 ring-gold-400'
+        base,
+        'w-full text-left cursor-pointer card-lift hover:shadow-md',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400 focus-visible:ring-offset-2',
+        active && 'ring-4 ring-gold-400 ring-offset-2'
       )}
     >
       {contenido}
