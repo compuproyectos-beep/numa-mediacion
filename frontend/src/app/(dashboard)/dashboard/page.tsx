@@ -26,6 +26,54 @@ import AlertaActasAtrasadas from '@/components/dashboard/AlertaActasAtrasadas';
 // Cada tarjeta clickeable del resumen corresponde a un filtro de estado de
 // procesos, salvo "actas_finales" que no es un estado de proceso sino la
 // lista de actas ya subidas.
+// Colores de cada categoría del panel: la caja de arriba y el panel que se
+// despliega al hacer clic usan la misma familia de color.
+const TEMA_CATEGORIA: Record<
+  string,
+  { caja: string; icono: string; texto: string; panel: string; item: string; titulo: string }
+> = {
+  en_negociacion: {
+    caja: 'bg-sky-100 border-sky-300',
+    icono: 'bg-sky-600 text-white',
+    texto: 'text-sky-900',
+    panel: 'bg-sky-50 border-sky-200',
+    item: 'border-sky-200 border-t-4 border-t-sky-500 hover:border-sky-300',
+    titulo: 'text-sky-800'
+  },
+  cerrado_con_acuerdo: {
+    caja: 'bg-emerald-100 border-emerald-300',
+    icono: 'bg-emerald-600 text-white',
+    texto: 'text-emerald-900',
+    panel: 'bg-emerald-50 border-emerald-200',
+    item: 'border-emerald-200 border-t-4 border-t-emerald-500 hover:border-emerald-300',
+    titulo: 'text-emerald-800'
+  },
+  cerrado_sin_acuerdo: {
+    caja: 'bg-stone-200/70 border-stone-300',
+    icono: 'bg-stone-600 text-white',
+    texto: 'text-stone-900',
+    panel: 'bg-stone-100 border-stone-200',
+    item: 'border-stone-200 border-t-4 border-t-stone-500 hover:border-stone-300',
+    titulo: 'text-stone-700'
+  },
+  archivado: {
+    caja: 'bg-slate-200/70 border-slate-300',
+    icono: 'bg-slate-500 text-white',
+    texto: 'text-slate-900',
+    panel: 'bg-slate-100 border-slate-200',
+    item: 'border-slate-200 border-t-4 border-t-slate-400 hover:border-slate-300',
+    titulo: 'text-slate-700'
+  },
+  actas_finales: {
+    caja: 'bg-amber-100 border-amber-300',
+    icono: 'bg-numa-900 text-gold-400',
+    texto: 'text-numa-900',
+    panel: 'bg-amber-50 border-amber-200',
+    item: 'border-amber-200 border-t-4 border-t-gold-500 hover:border-amber-300',
+    titulo: 'text-amber-800'
+  }
+};
+
 const CATEGORIAS: Record<
   string,
   { titulo: string; estadoProceso?: string; verTodoHref: string }
@@ -199,12 +247,14 @@ export default function DashboardPage() {
         <div className="space-y-6 animate-fade-in">
           {isAdmin && <AlertaActasAtrasadas />}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+          {/* Franja con el fondo de marca (azul y dorado) de la página pública,
+              detrás de las cajas de resumen. */}
+          <div className="bg-aurora aurora-c rounded-lg p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
             <StatCard
               label="En negociación"
               value={procesos.en_negociacion ?? 0}
               icon={Clock}
-              color="bg-sky-600 text-white" relleno="bg-sky-50 border-sky-200"
+              color={TEMA_CATEGORIA.en_negociacion.icono} relleno={TEMA_CATEGORIA.en_negociacion.caja} textoColor={TEMA_CATEGORIA.en_negociacion.texto}
               onClick={() => toggleCategoria('en_negociacion')}
               active={categoriaAbierta === 'en_negociacion'}
             />
@@ -213,7 +263,7 @@ export default function DashboardPage() {
               label="Con acuerdo"
               value={procesos.cerrados_con_acuerdo ?? 0}
               icon={CheckCircle}
-              color="bg-emerald-600 text-white" relleno="bg-emerald-50 border-emerald-200"
+              color={TEMA_CATEGORIA.cerrado_con_acuerdo.icono} relleno={TEMA_CATEGORIA.cerrado_con_acuerdo.caja} textoColor={TEMA_CATEGORIA.cerrado_con_acuerdo.texto}
               onClick={() => toggleCategoria('cerrado_con_acuerdo')}
               active={categoriaAbierta === 'cerrado_con_acuerdo'}
             />
@@ -222,7 +272,7 @@ export default function DashboardPage() {
               label="Sin acuerdo"
               value={procesos.cerrados_sin_acuerdo ?? 0}
               icon={FileText}
-              color="bg-stone-500 text-white" relleno="bg-stone-100 border-stone-200"
+              color={TEMA_CATEGORIA.cerrado_sin_acuerdo.icono} relleno={TEMA_CATEGORIA.cerrado_sin_acuerdo.caja} textoColor={TEMA_CATEGORIA.cerrado_sin_acuerdo.texto}
               onClick={() => toggleCategoria('cerrado_sin_acuerdo')}
               active={categoriaAbierta === 'cerrado_sin_acuerdo'}
             />
@@ -231,7 +281,7 @@ export default function DashboardPage() {
               label="Archivados"
               value={procesos.archivados ?? 0}
               icon={Archive}
-              color="bg-slate-400 text-white" relleno="bg-slate-100 border-slate-200"
+              color={TEMA_CATEGORIA.archivado.icono} relleno={TEMA_CATEGORIA.archivado.caja} textoColor={TEMA_CATEGORIA.archivado.texto}
               onClick={() => toggleCategoria('archivado')}
               active={categoriaAbierta === 'archivado'}
             />
@@ -240,7 +290,7 @@ export default function DashboardPage() {
               label="Actas finales"
               value={stats.actas_finales ?? 0}
               icon={FileCheck}
-              color="bg-numa-900 text-gold-400" relleno="bg-gold-400/10 border-gold-400/40"
+              color={TEMA_CATEGORIA.actas_finales.icono} relleno={TEMA_CATEGORIA.actas_finales.caja} textoColor={TEMA_CATEGORIA.actas_finales.texto}
               onClick={() => toggleCategoria('actas_finales')}
               active={categoriaAbierta === 'actas_finales'}
             />
@@ -251,10 +301,14 @@ export default function DashboardPage() {
               uno clickeable para ir directo a su proceso, y un botón para
               ver la lista completa con el filtro ya aplicado. */}
           {categoriaAbierta && (
-            <div ref={panelCategoriaRef} className="card p-6 animate-fade-in">
+            <div
+              ref={panelCategoriaRef}
+              className="bg-aurora aurora-a rounded-lg border border-numa-200 p-6 shadow-sm animate-fade-in"
+            >
+
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold text-numa-700 uppercase tracking-wider flex items-center gap-2">
-                  <ChevronDown className="w-4 h-4 text-numa-400" />
+                <h2 className={`text-sm font-bold uppercase tracking-wider flex items-center gap-2 ${TEMA_CATEGORIA[categoriaAbierta].titulo}`}>
+                  <ChevronDown className="w-4 h-4" />
                   {CATEGORIAS[categoriaAbierta].titulo}
                 </h2>
 
@@ -285,7 +339,7 @@ export default function DashboardPage() {
                           }`
                         )
                       }
-                      className="p-4 border border-numa-200/80 rounded-md bg-white cursor-pointer card-lift hover:border-numa-300 hover:shadow-md"
+                      className={`p-4 border rounded-md bg-white cursor-pointer card-lift shadow-sm hover:shadow-md ${TEMA_CATEGORIA[categoriaAbierta].item}`}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 flex-wrap min-w-0">

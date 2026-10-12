@@ -229,13 +229,15 @@ export function PageHeader({ title, subtitle, action }: {
 }
 
 // ── STAT CARD ─────────────────────────────────────────────────────────────────
-export function StatCard({ label, value, icon: Icon, color, relleno, onClick, active }: {
+export function StatCard({ label, value, icon: Icon, color, relleno, textoColor, onClick, active }: {
   label: string;
   value: number | string;
   icon: React.ComponentType<{ className?: string }>;
   color: string;
   // Si se pasa, toda la caja lleva ese fondo suave (y su borde).
   relleno?: string;
+  // Color del número y del texto cuando la caja va con relleno.
+  textoColor?: string;
   onClick?: () => void;
   active?: boolean;
 }) {
@@ -250,8 +252,8 @@ export function StatCard({ label, value, icon: Icon, color, relleno, onClick, ac
         <Icon className="w-5 h-5" />
       </div>
       <div>
-        <p className="text-2xl font-bold tabular-nums text-numa-900">{value}</p>
-        <p className="text-xs uppercase tracking-wide font-medium text-numa-600">{label}</p>
+        <p className={clsx('text-2xl font-bold tabular-nums', textoColor || 'text-numa-900')}>{value}</p>
+        <p className={clsx('text-xs uppercase tracking-wide font-semibold opacity-80', textoColor || 'text-numa-600')}>{label}</p>
       </div>
     </>
   );
