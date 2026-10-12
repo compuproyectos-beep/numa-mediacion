@@ -1,9 +1,10 @@
 'use client';
 
 import { etapaActaBadge } from '@/lib/etapaActa';
+import { estadoLabel, estadoPill, estadoFranja } from '@/lib/estados';
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus, Check } from 'lucide-react';
+import { Plus, Check, ChevronRight } from 'lucide-react';
 import {
   PageHeader,
   Spinner,
@@ -12,7 +13,8 @@ import {
   SelectField,
   TextareaField,
   InputField,
-  ErrorAlert
+  ErrorAlert,
+  Pill
 } from '@/components/ui';
 
 import {
@@ -23,45 +25,6 @@ import {
 import { getCiudadesCached, getSucursalesCached } from '@/lib/catalogCache';
 
 import { isAdmin } from '@/lib/auth';
-
-const getEstadoProcesoLabel = (estado: string) => {
-  const labels: any = {
-    en_negociacion: 'En negociación',
-    cerrado_con_acuerdo: 'Cerrado con acuerdo',
-    cerrado_sin_acuerdo: 'Cerrado sin acuerdo',
-    archivado: 'Archivado',
-    anulado: 'Anulado'
-  };
-
-  return labels[estado] || estado;
-};
-
-const getEstadoProcesoClass = (estado: string) => {
-  const classes: any = {
-    en_negociacion: 'bg-amber-50 text-amber-700',
-    cerrado_con_acuerdo: 'bg-green-50 text-green-700',
-    cerrado_sin_acuerdo: 'bg-red-50 text-red-700',
-    archivado: 'bg-slate-100 text-slate-600',
-    anulado: 'bg-slate-200 text-slate-500 line-through'
-  };
-
-  return classes[estado] || 'bg-numa-100 text-numa-600';
-};
-
-// Misma idea que el badge, pero como una franja de color a la izquierda de
-// la tarjeta — así se distingue el estado de un proceso de un vistazo,
-// sin tener que leer el texto del badge en cada tarjeta de la lista.
-const getEstadoBorderClass = (estado: string) => {
-  const classes: any = {
-    en_negociacion: 'border-l-amber-400',
-    cerrado_con_acuerdo: 'border-l-green-500',
-    cerrado_sin_acuerdo: 'border-l-red-500',
-    archivado: 'border-l-slate-300',
-    anulado: 'border-l-slate-400'
-  };
-
-  return classes[estado] || 'border-l-numa-200';
-};
 
 export default function ProcesosPage() {
   const router = useRouter();
@@ -468,73 +431,45 @@ export default function ProcesosPage() {
             <div
               key={p.id}
               onClick={() => router.push(`/procesos/${p.id}`)}
-              className={`card p-4 border border-numa-100 border-l-4 ${getEstadoBorderClass(
-                p.estado
-              )} cursor-pointer hover:shadow-lg transition-shadow duration-200`}
+              className={`card card-lift p-4 border-l-4 ${estadoFranja(p.estado)} cursor-pointer`}
             >
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <span className="font-semibold text-numa-900">
-                      {p.codigo_proceso}
-                    </span>
-
-                    <span
-                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${getEstadoProcesoClass(
-                        p.estado
-                      )}`}
-                    >
-                      {getEstadoProcesoLabel(p.estado)}
-                    </span>
-
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                <div className="space-y-1.5 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="code-text text-numa-500">{p.codigo_proceso}</span>
+                    <Pill label={estadoLabel(p.estado)} {...estadoPill(p.estado)} />
                     {/* Un proceso "cerrado con acuerdo" no significa que ya
-                        esté todo listo: falta que se suba el acta final +
-                        comprobante. Esto lo hace visible de una vez en el
-                        listado, sin tener que entrar a cada proceso.
-                        Además, si el mediador tiene más de un proceso
-                        pendiente a la vez, se distingue cuál es el que debe
-                        subir primero (fila FIFO) de los que están detrás
-                        esperando su turno. */}
-                    {etapaActaBadge(p) && (
-                      <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${etapaActaBadge(p)!.className}`}
-                      >
-                        {etapaActaBadge(p)!.label}
-                      </span>
-                    )}
+                        esté todo listo: se muestra qué falta (o si espera
+                        su turno en la fila del mediador). */}
+                    {etapaActaBadge(p) && <Pill {...etapaActaBadge(p)!} />}
                   </div>
 
-                  <div className="text-sm text-numa-800">
+                  <p className="text-[15px] font-semibold text-numa-900 leading-snug">
                     {p.demandante}
                     {p.total_solicitantes > 1 && (
-                      <span className="text-numa-400"> y {p.total_solicitantes - 1} más</span>
+                      <span className="font-normal text-numa-400"> y {p.total_solicitantes - 1} más</span>
                     )}{' '}
-                    vs {p.demandado}
+                    <span className="font-normal text-numa-400">vs</span> {p.demandado}
                     {p.total_invitados > 1 && (
-                      <span className="text-numa-400"> y {p.total_invitados - 1} más</span>
+                      <span className="font-normal text-numa-400"> y {p.total_invitados - 1} más</span>
                     )}
-                  </div>
+                  </p>
 
-                  <div className="text-xs text-numa-400 code-text">
-                    {p.demandante_cedula || '—'} · {p.demandado_cedula || '—'}
-                  </div>
+                  <p className="text-sm text-numa-700 line-clamp-2">{p.tema}</p>
 
-                  <div className="text-xs text-numa-500">
-                    {p.ciudad || '—'} · {p.sucursal || '—'}
-                  </div>
-
-                  <div className="text-xs text-numa-500">
-                    Mediador: {p.usuario || '—'}
-                  </div>
-
-                  <div className="text-sm text-numa-700">Tema: {p.tema}</div>
-
-                  <div className="text-xs text-numa-400">
-                    Fecha:{' '}
-                    {p.fecha_creacion
-                      ? new Date(p.fecha_creacion).toLocaleDateString('es-EC')
-                      : '—'}
-                  </div>
+                  <p className="text-xs text-numa-500 flex flex-wrap gap-x-3 gap-y-0.5">
+                    <span>{p.ciudad || '—'} · {p.sucursal || '—'}</span>
+                    <span>Mediador: {p.usuario || '—'}</span>
+                    <span>
+                      Abierto el{' '}
+                      {p.fecha_creacion
+                        ? new Date(p.fecha_creacion).toLocaleDateString('es-EC')
+                        : '—'}
+                    </span>
+                    <span className="code-text text-[11px] text-numa-400">
+                      {p.demandante_cedula || '—'} · {p.demandado_cedula || '—'}
+                    </span>
+                  </p>
                 </div>
 
                 <button
@@ -543,11 +478,13 @@ export default function ProcesosPage() {
                     e.stopPropagation();
                     router.push(`/procesos/${p.id}`);
                   }}
-                  className="btn-ghost text-xs py-1 px-2 shrink-0"
+                  className="btn-secondary btn-sm shrink-0 self-start lg:self-center"
                 >
-                  {p.finalizado || p.estado === 'archivado'
-                    ? 'Ver historial'
-                    : 'Gestionar'}
+                  {p.estado === 'en_negociacion' ||
+                  (p.estado === 'cerrado_con_acuerdo' && p.etapa_acta !== 'completa')
+                    ? 'Gestionar'
+                    : 'Ver'}
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>

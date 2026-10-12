@@ -539,7 +539,7 @@ const handleExportarZip = async () => {
                         <button
                           type="button"
                           onClick={() => handleVerFirmada(a.proceso_id)}
-                          className="btn-secondary text-xs py-1 px-2"
+                          className="btn-secondary btn-sm"
                         >
                           <Eye className="w-4 h-4" /> Ver acta firmada
                         </button>
@@ -549,7 +549,7 @@ const handleExportarZip = async () => {
                             onClick={() => handleDescargarFirmada(a.proceso_id, a.codigo_acta)}
                             title="Descargar acta firmada"
                             aria-label="Descargar acta firmada"
-                            className="btn-ghost p-1.5"
+                            className="btn-icon"
                           >
                             <Download className="w-4 h-4" />
                           </button>
@@ -560,7 +560,7 @@ const handleExportarZip = async () => {
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
                           <Clock className="w-3.5 h-3.5" /> Falta subir el acta firmada
                         </span>
-                        <a href={`/procesos/${a.proceso_id}`} className="btn-secondary text-xs py-1 px-2">
+                        <a href={`/procesos/${a.proceso_id}`} className="btn-secondary btn-sm">
                           Ir al proceso
                         </a>
                       </div>
@@ -578,7 +578,7 @@ const handleExportarZip = async () => {
                       '_blank'
                     )
                   }
-                  className="btn-ghost text-xs py-1 px-2"
+                  className="btn-ghost btn-sm"
                 >
                   Historial
                 </button>
@@ -593,7 +593,7 @@ const handleExportarZip = async () => {
                       setMotivoReemplazo('');
                       setMensajeReemplazo('');
                     }}
-                    className="btn-ghost text-xs py-1 px-2"
+                    className="btn-ghost btn-sm"
                   >
                     Reemplazar PDF
                   </button>

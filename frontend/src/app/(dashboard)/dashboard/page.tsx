@@ -15,7 +15,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { StatCard, Spinner, ErrorAlert, PageHeader, Badge, EmptyState } from '@/components/ui';
+import { StatCard, Spinner, ErrorAlert, PageHeader, Badge, EmptyState, Pill } from '@/components/ui';
+import { estadoLabel, estadoPill } from '@/lib/estados';
 import { getDashboard, getUsoAlmacenamiento, getProcesos, getActasFinales, enviarRespaldoManual } from '@/lib/services';
 import { useAuth } from '@/hooks/useAuth';
 import { GuiaBienvenida, useGuiaBienvenida } from '@/components/dashboard/GuiaBienvenida';
@@ -182,7 +183,7 @@ export default function DashboardPage() {
             : `${user?.sucursal || 'Sucursal'} · ${user?.ciudad || 'Ciudad'}`
         }
         action={
-          <button type="button" onClick={abrirGuia} className="btn-secondary text-xs">
+          <button type="button" onClick={abrirGuia} className="btn-secondary btn-sm">
             ¿Cómo funciona?
           </button>
         }
@@ -203,7 +204,7 @@ export default function DashboardPage() {
               label="En negociación"
               value={procesos.en_negociacion ?? 0}
               icon={Clock}
-              color="bg-amber-500"
+              color="bg-sky-50 text-sky-700 ring-1 ring-sky-100"
               onClick={() => toggleCategoria('en_negociacion')}
               active={categoriaAbierta === 'en_negociacion'}
             />
@@ -212,7 +213,7 @@ export default function DashboardPage() {
               label="Con acuerdo"
               value={procesos.cerrados_con_acuerdo ?? 0}
               icon={CheckCircle}
-              color="bg-green-600"
+              color="bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
               onClick={() => toggleCategoria('cerrado_con_acuerdo')}
               active={categoriaAbierta === 'cerrado_con_acuerdo'}
             />
@@ -221,7 +222,7 @@ export default function DashboardPage() {
               label="Sin acuerdo"
               value={procesos.cerrados_sin_acuerdo ?? 0}
               icon={FileText}
-              color="bg-red-500"
+              color="bg-stone-100 text-stone-600 ring-1 ring-stone-200"
               onClick={() => toggleCategoria('cerrado_sin_acuerdo')}
               active={categoriaAbierta === 'cerrado_sin_acuerdo'}
             />
@@ -230,7 +231,7 @@ export default function DashboardPage() {
               label="Archivados"
               value={procesos.archivados ?? 0}
               icon={Archive}
-              color="bg-slate-600"
+              color="bg-slate-100 text-slate-500 ring-1 ring-slate-200"
               onClick={() => toggleCategoria('archivado')}
               active={categoriaAbierta === 'archivado'}
             />
@@ -239,7 +240,7 @@ export default function DashboardPage() {
               label="Actas finales"
               value={stats.actas_finales ?? 0}
               icon={FileCheck}
-              color="bg-numa-800"
+              color="bg-numa-900 text-gold-400"
               onClick={() => toggleCategoria('actas_finales')}
               active={categoriaAbierta === 'actas_finales'}
             />
@@ -260,7 +261,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => router.push(CATEGORIAS[categoriaAbierta].verTodoHref)}
-                  className="btn-secondary text-xs"
+                  className="btn-secondary btn-sm"
                 >
                   Mostrar todo
                 </button>
@@ -299,11 +300,7 @@ export default function DashboardPage() {
                             este panel rápido del Dashboard, igual que ya pasa
                             en el listado de Procesos. */}
                         {categoriaAbierta === 'cerrado_con_acuerdo' && etapaActaBadge(item) && (
-                          <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${etapaActaBadge(item)!.className}`}
-                          >
-                            {etapaActaBadge(item)!.label}
-                          </span>
+                          <Pill {...etapaActaBadge(item)!} />
                         )}
                       </div>
 
@@ -390,7 +387,7 @@ export default function DashboardPage() {
                         </div>
 
                         <div className="text-right">
-                          <Badge label={ETIQUETAS_ESTADO[p.estado] || p.estado} variant="enviado" />
+                          <Pill label={estadoLabel(p.estado)} {...estadoPill(p.estado)} />
 
                           <p className="text-xs text-numa-400 mt-2">
                             {p.fecha_creacion

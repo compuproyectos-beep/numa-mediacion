@@ -16,7 +16,7 @@ export default function DocFila({ etiqueta, textoVer = 'Ver', onVer, onDescargar
     <div className="flex items-center gap-2 text-sm">
       <span className="text-numa-700 min-w-[170px]">{etiqueta}</span>
       {onVer && (
-        <button type="button" onClick={onVer} className="btn-secondary text-xs py-1 px-2">
+        <button type="button" onClick={onVer} className="btn-secondary btn-sm">
           <Eye className="w-4 h-4" /> {textoVer}
         </button>
       )}
@@ -26,7 +26,7 @@ export default function DocFila({ etiqueta, textoVer = 'Ver', onVer, onDescargar
           onClick={onDescargar}
           title="Descargar"
           aria-label={`Descargar ${etiqueta}`}
-          className="btn-ghost p-1.5"
+          className="btn-icon"
         >
           <Download className="w-4 h-4" />
         </button>

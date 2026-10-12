@@ -20,7 +20,8 @@ from urllib.parse import quote
 from fastapi.responses import StreamingResponse
 import io
 from openpyxl import Workbook
-from openpyxl.styles import Font
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
 import secrets
 from app.email_utils import enviar_correo, plantilla_base, enviar_correo_con_adjunto
 from app.file_compress_utils import comprimir_imagen, comprimir_pdf
@@ -5536,7 +5537,7 @@ def exportar_pdfs_actas_finales(
                     acta.get("sucursal") or "",
                     acta.get("ciudad") or "",
                     acta.get("provincia") or "",
-                    str(acta.get("fecha_subida") or ""),
+                    _fecha_excel_ec(acta.get("fecha_subida")),
                 ])
 
             for columna in ws.columns:
@@ -6152,6 +6153,61 @@ def _fecha_excel_ec(valor, con_hora=True):
     return str(valor)
 
 
+def _excel_con_formato(titulo, encabezados, filas):
+    """Arma una hoja de Excel ordenada: título y fecha arriba, encabezados en
+    el azul de la marca, fila de encabezados fija al bajar, filtros por
+    columna, filas alternadas y anchos de columna a la medida."""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Reporte"
+
+    azul = "0E2338"
+    n = max(len(encabezados), 1)
+    ultima = get_column_letter(n)
+
+    ws.append([f"Centro de Mediación NUMA · {titulo}"])
+    ws.append([
+        "Generado el " + datetime.datetime.now(
+            datetime.timezone(datetime.timedelta(hours=-5))
+        ).strftime("%d/%m/%Y %H:%M") + f" · {len(filas)} registro(s)"
+    ])
+    ws.append([])
+    ws.merge_cells(f"A1:{ultima}1")
+    ws.merge_cells(f"A2:{ultima}2")
+    ws["A1"].font = Font(bold=True, size=14, color=azul)
+    ws["A2"].font = Font(size=10, color="4A6789")
+    ws.row_dimensions[1].height = 22
+
+    ws.append(encabezados)
+    fila_enc = 4
+    borde = Side(style="thin", color="C9D6E5")
+    for celda in ws[fila_enc]:
+        celda.font = Font(bold=True, color="FFFFFF")
+        celda.fill = PatternFill("solid", fgColor=azul)
+        celda.alignment = Alignment(vertical="center", wrap_text=True)
+        celda.border = Border(bottom=borde)
+    ws.row_dimensions[fila_enc].height = 28
+
+    gris = PatternFill("solid", fgColor="F3F6FA")
+    for i, fila in enumerate(filas):
+        ws.append(fila)
+        if i % 2 == 1:
+            for celda in ws[ws.max_row]:
+                celda.fill = gris
+
+    ws.freeze_panes = f"A{fila_enc + 1}"
+    if filas:
+        ws.auto_filter.ref = f"A{fila_enc}:{ultima}{ws.max_row}"
+
+    for idx in range(1, n + 1):
+        letra = get_column_letter(idx)
+        valores = [ws.cell(row=r, column=idx).value for r in range(fila_enc, ws.max_row + 1)]
+        ancho = max((len(str(v)) for v in valores if v is not None), default=10) + 3
+        ws.column_dimensions[letra].width = max(10, min(ancho, 45))
+
+    return wb
+
+
 @app.get("/reportes/exportar-excel")
 def exportar_reporte_excel(
     tipo: str,
@@ -6389,20 +6445,17 @@ def exportar_reporte_excel(
 
         nombre_archivo = "reporte_actas_finales_numa.xlsx"
 
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Reporte"
-    ws.append(encabezados)
-
-    for celda in ws[1]:
-        celda.font = Font(bold=True)
-
-    for fila in filas_excel:
-        ws.append(fila)
-
-    for columna in ws.columns:
-        ancho = max((len(str(c.value)) for c in columna if c.value), default=10) + 2
-        ws.column_dimensions[columna[0].column_letter].width = min(ancho, 40)
+    titulos_excel = {
+        "procesos": "Reporte de procesos por periodo",
+        "productividad": "Reporte del equipo de mediadores",
+        "actas": "Reporte de actas finales emitidas",
+        "sucursales": "Reporte por sucursales",
+        "clientes": "Reporte de clientes",
+        "agenda": "Agenda de reuniones",
+        "sin-avance": "Procesos sin avance",
+        "actas-pendientes": "Actas pendientes de subir",
+    }
+    wb = _excel_con_formato(titulos_excel.get(tipo, "Reporte"), encabezados, filas_excel)
 
     buffer = io.BytesIO()
     wb.save(buffer)

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon, Eye, Download, Receipt } from 'lucide-react';
+import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon, Eye, Download, Receipt, ArrowRightCircle } from 'lucide-react';
 import { isAdmin as esAdminSesion } from '@/lib/auth';
 import PartesProceso from '@/components/procesos/PartesProceso';
 import FacturacionProceso from '@/components/procesos/FacturacionProceso';
@@ -17,8 +17,10 @@ import {
   InputField,
   ErrorAlert,
   SuccessAlert,
-  Modal
+  Modal,
+  Pill
 } from '@/components/ui';
+import { estadoLabel, estadoPill } from '@/lib/estados';
 
 import {
   getProcesos,
@@ -33,30 +35,6 @@ import {
   descargarPdfActaFinal,
   descargarComprobantePagoActaFinal
 } from '@/lib/services';
-
-const getEstadoProcesoLabel = (estado: string) => {
-  const labels: any = {
-    en_negociacion: 'En negociación',
-    cerrado_con_acuerdo: 'Cerrado con acuerdo',
-    cerrado_sin_acuerdo: 'Cerrado sin acuerdo',
-    archivado: 'Archivado',
-    anulado: 'Anulado'
-  };
-
-  return labels[estado] || estado;
-};
-
-const getEstadoProcesoClass = (estado: string) => {
-  const classes: any = {
-    en_negociacion: 'bg-amber-50 text-amber-700',
-    cerrado_con_acuerdo: 'bg-green-50 text-green-700',
-    cerrado_sin_acuerdo: 'bg-red-50 text-red-700',
-    archivado: 'bg-slate-100 text-slate-600',
-    anulado: 'bg-slate-200 text-slate-500 line-through'
-  };
-
-  return classes[estado] || 'bg-numa-100 text-numa-600';
-};
 
 // Mismos colores que ya se usan en la Agenda (ver colorPorEstado en
 // CalendarioAgendaMediador) para el estado de una invitación — así una
@@ -378,7 +356,7 @@ export default function ProcesoDetallePage() {
       });
 
       setSuccessMessage(
-        `Avance registrado: ${getEstadoProcesoLabel(avanceForm.resultado)}.`
+        `Avance registrado: ${estadoLabel(avanceForm.resultado)}.`
       );
     } catch (err: any) {
       setError(err?.response?.data?.detail || 'Error al registrar avance');
@@ -655,13 +633,7 @@ export default function ProcesoDetallePage() {
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-          <span
-            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${getEstadoProcesoClass(
-              proceso.estado
-            )}`}
-          >
-            {getEstadoProcesoLabel(proceso.estado)}
-          </span>
+<Pill label={estadoLabel(proceso.estado)} {...estadoPill(proceso.estado)} />
 
           {/* El cliente pidió que "Imprimir expediente" esté disponible en
               cualquier etapa del proceso, no solo cuando ya está finalizado
@@ -675,7 +647,7 @@ export default function ProcesoDetallePage() {
                 '_blank'
               )
             }
-            className="btn-secondary text-xs"
+            className="btn-secondary btn-sm"
           >
             <Printer className="w-3.5 h-3.5" />
             Imprimir expediente
@@ -699,7 +671,7 @@ export default function ProcesoDetallePage() {
           <button
             type="button"
             onClick={() => router.push(`/procesos/${procesoPrimeroEnFila.id}`)}
-            className="btn-secondary text-xs py-1.5 px-3 shrink-0"
+            className="btn-secondary btn-sm shrink-0"
           >
             Ir a {procesoPrimeroEnFila.codigo_proceso}
           </button>
@@ -707,9 +679,12 @@ export default function ProcesoDetallePage() {
       ) : null}
 
       {siguientePaso && (
-        <div className="mb-4 text-sm px-4 py-3 rounded-sm border border-numa-100 bg-numa-50 text-numa-700">
-          <span className="font-semibold text-numa-900">Siguiente paso: </span>
-          {siguientePaso}
+        <div className="mb-4 text-sm px-4 py-3 rounded-md border border-gold-400/40 bg-gold-400/10 text-numa-800 flex items-start gap-2.5">
+          <ArrowRightCircle className="w-4 h-4 mt-0.5 text-gold-600 shrink-0" aria-hidden="true" />
+          <span>
+            <span className="font-semibold text-numa-900">Siguiente paso: </span>
+            {siguientePaso}
+          </span>
         </div>
       )}
 
@@ -784,7 +759,7 @@ export default function ProcesoDetallePage() {
             <button
               type="button"
               onClick={() => setAnulando(true)}
-              className="text-xs text-red-600 hover:text-red-700 underline underline-offset-2"
+              className="link-danger"
             >
               Anular este proceso
             </button>
@@ -807,7 +782,7 @@ export default function ProcesoDetallePage() {
                   type="button"
                   disabled={guardandoAnulacion}
                   onClick={handleAnularProceso}
-                  className="btn-primary text-xs py-1.5 px-3"
+                  className="btn-danger btn-sm"
                 >
                   {guardandoAnulacion ? 'Anulando...' : 'Sí, anular proceso'}
                 </button>
@@ -818,7 +793,7 @@ export default function ProcesoDetallePage() {
                     setAnulando(false);
                     setMotivoAnulacion('');
                   }}
-                  className="btn-secondary text-xs py-1.5 px-3"
+                  className="btn-secondary btn-sm"
                 >
                   Cancelar
                 </button>
@@ -875,7 +850,7 @@ export default function ProcesoDetallePage() {
                       </div>
 
                       <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold capitalize shrink-0 ${
+                        className={`inline-flex items-center self-start px-2.5 py-1 rounded-full text-xs font-semibold capitalize shrink-0 ${
                           citaEstaAtrasada(cita)
                             ? 'bg-red-50 text-red-700'
                             : getEstadoCitaBadgeClass(cita.estado)
@@ -916,7 +891,7 @@ export default function ProcesoDetallePage() {
                         </p>
 
                         <p className="text-sm font-medium text-numa-800">
-                          {getEstadoProcesoLabel(avance.resultado)}
+                          {estadoLabel(avance.resultado)}
                         </p>
 
                         <p className="text-xs font-semibold text-numa-500 mt-3">
@@ -1057,7 +1032,7 @@ export default function ProcesoDetallePage() {
                 <button
                   type="button"
                   onClick={() => setMostrarCalendarioInvitacion(false)}
-                  className="btn-ghost text-xs"
+                  className="btn-ghost btn-sm"
                 >
                   <CalendarIcon className="w-3.5 h-3.5" />
                   Ocultar calendario
@@ -1122,7 +1097,7 @@ export default function ProcesoDetallePage() {
                 <button
                   type="button"
                   onClick={() => setMostrarCalendarioInvitacion(true)}
-                  className="btn-ghost text-xs"
+                  className="btn-ghost btn-sm"
                 >
                   <CalendarIcon className="w-3.5 h-3.5" />
                   Mostrar calendario
@@ -1235,7 +1210,7 @@ export default function ProcesoDetallePage() {
                     ) : (
                       <>
                         Vas a marcar este proceso como{' '}
-                        <strong>{getEstadoProcesoLabel(avanceForm.resultado)}</strong>.
+                        <strong>{estadoLabel(avanceForm.resultado)}</strong>.
                         Después de esto ya no podrás cambiar el resultado. ¿Confirmas?
                       </>
                     )}

@@ -452,14 +452,14 @@ export default function UsuariosPage() {
                         <div className="flex items-center gap-3">
                           <button
                             onClick={() => openEdit(u)}
-                            className="btn-ghost text-xs py-1 px-2 flex items-center gap-1"
+                            className="btn-ghost btn-sm flex items-center gap-1"
                           >
                             <Pencil className="w-3 h-3" /> Editar
                           </button>
 
                           <button
                             onClick={() => setEstadoTarget(u)}
-                            className="btn-ghost text-xs py-1 px-2 text-red-500 hover:text-red-700"
+                            className="btn-ghost btn-sm text-red-500 hover:text-red-700"
                           >
                             {u.activo ? 'Desactivar' : 'Reactivar'}
                           </button>
@@ -662,7 +662,7 @@ export default function UsuariosPage() {
                 />
                 <button
                   type="button"
-                  className="btn-secondary text-xs shrink-0"
+                  className="btn-secondary btn-sm shrink-0"
                   onClick={() => {
                     navigator.clipboard?.writeText(enlaceActivacion.enlace || '');
                   }}

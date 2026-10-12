@@ -72,7 +72,7 @@ export function GuiaBienvenida({ open, onClose }: GuiaBienvenidaProps) {
         ))}
       </div>
 
-      <button type="button" onClick={onClose} className="btn-primary text-xs">
+      <button type="button" onClick={onClose} className="btn-primary btn-sm">
         Entendido
       </button>
     </div>

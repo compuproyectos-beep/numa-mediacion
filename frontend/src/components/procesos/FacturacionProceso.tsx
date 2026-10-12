@@ -177,7 +177,7 @@ export default function FacturacionProceso({ procesoId, editable, onEstado, fina
           <Receipt className="w-4 h-4 text-numa-500" /> Datos de facturación
         </h3>
         {editable && (
-          <button type="button" onClick={abrir} className="btn-secondary text-xs py-1 px-2">
+          <button type="button" onClick={abrir} className="btn-secondary btn-sm">
             <Pencil className="w-3.5 h-3.5" /> {datos ? 'Editar' : 'Completar datos'}
           </button>
         )}

@@ -156,7 +156,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
     <button
       type="button"
       onClick={() => window.open(`/procesos/${proceso.id}/acta-imprimir`, '_blank')}
-      className="btn-secondary text-xs"
+      className="btn-secondary btn-sm"
     >
       <Printer className="w-3.5 h-3.5" /> Imprimir acta
     </button>
@@ -177,7 +177,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
           <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
             <h3 className="text-sm font-semibold text-numa-800">Acuerdo</h3>
             {esAdmin && (
-              <button type="button" onClick={abrirCorregir} className="btn-ghost text-xs py-1 px-2">
+              <button type="button" onClick={abrirCorregir} className="btn-ghost btn-sm">
                 <Pencil className="w-3 h-3" /> Corregir acuerdo
               </button>
             )}
@@ -196,7 +196,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
             administrador lo reactive.
           </p>
           {esAdmin && (
-            <button type="button" onClick={reactivar} className="btn-primary text-xs mt-3">
+            <button type="button" onClick={reactivar} className="btn-primary btn-sm mt-3">
               <PlayCircle className="w-4 h-4" /> Reactivar proceso
             </button>
           )}
@@ -221,7 +221,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
                 setConfirmoFirmada(false);
                 setError('');
               }}
-              className="btn-primary text-xs"
+              className="btn-primary btn-sm"
             >
               <Upload className="w-4 h-4" /> Subir acta firmada
             </button>
@@ -240,7 +240,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
           </p>
           <div className="flex flex-wrap items-center gap-2">
             {proceso.tiene_acta_firmada && (
-              <button type="button" onClick={verFirmada} className="btn-secondary text-xs">
+              <button type="button" onClick={verFirmada} className="btn-secondary btn-sm">
                 <Eye className="w-3.5 h-3.5" /> Ver acta firmada
               </button>
             )}
@@ -250,7 +250,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
                 onClick={descargarFirmada}
                 title="Descargar acta firmada"
                 aria-label="Descargar acta firmada"
-                className="btn-ghost p-1.5"
+                className="btn-icon"
               >
                 <Download className="w-4 h-4" />
               </button>

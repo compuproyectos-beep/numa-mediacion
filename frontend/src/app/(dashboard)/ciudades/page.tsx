@@ -243,7 +243,7 @@ const ciudadesFiltradas = ciudades.filter((c: any) => {
                         {admin && (
                           <button
                             onClick={() => openEdit(c)}
-                            className="btn-ghost text-xs py-1 px-2"
+                            className="btn-ghost btn-sm"
                           >
                             <Pencil className="w-3 h-3" /> Editar
                           </button>

@@ -310,14 +310,14 @@ const handleCambiarEstado = async () => {
                           <div className="flex gap-2">
                             <button
                               onClick={() => openEdit(s)}
-                              className="btn-ghost text-xs py-1 px-2"
+                              className="btn-ghost btn-sm"
                             >
                               <Pencil className="w-3 h-3" /> Editar
                             </button>
 
                             <button
                               onClick={() => setEstadoTarget(s)}
-                               className="btn-ghost text-xs py-1 px-2 text-red-500 hover:text-red-700"
+                               className="btn-ghost btn-sm text-red-500 hover:text-red-700"
                             >
                                 {(s.activo ?? s.activa) ? 'Desactivar' : 'Reactivar'}
                             </button>

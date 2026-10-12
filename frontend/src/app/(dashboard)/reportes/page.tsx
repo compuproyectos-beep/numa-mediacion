@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useState } from 'react';
+import { ESTADO_COLOR_GRAFICO } from '@/lib/estados';
 import { FileSpreadsheet, Printer, Search, ChevronDown, ChevronRight, Info } from 'lucide-react';
 import {
   PageHeader,
@@ -96,12 +97,7 @@ const DESCRIPCIONES: Record<TipoReporte, string> = {
     'Procesos cerrados con acuerdo que aún no están completos: les falta subir el acta y el comprobante, o el acta firmada (o están suspendidos). Se muestra cuántos días llevan pendientes desde la fecha del acuerdo.'
 };
 
-const COLOR_ESTADO: Record<string, string> = {
-  en_negociacion: '#f59e0b',
-  cerrado_con_acuerdo: '#22c55e',
-  cerrado_sin_acuerdo: '#ef4444',
-  archivado: '#94a3b8'
-};
+const COLOR_ESTADO: Record<string, string> = ESTADO_COLOR_GRAFICO;
 
 const getEstadoLabel = (estado: string) => {
   const labels: any = {
@@ -430,17 +426,17 @@ export default function ReportesPage() {
   const barrasActas: { label: string; valor: number; color?: string }[] | null =
     tipo === 'procesos'
       ? [
-          { label: 'Actas subidas', valor: actasSubidasProcesos, color: '#22c55e' },
-          { label: 'Actas pendientes', valor: actasPendientesProcesos, color: '#ef4444' }
+          { label: 'Actas subidas', valor: actasSubidasProcesos, color: '#10B981' },
+          { label: 'Actas pendientes', valor: actasPendientesProcesos, color: '#F59E0B' }
         ]
       : tipo === 'productividad'
       ? datos
           .filter((m: any) => m.actas_subidas > 0)
-          .map((m: any) => ({ label: m.mediador, valor: m.actas_subidas, color: '#22c55e' }))
+          .map((m: any) => ({ label: m.mediador, valor: m.actas_subidas, color: '#10B981' }))
       : tipo === 'sucursales'
       ? datos
           .filter((s: any) => s.actas_subidas > 0)
-          .map((s: any) => ({ label: labelSucursal(s), valor: s.actas_subidas, color: '#22c55e' }))
+          .map((s: any) => ({ label: labelSucursal(s), valor: s.actas_subidas, color: '#10B981' }))
       : null;
 
   // Barritas para que los reportes no sean solo números: por estado en
@@ -466,11 +462,11 @@ export default function ReportesPage() {
     tipo === 'productividad'
       ? datos
           .filter((m: any) => m.actas_pendientes > 0)
-          .map((m: any) => ({ label: m.mediador, valor: m.actas_pendientes, color: '#ef4444' }))
+          .map((m: any) => ({ label: m.mediador, valor: m.actas_pendientes, color: '#F59E0B' }))
       : tipo === 'sucursales'
       ? datos
           .filter((s: any) => s.actas_pendientes > 0)
-          .map((s: any) => ({ label: labelSucursal(s), valor: s.actas_pendientes, color: '#ef4444' }))
+          .map((s: any) => ({ label: labelSucursal(s), valor: s.actas_pendientes, color: '#F59E0B' }))
       : null;
 
   return (
@@ -638,39 +634,61 @@ export default function ReportesPage() {
       ) : (
         <div className="space-y-4">
           {tipo === 'procesos' && resumenProcesos && (
-            <div className="flex flex-wrap gap-3 text-sm">
-              <span className="px-3 py-1.5 rounded-full bg-numa-100 text-numa-700 font-medium">
-                {datos.length} en total
-              </span>
-              {Object.entries(resumenProcesos).map(([estado, cantidad]) => (
-                <span
-                  key={estado}
-                  className="px-3 py-1.5 rounded-full bg-numa-50 text-numa-600 border border-numa-200"
-                >
-                  {getEstadoLabel(estado)}: <strong>{cantidad as number}</strong>
-                </span>
-              ))}
-              {actasPendientesProcesos > 0 && (
-                <span className="px-3 py-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 font-medium">
-                  Con acuerdo sin acta subida: <strong>{actasPendientesProcesos}</strong>
-                </span>
-              )}
+            <div className="card p-5 grid gap-5 md:grid-cols-[1.4fr_1fr] md:divide-x md:divide-numa-100">
+              <div>
+                <p className="text-xs font-semibold text-numa-500 uppercase tracking-wide mb-3">Procesos</p>
+                <div className="flex items-end gap-6 flex-wrap">
+                  <div>
+                    <p className="text-3xl font-bold text-numa-900 leading-none tabular-nums">{datos.length}</p>
+                    <p className="text-xs text-numa-500 mt-1">en total</p>
+                  </div>
+                  <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-numa-700">
+                    {Object.entries(resumenProcesos).map(([estado, cantidad]) => (
+                      <li key={estado} className="inline-flex items-center gap-2">
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: COLOR_ESTADO[estado] || '#94A3B8' }}
+                          aria-hidden="true"
+                        />
+                        {getEstadoLabel(estado)}
+                        <strong className="text-numa-900 tabular-nums">{cantidad as number}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
 
-              {resumenIndicadores && resumenIndicadores.tasa_acuerdo !== null && (
-                <span
-                  className="px-3 py-1.5 rounded-full bg-green-50 text-green-700 border border-green-200 font-medium"
-                  title={`De ${resumenIndicadores.total_resueltos} procesos resueltos (con o sin acuerdo), ${resumenIndicadores.cerrados_con_acuerdo} terminaron con acuerdo.`}
-                >
-                  Tasa de acuerdo: <strong>{resumenIndicadores.tasa_acuerdo}%</strong>
-                </span>
-              )}
-
-              {resumenIndicadores && resumenIndicadores.promedio_dias_resolucion !== null && (
-                <span className="px-3 py-1.5 rounded-full bg-numa-50 text-numa-600 border border-numa-200">
-                  Tiempo promedio de resolución:{' '}
-                  <strong>{resumenIndicadores.promedio_dias_resolucion} días</strong>
-                </span>
-              )}
+              <div className="md:pl-5">
+                <p className="text-xs font-semibold text-numa-500 uppercase tracking-wide mb-3">Indicadores</p>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                  {resumenIndicadores && resumenIndicadores.tasa_acuerdo !== null && (
+                    <div
+                      title={`De ${resumenIndicadores.total_resueltos} procesos resueltos (con o sin acuerdo), ${resumenIndicadores.cerrados_con_acuerdo} terminaron con acuerdo.`}
+                    >
+                      <dt className="text-xs text-numa-500">Tasa de acuerdo</dt>
+                      <dd className="text-lg font-bold text-emerald-700 tabular-nums">{resumenIndicadores.tasa_acuerdo}%</dd>
+                    </div>
+                  )}
+                  {resumenIndicadores && resumenIndicadores.promedio_dias_resolucion !== null && (
+                    <div>
+                      <dt className="text-xs text-numa-500">Tiempo promedio de resolución</dt>
+                      <dd className="text-lg font-bold text-numa-900 tabular-nums">
+                        {resumenIndicadores.promedio_dias_resolucion} días
+                      </dd>
+                    </div>
+                  )}
+                  <div>
+                    <dt className="text-xs text-numa-500">Con acuerdo sin acta subida</dt>
+                    <dd
+                      className={`text-lg font-bold tabular-nums ${
+                        actasPendientesProcesos > 0 ? 'text-amber-700' : 'text-numa-900'
+                      }`}
+                    >
+                      {actasPendientesProcesos}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
             </div>
           )}
 
@@ -692,7 +710,7 @@ export default function ReportesPage() {
               antes que el desglose general de procesos. */}
           {barrasActas && barrasActas.length > 0 && (
             <div className="card p-4">
-              <p className="text-xs font-medium text-numa-500 mb-3 uppercase tracking-wide">
+              <p className="text-xs font-semibold text-numa-500 mb-3 uppercase tracking-wide">
                 {tipo === 'procesos'
                   ? 'Actas'
                   : 'Actas subidas por ' + (tipo === 'productividad' ? 'mediador' : 'sucursal')}
@@ -703,7 +721,7 @@ export default function ReportesPage() {
 
           {barrasResumen && barrasResumen.length > 0 && (
             <div className="card p-4">
-              <p className="text-xs font-medium text-numa-500 mb-3 uppercase tracking-wide">
+              <p className="text-xs font-semibold text-numa-500 mb-3 uppercase tracking-wide">
                 {tipo === 'procesos' ? 'Por estado' : 'Procesos por ' + (tipo === 'productividad' ? 'mediador' : 'sucursal')}
               </p>
               <BarrasResumen items={barrasResumen} />
@@ -711,8 +729,8 @@ export default function ReportesPage() {
           )}
 
           {barrasActasPendientes && barrasActasPendientes.length > 0 && (
-            <div className="card p-4 border-red-200">
-              <p className="text-xs font-medium text-red-600 mb-3 uppercase tracking-wide">
+            <div className="card p-4 border-amber-200">
+              <p className="text-xs font-semibold text-amber-700 mb-3 uppercase tracking-wide">
                 Actas pendientes de subir por {tipo === 'productividad' ? 'mediador' : 'sucursal'}
               </p>
               <BarrasResumen items={barrasActasPendientes} />
@@ -929,14 +947,23 @@ export default function ReportesPage() {
                         onClick={() => abrirProceso(p.id)}
                         className="table-row cursor-pointer hover:bg-gold-400/[0.06]"
                       >
-                        <td className="table-cell">{getEstadoLabel(p.estado)}</td>
+                        <td className="table-cell">
+                          <span className="inline-flex items-center gap-2">
+                            <span
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ backgroundColor: COLOR_ESTADO[p.estado] || '#94A3B8' }}
+                              aria-hidden="true"
+                            />
+                            {getEstadoLabel(p.estado)}
+                          </span>
+                        </td>
                         <td className="table-cell">
                           {p.estado === 'cerrado_con_acuerdo' && !p.finalizado ? (
-                            <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-medium">
+                            <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 text-xs font-medium">
                               Pendiente
                             </span>
                           ) : p.finalizado ? (
-                            <span className="px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-xs font-medium">
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-xs font-medium">
                               Subida
                             </span>
                           ) : (
@@ -999,7 +1026,7 @@ export default function ReportesPage() {
                                   e.stopPropagation();
                                   toggleDetalleMediador(m.usuario_id, true);
                                 }}
-                                className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-medium cursor-pointer hover:bg-red-100 underline decoration-dotted"
+                                className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 text-xs font-medium cursor-pointer hover:bg-amber-100 underline decoration-dotted"
                                 title="Ver los procesos con acta pendiente"
                               >
                                 {m.actas_pendientes}
@@ -1131,7 +1158,7 @@ export default function ReportesPage() {
                                   e.stopPropagation();
                                   toggleDetalleSucursal(s.sucursal_id, true);
                                 }}
-                                className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-medium cursor-pointer hover:bg-red-100 underline decoration-dotted"
+                                className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 text-xs font-medium cursor-pointer hover:bg-amber-100 underline decoration-dotted"
                                 title="Ver los procesos con acta pendiente"
                               >
                                 {s.actas_pendientes}
@@ -1244,7 +1271,7 @@ export default function ReportesPage() {
                                   e.stopPropagation();
                                   toggleDetalleCliente(c.cliente_id, true);
                                 }}
-                                className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-medium cursor-pointer hover:bg-red-100 underline decoration-dotted"
+                                className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 text-xs font-medium cursor-pointer hover:bg-amber-100 underline decoration-dotted"
                                 title="Ver los procesos con acta pendiente"
                               >
                                 {c.actas_pendientes}

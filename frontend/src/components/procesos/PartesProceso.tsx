@@ -132,7 +132,7 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
             <button
               type="button"
               onClick={() => abrirAgregar(rol)}
-              className="btn-ghost text-xs py-1 px-2"
+              className="btn-ghost btn-sm"
             >
               <Plus className="w-3 h-3" /> Agregar
             </button>
