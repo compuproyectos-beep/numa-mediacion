@@ -411,6 +411,7 @@ const handleExportarZip = async () => {
               </button>
             </div>
 
+            {isAdmin && (
             <button
               type="button"
               onClick={handleExportarZip}
@@ -421,6 +422,7 @@ const handleExportarZip = async () => {
                 ? 'Descargar filtrados'
                 : 'Descargar todos'}
             </button>
+            )}
           </div>
         </form>
       </div>
@@ -495,19 +497,23 @@ const handleExportarZip = async () => {
 
               <div className="flex flex-col gap-1 lg:items-end">
                 <div className="space-y-0.5">
-                  {isAdmin && (
+                  {(
                     <DocFila
-                      etiqueta="Acta final (mediador)"
+                      etiqueta="Acta final"
+                      textoVer="Ver acta"
                       onVer={() => handleVerPdf(a.id)}
-                      onDescargar={() => handleDescargarPdf(a.id, a.codigo_acta)}
+                      onDescargar={isAdmin ? () => handleDescargarPdf(a.id, a.codigo_acta) : undefined}
                     />
                   )}
-                  {isAdmin && a.ruta_comprobante_pago && (
+                  {a.ruta_comprobante_pago && (
                     <DocFila
                       etiqueta="Comprobante de pago"
+                      textoVer="Ver comprobante"
                       onVer={() => handleVerComprobante(a.id)}
-                      onDescargar={() =>
-                        handleDescargarComprobante(a.id, a.codigo_acta, a.nombre_comprobante_pago)
+                      onDescargar={
+                        isAdmin
+                          ? () => handleDescargarComprobante(a.id, a.codigo_acta, a.nombre_comprobante_pago)
+                          : undefined
                       }
                     />
                   )}

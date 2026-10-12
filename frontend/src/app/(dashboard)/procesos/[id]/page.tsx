@@ -970,30 +970,38 @@ export default function ProcesoDetallePage() {
 
             </div>
 
-            {/* Solo el administrador ve el acta del mediador y el comprobante.
-                El acta firmada se ve en el bloque "Proceso completo" de abajo. */}
-            {esAdminSesion() && (
+            {/* Admin y mediador ven el acta y el comprobante; solo el
+                administrador puede descargarlos. */}
+            {(
               <div className="mt-2 space-y-0.5">
                 <DocFila
-                  etiqueta="Acta final (mediador)"
+                  etiqueta="Acta final"
+                  textoVer="Ver acta"
                   onVer={() => handleVerPdfActaFinal(expedienteProceso.acta_final.id)}
-                  onDescargar={() =>
-                    handleDescargarPdfActaFinal(
-                      expedienteProceso.acta_final.id,
-                      expedienteProceso.acta_final.codigo_acta
-                    )
+                  onDescargar={
+                    esAdminSesion()
+                      ? () =>
+                          handleDescargarPdfActaFinal(
+                            expedienteProceso.acta_final.id,
+                            expedienteProceso.acta_final.codigo_acta
+                          )
+                      : undefined
                   }
                 />
                 {expedienteProceso.acta_final.nombre_comprobante_pago && (
                   <DocFila
                     etiqueta="Comprobante de pago"
+                    textoVer="Ver comprobante"
                     onVer={() => handleVerComprobanteActaFinal(expedienteProceso.acta_final.id)}
-                    onDescargar={() =>
-                      handleDescargarComprobanteActaFinal(
-                        expedienteProceso.acta_final.id,
-                        expedienteProceso.acta_final.codigo_acta,
-                        expedienteProceso.acta_final.nombre_comprobante_pago
-                      )
+                    onDescargar={
+                      esAdminSesion()
+                        ? () =>
+                            handleDescargarComprobanteActaFinal(
+                              expedienteProceso.acta_final.id,
+                              expedienteProceso.acta_final.codigo_acta,
+                              expedienteProceso.acta_final.nombre_comprobante_pago
+                            )
+                        : undefined
                     }
                   />
                 )}
