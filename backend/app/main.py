@@ -6132,6 +6132,21 @@ ETIQUETAS_ESTADO_REPORTE = {
 }
 
 
+def _fecha_excel_ec(valor, con_hora=True):
+    """Fecha para el Excel, en hora de Ecuador y formato dd/mm/aaaa (hh:mm)."""
+    if not valor:
+        return ""
+    if isinstance(valor, datetime.datetime):
+        if valor.tzinfo is None:
+            # Las columnas sin zona horaria se guardan en UTC (NOW()).
+            valor = valor.replace(tzinfo=datetime.timezone.utc)
+        valor = valor.astimezone(datetime.timezone(datetime.timedelta(hours=-5)))
+        return valor.strftime("%d/%m/%Y %H:%M" if con_hora else "%d/%m/%Y")
+    if isinstance(valor, datetime.date):
+        return valor.strftime("%d/%m/%Y")
+    return str(valor)
+
+
 @app.get("/reportes/exportar-excel")
 def exportar_reporte_excel(
     tipo: str,
@@ -6177,7 +6192,7 @@ def exportar_reporte_excel(
                 f.get("sucursal"),
                 f.get("usuario"),
                 f.get("tema"),
-                str(f.get("fecha_creacion") or "")
+                _fecha_excel_ec(f.get("fecha_creacion"))
             ]
             for f in filas
         ]
@@ -6201,7 +6216,7 @@ def exportar_reporte_excel(
             [
                 f.get("mediador"),
                 "Activo" if f.get("activo") else "Inactivo",
-                str(f.get("fecha_ingreso") or ""),
+                _fecha_excel_ec(f.get("fecha_ingreso"), con_hora=False),
                 f.get("ciudad"),
                 f.get("sucursal"),
                 f.get("total_procesos"),
@@ -6311,7 +6326,7 @@ def exportar_reporte_excel(
         filas_excel = [
             [f.get("demandante"), f.get("demandado"),
              f.get("mediador"), f.get("sucursal"), f.get("ciudad"), f.get("tema"),
-             str(f.get("fecha_creacion") or "")[:10],
+             _fecha_excel_ec(f.get("fecha_creacion"), con_hora=False),
              str(f.get("ultimo_avance") or "")[:10] or "Ninguno",
              f.get("total_avances"), f.get("dias_sin_avance")]
             for f in filas
@@ -6357,7 +6372,7 @@ def exportar_reporte_excel(
                 f.get("ciudad"),
                 f.get("sucursal"),
                 f.get("usuario"),
-                str(f.get("fecha_subida") or ""),
+                _fecha_excel_ec(f.get("fecha_subida")),
                 f.get("fact_nombre") or "",
                 f.get("fact_identificacion") or "",
                 f.get("fact_direccion") or "",
