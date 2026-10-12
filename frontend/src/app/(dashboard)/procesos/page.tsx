@@ -479,7 +479,13 @@ export default function ProcesosPage() {
               return (
                 <EmptyState
                   message={
-                    hayFiltrosActivos
+                    rapido === 'pendientes' && procesos.length > 0
+                      ? 'Estás al día: no tienes procesos pendientes.'
+                      : rapido === 'hoy' && procesos.length > 0
+                      ? 'No tienes invitaciones programadas para hoy.'
+                      : rapido === 'acta' && procesos.length > 0
+                      ? 'Ningún proceso está esperando acta.'
+                      : hayFiltrosActivos
                       ? 'No hay procesos que coincidan con estos filtros.'
                       : 'Todavía no tienes procesos registrados.'
                   }
