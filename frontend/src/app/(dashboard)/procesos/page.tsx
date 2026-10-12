@@ -25,7 +25,7 @@ import {
 import { getCiudadesCached, getSucursalesCached } from '@/lib/catalogCache';
 
 import { isAdmin } from '@/lib/auth';
-import { accionProceso } from '@/lib/accionProceso';
+import { accionProceso, hoyEcuador } from '@/lib/accionProceso';
 
 // Qué le toca hacer a quien mira la lista en este proceso (el botón lo dice
 // en vez de un "Gestionar" genérico).
@@ -69,6 +69,9 @@ export default function ProcesosPage() {
   ] as const;
   const [paso, setPaso] = useState(1);
 
+  // Filtros rápidos (un clic) sobre la lista ya cargada.
+  const [rapido, setRapido] = useState<'' | 'pendientes' | 'hoy' | 'acta'>('');
+
   const [filters, setFilters] = useState({
     q: busquedaDesdeUrl,
     estado: estadoDesdeUrl,
@@ -86,6 +89,17 @@ export default function ProcesosPage() {
     sucursal_id: '',
     tema: ''
   });
+
+  const visibles = procesos.filter((p) =>
+    rapido === 'pendientes'
+      ? accionDe(p).urgente
+      : rapido === 'hoy'
+      ? String(p.proxima_cita_fecha || '').slice(0, 10) === hoyEcuador()
+      : rapido === 'acta'
+      ? p.estado === 'cerrado_con_acuerdo' &&
+        (p.etapa_acta === 'falta_acta' || p.etapa_acta === 'falta_firmada')
+      : true
+  );
 
   const load = async () => {
     setLoading(true);
@@ -120,6 +134,7 @@ export default function ProcesosPage() {
   }, []);
 
   const limpiarFiltros = () => {
+    setRapido("");
     setFilters({
       q: '',
       estado: '',
@@ -289,6 +304,49 @@ export default function ProcesosPage() {
         </div>
       )}
 
+      {(() => {
+        const hoy = hoyEcuador();
+        const cumple = (p: any, f: string) =>
+          f === 'pendientes'
+            ? accionDe(p).urgente
+            : f === 'hoy'
+            ? String(p.proxima_cita_fecha || '').slice(0, 10) === hoy
+            : f === 'acta'
+            ? p.estado === 'cerrado_con_acuerdo' &&
+              (p.etapa_acta === 'falta_acta' || p.etapa_acta === 'falta_firmada')
+            : true;
+        const chips: { id: '' | 'pendientes' | 'hoy' | 'acta'; texto: string }[] = [
+          { id: '', texto: 'Todos' },
+          { id: 'pendientes', texto: isAdmin() ? 'Requieren acción' : 'Mis pendientes' },
+          { id: 'hoy', texto: 'Invitación hoy' },
+          { id: 'acta', texto: 'Falta acta' }
+        ];
+        return (
+          <div className="flex flex-wrap gap-2 mb-4" role="group" aria-label="Filtros rápidos">
+            {chips.map((c) => {
+              const n = procesos.filter((p) => cumple(p, c.id)).length;
+              const activo = rapido === c.id;
+              return (
+                <button
+                  key={c.id || 'todos'}
+                  type="button"
+                  onClick={() => setRapido(c.id)}
+                  aria-pressed={activo}
+                  className={`min-h-[40px] px-3.5 rounded-full border text-sm font-medium transition-colors ${
+                    activo
+                      ? 'bg-numa-900 border-numa-900 text-white'
+                      : 'bg-white border-numa-200 text-numa-700 hover:border-gold-400'
+                  }`}
+                >
+                  {c.texto}{' '}
+                  <span className={activo ? 'text-gold-300' : 'text-numa-400'}>{n}</span>
+                </button>
+              );
+            })}
+          </div>
+        );
+      })()}
+
       <div className="card p-4 mb-4">
         <form
           onSubmit={(e) => {
@@ -405,8 +463,8 @@ export default function ProcesosPage() {
           'Cargando procesos...'
         ) : (
           <>
-            Mostrando <span className="font-semibold text-numa-800">{procesos.length}</span>{' '}
-            {procesos.length === 1 ? 'proceso' : 'procesos'}
+            Mostrando <span className="font-semibold text-numa-800">{visibles.length}</span>{' '}
+            {visibles.length === 1 ? 'proceso' : 'procesos'}
           </>
         )}
       </div>
@@ -414,10 +472,10 @@ export default function ProcesosPage() {
       <div className="space-y-3">
         {loading ? (
           <Spinner />
-        ) : procesos.length === 0 ? (
+        ) : visibles.length === 0 ? (
           <div className="card p-6">
             {(() => {
-              const hayFiltrosActivos = Object.values(filters).some((v) => !!v);
+              const hayFiltrosActivos = Object.values(filters).some((v) => !!v) || !!rapido;
               return (
                 <EmptyState
                   message={
@@ -432,7 +490,7 @@ export default function ProcesosPage() {
             })()}
           </div>
         ) : (
-          procesos.map((p) => (
+          visibles.map((p) => (
             <div
               key={p.id}
               onClick={() => router.push(`/procesos/${p.id}`)}
