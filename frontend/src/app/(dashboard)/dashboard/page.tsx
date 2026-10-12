@@ -247,9 +247,9 @@ export default function DashboardPage() {
         <div className="space-y-6 animate-fade-in">
           {isAdmin && <AlertaActasAtrasadas />}
 
-          {/* Franja con el fondo de marca (azul y dorado) de la página pública,
-              detrás de las cajas de resumen. */}
-          <div className="bg-aurora aurora-c rounded-lg p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+          {/* Las cajas van directo sobre el fondo de la página: sus colores
+              suaves ya las distinguen, sin franja detrás. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
             <StatCard
               label="En negociación"
               value={procesos.en_negociacion ?? 0}
@@ -303,7 +303,7 @@ export default function DashboardPage() {
           {categoriaAbierta && (
             <div
               ref={panelCategoriaRef}
-              className="bg-aurora aurora-a rounded-lg border border-numa-200 p-6 shadow-sm animate-fade-in"
+              className={`rounded-lg border p-6 shadow-sm animate-fade-in ${TEMA_CATEGORIA[categoriaAbierta].panel}`}
             >
 
               <div className="flex items-center justify-between mb-4">
