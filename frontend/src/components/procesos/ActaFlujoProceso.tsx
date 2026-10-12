@@ -209,7 +209,8 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
           <p className="text-sm text-numa-700 mb-1 font-semibold">Falta el acta firmada</p>
           <p className="text-sm text-numa-600 mb-3">
             Imprime el acta, haz que la firmen las partes y súbela en PDF (no se aceptan fotos).
-            Mientras falte, no podrás subir las actas de tus otros procesos.
+            {/* El bloqueo solo aplica al mediador; el admin no lo tiene. */}
+            {!esAdmin && ' Mientras falte, no podrás subir las actas de tus otros procesos.'}
           </p>
           <div className="flex flex-wrap gap-2">
             {botonImprimir}

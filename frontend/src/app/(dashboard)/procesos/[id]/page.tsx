@@ -835,7 +835,7 @@ export default function ProcesoDetallePage() {
                         </p>
 
                         <p className="text-sm text-numa-500 mt-1">
-                          {cita.fecha} — {cita.hora?.slice(0, 5)}
+                          {cita.fecha ? cita.fecha.slice(0, 10).split('-').reverse().join('/') : '—'} · {cita.hora?.slice(0, 5)}
                         </p>
 
                         {/* Quién creó esta invitación — no siempre es el
@@ -1011,7 +1011,10 @@ export default function ProcesoDetallePage() {
               {expedienteProceso.acta_final.fecha_subida
                 ? new Date(
                     expedienteProceso.acta_final.fecha_subida
-                  ).toLocaleString('es-EC')
+                  ).toLocaleString('es-EC', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: 'numeric', minute: '2-digit'
+                  })
                 : '—'}
             </p>
           </div>

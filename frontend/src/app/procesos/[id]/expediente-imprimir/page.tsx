@@ -250,7 +250,10 @@ export default function ImprimirExpedientePage() {
 
               <p className="text-sm text-green-700 mt-1">
                 Fecha oficial:{' '}
-                {new Date(acta_final.fecha_subida).toLocaleString('es-EC')}
+                {new Date(acta_final.fecha_subida).toLocaleString('es-EC', {
+                  day: '2-digit', month: '2-digit', year: 'numeric',
+                  hour: 'numeric', minute: '2-digit'
+                })}
               </p>
 
               {acta_final.nombre_comprobante_pago && (

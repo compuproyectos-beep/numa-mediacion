@@ -24,16 +24,18 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import clsx from 'clsx';
 
+// Orden del trabajo diario: el proceso nace, se agenda, termina en acta.
+// Lo de configuración (solo admin) va aparte, abajo.
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Panel General' },
-  { href: '/procesos', icon: FileText, label: 'Procesos de Mediación' },
+  { href: '/procesos', icon: FileText, label: 'Procesos' },
+  { href: '/agenda', icon: CalendarDays, label: 'Agenda' },
   { href: '/actas-finales', icon: FileCheck, label: 'Actas Finales' },
   { href: '/clientes', icon: Users, label: 'Clientes' },
-  { href: '/agenda', icon: CalendarDays, label: 'Agenda' },
   { href: '/reportes', icon: BarChart3, label: 'Reportes' },
+  { href: '/usuarios', icon: UserCircle, label: 'Usuarios', adminOnly: true },
   { href: '/sucursales', icon: Building2, label: 'Sucursales', adminOnly: true },
   { href: '/ciudades', icon: MapPin, label: 'Ciudades', adminOnly: true },
-  { href: '/usuarios', icon: UserCircle, label: 'Usuarios', adminOnly: true },
   { href: '/auditoria', icon: ClipboardList, label: 'Auditoría', adminOnly: true },
 ];
 
@@ -79,7 +81,7 @@ export default function Sidebar() {
       <Link
         href="/dashboard"
         onClick={() => setMobileOpen(false)}
-        className="flex items-center justify-center px-3 py-4 border-b border-numa-800 shrink-0"
+        className="flex items-center justify-center px-3 py-3 border-b border-numa-800 shrink-0"
       >
         <img
           src="/logo-numa.png"
@@ -91,17 +93,23 @@ export default function Sidebar() {
       {/* Scroll propio: si el menú no cabe en pantallas más bajas, se
           desplaza solo aquí en vez de empujar el bloque de usuario (abajo)
           fuera de la vista sin poder llegar a él. */}
-      <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-0.5">
-        {visibleNavItems.map(({ href, icon: Icon, label }) => {
+      <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-0.5">
+        {visibleNavItems.map(({ href, icon: Icon, label, adminOnly }, i) => {
           const active = pathname === href || pathname.startsWith(href + '/');
+          const inicioAdmin = adminOnly && !visibleNavItems[i - 1]?.adminOnly;
 
           return (
+            <div key={href}>
+            {inicioAdmin && (
+              <p className="mt-2 mb-1 pt-2.5 px-3 border-t border-numa-800 text-[10px] uppercase tracking-wider text-white/40 font-sans">
+                Administración
+              </p>
+            )}
             <Link
-              key={href}
               href={href}
               onClick={() => setMobileOpen(false)}
               className={clsx(
-                'flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm transition-all duration-150 group font-sans',
+                'flex items-center gap-3 px-3 py-1.5 rounded-sm text-sm transition-all duration-150 group font-sans',
                 active
                   ? 'bg-gold-400/10 text-gold-400 font-medium'
                   : 'text-white hover:text-gold-400 hover:bg-numa-800'
@@ -118,6 +126,7 @@ export default function Sidebar() {
               <span className="flex-1 uppercase tracking-wide text-[11px]">{label}</span>
               {active && <ChevronRight className="w-3 h-3 text-gold-400" />}
             </Link>
+            </div>
           );
         })}
       </nav>

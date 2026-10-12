@@ -114,7 +114,10 @@ export default function ImprimirHistorialActaPage() {
                   </p>
                   <p className="text-sm text-numa-800">
                     {acta.fecha_subida
-                      ? new Date(acta.fecha_subida).toLocaleString('es-EC')
+                      ? new Date(acta.fecha_subida).toLocaleString('es-EC', {
+                          day: '2-digit', month: '2-digit', year: 'numeric',
+                          hour: 'numeric', minute: '2-digit'
+                        })
                       : '—'}
                   </p>
                 </div>
