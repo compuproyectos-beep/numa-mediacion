@@ -484,6 +484,19 @@ const handleExportarZip = async () => {
                     : '—'}
                 </p>
 
+                {a.fact_nombre && (
+                  <p className="text-xs text-numa-500">
+                    Facturar a: <span className="font-medium text-numa-700">{a.fact_nombre}</span>
+                    {' · '}
+                    {a.fact_tipo_identificacion === 'ruc'
+                      ? 'RUC'
+                      : a.fact_tipo_identificacion === 'pasaporte'
+                        ? 'Pasaporte'
+                        : 'C.I.'}{' '}
+                    {a.fact_identificacion}
+                  </p>
+                )}
+
                 {(formatearPeso(a.tamano_bytes) || formatearPeso(a.tamano_comprobante_bytes)) && (
                   <p className="text-xs text-numa-400">
                     Peso — Acta: {formatearPeso(a.tamano_bytes) || '—'}

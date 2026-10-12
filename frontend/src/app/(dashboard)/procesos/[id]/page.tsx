@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon, Eye, Download, Receipt } from 'lucide-react';
 import { isAdmin as esAdminSesion } from '@/lib/auth';
 import PartesProceso from '@/components/procesos/PartesProceso';
+import FacturacionProceso from '@/components/procesos/FacturacionProceso';
 import ActaFlujoProceso from '@/components/procesos/ActaFlujoProceso';
 import DocFila from '@/components/procesos/DocFila';
 import CalendarioAgendaMediador from '@/components/citas/CalendarioAgendaMediador';
@@ -116,6 +117,8 @@ export default function ProcesoDetallePage() {
   const [loadingAvances, setLoadingAvances] = useState(false);
 
   const [expedienteProceso, setExpedienteProceso] = useState<any | null>(null);
+  // ¿Ya tiene datos de facturación? (obligatorios antes de subir el acta)
+  const [tieneFacturacion, setTieneFacturacion] = useState<boolean | null>(null);
   const [loadingExpediente, setLoadingExpediente] = useState(false);
 
   const [invitacionForm, setInvitacionForm] = useState({
@@ -538,6 +541,10 @@ export default function ProcesoDetallePage() {
       return `Espera tu turno: primero completa el proceso ${procesoPrimeroEnFila.codigo_proceso}.`;
     }
 
+    if (proceso.estado === 'cerrado_con_acuerdo' && tieneFacturacion === false) {
+      return 'Completa los datos de facturación y luego sube el acta final y el comprobante de pago.';
+    }
+
     if (proceso.estado === 'cerrado_con_acuerdo') {
       return 'Sube el acta final y el comprobante de pago para finalizar el proceso.';
     }
@@ -681,6 +688,17 @@ export default function ProcesoDetallePage() {
         editable={proceso.estado === 'en_negociacion'}
         onCambio={cargarProceso}
       />
+
+      {proceso.estado !== 'anulado' && (
+        <div id="bloque-facturacion">
+          <FacturacionProceso
+            procesoId={proceso.id}
+            editable={esAdminSesion() || !proceso.finalizado}
+            onEstado={setTieneFacturacion}
+            finalizado={!!proceso.finalizado}
+          />
+        </div>
+      )}
 
       {/* Se muestra justo debajo del encabezado (no al fondo de la página)
           para que el mediador vea de una vez si este proceso tiene su acta
@@ -1269,6 +1287,18 @@ export default function ProcesoDetallePage() {
                   className="btn-secondary shrink-0"
                 >
                   Ir a {procesoPrimeroEnFila.codigo_proceso}
+                </button>
+              ) : tieneFacturacion === false ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    document
+                      .getElementById('bloque-facturacion')
+                      ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  }
+                  className="btn-secondary shrink-0"
+                >
+                  Primero completa los datos de facturación
                 </button>
               ) : (
                 <button

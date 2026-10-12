@@ -769,3 +769,41 @@ export async function getActasAtrasadas(): Promise<any[]> {
   const res = await api.get('/actas/atrasadas');
   return res.data;
 }
+
+// ── Datos de facturación del proceso ──────────────────────────────────────────
+export interface DatosFacturacion {
+  origen: 'parte' | 'tercero';
+  cliente_id?: number | null;
+  tipo_identificacion: 'cedula' | 'ruc' | 'pasaporte';
+  identificacion: string;
+  nombre: string;
+  direccion: string;
+  email: string;
+  telefono?: string | null;
+  fecha_actualizacion?: string;
+  actualizado_por?: string;
+}
+
+export async function getFacturacionProceso(procesoId: number): Promise<DatosFacturacion | null> {
+  const res = await api.get(`/procesos/${procesoId}/facturacion`);
+  return res.data || null;
+}
+
+export async function guardarFacturacionProceso(
+  procesoId: number,
+  datos: DatosFacturacion
+): Promise<DatosFacturacion> {
+  const res = await api.put(`/procesos/${procesoId}/facturacion`, null, {
+    params: {
+      origen: datos.origen,
+      cliente_id: datos.origen === 'parte' ? datos.cliente_id : undefined,
+      tipo_identificacion: datos.tipo_identificacion,
+      identificacion: datos.identificacion,
+      nombre: datos.nombre,
+      direccion: datos.direccion,
+      email: datos.email,
+      telefono: datos.telefono || undefined
+    }
+  });
+  return res.data;
+}

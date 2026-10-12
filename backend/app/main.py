@@ -3109,8 +3109,9 @@ def _consulta_partes(cur, proceso_id):
             pp.id, pp.rol, pp.es_responsable, pp.cliente_id,
             pp.empresa_representada_id,
             c.tipo, c.nombre, c.apellido, c.cedula, c.ruc, c.razon_social,
-            c.representante_nombre, c.representante_cedula, c.telefono, c.email,
+            c.representante_nombre, c.representante_cedula, c.telefono, c.email, c.direccion,
             e.nombre AS empresa_nombre, e.ruc AS empresa_ruc,
+            e.email AS empresa_email, e.telefono AS empresa_telefono, e.direccion AS empresa_direccion,
             e.representante_nombre AS empresa_representante_nombre,
             e.representante_cedula AS empresa_representante_cedula
         FROM proceso_partes pp
@@ -4009,6 +4010,14 @@ async def subir_acta_final_proceso(
                 detail="Este proceso está suspendido por el administrador. Pídele que lo reactive."
             )
 
+        # Los datos de facturación son obligatorios antes de subir el acta.
+        cur.execute("SELECT 1 FROM proceso_facturacion WHERE proceso_id = %s", (proceso_id,))
+        if not cur.fetchone():
+            raise HTTPException(
+                status_code=400,
+                detail="Antes de subir el acta, completa los datos de facturación del proceso"
+            )
+
         # Fila de espera por mediador: el proceso pendiente más antiguo
         # (sin completar acta + comprobante + acta firmada, y no suspendido)
         # va primero. Mientras no se complete, el mediador no puede subir
@@ -4665,6 +4674,156 @@ def resumen_actas_mes(mes: str = None, usuario=Depends(obtener_usuario_actual)):
         conn.close()
 
 
+# =========================
+# DATOS DE FACTURACIÓN DEL PROCESO
+# =========================
+# La factura se emite en el sistema propio del centro; aquí solo se guardan
+# los datos de a nombre de quién va. Son obligatorios antes de subir el acta
+# final y el comprobante de pago.
+def _consulta_facturacion(cur, proceso_id):
+    cur.execute("""
+        SELECT f.origen, f.cliente_id, f.tipo_identificacion, f.identificacion,
+               f.nombre, f.direccion, f.email, f.telefono, f.fecha_actualizacion,
+               u.nombre || ' ' || u.apellido AS actualizado_por
+        FROM proceso_facturacion f
+        LEFT JOIN usuarios u ON u.id = f.actualizado_por_id
+        WHERE f.proceso_id = %s
+    """, (proceso_id,))
+    return cur.fetchone()
+
+
+@app.get("/procesos/{proceso_id}/facturacion")
+def obtener_facturacion_proceso(proceso_id: int, usuario=Depends(obtener_usuario_actual)):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("SELECT usuario_id FROM procesos_mediacion WHERE id = %s", (proceso_id,))
+        p = cur.fetchone()
+        if not p:
+            raise HTTPException(status_code=404, detail="Proceso no encontrado")
+        if usuario["rol"] != "administrador" and p["usuario_id"] != usuario["id"]:
+            raise HTTPException(status_code=403, detail="No puedes ver este proceso")
+        return _consulta_facturacion(cur, proceso_id)
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.put("/procesos/{proceso_id}/facturacion")
+def guardar_facturacion_proceso(
+    proceso_id: int,
+    origen: str,
+    tipo_identificacion: str,
+    identificacion: str,
+    nombre: str,
+    direccion: str,
+    email: str,
+    telefono: str = None,
+    cliente_id: int = None,
+    usuario=Depends(obtener_usuario_actual)
+):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute(
+            "SELECT id, usuario_id, estado, finalizado, codigo_proceso "
+            "FROM procesos_mediacion WHERE id = %s FOR UPDATE",
+            (proceso_id,)
+        )
+        p = cur.fetchone()
+        if not p:
+            raise HTTPException(status_code=404, detail="Proceso no encontrado")
+        es_admin = usuario["rol"] == "administrador"
+        if not es_admin and p["usuario_id"] != usuario["id"]:
+            raise HTTPException(status_code=403, detail="No puedes modificar este proceso")
+        if p["estado"] == "anulado":
+            raise HTTPException(status_code=400, detail="El proceso está anulado")
+        # Después de subir el acta y el comprobante, solo el administrador
+        # puede corregir los datos de facturación.
+        if p["finalizado"] and not es_admin:
+            raise HTTPException(
+                status_code=400,
+                detail="El acta ya se subió: solo el administrador puede corregir los datos de facturación"
+            )
+
+        origen = (origen or "").strip()
+        tipo_identificacion = (tipo_identificacion or "").strip()
+        nombre = (nombre or "").strip()
+        direccion = (direccion or "").strip()
+        email = (email or "").strip()
+        telefono = (telefono or "").strip() or None
+        identificacion = (identificacion or "").strip().upper()
+
+        if origen not in ("parte", "tercero"):
+            raise HTTPException(status_code=400, detail="Indica a nombre de quién va la factura")
+        if tipo_identificacion not in ("cedula", "ruc", "pasaporte"):
+            raise HTTPException(status_code=400, detail="Tipo de identificación inválido")
+
+        if tipo_identificacion == "cedula":
+            identificacion = re.sub(r"\D", "", identificacion)
+            if not validar_cedula_ecuatoriana(identificacion):
+                raise HTTPException(status_code=400, detail="La cédula de facturación es inválida")
+        elif tipo_identificacion == "ruc":
+            identificacion = re.sub(r"\D", "", identificacion)
+            if len(identificacion) != 13 or identificacion.endswith("000"):
+                raise HTTPException(status_code=400, detail="El RUC de facturación debe tener 13 dígitos")
+        else:
+            if not re.match(r"^[A-Z0-9]{5,20}$", identificacion):
+                raise HTTPException(status_code=400, detail="El pasaporte debe tener entre 5 y 20 letras o números")
+
+        if len(nombre) < 3:
+            raise HTTPException(status_code=400, detail="El nombre o razón social de facturación es obligatorio")
+        if len(direccion) < 5:
+            raise HTTPException(status_code=400, detail="La dirección de facturación es obligatoria")
+        if not email or not validar_email(email):
+            raise HTTPException(status_code=400, detail="El correo de facturación es inválido")
+
+        if origen == "parte":
+            if not cliente_id:
+                raise HTTPException(status_code=400, detail="Elige a cuál de las partes se factura")
+            cur.execute("""
+                SELECT 1 FROM proceso_partes
+                WHERE proceso_id = %s AND (cliente_id = %s OR empresa_representada_id = %s)
+                LIMIT 1
+            """, (proceso_id, cliente_id, cliente_id))
+            if not cur.fetchone():
+                raise HTTPException(status_code=400, detail="Esa persona o empresa no es parte de este proceso")
+        else:
+            cliente_id = None
+
+        cur.execute("""
+            INSERT INTO proceso_facturacion
+                (proceso_id, origen, cliente_id, tipo_identificacion, identificacion,
+                 nombre, direccion, email, telefono, actualizado_por_id, fecha_actualizacion)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+            ON CONFLICT (proceso_id) DO UPDATE SET
+                origen = EXCLUDED.origen,
+                cliente_id = EXCLUDED.cliente_id,
+                tipo_identificacion = EXCLUDED.tipo_identificacion,
+                identificacion = EXCLUDED.identificacion,
+                nombre = EXCLUDED.nombre,
+                direccion = EXCLUDED.direccion,
+                email = EXCLUDED.email,
+                telefono = EXCLUDED.telefono,
+                actualizado_por_id = EXCLUDED.actualizado_por_id,
+                fecha_actualizacion = NOW()
+        """, (proceso_id, origen, cliente_id, tipo_identificacion, identificacion,
+              nombre, direccion, email, telefono, usuario["id"]))
+
+        registrar_auditoria(
+            cur, usuario, "guardar_facturacion", "proceso", proceso_id,
+            f"Facturación de {p['codigo_proceso']}: {nombre} ({identificacion})"
+        )
+        conn.commit()
+        return _consulta_facturacion(cur, proceso_id)
+    except HTTPException:
+        conn.rollback()
+        raise
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.get("/actas/atrasadas")
 def actas_atrasadas(dias: int = 5, usuario=Depends(obtener_usuario_actual)):
     """Para el administrador: procesos cerrados con acuerdo que llevan más
@@ -4732,6 +4891,12 @@ def obtener_actas_finales(
                 p.tema,
                 (p.acta_firmada_ruta IS NOT NULL) AS tiene_acta_firmada,
                 p.requiere_acta_firmada,
+                fac.nombre AS fact_nombre,
+                fac.tipo_identificacion AS fact_tipo_identificacion,
+                fac.identificacion AS fact_identificacion,
+                fac.direccion AS fact_direccion,
+                fac.email AS fact_email,
+                fac.telefono AS fact_telefono,
                 cd.nombre || ' ' || cd.apellido AS demandante,
                 cd.cedula AS demandante_cedula,
                 cdd.nombre || ' ' || cdd.apellido AS demandado,
@@ -4748,6 +4913,7 @@ def obtener_actas_finales(
             JOIN sucursales s ON p.sucursal_id = s.id
             JOIN ciudades ci ON s.ciudad_id = ci.id
             JOIN usuarios u ON ap.usuario_id = u.id
+            LEFT JOIN proceso_facturacion fac ON fac.proceso_id = p.id
             WHERE 1=1
         """
 
@@ -6179,7 +6345,8 @@ def exportar_reporte_excel(
 
         encabezados = [
             "Código de acta", "Solicitante", "Invitado", "Ciudad",
-            "Sucursal", "Mediador", "Fecha de subida"
+            "Sucursal", "Mediador", "Fecha de subida",
+            "Facturar a", "Identificación", "Dirección", "Correo", "Teléfono"
         ]
 
         filas_excel = [
@@ -6190,7 +6357,12 @@ def exportar_reporte_excel(
                 f.get("ciudad"),
                 f.get("sucursal"),
                 f.get("usuario"),
-                str(f.get("fecha_subida") or "")
+                str(f.get("fecha_subida") or ""),
+                f.get("fact_nombre") or "",
+                f.get("fact_identificacion") or "",
+                f.get("fact_direccion") or "",
+                f.get("fact_email") or "",
+                f.get("fact_telefono") or ""
             ]
             for f in filas
         ]
