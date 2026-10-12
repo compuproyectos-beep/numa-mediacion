@@ -25,6 +25,11 @@ import {
 import { getCiudadesCached, getSucursalesCached } from '@/lib/catalogCache';
 
 import { isAdmin } from '@/lib/auth';
+import { accionProceso } from '@/lib/accionProceso';
+
+// Qué le toca hacer a quien mira la lista en este proceso (el botón lo dice
+// en vez de un "Gestionar" genérico).
+const accionDe = (p: any) => accionProceso(p, isAdmin());
 
 export default function ProcesosPage() {
   const router = useRouter();
@@ -478,12 +483,11 @@ export default function ProcesosPage() {
                     e.stopPropagation();
                     router.push(`/procesos/${p.id}`);
                   }}
-                  className="btn-secondary btn-sm shrink-0 self-start lg:self-center"
+                  className={`${
+                    accionDe(p).urgente && !isAdmin() ? 'btn-primary' : 'btn-secondary'
+                  } btn-sm shrink-0 self-start lg:self-center`}
                 >
-                  {p.estado === 'en_negociacion' ||
-                  (p.estado === 'cerrado_con_acuerdo' && p.etapa_acta !== 'completa')
-                    ? 'Gestionar'
-                    : 'Ver'}
+                  {accionDe(p).texto}
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>

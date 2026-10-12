@@ -2582,6 +2582,7 @@ def obtener_citas(
             SELECT
                 c.id,
                 c.acta_id,
+                c.proceso_id,
                 c.cliente_demandante_id,
                 c.cliente_demandado_id,
                 c.sucursal_id,
@@ -2967,6 +2968,15 @@ def obtener_procesos_mediacion(
                     SELECT 1 FROM citas c
                     WHERE c.proceso_id = p.id AND c.estado = 'pendiente'
                 ) AS tiene_invitacion_pendiente,
+                -- Fecha y hora de esa invitación pendiente: el frontend las
+                -- usa para decir qué toca hacer (agendar, esperar la
+                -- reunión o registrar su resultado si ya pasó).
+                (SELECT c.fecha FROM citas c
+                  WHERE c.proceso_id = p.id AND c.estado = 'pendiente'
+                  ORDER BY c.fecha, c.hora LIMIT 1) AS proxima_cita_fecha,
+                (SELECT c.hora FROM citas c
+                  WHERE c.proceso_id = p.id AND c.estado = 'pendiente'
+                  ORDER BY c.fecha, c.hora LIMIT 1) AS proxima_cita_hora,
                 cd.nombre || ' ' || cd.apellido AS demandante,
                 cd.cedula AS demandante_cedula,
                 cdd.nombre || ' ' || cdd.apellido AS demandado,

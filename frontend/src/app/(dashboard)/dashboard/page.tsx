@@ -22,6 +22,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { GuiaBienvenida, useGuiaBienvenida } from '@/components/dashboard/GuiaBienvenida';
 import ResumenActasMes from '@/components/dashboard/ResumenActasMes';
 import AlertaActasAtrasadas from '@/components/dashboard/AlertaActasAtrasadas';
+import MiDia from '@/components/dashboard/MiDia';
 
 // Cada tarjeta clickeable del resumen corresponde a un filtro de estado de
 // procesos, salvo "actas_finales" que no es un estado de proceso sino la
@@ -246,6 +247,9 @@ export default function DashboardPage() {
       ) : stats ? (
         <div className="space-y-6 animate-fade-in">
           {isAdmin && <AlertaActasAtrasadas />}
+
+          {/* Para el mediador: lo que le toca hoy, antes que las cifras. */}
+          {!isAdmin && <MiDia />}
 
           {/* Las cajas van directo sobre el fondo de la página: sus colores
               suaves ya las distinguen, sin franja detrás. */}
