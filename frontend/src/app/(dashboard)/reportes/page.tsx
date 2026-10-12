@@ -46,6 +46,17 @@ const ETIQUETAS_CITA: Record<string, string> = {
   cancelada: 'Cancelada'
 };
 
+// fecha_acuerdo viene en UTC sin zona horaria: se convierte a fecha de Ecuador.
+const fechaAcuerdoEC = (v: any) => {
+  if (!v) return '—';
+  const iso = String(v).replace(' ', 'T');
+  const d = new Date(/(Z|[+-]\d\d:?\d\d)$/.test(iso) ? iso : `${iso}Z`);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('es-EC', {
+    timeZone: 'America/Guayaquil', day: '2-digit', month: '2-digit', year: 'numeric'
+  });
+};
+
 const formatoFecha = (v: any) => {
   if (!v) return '—';
   const [y, m, d] = String(v).slice(0, 10).split('-');
@@ -901,7 +912,7 @@ export default function ReportesPage() {
                         <td className="table-cell">{p.demandado}</td>
                         {admin && <td className="table-cell">{p.mediador}</td>}
                         <td className="table-cell">{labelSucursal(p)}</td>
-                        <td className="table-cell">{formatoFecha(p.fecha_acuerdo)}</td>
+                        <td className="table-cell">{fechaAcuerdoEC(p.fecha_acuerdo)}</td>
                         <td className="table-cell">{p.etapa || '—'}</td>
                         <td className="table-cell">
                           {p.horas_transcurridas == null

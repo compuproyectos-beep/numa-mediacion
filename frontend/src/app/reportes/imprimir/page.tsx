@@ -32,6 +32,17 @@ const ETIQUETAS_CITA: Record<string, string> = {
   cancelada: 'Cancelada'
 };
 
+// fecha_acuerdo viene en UTC sin zona horaria: se convierte a fecha de Ecuador.
+const fechaAcuerdoEC = (v: any) => {
+  if (!v) return '—';
+  const iso = String(v).replace(' ', 'T');
+  const d = new Date(/(Z|[+-]\d\d:?\d\d)$/.test(iso) ? iso : `${iso}Z`);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('es-EC', {
+    timeZone: 'America/Guayaquil', day: '2-digit', month: '2-digit', year: 'numeric'
+  });
+};
+
 const fmtFecha = (v: any) => {
   if (!v) return '—';
   const [y, m, d] = String(v).slice(0, 10).split('-');
@@ -621,7 +632,7 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2">{p.demandado}</td>
                       <td className="py-1.5 pr-2">{p.mediador || '—'}</td>
                       <td className="py-1.5 pr-2">{p.sucursal ? `${p.sucursal}${p.ciudad ? ` (${p.ciudad})` : ''}` : '—'}</td>
-                      <td className="py-1.5 pr-2">{fmtFecha(p.fecha_acuerdo)}</td>
+                      <td className="py-1.5 pr-2">{fechaAcuerdoEC(p.fecha_acuerdo)}</td>
                       <td className="py-1.5 pr-2">{p.etapa || '—'}</td>
                       <td className="py-1.5 pr-2">{p.horas_transcurridas == null ? '—' : Math.floor(p.horas_transcurridas / 24)}</td>
                     </tr>

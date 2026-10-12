@@ -6162,7 +6162,9 @@ def exportar_reporte_excel(
         filas_excel = [
             [f.get("demandante"), f.get("demandado"),
              f.get("mediador"), f.get("sucursal"), f.get("ciudad"), f.get("tema"),
-             str(f.get("fecha_acuerdo") or "")[:16],
+             # fecha_acuerdo está en UTC: se muestra en hora de Ecuador.
+             ((f["fecha_acuerdo"] - datetime.timedelta(hours=5)).strftime("%d/%m/%Y %H:%M")
+              if f.get("fecha_acuerdo") else ""),
              f.get("etapa"),
              (f.get("horas_transcurridas") // 24) if f.get("horas_transcurridas") is not None else ""]
             for f in filas
