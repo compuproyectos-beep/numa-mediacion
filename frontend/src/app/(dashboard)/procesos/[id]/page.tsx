@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon, Eye, Download, Receipt, ArrowRightCircle } from 'lucide-react';
+import PasosProceso from '@/components/procesos/PasosProceso';
+import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon, Eye, Download, Receipt } from 'lucide-react';
 import { isAdmin as esAdminSesion } from '@/lib/auth';
 import PartesProceso from '@/components/procesos/PartesProceso';
 import FacturacionProceso from '@/components/procesos/FacturacionProceso';
@@ -547,6 +548,35 @@ export default function ProcesoDetallePage() {
       : 'Todas las invitaciones están resueltas. Agenda la siguiente invitación o cierra el proceso.';
   })();
 
+  // Línea de pasos de arriba. Si el proceso cierra sin acuerdo o se archiva,
+  // el camino termina en "Resultado"; si hay acuerdo, sigue con facturación,
+  // acta y acta firmada. Un proceso anulado no muestra la línea.
+  const pasosProceso = (() => {
+    if (!proceso || proceso.estado === 'anulado') return null;
+
+    const hayInvitacion = citasProceso.length > 0;
+    const cerrado = proceso.estado !== 'en_negociacion';
+    const conAcuerdo = proceso.estado === 'cerrado_con_acuerdo';
+
+    const base = [
+      // Si el proceso ya cerró, es porque hubo al menos una invitación.
+      { etiqueta: 'Invitación', hecho: hayInvitacion || cerrado },
+      { etiqueta: 'Resultado', hecho: cerrado }
+    ];
+
+    if (cerrado && !conAcuerdo) return base;
+
+    return [
+      ...base,
+      { etiqueta: 'Facturación', hecho: tieneFacturacion === true },
+      { etiqueta: 'Acta y comprobante', hecho: !!proceso.finalizado },
+      {
+        etiqueta: 'Acta firmada',
+        hecho: !!proceso.finalizado && proceso.etapa_acta !== 'falta_firmada'
+      }
+    ];
+  })();
+
   // El backend guarda fecha_acuerdo con NOW() en UTC, pero como la columna
   // es TIMESTAMP sin zona horaria, psycopg2/FastAPI la devuelven como texto
   // "naive" (sin la "Z" al final). Si se le pasa tal cual a `new Date(...)`,
@@ -678,15 +708,7 @@ export default function ProcesoDetallePage() {
         </div>
       ) : null}
 
-      {siguientePaso && (
-        <div className="mb-4 text-sm px-4 py-3 rounded-md border border-gold-400/40 bg-gold-400/10 text-numa-800 flex items-start gap-2.5">
-          <ArrowRightCircle className="w-4 h-4 mt-0.5 text-gold-600 shrink-0" aria-hidden="true" />
-          <span>
-            <span className="font-semibold text-numa-900">Siguiente paso: </span>
-            {siguientePaso}
-          </span>
-        </div>
-      )}
+      <PasosProceso pasos={pasosProceso} mensaje={siguientePaso} />
 
       {proceso.estado === 'anulado' && (
         <div className="mb-4 text-sm px-4 py-3 rounded-sm border border-red-200 bg-red-50 text-red-700">
