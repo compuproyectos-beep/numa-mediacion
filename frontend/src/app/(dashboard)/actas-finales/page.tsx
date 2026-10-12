@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { FileText, Download, Eye, CheckCircle2, Clock } from 'lucide-react';
-import DocFila from '@/components/procesos/DocFila';
+import { FileText, Download, Eye, CheckCircle2, Clock, History, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import {
   PageHeader,
@@ -449,7 +448,7 @@ const handleExportarZip = async () => {
               a.ruta_comprobante_pago ? 'border-l-green-500' : 'border-l-amber-400'
             }`}
           >
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-numa-500" />
@@ -508,97 +507,121 @@ const handleExportarZip = async () => {
 
               </div>
 
-              <div className="flex flex-col gap-1 lg:items-end">
-                <div className="space-y-0.5">
-                  {(
-                    <DocFila
-                      etiqueta="Acta final"
-                      textoVer="Ver acta"
-                      onVer={() => handleVerPdf(a.id)}
-                      onDescargar={isAdmin ? () => handleDescargarPdf(a.id, a.codigo_acta) : undefined}
-                    />
+              {/* Documentos: una grilla de 3 columnas (nombre · ver · descargar)
+                  para que todo quede alineado, con las acciones de control
+                  del administrador separadas abajo. */}
+              <div className="lg:w-[370px] shrink-0 border-t border-numa-100 pt-3 lg:border-t-0 lg:pt-0 lg:border-l lg:pl-5">
+                <p className="text-[11px] font-semibold text-numa-500 uppercase tracking-wider mb-2">
+                  Documentos
+                </p>
+                <div className="grid grid-cols-[1fr_auto_2rem] items-center gap-x-2 gap-y-2 text-sm">
+                  <span className="text-numa-700">Acta final</span>
+                  <button type="button" onClick={() => handleVerPdf(a.id)} className="btn-secondary btn-sm w-[7.5rem]">
+                    <Eye className="w-3.5 h-3.5" /> Ver
+                  </button>
+                  {isAdmin ? (
+                    <button
+                      type="button"
+                      onClick={() => handleDescargarPdf(a.id, a.codigo_acta)}
+                      title="Descargar acta final"
+                      aria-label="Descargar acta final"
+                      className="btn-icon"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                  ) : (
+                    <span />
                   )}
+
                   {a.ruta_comprobante_pago && (
-                    <DocFila
-                      etiqueta="Comprobante de pago"
-                      textoVer="Ver comprobante"
-                      onVer={() => handleVerComprobante(a.id)}
-                      onDescargar={
-                        isAdmin
-                          ? () => handleDescargarComprobante(a.id, a.codigo_acta, a.nombre_comprobante_pago)
-                          : undefined
-                      }
-                    />
+                    <>
+                      <span className="text-numa-700 whitespace-nowrap">Comprobante de pago</span>
+                      <button type="button" onClick={() => handleVerComprobante(a.id)} className="btn-secondary btn-sm w-[7.5rem]">
+                        <Eye className="w-3.5 h-3.5" /> Ver
+                      </button>
+                      {isAdmin ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleDescargarComprobante(a.id, a.codigo_acta, a.nombre_comprobante_pago)
+                          }
+                          title="Descargar comprobante"
+                          aria-label="Descargar comprobante"
+                          className="btn-icon"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <span />
+                      )}
+                    </>
                   )}
+
                   {a.requiere_acta_firmada && (
-                    a.tiene_acta_firmada ? (
-                      <div className="flex items-center gap-2 pt-1">
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Acta firmada subida
-                        </span>
+                    <>
+                      <span className="text-numa-700 inline-flex items-center gap-1.5">
+                        Acta firmada
+                        {a.tiene_acta_firmada ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" aria-label="Subida" />
+                        ) : null}
+                      </span>
+                      {a.tiene_acta_firmada ? (
                         <button
                           type="button"
                           onClick={() => handleVerFirmada(a.proceso_id)}
-                          className="btn-secondary btn-sm"
+                          className="btn-secondary btn-sm w-[7.5rem]"
                         >
-                          <Eye className="w-4 h-4" /> Ver acta firmada
+                          <Eye className="w-3.5 h-3.5" /> Ver
                         </button>
-                        {isAdmin && (
-                          <button
-                            type="button"
-                            onClick={() => handleDescargarFirmada(a.proceso_id, a.codigo_acta)}
-                            title="Descargar acta firmada"
-                            aria-label="Descargar acta firmada"
-                            className="btn-icon"
-                          >
-                            <Download className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 pt-1">
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
-                          <Clock className="w-3.5 h-3.5" /> Falta subir el acta firmada
-                        </span>
-                        <a href={`/procesos/${a.proceso_id}`} className="btn-secondary btn-sm">
-                          Ir al proceso
+                      ) : (
+                        <a
+                          href={`/procesos/${a.proceso_id}`}
+                          title="Ir al proceso para subirla"
+                          className="pill bg-amber-50 text-amber-800 border-amber-200 w-[7.5rem] justify-center hover:bg-amber-100"
+                        >
+                          <Clock className="w-3.5 h-3.5" /> Falta subir
                         </a>
-                      </div>
-                    )
+                      )}
+                      {isAdmin && a.tiene_acta_firmada ? (
+                        <button
+                          type="button"
+                          onClick={() => handleDescargarFirmada(a.proceso_id, a.codigo_acta)}
+                          title="Descargar acta firmada"
+                          aria-label="Descargar acta firmada"
+                          className="btn-icon"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <span />
+                      )}
+                    </>
                   )}
                 </div>
 
-                <div className="flex flex-wrap gap-2 lg:justify-end">
-{isAdmin && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    window.open(
-                      `/actas-finales/${a.id}/historial-imprimir`,
-                      '_blank'
-                    )
-                  }
-                  className="btn-ghost btn-sm"
-                >
-                  Historial
-                </button>
-                )}
-
                 {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActaReemplazar(a);
-                      setArchivoReemplazo(null);
-                      setMotivoReemplazo('');
-                      setMensajeReemplazo('');
-                    }}
-                    className="btn-ghost btn-sm"
-                  >
-                    Reemplazar PDF
-                  </button>
+                  <div className="flex gap-1 mt-3 pt-2 border-t border-numa-100">
+                    <button
+                      type="button"
+                      onClick={() => window.open(`/actas-finales/${a.id}/historial-imprimir`, '_blank')}
+                      className="btn-ghost btn-sm"
+                    >
+                      <History className="w-3.5 h-3.5" /> Historial
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActaReemplazar(a);
+                        setArchivoReemplazo(null);
+                        setMotivoReemplazo('');
+                        setMensajeReemplazo('');
+                      }}
+                      className="btn-ghost btn-sm"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" /> Reemplazar PDF
+                    </button>
+                  </div>
                 )}
-                </div>
               </div>
             </div>
           </div>
