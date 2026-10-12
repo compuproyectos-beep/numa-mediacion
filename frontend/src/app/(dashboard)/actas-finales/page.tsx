@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Eye, Download, FileText, Receipt } from 'lucide-react';
+import { FileText, Download } from 'lucide-react';
+import DocFila from '@/components/procesos/DocFila';
 import { useAuth } from '@/hooks/useAuth';
 import {
   PageHeader,
@@ -16,6 +17,7 @@ import {
 import {
   getActasFinales,
   descargarPdfActaFinal,
+  descargarActaFirmada,
   descargarComprobantePagoActaFinal,
   reemplazarPdfActaFinal,
   exportarActasFinalesZip,
@@ -126,6 +128,33 @@ export default function ActasFinalesPage() {
       window.open(url, '_blank');
     } catch {
       setError('No se pudo abrir el comprobante de pago');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleVerFirmada = async (procesoId: number) => {
+    try {
+      const blob = await descargarActaFirmada(procesoId);
+      window.open(window.URL.createObjectURL(blob), '_blank');
+    } catch {
+      setError('No se pudo abrir el acta firmada');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleDescargarFirmada = async (procesoId: number, codigoActa: string) => {
+    try {
+      const blob = await descargarActaFirmada(procesoId);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `acta_firmada_${codigoActa}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setError('No se pudo descargar el acta firmada');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
@@ -464,62 +493,37 @@ const handleExportarZip = async () => {
 
               </div>
 
-              <div className="flex flex-wrap gap-2 lg:justify-end">
-                {/* Ver/descargar acta y comprobante: solo el administrador.
-                    El mediador ya no ve estos botones (pedido del abogado). */}
-                {isAdmin && (
-                <>
-                <button
-                  type="button"
-                  onClick={() => handleVerPdf(a.id)}
-                  className="btn-ghost text-xs py-1 px-2"
-                >
-                  <Eye className="w-4 h-4" />
-                  Ver PDF
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleDescargarPdf(a.id, a.codigo_acta)}
-                  className="btn-ghost text-xs py-1 px-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Descargar
-                </button>
-
-                {/* Solo aparece si esta acta ya tiene comprobante de pago
-                    registrado — las actas subidas antes de exigir el
-                    comprobante junto con el acta no lo tienen. */}
-                {a.ruta_comprobante_pago && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => handleVerComprobante(a.id)}
-                      className="btn-ghost text-xs py-1 px-2"
-                    >
-                      <Receipt className="w-4 h-4" />
-                      Ver comprobante
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleDescargarComprobante(
-                          a.id,
-                          a.codigo_acta,
-                          a.nombre_comprobante_pago
-                        )
+              <div className="flex flex-col gap-1 lg:items-end">
+                <div className="space-y-0.5">
+                  {isAdmin && (
+                    <DocFila
+                      etiqueta="Acta final (mediador)"
+                      onVer={() => handleVerPdf(a.id)}
+                      onDescargar={() => handleDescargarPdf(a.id, a.codigo_acta)}
+                    />
+                  )}
+                  {isAdmin && a.ruta_comprobante_pago && (
+                    <DocFila
+                      etiqueta="Comprobante de pago"
+                      onVer={() => handleVerComprobante(a.id)}
+                      onDescargar={() =>
+                        handleDescargarComprobante(a.id, a.codigo_acta, a.nombre_comprobante_pago)
                       }
-                      className="btn-ghost text-xs py-1 px-2"
-                    >
-                      <Download className="w-4 h-4" />
-                      Descargar comprobante
-                    </button>
-                  </>
-                )}
-                </>
-                )}
+                    />
+                  )}
+                  {a.requiere_acta_firmada && (
+                    <DocFila
+                      etiqueta="Acta firmada (partes)"
+                      pendiente={a.tiene_acta_firmada ? undefined : 'Pendiente de subir'}
+                      onVer={() => handleVerFirmada(a.proceso_id)}
+                      onDescargar={
+                        isAdmin ? () => handleDescargarFirmada(a.proceso_id, a.codigo_acta) : undefined
+                      }
+                    />
+                  )}
+                </div>
 
+                <div className="flex flex-wrap gap-2 lg:justify-end">
                 <button
                   type="button"
                   onClick={() =>
@@ -547,6 +551,7 @@ const handleExportarZip = async () => {
                     Reemplazar PDF
                   </button>
                 )}
+                </div>
               </div>
             </div>
           </div>

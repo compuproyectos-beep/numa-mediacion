@@ -6,6 +6,7 @@ import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon, Eye, Download, Re
 import { isAdmin as esAdminSesion } from '@/lib/auth';
 import PartesProceso from '@/components/procesos/PartesProceso';
 import ActaFlujoProceso from '@/components/procesos/ActaFlujoProceso';
+import DocFila from '@/components/procesos/DocFila';
 import CalendarioAgendaMediador from '@/components/citas/CalendarioAgendaMediador';
 import {
   Spinner,
@@ -949,7 +950,7 @@ export default function ProcesoDetallePage() {
         {expedienteProceso?.acta_final && (
           <div className="card p-4 bg-green-50/40 border-green-100">
             <h3 className="text-sm font-semibold text-green-800 mb-3">
-              Acta final subida
+              Acta final y comprobante
             </h3>
 
             {/* Código acta se queda fijo a la izquierda (como estaba antes),
@@ -963,62 +964,37 @@ export default function ProcesoDetallePage() {
                 </span>
               </p>
 
-              {/* Solo el administrador ve los botones de acta y comprobante. */}
-              {esAdminSesion() && (
-              <div className="flex flex-wrap gap-2 flex-1 justify-center">
-                <button
-                  type="button"
-                  onClick={() => handleVerPdfActaFinal(expedienteProceso.acta_final.id)}
-                  className="btn-ghost text-xs py-1 px-2"
-                >
-                  <Eye className="w-4 h-4" />
-                  Ver PDF
-                </button>
+            </div>
 
-                <button
-                  type="button"
-                  onClick={() =>
+            {/* Solo el administrador ve el acta del mediador y el comprobante.
+                El acta firmada se ve en el bloque "Proceso completo" de abajo. */}
+            {esAdminSesion() && (
+              <div className="mt-2 space-y-0.5">
+                <DocFila
+                  etiqueta="Acta final (mediador)"
+                  onVer={() => handleVerPdfActaFinal(expedienteProceso.acta_final.id)}
+                  onDescargar={() =>
                     handleDescargarPdfActaFinal(
                       expedienteProceso.acta_final.id,
                       expedienteProceso.acta_final.codigo_acta
                     )
                   }
-                  className="btn-ghost text-xs py-1 px-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Descargar
-                </button>
-
+                />
                 {expedienteProceso.acta_final.nombre_comprobante_pago && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => handleVerComprobanteActaFinal(expedienteProceso.acta_final.id)}
-                      className="btn-ghost text-xs py-1 px-2"
-                    >
-                      <Receipt className="w-4 h-4" />
-                      Ver comprobante
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleDescargarComprobanteActaFinal(
-                          expedienteProceso.acta_final.id,
-                          expedienteProceso.acta_final.codigo_acta,
-                          expedienteProceso.acta_final.nombre_comprobante_pago
-                        )
-                      }
-                      className="btn-ghost text-xs py-1 px-2"
-                    >
-                      <Download className="w-4 h-4" />
-                      Descargar comprobante
-                    </button>
-                  </>
+                  <DocFila
+                    etiqueta="Comprobante de pago"
+                    onVer={() => handleVerComprobanteActaFinal(expedienteProceso.acta_final.id)}
+                    onDescargar={() =>
+                      handleDescargarComprobanteActaFinal(
+                        expedienteProceso.acta_final.id,
+                        expedienteProceso.acta_final.codigo_acta,
+                        expedienteProceso.acta_final.nombre_comprobante_pago
+                      )
+                    }
+                  />
                 )}
               </div>
-              )}
-            </div>
+            )}
 
             <p className="text-sm text-green-700 mt-1">
               Subido por: {expedienteProceso.acta_final.subido_por || '—'}

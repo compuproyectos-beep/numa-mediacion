@@ -4339,21 +4339,20 @@ async def subir_acta_firmada(
 
 @app.get("/procesos/{proceso_id}/acta-firmada")
 def ver_acta_firmada(proceso_id: int, usuario=Depends(obtener_usuario_actual)):
-    # Igual que el acta escaneada y el comprobante: solo el administrador
-    # puede verla/descargarla; el mediador solo la sube.
-    if usuario["rol"] != "administrador":
-        raise HTTPException(status_code=403, detail="Solo el administrador puede ver el acta firmada")
-
+    # El administrador ve cualquier acta firmada; el mediador solo la de
+    # sus propios procesos.
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
         cur.execute(
-            "SELECT codigo_proceso, acta_firmada_ruta FROM procesos_mediacion WHERE id = %s",
+            "SELECT codigo_proceso, acta_firmada_ruta, usuario_id FROM procesos_mediacion WHERE id = %s",
             (proceso_id,)
         )
         p = cur.fetchone()
         if not p or not p["acta_firmada_ruta"]:
             raise HTTPException(status_code=404, detail="Acta firmada no encontrada")
+        if usuario["rol"] != "administrador" and p["usuario_id"] != usuario["id"]:
+            raise HTTPException(status_code=403, detail="No tienes permiso para ver esta acta firmada")
 
         base_url, key, bucket = _supabase_config()
         resp = requests.get(
@@ -4729,6 +4728,8 @@ def obtener_actas_finales(
                 p.id AS proceso_id,
                 p.codigo_proceso,
                 p.tema,
+                (p.acta_firmada_ruta IS NOT NULL) AS tiene_acta_firmada,
+                p.requiere_acta_firmada,
                 cd.nombre || ' ' || cd.apellido AS demandante,
                 cd.cedula AS demandante_cedula,
                 cdd.nombre || ' ' || cdd.apellido AS demandado,

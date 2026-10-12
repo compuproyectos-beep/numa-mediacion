@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Printer, Upload, Eye, PauseCircle, PlayCircle, Pencil } from 'lucide-react';
+import DocFila from './DocFila';
 import { Modal, ErrorAlert, TextareaField } from '@/components/ui';
 import {
   subirActaFirmada,
@@ -61,6 +62,22 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
       window.open(window.URL.createObjectURL(blob), '_blank');
     } catch {
       setError('No se pudo abrir el acta firmada');
+    }
+  };
+
+  const descargarFirmada = async () => {
+    try {
+      const blob = await descargarActaFirmada(proceso.id);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `acta_firmada_${proceso.codigo_proceso}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setError('No se pudo descargar el acta firmada');
     }
   };
 
@@ -222,13 +239,15 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
               ? `El acta firmada se subió el ${fmt(proceso.acta_firmada_fecha)}.`
               : 'Proceso anterior a la regla del acta firmada.'}
           </p>
-          <div className="flex flex-wrap gap-2">
-            {botonImprimir}
-            {esAdmin && proceso.tiene_acta_firmada && (
-              <button type="button" onClick={verFirmada} className="btn-ghost text-xs">
-                <Eye className="w-4 h-4" /> Ver acta firmada
-              </button>
+          <div className="space-y-2">
+            {proceso.tiene_acta_firmada && (
+              <DocFila
+                etiqueta="Acta firmada (partes)"
+                onVer={verFirmada}
+                onDescargar={esAdmin ? descargarFirmada : undefined}
+              />
             )}
+            <div>{botonImprimir}</div>
           </div>
         </div>
       )}
