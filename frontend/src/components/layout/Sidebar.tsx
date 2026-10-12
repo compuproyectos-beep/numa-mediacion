@@ -171,19 +171,18 @@ export default function Sidebar() {
           </div>
 
           <div className="min-w-0 flex-1 text-left">
-            <div className="flex items-center gap-1.5">
-              <p
-                className="text-sm font-medium text-white truncate font-sans"
-                title={user?.email}
-              >
-                {user?.nombre
-                  ? `${user.nombre} ${user.apellido ?? ''}`.trim()
-                  : user?.username}
-              </p>
-              <span className="shrink-0 text-[9px] font-medium capitalize text-gold-400 bg-gold-400/10 rounded-full px-1.5 py-0.5 font-sans">
-                {user?.rol}
-              </span>
-            </div>
+            {/* Nombre solo en su línea para que se lea completo; el rol va debajo. */}
+            <p
+              className="text-sm font-medium text-white truncate font-sans leading-tight"
+              title={user?.nombre ? `${user.nombre} ${user.apellido ?? ''}`.trim() : user?.username}
+            >
+              {user?.nombre
+                ? `${user.nombre} ${user.apellido ?? ''}`.trim()
+                : user?.username}
+            </p>
+            <span className="inline-block mt-1 text-[9px] font-medium capitalize text-gold-400 bg-gold-400/10 rounded-full px-1.5 py-0.5 font-sans">
+              {user?.rol}
+            </span>
             <p
               className="text-[11px] text-white/40 truncate font-sans"
               title={user?.email}
