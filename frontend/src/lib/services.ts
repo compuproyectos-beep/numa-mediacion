@@ -280,6 +280,7 @@ export async function createUsuario(payload: any): Promise<any> {
       password: payload.password,
       rol: payload.rol,
       sucursal_id: payload.sucursal_id,
+      telefono: payload.telefono,
     },
   });
 
@@ -295,6 +296,7 @@ export async function updateUsuario(id: number, payload: any): Promise<any> {
       email: payload.email,
       rol: payload.rol,
       sucursal_id: payload.sucursal_id,
+      telefono: payload.telefono,
     },
   });
 

@@ -139,13 +139,17 @@ function ImprimirInvitacion() {
           );
           setPie(`${dir || ''}\n${d.proceso?.ciudad || ''}, Ecuador`.trim());
         }
-        let tel = d.proceso?.sucursal_telefono || '';
-        try {
-          const guardado = window.localStorage.getItem('numa_tel_invitacion');
-          if (guardado) tel = guardado;
-        } catch {
-          /* sin almacenamiento: se queda con el valor por defecto */
+        // Primero el teléfono guardado en el perfil del mediador; si no tiene,
+        // el último que se escribió en este navegador; y si no, el de la sucursal.
+        let tel = d.proceso?.mediador_telefono || '';
+        if (!tel) {
+          try {
+            tel = window.localStorage.getItem('numa_tel_invitacion') || '';
+          } catch {
+            /* sin almacenamiento: se queda con el valor por defecto */
+          }
         }
+        if (!tel) tel = d.proceso?.sucursal_telefono || '';
         setTelefono(tel);
       })
       .catch((e) =>

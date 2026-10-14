@@ -1904,6 +1904,19 @@ def editar_sucursal(
 # =========================
 # LISTAR USUARIOS
 # =========================
+def _telefono_usuario(telefono):
+    """Teléfono del mediador (para las invitaciones): opcional; si viene,
+    debe tener 10 dígitos. Devuelve solo los dígitos o None."""
+    if telefono is None:
+        return None
+    limpio = re.sub(r"\D", "", telefono)
+    if not limpio:
+        return None
+    if len(limpio) != 10:
+        raise HTTPException(status_code=400, detail="El teléfono debe tener 10 dígitos")
+    return limpio
+
+
 @app.post("/usuarios")
 def crear_usuario(
     nombre: str,
@@ -1913,6 +1926,7 @@ def crear_usuario(
     password: str = None,
     rol: str = "mediador",
     sucursal_id: int = 1,
+    telefono: str = None,
     usuario=Depends(obtener_usuario_actual)
 ):
     if usuario["rol"] != "administrador":
@@ -1983,6 +1997,7 @@ def crear_usuario(
             )
 
         verificar_cedula_misma_persona(cur, cedula, nombre, apellido, "clientes")
+        telefono = _telefono_usuario(telefono)
 
         password_generada_automaticamente = not password
 
@@ -2012,13 +2027,14 @@ def crear_usuario(
                 email,
                 password_hash,
                 rol,
+                telefono,
                 activo,
                 debe_cambiar_password,
                 fecha_creacion,
                 fecha_modificacion
             )
             VALUES (
-                %s, %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s, %s, %s,
                 true,
                 %s,
                 NOW(),
@@ -2043,6 +2059,7 @@ def crear_usuario(
             email,
             password_hash,
             rol,
+            telefono,
             debe_cambiar_password
         ))
 
@@ -2141,6 +2158,7 @@ def editar_usuario(
     email: str,
     rol: str,
     sucursal_id: int,
+    telefono: str = None,
     usuario=Depends(obtener_usuario_actual)
 ):
     if usuario["rol"] != "administrador":
@@ -2187,6 +2205,14 @@ def editar_usuario(
 
         verificar_cedula_misma_persona(cur, cedula, nombre, apellido, "clientes")
 
+        # El teléfono es opcional: si no viene en la petición se deja como
+        # está; si viene vacío se borra.
+        if telefono is not None:
+            cur.execute(
+                "UPDATE usuarios SET telefono = %s WHERE id = %s",
+                (_telefono_usuario(telefono), id)
+            )
+
         cur.execute("""
             UPDATE usuarios
             SET nombre = %s, apellido = %s, cedula = %s, email = %s,
@@ -2194,7 +2220,7 @@ def editar_usuario(
             WHERE id = %s
             RETURNING
                 id, sucursal_id, nombre, apellido, cedula, email, rol, activo,
-                debe_cambiar_password, fecha_creacion, fecha_modificacion
+                telefono, debe_cambiar_password, fecha_creacion, fecha_modificacion
         """, (nombre, apellido, cedula, email, rol, sucursal_id, id))
 
         usuario_actualizado = cur.fetchone()
@@ -2243,6 +2269,7 @@ def obtener_usuarios(usuario=Depends(obtener_usuario_actual)):
                 u.apellido,
                 u.cedula,
                 u.email,
+                u.telefono,
                 u.rol,
                 u.activo,
                 u.fecha_creacion,
@@ -4960,7 +4987,7 @@ def datos_invitacion_imprimible(proceso_id: int, usuario=Depends(obtener_usuario
                 s.telefono AS sucursal_telefono,
                 ci.nombre AS ciudad,
                 u.nombre AS mediador_nombre, u.apellido AS mediador_apellido,
-                u.cedula AS mediador_cedula
+                u.cedula AS mediador_cedula, u.telefono AS mediador_telefono
             FROM procesos_mediacion p
             JOIN sucursales s ON s.id = p.sucursal_id
             JOIN ciudades ci ON ci.id = s.ciudad_id

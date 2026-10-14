@@ -46,6 +46,7 @@ const emptyForm = {
   apellido: '',
   cedula: '',
   email: '',
+  telefono: '',
   password: '',
   rol: 'mediador',
   sucursal_id: ''
@@ -160,6 +161,7 @@ export default function UsuariosPage() {
       apellido: u.apellido || '',
       cedula: u.cedula || '',
       email: u.email || '',
+      telefono: u.telefono || '',
       password: '',
       rol: u.rol || 'mediador',
       sucursal_id: u.sucursal_id ? String(u.sucursal_id) : ''
@@ -203,6 +205,11 @@ export default function UsuariosPage() {
       return;
     }
 
+    if (form.telefono && form.telefono.length !== 10) {
+      setError('El teléfono debe tener 10 dígitos (o déjalo en blanco)');
+      return;
+    }
+
     if (!editing && form.password.trim() && !validarPassword(form.password)) {
       setPasswordError('La contraseña debe tener al menos 8 caracteres');
       return;
@@ -217,6 +224,7 @@ export default function UsuariosPage() {
           apellido: form.apellido,
           cedula: form.cedula,
           email: form.email,
+          telefono: form.telefono,
           rol: form.rol,
           sucursal_id: Number(form.sucursal_id)
         });
@@ -230,6 +238,7 @@ export default function UsuariosPage() {
           apellido: form.apellido,
           cedula: form.cedula,
           email: form.email,
+          telefono: form.telefono,
           password: form.password,
           rol: form.rol,
           sucursal_id: Number(form.sucursal_id)
@@ -534,6 +543,15 @@ export default function UsuariosPage() {
               placeholder="usuario@correo.com"
             />
           </div>
+
+          <InputField
+            label="Teléfono (opcional, sale en las invitaciones)"
+            value={form.telefono}
+            onChange={(e) =>
+              setForm({ ...form, telefono: e.target.value.replace(/\D/g, '').slice(0, 10) })
+            }
+            placeholder="0991234567"
+          />
 
           {!editing && (
             <>
