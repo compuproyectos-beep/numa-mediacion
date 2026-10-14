@@ -266,7 +266,7 @@ export default function DashboardPage() {
       {loading ? (
         <Spinner />
       ) : stats ? (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-4 animate-fade-in">
           {isAdmin && <AlertaActasAtrasadas />}
 
           {/* Para el mediador: lo que le toca hoy, antes que las cifras. */}
@@ -343,7 +343,7 @@ export default function DashboardPage() {
           {categoriaAbierta && (
             <div
               ref={panelCategoriaRef}
-              className={`rounded-lg border p-6 shadow-sm animate-fade-in ${TEMA_CATEGORIA[categoriaAbierta].panel}`}
+              className={`rounded-lg border p-4 shadow-sm animate-fade-in ${TEMA_CATEGORIA[categoriaAbierta].panel}`}
             >
 
               <div className="flex items-center justify-between mb-4">
@@ -426,9 +426,9 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-6">
-            <div className="card p-6">
-              <div className="flex items-center justify-between mb-5">
+          <div className="grid grid-cols-1 gap-4">
+            <div className="card p-4">
+              <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-semibold text-numa-700 uppercase tracking-wider">
                   Actas finales recientes
                 </h2>
@@ -439,12 +439,12 @@ export default function DashboardPage() {
               </div>
 
               {stats.actas_recientes?.length ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {stats.actas_recientes.map((a: any) => (
                     <div
                       key={a.id}
                       onClick={() => router.push(`/procesos/${a.proceso_id}`)}
-                      className="p-4 border border-numa-100 rounded-sm bg-numa-50 cursor-pointer hover:shadow-md transition-shadow duration-200"
+                      className="px-3 py-2.5 border border-numa-100 rounded-sm bg-numa-50 cursor-pointer hover:shadow-md transition-shadow duration-200"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div>
@@ -452,19 +452,15 @@ export default function DashboardPage() {
                             {a.codigo_acta}
                           </p>
 
-                          <p className="text-sm text-numa-600 mt-1">
+                          <p className="text-sm text-numa-600 mt-0.5">
                             {a.demandante} vs {a.demandado}
                           </p>
 
-                          <p className="text-xs text-numa-400 mt-1">
-                            Proceso: {a.codigo_proceso}
+                          <p className="text-xs text-numa-400 mt-0.5">
+                            Proceso: {a.codigo_proceso} · {a.ciudad || '—'} · {a.sucursal || '—'}
                           </p>
 
-                          <p className="text-xs text-numa-400 mt-1">
-                            {a.ciudad || '—'} · {a.sucursal || '—'}
-                          </p>
-
-                          <p className="text-xs text-numa-400 mt-1">
+                          <p className="text-xs text-numa-400 mt-0.5">
                             Subida por: {a.subida_por || '—'}
                             {isAdmin && a.usuario && a.usuario !== a.subida_por
                               ? ` · Mediador del proceso: ${a.usuario}`

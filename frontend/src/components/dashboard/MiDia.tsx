@@ -69,10 +69,10 @@ export default function MiDia() {
   const todoAlDia = citasHoy.length === 0 && porHacer.length === 0;
 
   return (
-    <section aria-label="Mi día" className="grid gap-4 lg:grid-cols-2">
+    <section aria-label="Mi día" className="grid gap-3 lg:grid-cols-2">
       {/* Invitaciones de hoy */}
-      <div className="card p-5">
-        <div className="flex items-baseline justify-between gap-3 mb-3">
+      <div className="card p-4">
+        <div className="flex items-baseline justify-between gap-3 mb-2">
           <h2 className="text-sm font-bold uppercase tracking-wider text-numa-800 flex items-center gap-2">
             <CalendarDays className="w-4 h-4 text-gold-600" aria-hidden="true" />
             Invitaciones de hoy
@@ -96,7 +96,7 @@ export default function MiDia() {
             )}
           </p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-1.5">
             {citasHoy.map((c) => {
               const paso = citaYaPaso(c.fecha, c.hora);
               const destino = c.proceso_id ? `/procesos/${c.proceso_id}` : '/agenda';
@@ -105,7 +105,7 @@ export default function MiDia() {
                 <li key={c.id}>
                   <Link
                     href={destino}
-                    className="flex items-center gap-3 min-h-[56px] px-3 py-2 rounded-md border border-numa-200 bg-white hover:border-gold-400 hover:bg-gold-50/40 transition-colors"
+                    className="flex items-center gap-3 min-h-[46px] px-3 py-2 rounded-md border border-numa-200 bg-white hover:border-gold-400 hover:bg-gold-50/40 transition-colors"
                   >
                     <span className="text-lg font-semibold text-numa-900 tabular-nums w-14 shrink-0">
                       {hora5(c.hora)}
@@ -140,8 +140,8 @@ export default function MiDia() {
       </div>
 
       {/* Lo que toca hacer */}
-      <div className="card p-5">
-        <div className="flex items-baseline justify-between gap-3 mb-3">
+      <div className="card p-4">
+        <div className="flex items-baseline justify-between gap-3 mb-2">
           <h2 className="text-sm font-bold uppercase tracking-wider text-numa-800 flex items-center gap-2">
             <ListChecks className="w-4 h-4 text-gold-600" aria-hidden="true" />
             Por hacer
@@ -163,12 +163,12 @@ export default function MiDia() {
             </p>
           </div>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-1.5">
             {lista.slice(0, 5).map(({ p, accion }) => (
               <li key={p.id}>
                 <Link
                   href={`/procesos/${p.id}`}
-                  className="flex items-center gap-3 min-h-[56px] px-3 py-2 rounded-md border border-numa-200 bg-white hover:border-gold-400 hover:bg-gold-50/40 transition-colors"
+                  className="flex items-center gap-3 min-h-[46px] px-3 py-2 rounded-md border border-numa-200 bg-white hover:border-gold-400 hover:bg-gold-50/40 transition-colors"
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-medium text-numa-900 truncate">

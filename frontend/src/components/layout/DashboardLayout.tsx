@@ -132,7 +132,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       <main className="lg:pl-56 pt-14 lg:pt-0 min-h-screen">
         <div className="sticky top-0 z-20 bg-numa-50/90 backdrop-blur border-b border-numa-100">
-          <div className="max-w-7xl mx-auto px-6 py-3 flex justify-end">
+          <div className="max-w-7xl mx-auto px-6 py-1.5 flex justify-end">
             <div className="relative" ref={dropdownRef}>
               <button
                 type="button"
@@ -228,7 +228,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </div>
 
-        <div className="p-6 max-w-7xl mx-auto">
+        <div className="px-6 pt-3 pb-5 max-w-7xl mx-auto">
           {children}
         </div>
       </main>
