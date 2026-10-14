@@ -269,8 +269,8 @@ export default function DashboardPage() {
         <div className="space-y-4 animate-fade-in">
           {isAdmin && <AlertaActasAtrasadas />}
 
-          {/* Para el mediador: lo que le toca hoy, antes que las cifras. */}
-          {!isAdmin && <MiDia />}
+          {/* Lo que toca hoy (mediador y administrador), antes que las cifras. */}
+          <MiDia esAdmin={isAdmin} />
 
           {/* Las cajas van directo sobre el fondo de la página: sus colores
               suaves ya las distinguen, sin franja detrás. */}

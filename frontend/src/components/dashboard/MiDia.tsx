@@ -19,7 +19,7 @@ const etiquetaDia = (fecha: string, hoy: string) => {
   return `${d}/${m}/${a}`;
 };
 
-export default function MiDia() {
+export default function MiDia({ esAdmin = false }: { esAdmin?: boolean }) {
   const [citas, setCitas] = useState<any[] | null>(null);
   const [procesos, setProcesos] = useState<any[] | null>(null);
   const hoy = hoyEcuador();
@@ -45,14 +45,14 @@ export default function MiDia() {
   const proxima = pendientes.find((c) => String(c.fecha).slice(0, 10) > hoy);
 
   const porHacer = procesos
-    .map((p) => ({ p, accion: accionProceso(p) }))
+    .map((p) => ({ p, accion: accionProceso(p, esAdmin) }))
     .filter((x) => x.accion.urgente)
     .sort((a, b) => a.accion.prioridad - b.accion.prioridad || b.p.id - a.p.id);
 
   // Procesos con acta pendiente que esperan su turno en la fila (primero se
   // termina el más antiguo). Se muestran al final, en gris.
   const esperando = procesos
-    .map((p) => ({ p, accion: accionProceso(p) }))
+    .map((p) => ({ p, accion: accionProceso(p, esAdmin) }))
     .filter((x) => !x.accion.urgente && x.accion.texto === 'Esperando turno')
     .sort((a, b) => a.p.id - b.p.id);
   const lista = [...porHacer, ...esperando];
