@@ -61,9 +61,18 @@ export default function ImprimirExpedientePage() {
   // Por lado: todos los responsables (con su empresa) y, si hay otras
   // partes que no son responsables, "y más".
   const partes: any[] = data.partes || [];
-  const nombreParte = (p: any) =>
-    `${p.nombre} ${p.apellido || ''}`.trim() +
-    (p.empresa_nombre ? ` — en representación de ${p.empresa_nombre}` : '');
+  const nombreParte = (p: any) => {
+    // Cliente tipo empresa: el responsable es su representante.
+    if (p.tipo === 'empresa') {
+      const emp = (p.razon_social || p.nombre || '').trim();
+      const rep = (p.representante_nombre || '').trim();
+      return rep ? `${rep} — en representación de ${emp}` : emp;
+    }
+    return (
+      `${p.nombre} ${p.apellido || ''}`.trim() +
+      (p.empresa_nombre ? ` — en representación de ${p.empresa_nombre}` : '')
+    );
+  };
   const listaPartes = (rol: string, respaldo: string) => {
     const lado = partes.filter((p) => p.rol === rol);
     if (lado.length === 0) return [respaldo];
