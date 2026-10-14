@@ -1418,7 +1418,7 @@ export default function ProcesoDetallePage() {
 
           <div>
             <label className="block text-sm font-medium text-numa-700 mb-1">
-              Acta final (PDF)
+              {esNoAcuerdo(proceso) ? 'Acta final no acuerdo (PDF)' : 'Acta final (PDF)'}
             </label>
             <input
               type="file"
