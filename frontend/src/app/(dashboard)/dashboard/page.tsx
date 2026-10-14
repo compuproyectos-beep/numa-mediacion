@@ -343,10 +343,10 @@ export default function DashboardPage() {
           {categoriaAbierta && (
             <div
               ref={panelCategoriaRef}
-              className={`rounded-lg border p-4 shadow-sm animate-fade-in ${TEMA_CATEGORIA[categoriaAbierta].panel}`}
+              className={`rounded-lg border p-3 shadow-sm animate-fade-in ${TEMA_CATEGORIA[categoriaAbierta].panel}`}
             >
 
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-2">
                 <h2 className={`text-sm font-bold uppercase tracking-wider flex items-center gap-2 ${TEMA_CATEGORIA[categoriaAbierta].titulo}`}>
                   <ChevronDown className="w-4 h-4" />
                   {CATEGORIAS[categoriaAbierta].titulo}
@@ -355,7 +355,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => router.push(CATEGORIAS[categoriaAbierta].verTodoHref)}
-                  className="btn-secondary btn-sm"
+                  className="btn-secondary btn-sm !py-1"
                 >
                   Mostrar todo
                 </button>
@@ -368,7 +368,7 @@ export default function DashboardPage() {
               ) : listaCategoria.length === 0 ? (
                 <EmptyState message="No hay registros en esta categoría." />
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {listaCategoria.slice(0, 10).map((item: any) => (
                     <div
                       key={item.id}
@@ -379,7 +379,7 @@ export default function DashboardPage() {
                           }`
                         )
                       }
-                      className={`p-4 border rounded-md bg-white cursor-pointer card-lift shadow-sm hover:shadow-md ${TEMA_CATEGORIA[categoriaAbierta].item}`}
+                      className={`px-3 py-2 border rounded-md bg-white cursor-pointer card-lift shadow-sm hover:shadow-md ${TEMA_CATEGORIA[categoriaAbierta].item}`}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 flex-wrap min-w-0">
@@ -403,11 +403,11 @@ export default function DashboardPage() {
                         </span>
                       </div>
 
-                      <p className="text-sm font-medium text-numa-800 mt-1.5 line-clamp-2">
+                      <p className="text-sm font-medium text-numa-800 mt-0.5 line-clamp-1">
                         {item.demandante} <span className="font-normal text-numa-400">vs</span> {item.demandado}
                       </p>
 
-                      <p className="text-xs text-numa-500 mt-1 flex flex-wrap gap-x-3">
+                      <p className="text-xs text-numa-500 mt-0.5 flex flex-wrap gap-x-3">
                         {esCategoriaActas(categoriaAbierta) && <span>Proceso: {item.codigo_proceso}</span>}
                         <span>{item.ciudad || '—'} · {item.sucursal || '—'}</span>
                         {isAdmin && <span>Mediador: {item.usuario || '—'}</span>}
