@@ -13,7 +13,10 @@ import { hoyEcuador } from '@/lib/accionProceso';
 
 type Modelo = 'natural' | 'empresa';
 
-const ORDINALES = ['Primera', 'Segunda', 'Tercera', 'Cuarta', 'Quinta', 'Sexta'];
+const ORDINALES = [
+  'Primera', 'Segunda', 'Tercera', 'Cuarta', 'Quinta', 'Sexta',
+  'Séptima', 'Octava', 'Novena', 'Décima'
+];
 const MESES = [
   'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
@@ -201,11 +204,11 @@ function ImprimirInvitacion() {
             citas[citas.length - 1];
         if (esNueva) {
           setCitaId(0);
-          setTitulo(`${ORDINALES[citas.length] || `Invitación ${citas.length + 1}`} invitación`);
+          setTitulo(`${ORDINALES[citas.length] || `Invitación N.° ${citas.length + 1}`}${ORDINALES[citas.length] ? ' invitación' : ''}`);
         } else if (activa) {
           setCitaId(activa.id);
           const idx = citas.findIndex((c: any) => c.id === activa.id);
-          setTitulo(`${ORDINALES[idx] || `Invitación ${idx + 1}`} invitación`);
+          setTitulo(`${ORDINALES[idx] || `Invitación N.° ${idx + 1}`}${ORDINALES[idx] ? ' invitación' : ''}`);
         }
         setAsunto(d.proceso?.tema || '');
         const hayEmpresa = (d.partes || []).some((p: any) => p.tipo === 'empresa');
@@ -692,7 +695,7 @@ function ImprimirInvitacion() {
                     setCitaId(id);
                     const idx = (data.citas || []).findIndex((c: any) => c.id === id);
                     if (idx >= 0) {
-                      setTitulo(`${ORDINALES[idx] || `Invitación ${idx + 1}`} invitación`);
+                      setTitulo(`${ORDINALES[idx] || `Invitación N.° ${idx + 1}`}${ORDINALES[idx] ? ' invitación' : ''}`);
                       aplicarDocumento(data.citas[idx].documento);
                     }
                   }}
