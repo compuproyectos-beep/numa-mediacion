@@ -89,7 +89,7 @@ export default function ImprimirActaPage() {
   const solicitantes = partes.filter((p: any) => p.rol === 'solicitante');
   const invitados = partes.filter((p: any) => p.rol === 'invitado');
   const mediador = `${proceso.mediador_nombre} ${proceso.mediador_apellido}`.trim();
-  // Acta de no acuerdo: firman solo el solicitante y el mediador, y el
+  // Acta de no acuerdo: firman todas las partes y el mediador, y el
   // mediador certifica que las partes no llegaron a un acuerdo.
   const noAcuerdo = proceso.estado === 'cerrado_sin_acuerdo';
   const fechaActa = noAcuerdo
@@ -154,11 +154,9 @@ export default function ImprimirActaPage() {
     </div>
   );
 
-  const textoCierre = noAcuerdo
-    ? solicitantes.length > 1
-      ? 'Leída el acta, los solicitantes se ratifican en su contenido y la firman junto con el mediador.'
-      : 'Leída el acta, el solicitante se ratifica en su contenido y la firma junto con el mediador.'
-    : 'Leída el acta, las partes se ratifican en su contenido y la firman junto con el mediador.';
+  // En ambas actas (con acuerdo y de no acuerdo) firman todas las partes.
+  const textoCierre =
+    'Leída el acta, las partes se ratifican en su contenido y la firman junto con el mediador.';
 
   return (
     <main className="min-h-screen bg-numa-100 print:bg-white">
@@ -302,7 +300,7 @@ export default function ImprimirActaPage() {
                     marginTop: '16mm'
                   }}
                 >
-                  {(noAcuerdo ? solicitantes : [...solicitantes, ...invitados]).map((p: any) => {
+                  {[...solicitantes, ...invitados].map((p: any) => {
                     const f = datosFirma(p);
                     return firma(
                       `p-${p.id}`,
