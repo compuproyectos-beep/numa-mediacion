@@ -228,6 +228,7 @@ export default function DashboardPage() {
       } else if (info.estadoProceso) {
         data = await getProcesos({
           estado: info.estadoProceso,
+          suspendido: false,
           ...(isAdmin && vista === 'mios' ? { usuario_id: user?.id } : {})
         });
       } else {
@@ -334,6 +335,26 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
             <StatCard
               compacto
+              label={stats.actas_acuerdo === 1 ? 'acta de acuerdo' : 'actas de acuerdo'}
+              value={stats.actas_acuerdo ?? 0}
+              icon={FileCheck}
+              color={TEMA_CATEGORIA.actas_acuerdo.icono} relleno={TEMA_CATEGORIA.actas_acuerdo.caja} textoColor={TEMA_CATEGORIA.actas_acuerdo.texto}
+              onClick={() => toggleCategoria('actas_acuerdo')}
+              active={categoriaAbierta === 'actas_acuerdo'}
+            />
+
+            <StatCard
+              compacto
+              label={stats.actas_no_acuerdo === 1 ? 'acta de no acuerdo' : 'actas de no acuerdo'}
+              value={stats.actas_no_acuerdo ?? 0}
+              icon={FileCheck}
+              color={TEMA_CATEGORIA.actas_no_acuerdo.icono} relleno={TEMA_CATEGORIA.actas_no_acuerdo.caja} textoColor={TEMA_CATEGORIA.actas_no_acuerdo.texto}
+              onClick={() => toggleCategoria('actas_no_acuerdo')}
+              active={categoriaAbierta === 'actas_no_acuerdo'}
+            />
+
+            <StatCard
+              compacto
               label={procesos.en_negociacion === 1 ? 'proceso en negociación' : 'procesos en negociación'}
               value={procesos.en_negociacion ?? 0}
               icon={Clock}
@@ -372,7 +393,7 @@ export default function DashboardPage() {
               active={categoriaAbierta === 'archivado'}
             />
 
-<StatCard
+            <StatCard
               compacto
               label={procesos.suspendidos === 1 ? 'proceso suspendido' : 'procesos suspendidos'}
               value={procesos.suspendidos ?? 0}
@@ -380,26 +401,6 @@ export default function DashboardPage() {
               color={TEMA_CATEGORIA.suspendido.icono} relleno={TEMA_CATEGORIA.suspendido.caja} textoColor={TEMA_CATEGORIA.suspendido.texto}
               onClick={() => toggleCategoria('suspendido')}
               active={categoriaAbierta === 'suspendido'}
-            />
-
-            <StatCard
-              compacto
-              label={stats.actas_acuerdo === 1 ? 'acta de acuerdo' : 'actas de acuerdo'}
-              value={stats.actas_acuerdo ?? 0}
-              icon={FileCheck}
-              color={TEMA_CATEGORIA.actas_acuerdo.icono} relleno={TEMA_CATEGORIA.actas_acuerdo.caja} textoColor={TEMA_CATEGORIA.actas_acuerdo.texto}
-              onClick={() => toggleCategoria('actas_acuerdo')}
-              active={categoriaAbierta === 'actas_acuerdo'}
-            />
-
-            <StatCard
-              compacto
-              label={stats.actas_no_acuerdo === 1 ? 'acta de no acuerdo' : 'actas de no acuerdo'}
-              value={stats.actas_no_acuerdo ?? 0}
-              icon={FileCheck}
-              color={TEMA_CATEGORIA.actas_no_acuerdo.icono} relleno={TEMA_CATEGORIA.actas_no_acuerdo.caja} textoColor={TEMA_CATEGORIA.actas_no_acuerdo.texto}
-              onClick={() => toggleCategoria('actas_no_acuerdo')}
-              active={categoriaAbierta === 'actas_no_acuerdo'}
             />
           </div>
 

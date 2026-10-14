@@ -970,8 +970,8 @@ def dashboard(solo_mios: bool = False, usuario=Depends(obtener_usuario_actual)):
         cur.execute(f"""
             SELECT
                 COUNT(*) FILTER (WHERE estado = 'en_negociacion') AS en_negociacion,
-                COUNT(*) FILTER (WHERE estado = 'cerrado_con_acuerdo') AS cerrados_con_acuerdo,
-                COUNT(*) FILTER (WHERE estado = 'cerrado_sin_acuerdo') AS cerrados_sin_acuerdo,
+                COUNT(*) FILTER (WHERE estado = 'cerrado_con_acuerdo' AND NOT suspendido) AS cerrados_con_acuerdo,
+                COUNT(*) FILTER (WHERE estado = 'cerrado_sin_acuerdo' AND NOT suspendido) AS cerrados_sin_acuerdo,
                 COUNT(*) FILTER (WHERE estado = 'archivado') AS archivados,
                 COUNT(*) FILTER (WHERE suspendido) AS suspendidos
             FROM procesos_mediacion
@@ -3073,6 +3073,8 @@ def obtener_procesos_mediacion(
 
         if suspendido:
             query += " AND p.suspendido = true"
+        elif suspendido is False:
+            query += " AND p.suspendido = false"
 
         if q:
             query += """
