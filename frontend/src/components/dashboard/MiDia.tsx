@@ -211,7 +211,7 @@ export default function MiDia({
                         {c.demandado}
                       </span>
                       <span className="block text-xs text-numa-500 truncate">
-                        {verOtros ? `${c.mediador} · ` : ''}
+                        {verOtros ? `${c.mediador} · ${c.ciudad || '—'} · ` : ''}
                         {c.sucursal || '—'}
                         {paso ? ' · ya pasó la hora' : ''}
                       </span>
@@ -275,7 +275,11 @@ export default function MiDia({
                     </span>
                     <span className="block text-xs text-numa-500 truncate">
                       <span className="code-text">{p.codigo_proceso}</span>
-                      {verOtros && <> · {p.usuario}</>}
+                      {verOtros && (
+                        <>
+                          {' '}· {p.usuario} · {p.ciudad || '—'} · {p.sucursal || '—'}
+                        </>
+                      )}
                     </span>
                   </span>
 
