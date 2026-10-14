@@ -354,7 +354,7 @@ export default function DashboardPage() {
                           </p>
                           {/* Un proceso "cerrado con acuerdo" no significa que ya
                               esté todo listo: se muestra qué le falta. */}
-                          {categoriaAbierta === 'cerrado_con_acuerdo' && etapaActaBadge(item) && (
+                          {(categoriaAbierta === 'cerrado_con_acuerdo' || categoriaAbierta === 'cerrado_sin_acuerdo') && etapaActaBadge(item) && (
                             <Pill {...etapaActaBadge(item)!} />
                           )}
                         </div>

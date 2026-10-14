@@ -2,6 +2,7 @@
 
 import { Fragment, Suspense, useEffect, useState } from 'react';
 import { ESTADO_COLOR_GRAFICO } from '@/lib/estados';
+import { conActa } from '@/lib/actaProceso';
 import { useSearchParams } from 'next/navigation';
 import { Printer } from 'lucide-react';
 import {
@@ -130,7 +131,7 @@ function DetalleProcesos({
   // Primero las que ya tienen acta subida (la más reciente arriba), luego las
   // pendientes de acta y por último las que aún no tienen acta.
   const rango = (p: any) =>
-    p.finalizado ? 0 : p.estado === 'cerrado_con_acuerdo' ? 1 : 2;
+    p.finalizado ? 0 : conActa(p) ? 1 : 2;
   filas = [...filas].sort((a: any, b: any) => {
     const r = rango(a) - rango(b);
     if (r !== 0) return r;
@@ -162,7 +163,7 @@ function DetalleProcesos({
               <tr key={p.id} className="text-numa-600">
                 <td className="py-0.5 pr-2 code-text">{p.codigo_acta || '—'}</td>
                 <td className="py-0.5 pr-2">
-                  {p.estado === 'cerrado_con_acuerdo' && !p.finalizado
+                  {conActa(p) && !p.finalizado
                     ? 'Acta pendiente'
                     : p.finalizado
                     ? 'Acta subida'
@@ -277,7 +278,7 @@ function ImprimirReporteContenido() {
 
   const actasPendientesProcesos =
     tipo === 'procesos'
-      ? datos.filter((p: any) => p.estado === 'cerrado_con_acuerdo' && !p.finalizado).length
+      ? datos.filter((p: any) => conActa(p) && !p.finalizado).length
       : 0;
 
   const barrasResumen: { label: string; valor: number; color?: string }[] | null =
@@ -685,7 +686,7 @@ function ImprimirReporteContenido() {
                     <tr key={p.id} className="border-b border-numa-300">
                       <td className="py-1.5 pr-2">{getEstadoLabel(p.estado)}</td>
                       <td className="py-1.5 pr-2">
-                        {p.estado === 'cerrado_con_acuerdo' && !p.finalizado
+                        {conActa(p) && !p.finalizado
                           ? 'Pendiente'
                           : p.finalizado
                           ? 'Subida'

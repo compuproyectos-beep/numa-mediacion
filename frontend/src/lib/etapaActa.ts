@@ -1,10 +1,11 @@
 import { ETAPA_PILL } from './estados';
+import { conActa } from './actaProceso';
 
 // Etiqueta y color de la etapa del acta de un proceso cerrado con acuerdo:
 // falta_acta -> falta_firmada -> completa (o suspendido). Devuelve null si no
 // hay nada que mostrar (proceso que no cerró con acuerdo, o ya completo).
 export function etapaActaBadge(p: any): { label: string; pill: string; dot: string } | null {
-  if (!p || p.estado !== 'cerrado_con_acuerdo') return null;
+  if (!conActa(p)) return null;
 
   switch (p.etapa_acta) {
     case 'suspendido':
@@ -14,7 +15,10 @@ export function etapaActaBadge(p: any): { label: string; pill: string; dot: stri
         ? { label: 'Falta subir acta', ...ETAPA_PILL.atencion }
         : { label: 'Acta pendiente (en espera)', ...ETAPA_PILL.espera };
     case 'falta_firmada':
-      return { label: 'Falta acta firmada', ...ETAPA_PILL.atencion };
+      return {
+        label: p.pago_pendiente ? 'Falta acta firmada y 2.º pago' : 'Falta acta firmada',
+        ...ETAPA_PILL.atencion
+      };
     default:
       return null;
   }

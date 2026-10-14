@@ -1,6 +1,8 @@
 // Ayudas para decirle al usuario QUÉ le toca hacer en cada proceso, con la
 // hora de Ecuador (el servidor y el navegador pueden estar en otra zona).
 
+import { conActa } from './actaProceso';
+
 const ZONA = 'America/Guayaquil';
 
 // "2026-10-12"
@@ -52,7 +54,7 @@ export function accionProceso(p: any, esAdmin = false): AccionProceso {
     return { texto: 'Agendar invitación', urgente: true, prioridad: 3 };
   }
 
-  if (p.estado === 'cerrado_con_acuerdo') {
+  if (conActa(p)) {
     if (p.etapa_acta === 'falta_firmada') {
       return { texto: 'Subir acta firmada', urgente: true, prioridad: 1 };
     }

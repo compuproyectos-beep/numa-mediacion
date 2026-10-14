@@ -2951,13 +2951,22 @@ def obtener_procesos_mediacion(
                     FROM procesos_mediacion p2
                     WHERE p2.usuario_id = p.usuario_id
                       AND """ + _sql_acta_pendiente("p2") + """
-                    ORDER BY p2.fecha_acuerdo ASC NULLS LAST, p2.id ASC
+                    ORDER BY """ + _sql_fecha_cola("p2") + """ ASC NULLS LAST, p2.id ASC
                     LIMIT 1
                 ) AS _id_bloqueante,
                 p.suspendido,
                 p.motivo_suspension,
                 p.acuerdo_texto,
                 p.requiere_acta_firmada,
+                p.requiere_acta_no_acuerdo,
+                p.pago_en_abonos,
+                p.pago_pendiente,
+                p.monto_total,
+                p.abono1_monto,
+                p.pago_fecha,
+                (SELECT cx.fecha_pago FROM comprobantes_pago_extra cx
+                  WHERE cx.proceso_id = p.id ORDER BY cx.id DESC LIMIT 1) AS pago_final_fecha,
+                af.tipo AS tipo_acta,
                 (p.acta_firmada_ruta IS NOT NULL) AS tiene_acta_firmada,
                 p.acta_firmada_fecha,
                 -- Si ya tiene una invitación pendiente, no se puede agendar
@@ -3078,12 +3087,12 @@ def obtener_procesos_mediacion(
             # Qué proceso lo bloquea (si no es él mismo).
             fila["bloqueante_id"] = (
                 id_bloqueante
-                if (fila["estado"] == "cerrado_con_acuerdo" and not fila["suspendido"]
+                if (_con_acta(fila["estado"], fila["requiere_acta_no_acuerdo"]) and not fila["suspendido"]
                     and id_bloqueante is not None and id_bloqueante != fila["id"])
                 else None
             )
             fila["acta_primero_en_fila"] = bool(
-                fila["estado"] == "cerrado_con_acuerdo"
+                _con_acta(fila["estado"], fila["requiere_acta_no_acuerdo"])
                 and not fila["finalizado"]
                 and not fila["suspendido"]
                 # Sin bloqueante -> libre. Con bloqueante -> solo ese id
@@ -3094,7 +3103,7 @@ def obtener_procesos_mediacion(
             # Etapa del acta de un proceso cerrado con acuerdo:
             # falta_acta -> falta_firmada -> completa (o suspendido).
             etapa = None
-            if fila["estado"] == "cerrado_con_acuerdo":
+            if _con_acta(fila["estado"], fila["requiere_acta_no_acuerdo"]):
                 if fila["suspendido"]:
                     etapa = "suspendido"
                 elif not fila["finalizado"]:
@@ -3116,9 +3125,30 @@ def obtener_procesos_mediacion(
 # por el administrador, al que todavía le falta subir el acta + comprobante
 # o el acta firmada. Ya no hay plazo de 48 horas: bloquea hasta que se
 # complete (o el administrador lo suspenda).
+def _sql_tiene_acta(a: str = "p") -> str:
+    # Procesos que llevan acta: cerrados con acuerdo, o cerrados sin acuerdo
+    # cuando el mediador pidió emitir el acta de no acuerdo.
+    return (
+        f"({a}.estado = 'cerrado_con_acuerdo' OR "
+        f"({a}.estado = 'cerrado_sin_acuerdo' AND {a}.requiere_acta_no_acuerdo))"
+    )
+
+
+def _sql_fecha_cola(a: str = "p") -> str:
+    # Fecha que ordena la fila de actas: la del acuerdo o, en el acta de no
+    # acuerdo, la de cuando se pidió el acta.
+    return f"COALESCE({a}.fecha_acuerdo, {a}.fecha_solicitud_acta_na)"
+
+
+def _con_acta(estado, requiere_na) -> bool:
+    return estado == "cerrado_con_acuerdo" or (
+        estado == "cerrado_sin_acuerdo" and bool(requiere_na)
+    )
+
+
 def _sql_acta_pendiente(a: str = "p") -> str:
     return (
-        f"({a}.estado = 'cerrado_con_acuerdo' AND {a}.suspendido = false AND "
+        f"({_sql_tiene_acta(a)} AND {a}.suspendido = false AND "
         f"({a}.finalizado = false OR "
         f"({a}.requiere_acta_firmada AND {a}.acta_firmada_ruta IS NULL)))"
     )
@@ -4002,6 +4032,10 @@ async def subir_acta_final_proceso(
     proceso_id: int,
     archivo: UploadFile = File(...),
     comprobante_pago: UploadFile = File(...),
+    pago_modo: str = Form("completo"),
+    monto_total: float = Form(None),
+    monto_abono: float = Form(None),
+    fecha_pago: str = Form(None),
     usuario=Depends(obtener_usuario_actual)
 ):
     conn = get_db()
@@ -4031,6 +4065,8 @@ async def subir_acta_final_proceso(
                 p.finalizado,
                 p.suspendido,
                 p.fecha_acuerdo,
+                p.fecha_solicitud_acta_na,
+                p.requiere_acta_no_acuerdo,
                 s.nombre AS sucursal,
                 s.codigo_corto,
                 c.nombre AS ciudad,
@@ -4046,11 +4082,41 @@ async def subir_acta_final_proceso(
         if not proceso:
             raise HTTPException(status_code=404, detail="Proceso no encontrado")
 
-        if proceso["estado"] != "cerrado_con_acuerdo":
+        if not _con_acta(proceso["estado"], proceso["requiere_acta_no_acuerdo"]):
             raise HTTPException(
                 status_code=400,
-                detail="Solo se puede subir acta final cuando el proceso está cerrado con acuerdo"
+                detail="Solo se puede subir acta final cuando el proceso está cerrado con acuerdo "
+                       "(o cerrado sin acuerdo con el acta de no acuerdo solicitada)"
             )
+
+        es_no_acuerdo = proceso["estado"] == "cerrado_sin_acuerdo"
+
+        # Pago: completo (un comprobante) o en abonos (primer abono ahora y
+        # el saldo con el acta firmada).
+        pago_modo = (pago_modo or "completo").strip()
+        if pago_modo not in ("completo", "abonos"):
+            raise HTTPException(status_code=400, detail="Modo de pago no válido")
+
+        try:
+            fecha_pago_d = (
+                datetime.datetime.strptime(fecha_pago, "%Y-%m-%d").date()
+                if fecha_pago else
+                (datetime.datetime.utcnow() - datetime.timedelta(hours=5)).date()
+            )
+        except ValueError:
+            raise HTTPException(status_code=400, detail="La fecha del pago no es válida")
+
+        if pago_modo == "abonos":
+            if monto_total is None or monto_abono is None or monto_total <= 0 or monto_abono <= 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Indica el valor total y lo que se pagó en este primer abono"
+                )
+            if monto_abono >= monto_total:
+                raise HTTPException(
+                    status_code=400,
+                    detail="El primer abono debe ser menor al valor total (si ya se pagó todo, elige pago completo)"
+                )
 
         if proceso["finalizado"]:
             raise HTTPException(
@@ -4085,9 +4151,10 @@ async def subir_acta_final_proceso(
         # puede suspender el proceso bloqueante para desbloquear al mediador.
         if usuario["rol"] != "administrador":
             cur.execute(
-                "SELECT id, codigo_proceso, fecha_acuerdo, finalizado FROM procesos_mediacion p "
+                "SELECT id, codigo_proceso, fecha_acuerdo, fecha_solicitud_acta_na, estado, finalizado "
+                "FROM procesos_mediacion p "
                 "WHERE p.usuario_id = %s AND " + _sql_acta_pendiente("p") +
-                " ORDER BY p.fecha_acuerdo ASC NULLS LAST, p.id ASC LIMIT 1",
+                " ORDER BY " + _sql_fecha_cola("p") + " ASC NULLS LAST, p.id ASC LIMIT 1",
                 (usuario["id"],)
             )
 
@@ -4098,17 +4165,22 @@ async def subir_acta_final_proceso(
                     "el acta firmada" if bloqueante["finalizado"]
                     else "el acta final y el comprobante de pago"
                 )
+                _f_cola = bloqueante["fecha_acuerdo"] or bloqueante["fecha_solicitud_acta_na"]
                 fecha_txt = (
-                    # fecha_acuerdo se guarda en UTC (NOW() del servidor):
+                    # La fecha se guarda en UTC (NOW() del servidor):
                     # se muestra en hora de Ecuador (UTC-5).
-                    (bloqueante["fecha_acuerdo"] - datetime.timedelta(hours=5)).strftime("%d/%m/%Y %H:%M")
-                    if bloqueante["fecha_acuerdo"] else "—"
+                    (_f_cola - datetime.timedelta(hours=5)).strftime("%d/%m/%Y %H:%M")
+                    if _f_cola else "—"
+                )
+                _cierre_txt = (
+                    "cerrado sin acuerdo, con acta de no acuerdo pedida"
+                    if bloqueante["estado"] == "cerrado_sin_acuerdo" else "cerrado con acuerdo"
                 )
                 raise HTTPException(
                     status_code=400,
                     detail=(
                         f"Primero debes completar el proceso {bloqueante['codigo_proceso']} "
-                        f"(cerrado con acuerdo el {fecha_txt}): falta subir {faltante}. "
+                        f"({_cierre_txt} el {fecha_txt}): falta subir {faltante}. "
                         f"Hasta entonces no puedes subir actas de otros procesos. Si no se "
                         f"puede completar, pide al administrador que lo suspenda."
                     )
@@ -4217,11 +4289,12 @@ async def subir_acta_final_proceso(
                 usuario_id,
                 fecha_subida
             )
-            VALUES (%s, %s, 'acuerdo', %s, %s, %s, %s, %s, %s, %s, NOW())
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
             RETURNING id
         """, (
             proceso_id,
             codigo_acta,
+            "no_acuerdo" if es_no_acuerdo else "acuerdo",
             ruta_storage,
             archivo.filename,
             len(contenido_acta),
@@ -4239,10 +4312,20 @@ async def subir_acta_final_proceso(
                 acta_final_id = %s,
                 finalizado = true,
                 fecha_cierre = NOW(),
+                pago_en_abonos = %s,
+                pago_pendiente = %s,
+                monto_total = %s,
+                abono1_monto = %s,
+                pago_fecha = %s,
                 fecha_modificacion = NOW()
             WHERE id = %s
         """, (
             acta_final["id"],
+            pago_modo == "abonos",
+            pago_modo == "abonos",
+            monto_total if pago_modo == "abonos" else None,
+            monto_abono if pago_modo == "abonos" else None,
+            fecha_pago_d,
             proceso_id
         ))
 
@@ -4255,7 +4338,8 @@ async def subir_acta_final_proceso(
                 cur,
                 admin["id"],
                 "Acta final subida",
-                f"Se subió el acta final {codigo_acta} ({proceso['ciudad']} - {proceso['sucursal']}), con comprobante de pago",
+                f"Se subió el acta {'de no acuerdo ' if es_no_acuerdo else 'final '}{codigo_acta} ({proceso['ciudad']} - {proceso['sucursal']}), "
+                + ("con el primer abono (saldo pendiente)" if pago_modo == "abonos" else "con comprobante de pago"),
                 "acta",
                 "proceso_mediacion",
                 proceso_id
@@ -4289,6 +4373,8 @@ async def subir_acta_final_proceso(
 async def subir_acta_firmada(
     proceso_id: int,
     archivo: UploadFile = File(...),
+    comprobante_final: UploadFile = File(None),
+    fecha_pago_final: str = Form(None),
     confirmo: bool = Form(False),
     usuario=Depends(obtener_usuario_actual)
 ):
@@ -4311,6 +4397,8 @@ async def subir_acta_firmada(
         cur.execute("""
             SELECT p.id, p.codigo_proceso, p.usuario_id, p.estado, p.finalizado,
                    p.suspendido, p.requiere_acta_firmada, p.acta_firmada_ruta,
+                   p.requiere_acta_no_acuerdo, p.pago_pendiente, p.monto_total,
+                   p.abono1_monto, p.acta_final_id,
                    ap.codigo_acta
             FROM procesos_mediacion p
             LEFT JOIN actas_proceso ap ON ap.id = p.acta_final_id
@@ -4328,7 +4416,7 @@ async def subir_acta_firmada(
                 detail="Solo el mediador asignado a este proceso puede subir el acta firmada"
             )
 
-        if proceso["estado"] != "cerrado_con_acuerdo" or not proceso["finalizado"]:
+        if not _con_acta(proceso["estado"], proceso["requiere_acta_no_acuerdo"]) or not proceso["finalizado"]:
             raise HTTPException(
                 status_code=400,
                 detail="Primero se debe subir el acta final y el comprobante de pago"
@@ -4339,6 +4427,29 @@ async def subir_acta_firmada(
                 status_code=400,
                 detail="Este proceso está suspendido por el administrador"
             )
+
+        # Si el pago quedó en abonos, el segundo comprobante (el saldo) es
+        # obligatorio para poder cerrar el proceso.
+        if proceso["pago_pendiente"] and (comprobante_final is None or not comprobante_final.filename):
+            raise HTTPException(
+                status_code=400,
+                detail="Este proceso tiene un saldo pendiente: sube también el comprobante del segundo pago"
+            )
+        if proceso["pago_pendiente"] and comprobante_final.content_type not in (
+            "application/pdf", "image/jpeg", "image/jpg", "image/png"
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="El comprobante del segundo pago debe ser un PDF, JPG o PNG"
+            )
+        try:
+            fecha_pago_final_d = (
+                datetime.datetime.strptime(fecha_pago_final, "%Y-%m-%d").date()
+                if fecha_pago_final else
+                (datetime.datetime.utcnow() - datetime.timedelta(hours=5)).date()
+            )
+        except ValueError:
+            raise HTTPException(status_code=400, detail="La fecha del segundo pago no es válida")
 
         if proceso["acta_firmada_ruta"]:
             raise HTTPException(status_code=400, detail="El acta firmada ya fue subida")
@@ -4370,6 +4481,46 @@ async def subir_acta_firmada(
                 detail=f"Error subiendo el acta firmada a Supabase: {resp.text}"
             )
 
+        if proceso["pago_pendiente"]:
+            cont_c = await comprobante_final.read()
+            ct_c = comprobante_final.content_type
+            ext_c = None
+            if ct_c in ("image/jpeg", "image/jpg", "image/png"):
+                cont_c, ct_c, ext_c = comprimir_imagen(cont_c, ct_c)
+            elif ct_c == "application/pdf":
+                cont_c = comprimir_pdf(cont_c)
+            ext_c = ext_c or {
+                "application/pdf": "pdf", "image/jpeg": "jpg",
+                "image/jpg": "jpg", "image/png": "png",
+            }[ct_c]
+            ruta_c = f"comprobantes-pago/{proceso['codigo_acta'] or proceso['codigo_proceso']}/{uuid.uuid4()}.{ext_c}"
+            resp_c = requests.post(
+                f"{base_url}/storage/v1/object/{bucket}/{quote(ruta_c, safe='/')}",
+                headers={
+                    "Authorization": f"Bearer {key}",
+                    "apikey": key,
+                    "Content-Type": ct_c,
+                    "x-upsert": "true",
+                },
+                data=cont_c
+            )
+            if resp_c.status_code not in [200, 201]:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Error subiendo el comprobante del segundo pago a Supabase: {resp_c.text}"
+                )
+            saldo = None
+            if proceso["monto_total"] is not None and proceso["abono1_monto"] is not None:
+                saldo = proceso["monto_total"] - proceso["abono1_monto"]
+            cur.execute("""
+                INSERT INTO comprobantes_pago_extra
+                    (proceso_id, acta_id, monto, fecha_pago, ruta, nombre, tamano_bytes, usuario_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                proceso_id, proceso["acta_final_id"], saldo, fecha_pago_final_d,
+                ruta_c, comprobante_final.filename, len(cont_c), usuario["id"]
+            ))
+
         cur.execute("""
             UPDATE procesos_mediacion
             SET acta_firmada_ruta = %s,
@@ -4377,6 +4528,7 @@ async def subir_acta_firmada(
                 acta_firmada_tamano = %s,
                 acta_firmada_fecha = NOW(),
                 acta_firmada_usuario_id = %s,
+                pago_pendiente = false,
                 fecha_modificacion = NOW()
             WHERE id = %s
         """, (ruta, archivo.filename, len(contenido), usuario["id"], proceso_id))
@@ -4544,14 +4696,14 @@ def suspender_proceso(proceso_id: int, motivo: str, usuario=Depends(obtener_usua
     cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
         cur.execute(
-            "SELECT id, codigo_proceso, usuario_id, estado, suspendido FROM procesos_mediacion WHERE id = %s FOR UPDATE",
+            "SELECT id, codigo_proceso, usuario_id, estado, suspendido, requiere_acta_no_acuerdo FROM procesos_mediacion WHERE id = %s FOR UPDATE",
             (proceso_id,)
         )
         p = cur.fetchone()
         if not p:
             raise HTTPException(status_code=404, detail="Proceso no encontrado")
-        if p["estado"] != "cerrado_con_acuerdo":
-            raise HTTPException(status_code=400, detail="Solo se suspende un proceso cerrado con acuerdo que espera su acta")
+        if not _con_acta(p["estado"], p["requiere_acta_no_acuerdo"]):
+            raise HTTPException(status_code=400, detail="Solo se suspende un proceso cerrado que espera su acta")
         if p["suspendido"]:
             raise HTTPException(status_code=400, detail="El proceso ya está suspendido")
 
@@ -4633,6 +4785,111 @@ def reactivar_proceso(proceso_id: int, usuario=Depends(obtener_usuario_actual)):
 
 
 # =========================
+# ACTA DE NO ACUERDO: el mediador la pide (opcional)
+# =========================
+@app.post("/procesos/{proceso_id}/solicitar-acta-no-acuerdo")
+def solicitar_acta_no_acuerdo(proceso_id: int, usuario=Depends(obtener_usuario_actual)):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute(
+            "SELECT id, codigo_proceso, usuario_id, estado, requiere_acta_no_acuerdo "
+            "FROM procesos_mediacion WHERE id = %s FOR UPDATE",
+            (proceso_id,)
+        )
+        p = cur.fetchone()
+        if not p:
+            raise HTTPException(status_code=404, detail="Proceso no encontrado")
+        if usuario["rol"] != "administrador" and p["usuario_id"] != usuario["id"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Solo el mediador asignado a este proceso puede pedir el acta de no acuerdo"
+            )
+        if p["estado"] != "cerrado_sin_acuerdo":
+            raise HTTPException(
+                status_code=400,
+                detail="El acta de no acuerdo solo se pide en un proceso cerrado sin acuerdo"
+            )
+        if p["requiere_acta_no_acuerdo"]:
+            raise HTTPException(status_code=400, detail="El acta de no acuerdo ya fue pedida")
+
+        cur.execute("""
+            UPDATE procesos_mediacion
+            SET requiere_acta_no_acuerdo = true,
+                fecha_solicitud_acta_na = NOW(),
+                fecha_modificacion = NOW()
+            WHERE id = %s
+        """, (proceso_id,))
+
+        cur.execute("SELECT id FROM usuarios WHERE rol = 'administrador' AND activo = true")
+        for admin in cur.fetchall():
+            crear_notificacion(
+                cur, admin["id"], "Acta de no acuerdo pedida",
+                f"Se pidió el acta de no acuerdo del proceso {p['codigo_proceso']}.",
+                "acta", "proceso_mediacion", proceso_id
+            )
+        registrar_auditoria(
+            cur, usuario, "acta_no_acuerdo_solicitada", "procesos", proceso_id,
+            f"Pidió el acta de no acuerdo del proceso {p['codigo_proceso']}"
+        )
+        conn.commit()
+        return {"mensaje": "Acta de no acuerdo solicitada. Ya puedes subirla como cualquier otra acta."}
+
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+        conn.close()
+
+
+# =========================
+# COMPROBANTE DEL SEGUNDO PAGO (abonos)
+# =========================
+@app.get("/procesos/{proceso_id}/comprobante-final")
+def ver_comprobante_pago_final(proceso_id: int, usuario=Depends(obtener_usuario_actual)):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT cx.ruta, cx.nombre, p.usuario_id, p.codigo_proceso
+            FROM comprobantes_pago_extra cx
+            JOIN procesos_mediacion p ON p.id = cx.proceso_id
+            WHERE cx.proceso_id = %s
+            ORDER BY cx.id DESC LIMIT 1
+        """, (proceso_id,))
+        c = cur.fetchone()
+        if not c:
+            raise HTTPException(status_code=404, detail="Este proceso no tiene comprobante del segundo pago")
+        if usuario["rol"] != "administrador" and c["usuario_id"] != usuario["id"]:
+            raise HTTPException(status_code=403, detail="No puedes ver este comprobante")
+
+        base_url, key, bucket = _supabase_config()
+        resp = requests.get(
+            f"{base_url}/storage/v1/object/{bucket}/{quote(c['ruta'], safe='/')}",
+            headers={"Authorization": f"Bearer {key}", "apikey": key}
+        )
+        if resp.status_code != 200:
+            raise HTTPException(status_code=404, detail="Comprobante no encontrado en Storage")
+
+        ext = (c["ruta"].rsplit(".", 1)[-1] or "pdf").lower()
+        tipo = {"pdf": "application/pdf", "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png"}.get(
+            ext, "application/octet-stream"
+        )
+        return Response(
+            content=resp.content,
+            media_type=tipo,
+            headers={"Content-Disposition": f'inline; filename="comprobante-final-{c["codigo_proceso"]}.{ext}"'}
+        )
+    finally:
+        cur.close()
+        conn.close()
+
+
+# =========================
 # DATOS DEL ACTA IMPRIMIBLE
 # =========================
 @app.get("/procesos/{proceso_id}/acta-datos")
@@ -4643,8 +4900,8 @@ def datos_acta_imprimible(proceso_id: int, usuario=Depends(obtener_usuario_actua
         cur.execute("""
             SELECT
                 p.id, p.usuario_id, p.estado, p.finalizado, p.tema,
-                p.fecha_acuerdo, p.acuerdo_texto,
-                ap.codigo_acta,
+                p.fecha_acuerdo, p.acuerdo_texto, p.requiere_acta_no_acuerdo,
+                ap.codigo_acta, ap.tipo AS tipo_acta, ap.fecha_subida AS fecha_acta,
                 s.nombre AS sucursal, s.direccion AS sucursal_direccion,
                 ci.nombre AS ciudad,
                 u.nombre AS mediador_nombre, u.apellido AS mediador_apellido,
@@ -4662,11 +4919,23 @@ def datos_acta_imprimible(proceso_id: int, usuario=Depends(obtener_usuario_actua
             raise HTTPException(status_code=404, detail="Proceso no encontrado")
         if usuario["rol"] != "administrador" and p["usuario_id"] != usuario["id"]:
             raise HTTPException(status_code=403, detail="No puedes ver esta acta")
-        if p["estado"] != "cerrado_con_acuerdo" or not p["finalizado"]:
+        if not _con_acta(p["estado"], p["requiere_acta_no_acuerdo"]) or not p["finalizado"]:
             raise HTTPException(
                 status_code=400,
                 detail="El acta imprimible se habilita cuando ya se subió el acta final y el comprobante de pago"
             )
+
+        # En el acta de no acuerdo, el texto es lo que el mediador dejó
+        # registrado al cerrar el proceso sin acuerdo.
+        if p["estado"] == "cerrado_sin_acuerdo":
+            cur.execute("""
+                SELECT observacion, fecha_creacion FROM avances_mediacion
+                WHERE proceso_id = %s AND resultado = 'cerrado_sin_acuerdo'
+                ORDER BY id DESC LIMIT 1
+            """, (proceso_id,))
+            av = cur.fetchone()
+            p["observacion_cierre"] = av["observacion"] if av else None
+            p["fecha_cierre_sin_acuerdo"] = av["fecha_creacion"] if av else None
 
         return {"proceso": p, "partes": _consulta_partes(cur, proceso_id)}
     finally:
@@ -4956,6 +5225,10 @@ def obtener_actas_finales(
                 p.tema,
                 (p.acta_firmada_ruta IS NOT NULL) AS tiene_acta_firmada,
                 p.requiere_acta_firmada,
+                p.pago_en_abonos,
+                p.pago_pendiente,
+                (SELECT cx.id FROM comprobantes_pago_extra cx
+                  WHERE cx.proceso_id = p.id ORDER BY cx.id DESC LIMIT 1) AS comprobante_final_id,
                 fac.nombre AS fact_nombre,
                 fac.tipo_identificacion AS fact_tipo_identificacion,
                 fac.identificacion AS fact_identificacion,
@@ -5764,7 +6037,9 @@ def obtener_reporte_productividad(
                 -- pago todavía no se han subido: para que el admin no
                 -- asuma que "cerrado" ya significa "acta lista".
                 COUNT(*) FILTER (
-                    WHERE p.estado = 'cerrado_con_acuerdo' AND p.finalizado = false
+                    WHERE (p.estado = 'cerrado_con_acuerdo'
+                           OR (p.estado = 'cerrado_sin_acuerdo' AND p.requiere_acta_no_acuerdo))
+                      AND p.finalizado = false
                 ) AS actas_pendientes,
                 ROUND(
                     AVG(
@@ -5876,7 +6151,9 @@ def obtener_reporte_sucursales(
                 COUNT(*) FILTER (WHERE p.estado = 'anulado') AS anulados,
                 COUNT(*) FILTER (WHERE p.finalizado = true) AS actas_subidas,
                 COUNT(*) FILTER (
-                    WHERE p.estado = 'cerrado_con_acuerdo' AND p.finalizado = false
+                    WHERE (p.estado = 'cerrado_con_acuerdo'
+                           OR (p.estado = 'cerrado_sin_acuerdo' AND p.requiere_acta_no_acuerdo))
+                      AND p.finalizado = false
                 ) AS actas_pendientes,
                 ROUND(
                     AVG(
@@ -5966,7 +6243,9 @@ def obtener_reporte_clientes(
                 COUNT(DISTINCT p.id) FILTER (WHERE p.estado = 'anulado') AS anulados,
                 COUNT(DISTINCT p.id) FILTER (WHERE p.finalizado = true) AS actas_subidas,
                 COUNT(DISTINCT p.id) FILTER (
-                    WHERE p.estado = 'cerrado_con_acuerdo' AND p.finalizado = false
+                    WHERE (p.estado = 'cerrado_con_acuerdo'
+                           OR (p.estado = 'cerrado_sin_acuerdo' AND p.requiere_acta_no_acuerdo))
+                      AND p.finalizado = false
                 ) AS actas_pendientes,
                 -- Los códigos concretos, para que salgan también al imprimir
                 -- y en el Excel (no solo las cantidades).
@@ -6171,7 +6450,7 @@ def reporte_operativo_actas_pendientes(
             JOIN usuarios u ON p.usuario_id = u.id
             JOIN sucursales s ON p.sucursal_id = s.id
             JOIN ciudades ci ON s.ciudad_id = ci.id
-            WHERE p.estado = 'cerrado_con_acuerdo'
+            WHERE """ + _sql_tiene_acta("p") + """
               AND (
                     p.suspendido = true
                     OR p.finalizado = false
@@ -6304,7 +6583,8 @@ def exportar_reporte_excel(
                 # proceso puede estar cerrado con acuerdo y seguir esperando
                 # su acta final + comprobante de pago.
                 "Pendiente"
-                if f.get("estado") == "cerrado_con_acuerdo" and not f.get("finalizado")
+                if (f.get("estado") == "cerrado_con_acuerdo"
+                    or (f.get("estado") == "cerrado_sin_acuerdo" and f.get("requiere_acta_no_acuerdo"))) and not f.get("finalizado")
                 else ("Subida" if f.get("finalizado") else "—"),
                 f.get("demandante"),
                 f.get("demandado"),

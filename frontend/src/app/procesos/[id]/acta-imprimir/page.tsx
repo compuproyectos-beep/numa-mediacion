@@ -80,6 +80,12 @@ export default function ImprimirActaPage() {
   const solicitantes = partes.filter((p: any) => p.rol === 'solicitante');
   const invitados = partes.filter((p: any) => p.rol === 'invitado');
   const mediador = `${proceso.mediador_nombre} ${proceso.mediador_apellido}`.trim();
+  // Acta de no acuerdo: firman solo el solicitante y el mediador, y el
+  // mediador certifica que las partes no llegaron a un acuerdo.
+  const noAcuerdo = proceso.estado === 'cerrado_sin_acuerdo';
+  const fechaActa = noAcuerdo
+    ? proceso.fecha_cierre_sin_acuerdo || proceso.fecha_acta
+    : proceso.fecha_acuerdo;
 
   const bloquePartes = (titulo: string, lista: any[]) => (
     <div className="mb-4">
@@ -139,7 +145,9 @@ export default function ImprimirActaPage() {
           </div>
 
           <div className="mt-6 text-center">
-            <h2 className="font-display text-xl font-bold text-numa-900">Acta de Mediación</h2>
+            <h2 className="font-display text-xl font-bold text-numa-900">
+              {noAcuerdo ? 'Acta de No Acuerdo' : 'Acta de Mediación'}
+            </h2>
             <p className="text-sm text-numa-600 mt-1">
               Código: <span className="font-semibold code-text">{proceso.codigo_acta || '—'}</span>
             </p>
@@ -149,7 +157,7 @@ export default function ImprimirActaPage() {
         <div className="px-10 pt-6 pb-2">
           <p className="text-sm text-numa-700 mb-5">
             En la ciudad de {proceso.ciudad}, sucursal {proceso.sucursal}, con fecha{' '}
-            {fmtFecha(proceso.fecha_acuerdo)}, ante el mediador{' '}
+            {fmtFecha(fechaActa)}, ante el mediador{' '}
             <strong>{mediador}</strong>, comparecen las siguientes partes:
           </p>
 
@@ -163,16 +171,20 @@ export default function ImprimirActaPage() {
 
           <div className="mb-6">
             <p className="text-[11px] uppercase tracking-wide text-numa-400 mb-1">
-              Resultado: acuerdo
+              {noAcuerdo ? 'Resultado: no acuerdo' : 'Resultado: acuerdo'}
             </p>
             <div className="border border-numa-200 rounded-sm p-4 text-sm text-numa-800 whitespace-pre-line">
-              {proceso.acuerdo_texto || '—'}
+              {noAcuerdo
+                ? 'El mediador certifica que, habiéndose llevado a cabo el proceso de mediación, las partes no llegaron a un acuerdo.' +
+                  (proceso.observacion_cierre ? `\n\n${proceso.observacion_cierre}` : '')
+                : proceso.acuerdo_texto || '—'}
             </div>
           </div>
 
           <p className="text-sm text-numa-700 mb-2">
-            Leída el acta, las partes se ratifican en su contenido y la firman junto con el
-            mediador.
+            {noAcuerdo
+              ? 'Leída el acta, el solicitante se ratifica en su contenido y la firma junto con el mediador.'
+              : 'Leída el acta, las partes se ratifican en su contenido y la firman junto con el mediador.'}
           </p>
         </div>
 
@@ -182,7 +194,7 @@ export default function ImprimirActaPage() {
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-12">
-            {[...solicitantes, ...invitados].map((p: any) => {
+            {(noAcuerdo ? solicitantes : [...solicitantes, ...invitados]).map((p: any) => {
               const f = datosFirma(p);
               return firma(
                 `p-${p.id}`,

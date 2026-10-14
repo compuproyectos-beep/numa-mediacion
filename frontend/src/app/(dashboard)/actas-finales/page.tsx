@@ -459,6 +459,10 @@ const handleExportarZip = async () => {
 
                   <Badge label="Finalizada" variant="aprobado" />
 
+                  {a.tipo === 'no_acuerdo' && <Badge label="No acuerdo" variant="borrador" />}
+
+                  {a.pago_pendiente && <Badge label="Saldo pendiente" variant="enviado" />}
+
                   {!a.ruta_comprobante_pago && (
                     <Badge label="Sin comprobante" variant="rechazado" />
                   )}

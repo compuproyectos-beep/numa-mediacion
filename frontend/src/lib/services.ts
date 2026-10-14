@@ -512,14 +512,28 @@ export async function anularProceso(procesoId: number, motivo: string): Promise<
   return res.data;
 }
 
+export interface PagoActaFinal {
+  modo: 'completo' | 'abonos';
+  fecha?: string;
+  montoTotal?: number;
+  montoAbono?: number;
+}
+
 export async function subirActaFinalProceso(
   procesoId: number,
   file: File,
-  comprobantePago: File
+  comprobantePago: File,
+  pago?: PagoActaFinal
 ): Promise<any> {
   const formData = new FormData();
   formData.append('archivo', file);
   formData.append('comprobante_pago', comprobantePago);
+  formData.append('pago_modo', pago?.modo || 'completo');
+  if (pago?.fecha) formData.append('fecha_pago', pago.fecha);
+  if (pago?.modo === 'abonos') {
+    formData.append('monto_total', String(pago.montoTotal ?? ''));
+    formData.append('monto_abono', String(pago.montoAbono ?? ''));
+  }
 
   const res = await api.post(
     `/procesos/${procesoId}/acta-final`,
@@ -718,10 +732,18 @@ export async function getExpedienteProceso(
 
 
 // ── ACTA FIRMADA / ACUERDO / SUSPENSIÓN (Fase 3) ─────────────────────────────
-export async function subirActaFirmada(procesoId: number, file: File): Promise<any> {
+export async function subirActaFirmada(
+  procesoId: number,
+  file: File,
+  segundoPago?: { comprobante: File; fecha?: string } | null
+): Promise<any> {
   const formData = new FormData();
   formData.append('archivo', file);
   formData.append('confirmo', 'true');
+  if (segundoPago?.comprobante) {
+    formData.append('comprobante_final', segundoPago.comprobante);
+    if (segundoPago.fecha) formData.append('fecha_pago_final', segundoPago.fecha);
+  }
 
   const res = await api.post(`/procesos/${procesoId}/acta-firmada`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -742,6 +764,16 @@ export async function corregirAcuerdo(procesoId: number, texto: string, motivo: 
 
 export async function getHistorialAcuerdo(procesoId: number): Promise<any[]> {
   const res = await api.get(`/procesos/${procesoId}/acuerdo/historial`);
+  return res.data;
+}
+
+export async function solicitarActaNoAcuerdo(procesoId: number): Promise<any> {
+  const res = await api.post(`/procesos/${procesoId}/solicitar-acta-no-acuerdo`);
+  return res.data;
+}
+
+export async function descargarComprobanteFinal(procesoId: number): Promise<Blob> {
+  const res = await api.get(`/procesos/${procesoId}/comprobante-final`, { responseType: 'blob' });
   return res.data;
 }
 

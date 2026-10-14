@@ -1,6 +1,7 @@
 'use client';
 
 import { etapaActaBadge } from '@/lib/etapaActa';
+import { conActa } from '@/lib/actaProceso';
 import { estadoLabel, estadoPill, estadoFranja } from '@/lib/estados';
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -96,7 +97,7 @@ export default function ProcesosPage() {
       : rapido === 'hoy'
       ? String(p.proxima_cita_fecha || '').slice(0, 10) === hoyEcuador()
       : rapido === 'acta'
-      ? p.estado === 'cerrado_con_acuerdo' &&
+      ? conActa(p) &&
         (p.etapa_acta === 'falta_acta' || p.etapa_acta === 'falta_firmada')
       : true
   );
@@ -312,7 +313,7 @@ export default function ProcesosPage() {
             : f === 'hoy'
             ? String(p.proxima_cita_fecha || '').slice(0, 10) === hoy
             : f === 'acta'
-            ? p.estado === 'cerrado_con_acuerdo' &&
+            ? conActa(p) &&
               (p.etapa_acta === 'falta_acta' || p.etapa_acta === 'falta_firmada')
             : true;
         const chips: { id: '' | 'pendientes' | 'hoy' | 'acta'; texto: string }[] = [

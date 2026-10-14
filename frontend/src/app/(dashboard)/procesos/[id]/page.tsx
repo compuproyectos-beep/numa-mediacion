@@ -22,6 +22,8 @@ import {
   Pill
 } from '@/components/ui';
 import { estadoLabel, estadoPill } from '@/lib/estados';
+import { conActa, esNoAcuerdo, dinero } from '@/lib/actaProceso';
+import { hoyEcuador } from '@/lib/accionProceso';
 
 import {
   getProcesos,
@@ -148,6 +150,12 @@ export default function ProcesoDetallePage() {
   const [archivoActaFinal, setArchivoActaFinal] = useState<File | null>(null);
   const [archivoComprobantePago, setArchivoComprobantePago] = useState<File | null>(null);
   const [subiendoActaFinal, setSubiendoActaFinal] = useState(false);
+  // Pago del acta: completo (un comprobante) o en abonos (primer abono ahora,
+  // el saldo se paga y se sube con el acta firmada).
+  const [pagoModo, setPagoModo] = useState<'completo' | 'abonos'>('completo');
+  const [montoTotal, setMontoTotal] = useState('');
+  const [montoAbono, setMontoAbono] = useState('');
+  const [fechaPago, setFechaPago] = useState(hoyEcuador());
 
   const cargarProceso = async () => {
     try {
@@ -406,6 +414,19 @@ export default function ProcesoDetallePage() {
       return;
     }
 
+    if (pagoModo === 'abonos') {
+      const total = Number(montoTotal);
+      const abono = Number(montoAbono);
+      if (!(total > 0) || !(abono > 0)) {
+        setError('Indica el valor total y lo que se pagó en este primer abono');
+        return;
+      }
+      if (abono >= total) {
+        setError('El primer abono debe ser menor al valor total. Si ya se pagó todo, elige "Pago completo".');
+        return;
+      }
+    }
+
     setSubiendoActaFinal(true);
     setError('');
     setSuccessMessage('');
@@ -414,17 +435,27 @@ export default function ProcesoDetallePage() {
       const data = await subirActaFinalProceso(
         proceso.id,
         archivoActaFinal,
-        archivoComprobantePago
+        archivoComprobantePago,
+        {
+          modo: pagoModo,
+          fecha: fechaPago || undefined,
+          montoTotal: pagoModo === 'abonos' ? Number(montoTotal) : undefined,
+          montoAbono: pagoModo === 'abonos' ? Number(montoAbono) : undefined
+        }
       );
 
       setShowActaFinal(false);
       setArchivoActaFinal(null);
       setArchivoComprobantePago(null);
+      setPagoModo('completo');
+      setMontoTotal('');
+      setMontoAbono('');
+      setFechaPago(hoyEcuador());
 
       const p = await cargarProceso();
       if (p) await cargarSeguimiento(p);
 
-      setSuccessMessage(`Acta final y comprobante de pago subidos correctamente: ${data.codigo_acta}`);
+      setSuccessMessage(`${esNoAcuerdo(proceso) ? 'Acta de no acuerdo' : 'Acta final'} y comprobante de pago subidos correctamente: ${data.codigo_acta}`);
     } catch (err: any) {
       setError(err?.response?.data?.detail || 'Error al subir el acta final y el comprobante de pago');
     } finally {
@@ -513,7 +544,9 @@ export default function ProcesoDetallePage() {
     }
 
     if (proceso.etapa_acta === 'falta_firmada') {
-      return 'Imprime el acta, haz que la firmen las partes y sube el acta firmada en PDF para completar el proceso.';
+      return proceso.pago_pendiente
+        ? 'Imprime el acta, haz que la firmen y sube el acta firmada junto con el comprobante del segundo pago para completar el proceso.'
+        : 'Imprime el acta, haz que la firmen las partes y sube el acta firmada en PDF para completar el proceso.';
     }
 
     if (proceso.finalizado) {
@@ -524,19 +557,23 @@ export default function ProcesoDetallePage() {
       return 'Este proceso fue anulado. Solo puedes consultar su historial.';
     }
 
-    if (proceso.estado === 'cerrado_con_acuerdo' && procesoPrimeroEnFila) {
+    if (conActa(proceso) && procesoPrimeroEnFila) {
       return `Espera tu turno: primero completa el proceso ${procesoPrimeroEnFila.codigo_proceso}.`;
     }
 
-    if (proceso.estado === 'cerrado_con_acuerdo' && tieneFacturacion === false) {
-      return 'Completa los datos de facturación y luego sube el acta final y el comprobante de pago.';
+    if (conActa(proceso) && tieneFacturacion === false) {
+      return 'Completa los datos de facturación y luego sube el acta y el comprobante de pago.';
     }
 
-    if (proceso.estado === 'cerrado_con_acuerdo') {
-      return 'Sube el acta final y el comprobante de pago para finalizar el proceso.';
+    if (conActa(proceso)) {
+      return 'Sube el acta y el comprobante de pago para finalizar el proceso.';
     }
 
-    if (proceso.estado === 'cerrado_sin_acuerdo' || proceso.estado === 'archivado') {
+    if (proceso.estado === 'cerrado_sin_acuerdo') {
+      return 'Este proceso cerró sin acuerdo. Si lo necesitas, puedes emitir el acta de no acuerdo; si no, solo consulta su historial.';
+    }
+
+    if (proceso.estado === 'archivado') {
       return 'Este proceso ya está cerrado. Solo puedes consultar su historial.';
     }
 
@@ -564,7 +601,9 @@ export default function ProcesoDetallePage() {
 
     const hayInvitacion = citasProceso.length > 0;
     const cerrado = proceso.estado !== 'en_negociacion';
-    const conAcuerdo = proceso.estado === 'cerrado_con_acuerdo';
+    // Lleva facturación, acta y acta firmada si cerró con acuerdo o si se
+    // pidió el acta de no acuerdo.
+    const conAcuerdo = conActa(proceso);
 
     const base = [
       // Si el proceso ya cerró, es porque hubo al menos una invitación.
@@ -778,7 +817,7 @@ export default function ProcesoDetallePage() {
             editable={esAdminSesion() || proceso.etapa_acta !== 'completa'}
             onEstado={setTieneFacturacion}
             finalizado={!!proceso.finalizado}
-            estado={proceso.estado}
+            estado={conActa(proceso) ? 'cerrado_con_acuerdo' : proceso.estado}
           />
         </div>
       )}
@@ -1287,12 +1326,14 @@ export default function ProcesoDetallePage() {
             </div>
           )}
 
-        {proceso.estado === 'cerrado_con_acuerdo' && !proceso.finalizado && !proceso.suspendido && (
+        {conActa(proceso) && !proceso.finalizado && !proceso.suspendido && (
           <div className="card p-4">
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <p className="text-sm text-numa-600">
                 {procesoPrimeroEnFila
-                  ? `Este proceso llegó a un acuerdo, pero primero debes completar el proceso ${procesoPrimeroEnFila.codigo_proceso} (es el primero en la fila).`
+                  ? `Este proceso necesita su acta, pero primero debes completar el proceso ${procesoPrimeroEnFila.codigo_proceso} (es el primero en la fila).`
+                  : esNoAcuerdo(proceso)
+                  ? 'Se pidió el acta de no acuerdo. Sube el acta y el comprobante de pago para cerrarla.'
                   : 'El proceso llegó a un acuerdo. Sube el acta final y el comprobante de pago para cerrarlo.'}
               </p>
 
@@ -1322,6 +1363,10 @@ export default function ProcesoDetallePage() {
                   onClick={() => {
                     setShowActaFinal(true);
                     setArchivoActaFinal(null);
+                    setPagoModo('completo');
+                    setMontoTotal('');
+                    setMontoAbono('');
+                    setFechaPago(hoyEcuador());
                     setError('');
                   }}
                   className="btn-primary shrink-0"
@@ -1354,7 +1399,7 @@ export default function ProcesoDetallePage() {
           setArchivoComprobantePago(null);
           setError('');
         }}
-        title={`Subir Acta Final — ${proceso.codigo_proceso}`}
+        title={`${esNoAcuerdo(proceso) ? 'Subir Acta de No Acuerdo' : 'Subir Acta Final'} — ${proceso.codigo_proceso}`}
         size="md"
       >
         {error && (
@@ -1365,8 +1410,8 @@ export default function ProcesoDetallePage() {
 
         <div className="space-y-4">
           <p className="text-sm text-numa-600">
-            Debes subir el acta final y el comprobante de pago juntos. Después
-            podrás imprimir el acta con el acuerdo y las firmas, y subirla firmada.
+            Debes subir el acta y el comprobante de pago juntos. Después
+            podrás imprimir el acta con las firmas y subirla firmada.
             Mientras este proceso no esté completo, no podrás subir actas de tus
             otros procesos.
           </p>
@@ -1401,6 +1446,84 @@ export default function ProcesoDetallePage() {
             />
           </div>
 
+          <div>
+            <p className="block text-sm font-medium text-numa-700 mb-2">¿Cómo se pagó?</p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <label className="flex items-center gap-2 text-sm text-numa-700 border border-numa-200 rounded-sm px-3 py-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="pago-modo"
+                  checked={pagoModo === 'completo'}
+                  onChange={() => setPagoModo('completo')}
+                />
+                Pago completo (un comprobante)
+              </label>
+              <label className="flex items-center gap-2 text-sm text-numa-700 border border-numa-200 rounded-sm px-3 py-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="pago-modo"
+                  checked={pagoModo === 'abonos'}
+                  onChange={() => setPagoModo('abonos')}
+                />
+                En abonos (primer abono ahora)
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-numa-700 mb-1">
+              Fecha del pago
+            </label>
+            <input
+              type="date"
+              value={fechaPago}
+              onChange={(e) => setFechaPago(e.target.value)}
+              className="input-field"
+            />
+          </div>
+
+          {pagoModo === 'abonos' && (
+            <div className="space-y-3 border border-gold-200 bg-gold-50 rounded-sm p-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-numa-700 mb-1">
+                    Valor total ($)
+                  </label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.01"
+                    value={montoTotal}
+                    onChange={(e) => setMontoTotal(e.target.value)}
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-numa-700 mb-1">
+                    Primer abono ($)
+                  </label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.01"
+                    value={montoAbono}
+                    onChange={(e) => setMontoAbono(e.target.value)}
+                    className="input-field"
+                  />
+                </div>
+              </div>
+              {Number(montoTotal) > 0 && Number(montoAbono) > 0 && Number(montoAbono) < Number(montoTotal) && (
+                <p className="text-sm text-gold-800">
+                  Saldo pendiente: <strong>{dinero(Number(montoTotal) - Number(montoAbono))}</strong>. El
+                  proceso quedará pendiente hasta que subas el acta firmada junto con el comprobante
+                  del segundo pago.
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="flex justify-end gap-3 pt-4">
             <button
               type="button"
@@ -1420,7 +1543,7 @@ export default function ProcesoDetallePage() {
               disabled={subiendoActaFinal || !archivoActaFinal || !archivoComprobantePago}
               className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {subiendoActaFinal ? 'Subiendo...' : 'Subir Acta Final y Comprobante'}
+              {subiendoActaFinal ? 'Subiendo...' : 'Subir Acta y Comprobante'}
             </button>
           </div>
         </div>

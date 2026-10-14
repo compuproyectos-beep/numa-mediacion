@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useState } from 'react';
 import { ESTADO_COLOR_GRAFICO } from '@/lib/estados';
+import { conActa } from '@/lib/actaProceso';
 import { FileSpreadsheet, Printer, Search, ChevronDown, ChevronRight, Info } from 'lucide-react';
 import {
   PageHeader,
@@ -172,7 +173,7 @@ export default function ReportesPage() {
   // la lista.
   const [soloPendientesDetalle, setSoloPendientesDetalle] = useState(false);
 
-  const esActaPendiente = (p: any) => p.estado === 'cerrado_con_acuerdo' && !p.finalizado;
+  const esActaPendiente = (p: any) => conActa(p) && !p.finalizado;
 
   useEffect(() => {
     // Productividad y Sucursales son solo para el administrador; si por
@@ -411,7 +412,7 @@ export default function ReportesPage() {
 
   const actasPendientesProcesos =
     tipo === 'procesos'
-      ? datos.filter((p: any) => p.estado === 'cerrado_con_acuerdo' && !p.finalizado).length
+      ? datos.filter((p: any) => conActa(p) && !p.finalizado).length
       : 0;
 
   // El sistema gira ante todo en torno a las actas, así que ese gráfico va
@@ -973,7 +974,7 @@ export default function ReportesPage() {
                           </span>
                         </td>
                         <td className="table-cell">
-                          {p.estado === 'cerrado_con_acuerdo' && !p.finalizado ? (
+                          {conActa(p) && !p.finalizado ? (
                             <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 text-xs font-medium">
                               Pendiente
                             </span>
