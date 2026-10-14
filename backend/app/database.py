@@ -33,6 +33,16 @@ _connection_pool = psycopg2.pool.ThreadedConnectionPool(
     minconn=2,
     maxconn=15,
     dsn=DATABASE_URL,
+    # Si una conexion guardada en el pool se "muere" en silencio (la red o
+    # Supabase la cortan tras un rato sin uso), sin esto la consulta se
+    # queda esperando minutos y la pagina gira para siempre. Con estos
+    # parametros se detecta rapido y se descarta.
+    connect_timeout=10,
+    keepalives=1,
+    keepalives_idle=30,
+    keepalives_interval=10,
+    keepalives_count=3,
+    options="-c statement_timeout=30000 -c idle_in_transaction_session_timeout=60000",
 )
 
 
@@ -64,5 +74,21 @@ class PooledConnection:
 
 
 def get_db():
+    # Antes de entregar la conexion se comprueba que siga viva; si esta
+    # rota se descarta y se toma otra.
+    for _ in range(3):
+        real_conn = _connection_pool.getconn()
+        try:
+            if real_conn.closed:
+                raise Exception("cerrada")
+            with real_conn.cursor() as c:
+                c.execute("SELECT 1")
+            real_conn.rollback()
+            return PooledConnection(real_conn)
+        except Exception:
+            try:
+                _connection_pool.putconn(real_conn, close=True)
+            except Exception:
+                pass
     real_conn = _connection_pool.getconn()
     return PooledConnection(real_conn)
