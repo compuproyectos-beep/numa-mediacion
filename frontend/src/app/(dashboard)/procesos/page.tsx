@@ -320,7 +320,7 @@ export default function ProcesosPage() {
           { id: '', texto: 'Todos' },
           { id: 'pendientes', texto: isAdmin() ? 'Requieren acción' : 'Mis pendientes' },
           { id: 'hoy', texto: 'Invitación hoy' },
-          { id: 'acta', texto: 'Falta acta' }
+          { id: 'acta', texto: 'Actas pendientes (en fila)' }
         ];
         return (
           <div className="flex flex-wrap gap-2 mb-4" role="group" aria-label="Filtros rápidos">

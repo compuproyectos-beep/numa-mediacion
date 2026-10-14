@@ -49,6 +49,14 @@ export default function MiDia() {
     .filter((x) => x.accion.urgente)
     .sort((a, b) => a.accion.prioridad - b.accion.prioridad || b.p.id - a.p.id);
 
+  // Procesos con acta pendiente que esperan su turno en la fila (primero se
+  // termina el más antiguo). Se muestran al final, en gris.
+  const esperando = procesos
+    .map((p) => ({ p, accion: accionProceso(p) }))
+    .filter((x) => !x.accion.urgente && x.accion.texto === 'Esperando turno')
+    .sort((a, b) => a.p.id - b.p.id);
+  const lista = [...porHacer, ...esperando];
+
   const textoDia = new Intl.DateTimeFormat('es-EC', {
     weekday: 'long',
     day: 'numeric',
@@ -138,14 +146,14 @@ export default function MiDia() {
             <ListChecks className="w-4 h-4 text-gold-600" aria-hidden="true" />
             Por hacer
           </h2>
-          {porHacer.length > 0 && (
+          {lista.length > 0 && (
             <span className="text-xs text-numa-500">
-              {porHacer.length} {porHacer.length === 1 ? 'proceso' : 'procesos'}
+              {lista.length} {lista.length === 1 ? 'proceso' : 'procesos'}
             </span>
           )}
         </div>
 
-        {porHacer.length === 0 ? (
+        {lista.length === 0 ? (
           <div className="flex items-center gap-3 py-2">
             <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" aria-hidden="true" />
             <p className="text-sm text-numa-600">
@@ -156,7 +164,7 @@ export default function MiDia() {
           </div>
         ) : (
           <ul className="space-y-2">
-            {porHacer.slice(0, 5).map(({ p, accion }) => (
+            {lista.slice(0, 5).map(({ p, accion }) => (
               <li key={p.id}>
                 <Link
                   href={`/procesos/${p.id}`}
@@ -172,7 +180,13 @@ export default function MiDia() {
                     </span>
                   </span>
 
-                  <span className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-gold-400 text-numa-950">
+                  <span
+                    className={`shrink-0 inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${
+                      accion.urgente
+                        ? 'bg-gold-400 text-numa-950'
+                        : 'bg-numa-100 text-numa-600'
+                    }`}
+                  >
                     {accion.texto}
                     <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
                   </span>
@@ -182,12 +196,12 @@ export default function MiDia() {
           </ul>
         )}
 
-        {porHacer.length > 5 && (
+        {lista.length > 5 && (
           <Link
             href="/procesos"
             className="mt-3 inline-block text-sm font-medium text-gold-700 hover:text-gold-800"
           >
-            Ver los {porHacer.length} procesos
+            Ver los {lista.length} procesos
           </Link>
         )}
       </div>
