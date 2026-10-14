@@ -365,7 +365,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
           <p className="text-sm text-numa-700 mb-1 font-semibold">Falta el acta firmada</p>
           <p className="text-sm text-numa-600 mb-3">
             {noAcuerdo
-              ? 'Imprime el acta, haz que la firmen el solicitante y el mediador y súbela en PDF (no se aceptan fotos).'
+              ? 'Imprime el acta, haz que la firmen el solicitante responsable y el mediador y súbela en PDF (no se aceptan fotos).'
               : 'Imprime el acta, haz que la firmen las partes y súbela en PDF (no se aceptan fotos).'}
             {proceso.pago_pendiente && ' Debes subir también el comprobante del segundo pago.'}
             {/* El bloqueo solo aplica al mediador; el admin no lo tiene. */}
