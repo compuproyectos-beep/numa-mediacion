@@ -45,7 +45,7 @@ const getEstadoCitaBadgeClass = (estado: string) => {
   const classes: any = {
     pendiente: 'bg-gold-400/10 text-gold-700',
     realizada: 'bg-green-50 text-green-700',
-    no_realizada: 'bg-amber-50 text-amber-800',
+    no_realizada: 'bg-stone-100 text-stone-700',
     cancelada: 'bg-red-50 text-red-700',
     reagendada: 'bg-numa-100 text-numa-700'
   };
@@ -57,7 +57,7 @@ const getEstadoCitaBorderClass = (estado: string) => {
   const classes: any = {
     pendiente: 'border-l-gold-400',
     realizada: 'border-l-green-600',
-    no_realizada: 'border-l-amber-500',
+    no_realizada: 'border-l-stone-400',
     cancelada: 'border-l-red-600',
     reagendada: 'border-l-numa-600'
   };

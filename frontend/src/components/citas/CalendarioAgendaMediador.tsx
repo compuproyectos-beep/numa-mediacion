@@ -23,7 +23,7 @@ const localizer = dateFnsLocalizer({
 const colorPorEstado: Record<string, string> = {
   pendiente: '#E0B84A',
   realizada: '#16A34A',
-  no_realizada: '#D97706',
+  no_realizada: '#78716C',
   cancelada: '#DC2626',
   reagendada: '#4A6789',
 };
@@ -414,6 +414,9 @@ export default function CalendarioAgendaMediador({
             <span className="w-2 h-2 rounded-full bg-green-600 inline-block" /> Realizada
           </span>
           <span className="inline-flex items-center gap-1 ml-2">
+            <span className="w-2 h-2 rounded-full bg-stone-500 inline-block" /> No asistió
+          </span>
+          <span className="inline-flex items-center gap-1 ml-2">
             <span className="w-2 h-2 rounded-full bg-red-600 inline-block" /> Cancelada
           </span>
         </p>
@@ -574,7 +577,7 @@ export default function CalendarioAgendaMediador({
                   : citaActiva.estado === 'realizada'
                   ? 'badge bg-green-50 text-green-700'
                   : citaActiva.estado === 'no_realizada'
-                  ? 'badge bg-amber-50 text-amber-800'
+                  ? 'badge bg-stone-100 text-stone-700'
                   : citaActiva.estado === 'cancelada'
                   ? 'badge bg-red-50 text-red-700'
                   : 'badge bg-numa-100 text-numa-700'
@@ -704,7 +707,7 @@ export default function CalendarioAgendaMediador({
                         : c.estado === 'realizada'
                         ? 'badge bg-green-50 text-green-700 hover:bg-green-100'
                         : c.estado === 'no_realizada'
-                        ? 'badge bg-amber-50 text-amber-800 hover:bg-amber-100'
+                        ? 'badge bg-stone-100 text-stone-700 hover:bg-stone-200'
                         : c.estado === 'cancelada'
                         ? 'badge bg-red-50 text-red-700 hover:bg-red-100'
                         : 'badge bg-numa-100 text-numa-700 hover:bg-numa-200'
