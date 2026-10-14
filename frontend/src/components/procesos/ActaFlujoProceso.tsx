@@ -389,7 +389,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
           <div className="flex flex-wrap items-center gap-2">
             {proceso.tiene_acta_firmada && (
               <button type="button" onClick={verFirmada} className="btn-secondary btn-sm">
-                <Eye className="w-3.5 h-3.5" /> Ver acta firmada (archivo subido)
+                <Eye className="w-3.5 h-3.5" /> Ver acta firmada
               </button>
             )}
             {esAdmin && proceso.tiene_acta_firmada && (
@@ -403,7 +403,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
                 <Download className="w-4 h-4" />
               </button>
             )}
-            {botonImprimir('Imprimir acta sin firmas', 'Es solo una copia en blanco generada por el sistema; el acta firmada es la que se ve en "Ver acta firmada"')}
+            {!proceso.tiene_acta_firmada && botonImprimir()}
           </div>
         </div>
       )}
