@@ -1042,7 +1042,7 @@ def dashboard(usuario=Depends(obtener_usuario_actual)):
             WHERE 1=1
             {" AND p.usuario_id = %s" if usuario["rol"] != "administrador" else ""}
             ORDER BY ap.id DESC
-            LIMIT 5
+            LIMIT 6
         """, tuple(params))
 
         actas_recientes = cur.fetchall()

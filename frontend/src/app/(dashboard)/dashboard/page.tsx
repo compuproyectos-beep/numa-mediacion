@@ -439,7 +439,7 @@ export default function DashboardPage() {
               </div>
 
               {stats.actas_recientes?.length ? (
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {stats.actas_recientes.map((a: any) => (
                     <div
                       key={a.id}
