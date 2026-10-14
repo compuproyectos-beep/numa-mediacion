@@ -18,6 +18,7 @@ import {
   descargarPdfActaFinal,
   descargarActaFirmada,
   descargarComprobantePagoActaFinal,
+  descargarComprobanteFinal,
   reemplazarPdfActaFinal,
   exportarActasFinalesZip,
   getUsuarios
@@ -127,6 +128,34 @@ export default function ActasFinalesPage() {
       window.open(url, '_blank');
     } catch {
       setError('No se pudo abrir el comprobante de pago');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleVerComprobanteFinal = async (procesoId: number) => {
+    try {
+      const blob = await descargarComprobanteFinal(procesoId);
+      window.open(window.URL.createObjectURL(blob), '_blank');
+    } catch {
+      setError('No se pudo abrir el comprobante del segundo pago');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleDescargarComprobanteFinal = async (procesoId: number, codigoActa: string) => {
+    try {
+      const blob = await descargarComprobanteFinal(procesoId);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const ext = (blob.type.split('/')[1] || 'pdf').replace('jpeg', 'jpg');
+      link.href = url;
+      link.download = `comprobante_2_${codigoActa}.${ext}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setError('No se pudo descargar el comprobante del segundo pago');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
@@ -468,10 +497,6 @@ const handleExportarZip = async () => {
                   )}
                 </div>
 
-                <p className="text-sm text-numa-600">
-                  Proceso: <span className="font-medium">{a.codigo_proceso}</span>
-                </p>
-
                 <p className="text-sm text-numa-800">
                   {a.demandante} vs {a.demandado}
                 </p>
@@ -539,7 +564,9 @@ const handleExportarZip = async () => {
 
                   {a.ruta_comprobante_pago && (
                     <>
-                      <span className="text-numa-700 whitespace-nowrap">Comprobante de pago</span>
+                      <span className="text-numa-700 whitespace-nowrap">
+                        {a.comprobante_final_id ? 'Comprobante 1.er pago' : 'Comprobante de pago'}
+                      </span>
                       <button type="button" onClick={() => handleVerComprobante(a.id)} className="btn-secondary btn-sm w-[7.5rem]">
                         <Eye className="w-3.5 h-3.5" /> Ver
                       </button>
@@ -551,6 +578,32 @@ const handleExportarZip = async () => {
                           }
                           title="Descargar comprobante"
                           aria-label="Descargar comprobante"
+                          className="btn-icon"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <span />
+                      )}
+                    </>
+                  )}
+
+                  {a.comprobante_final_id && (
+                    <>
+                      <span className="text-numa-700 whitespace-nowrap">Comprobante 2.º pago</span>
+                      <button
+                        type="button"
+                        onClick={() => handleVerComprobanteFinal(a.proceso_id)}
+                        className="btn-secondary btn-sm w-[7.5rem]"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Ver
+                      </button>
+                      {isAdmin ? (
+                        <button
+                          type="button"
+                          onClick={() => handleDescargarComprobanteFinal(a.proceso_id, a.codigo_acta)}
+                          title="Descargar comprobante del 2.º pago"
+                          aria-label="Descargar comprobante del 2.º pago"
                           className="btn-icon"
                         >
                           <Download className="w-4 h-4" />
