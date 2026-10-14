@@ -272,7 +272,7 @@ export default function DashboardPage() {
               <div className="inline-flex rounded-md border border-numa-200 bg-white p-0.5 text-xs font-semibold">
                 {(
                   [
-                    ['mios', 'Mis cosas'],
+                    ['mios', 'Mi gestión'],
                     ['todos', 'Todos los mediadores']
                   ] as const
                 ).map(([clave, texto]) => (

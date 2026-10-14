@@ -19,6 +19,50 @@ const etiquetaDia = (fecha: string, hoy: string) => {
   return `${d}/${m}/${a}`;
 };
 
+// Controles "‹ Anterior  1–4 de 9  Siguiente ›". Si todo cabe en una página
+// solo muestra el total.
+function Paginador({
+  total,
+  pagina,
+  porPagina,
+  onCambiar,
+  unidad,
+  unidades
+}: {
+  total: number;
+  pagina: number;
+  porPagina: number;
+  onCambiar: (p: number) => void;
+  unidad: string;
+  unidades: string;
+}) {
+  if (total === 0) return null;
+  if (total <= porPagina) {
+    return (
+      <span className="text-xs text-numa-500">
+        {total} {total === 1 ? unidad : unidades}
+      </span>
+    );
+  }
+  const ultima = Math.ceil(total / porPagina) - 1;
+  const desde = pagina * porPagina;
+  const boton =
+    'px-1.5 py-0.5 rounded border border-numa-200 bg-white font-semibold hover:bg-numa-50 disabled:opacity-30 disabled:cursor-default';
+  return (
+    <span className="flex items-center gap-1.5 text-xs text-numa-500">
+      <button type="button" onClick={() => onCambiar(pagina - 1)} disabled={pagina === 0} className={boton}>
+        ‹ Anterior
+      </button>
+      <span className="tabular-nums">
+        {desde + 1}–{Math.min(desde + porPagina, total)} de {total}
+      </span>
+      <button type="button" onClick={() => onCambiar(pagina + 1)} disabled={pagina >= ultima} className={boton}>
+        Siguiente ›
+      </button>
+    </span>
+  );
+}
+
 export default function MiDia({
   esAdmin = false,
   miId,
@@ -32,11 +76,13 @@ export default function MiDia({
   const [procesos, setProcesos] = useState<any[] | null>(null);
   const hoy = hoyEcuador();
   const [pagina, setPagina] = useState(0);
+  const [paginaCitas, setPaginaCitas] = useState(0);
   const POR_PAGINA = 4;
 
   // Al cambiar entre "Mis cosas" y "Todos" se vuelve a la primera página.
   useEffect(() => {
     setPagina(0);
+    setPaginaCitas(0);
   }, [vista]);
 
   useEffect(() => {
@@ -80,6 +126,13 @@ export default function MiDia({
     .sort((a, b) => a.p.id - b.p.id);
   const lista = [...porHacer, ...esperando];
 
+  // Invitaciones de hoy, también de 4 en 4.
+  const paginaCitasAct = Math.min(paginaCitas, Math.max(0, Math.ceil(citasHoy.length / POR_PAGINA) - 1));
+  const citasVisibles = citasHoy.slice(
+    paginaCitasAct * POR_PAGINA,
+    paginaCitasAct * POR_PAGINA + POR_PAGINA
+  );
+
   // Se ven de 4 en 4, con flechas para pasar de página.
   const totalPaginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA));
   const paginaActual = Math.min(pagina, totalPaginas - 1);
@@ -99,21 +152,31 @@ export default function MiDia({
 
   return (
     <section aria-label="Mi día" className="space-y-2">
-    <div className={`grid gap-3 ${esAdmin ? '' : 'lg:grid-cols-2'}`}>
-      {/* Invitaciones de hoy (solo mediadores) */}
-      {!esAdmin && (
+    <div className="grid gap-3 lg:grid-cols-2">
+      {/* Invitaciones de hoy */}
       <div className="card p-4">
         <div className="flex items-baseline justify-between gap-3 mb-2">
           <h2 className="text-sm font-bold uppercase tracking-wider text-numa-800 flex items-center gap-2">
             <CalendarDays className="w-4 h-4 text-gold-600" aria-hidden="true" />
             Invitaciones de hoy
           </h2>
-          <span className="text-xs text-numa-500">{nombreDia}</span>
+          {citasHoy.length > POR_PAGINA ? (
+            <Paginador
+              total={citasHoy.length}
+              pagina={paginaCitasAct}
+              porPagina={POR_PAGINA}
+              onCambiar={setPaginaCitas}
+              unidad="invitación"
+              unidades="invitaciones"
+            />
+          ) : (
+            <span className="text-xs text-numa-500">{nombreDia}</span>
+          )}
         </div>
 
         {citasHoy.length === 0 ? (
           <p className="text-sm text-numa-600 py-2">
-            No tienes invitaciones hoy.
+            {verOtros ? 'No hay invitaciones hoy.' : 'No tienes invitaciones hoy.'}
             {proxima && (
               <>
                 {' '}
@@ -128,7 +191,7 @@ export default function MiDia({
           </p>
         ) : (
           <ul className="space-y-1.5">
-            {citasHoy.map((c) => {
+            {citasVisibles.map((c) => {
               const paso = citaYaPaso(c.fecha, c.hora);
               const destino = c.proceso_id ? `/procesos/${c.proceso_id}` : '/agenda';
 
@@ -170,7 +233,6 @@ export default function MiDia({
           </ul>
         )}
       </div>
-      )}
 
       {/* Lo que toca hacer */}
       <div className="card p-4">
@@ -179,39 +241,14 @@ export default function MiDia({
             <ListChecks className="w-4 h-4 text-gold-600" aria-hidden="true" />
             Por hacer
           </h2>
-          {lista.length > 0 && (
-            <span className="flex items-center gap-1.5 text-xs text-numa-500">
-              {lista.length > POR_PAGINA ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setPagina(paginaActual - 1)}
-                    disabled={paginaActual === 0}
-                    aria-label="Anteriores"
-                    className="px-1.5 py-0.5 rounded border border-numa-200 bg-white font-semibold hover:bg-numa-50 disabled:opacity-30 disabled:cursor-default"
-                  >
-                    ‹ Anterior
-                  </button>
-                  <span className="tabular-nums">
-                    {desde + 1}–{Math.min(desde + POR_PAGINA, lista.length)} de {lista.length}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setPagina(paginaActual + 1)}
-                    disabled={paginaActual >= totalPaginas - 1}
-                    aria-label="Siguientes"
-                    className="px-1.5 py-0.5 rounded border border-numa-200 bg-white font-semibold hover:bg-numa-50 disabled:opacity-30 disabled:cursor-default"
-                  >
-                    Siguiente ›
-                  </button>
-                </>
-              ) : (
-                <>
-                  {lista.length} {lista.length === 1 ? 'proceso' : 'procesos'}
-                </>
-              )}
-            </span>
-          )}
+          <Paginador
+            total={lista.length}
+            pagina={paginaActual}
+            porPagina={POR_PAGINA}
+            onCambiar={setPagina}
+            unidad="proceso"
+            unidades="procesos"
+          />
         </div>
 
         {lista.length === 0 ? (
