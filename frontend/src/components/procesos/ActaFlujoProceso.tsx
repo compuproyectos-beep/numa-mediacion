@@ -316,7 +316,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
       {proceso.pago_en_abonos && (
         <div
           className={`card p-4 ${
-            proceso.pago_pendiente ? 'border-gold-200 bg-gold-50' : 'bg-green-50/40 border-green-100'
+            proceso.pago_pendiente ? 'border-amber-200 bg-amber-50' : 'bg-green-50/40 border-green-100'
           }`}
         >
           <p className="text-sm font-semibold text-numa-800 mb-1">Pago en abonos</p>
@@ -324,7 +324,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
             Primer abono: <strong>{dinero(proceso.abono1_monto)}</strong> el {fechaDia(proceso.pago_fecha)}.
           </p>
           {proceso.pago_pendiente ? (
-            <p className="text-sm text-gold-800 mt-1">
+            <p className="text-sm text-amber-800 mt-1">
               Saldo pendiente: <strong>{dinero(saldo)}</strong> (valor total {dinero(proceso.monto_total)}).
               Se paga al subir el acta firmada, junto con su comprobante.
             </p>
@@ -442,9 +442,9 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
               setShowSuspender(true);
               setError('');
             }}
-            className="text-xs text-amber-700 hover:text-amber-800 underline underline-offset-2 inline-flex items-center gap-1"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-sm border border-red-300 bg-red-50 text-red-700 text-sm font-semibold hover:bg-red-100 transition-colors"
           >
-            <PauseCircle className="w-3.5 h-3.5" /> Suspender este proceso (desbloquear al mediador)
+            <PauseCircle className="w-4 h-4" /> Suspender este proceso (desbloquear al mediador)
           </button>
         </div>
       )}
@@ -471,8 +471,8 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
             />
           </div>
           {proceso.pago_pendiente && (
-            <div className="space-y-3 border border-gold-200 bg-gold-50 rounded-sm p-3">
-              <p className="text-sm text-gold-800">
+            <div className="space-y-3 border border-amber-200 bg-amber-50 rounded-sm p-3">
+              <p className="text-sm text-amber-800">
                 Saldo pendiente: <strong>{dinero(saldo)}</strong>. Sube el comprobante del segundo
                 pago para poder cerrar el proceso.
               </p>
