@@ -29,6 +29,7 @@ import {
   getProcesos,
   getCitasProceso,
   crearInvitacionProceso,
+  leerInvitacionLlena,
   getAvancesProceso,
   crearAvanceProceso,
   subirActaFinalProceso,
@@ -118,6 +119,39 @@ export default function ProcesoDetallePage() {
   // real que ahora vive en la base de datos (ver migración 005).
   const enviandoInvitacionRef = useRef(false);
   const [mostrarCalendarioInvitacion, setMostrarCalendarioInvitacion] = useState(false);
+
+  // Camino A: el mediador sube la invitación ya llena (Word o PDF), el
+  // sistema la lee y rellena el formulario; el mediador revisa y crea.
+  const [leyendoInvitacion, setLeyendoInvitacion] = useState(false);
+  const [lecturaInvitacion, setLecturaInvitacion] = useState<any | null>(null);
+  const archivoInvitacionRef = useRef<HTMLInputElement | null>(null);
+
+  const handleLeerInvitacion = async (file: File | null) => {
+    if (!file || !proceso) return;
+    setLeyendoInvitacion(true);
+    setError('');
+    setSuccessMessage('');
+    setLecturaInvitacion(null);
+    try {
+      const lectura = await leerInvitacionLlena(proceso.id, file);
+      setLecturaInvitacion(lectura);
+      const orden = ['Primera', 'Segunda', 'Tercera', 'Cuarta', 'Quinta', 'Sexta'];
+      setInvitacionForm((prev) => ({
+        fecha: lectura.fecha || prev.fecha,
+        hora: lectura.hora || prev.hora,
+        observaciones:
+          prev.observaciones ||
+          (lectura.ordinal && orden[lectura.ordinal - 1]
+            ? `${orden[lectura.ordinal - 1]} invitación`
+            : '')
+      }));
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'No se pudo leer el archivo');
+    } finally {
+      setLeyendoInvitacion(false);
+      if (archivoInvitacionRef.current) archivoInvitacionRef.current.value = '';
+    }
+  };
   const [citasMediador, setCitasMediador] = useState<any[]>([]);
 
   // Al elegir fecha y hora en el calendario (botón "Usar esta fecha y
@@ -315,6 +349,7 @@ export default function ProcesoDetallePage() {
       if (proceso.usuario_id) await cargarCitasMediador(proceso.usuario_id);
 
       setInvitacionForm({ fecha: '', hora: '', observaciones: '' });
+      setLecturaInvitacion(null);
 
       setSuccessMessage(
         `Invitación creada para el ${fechaEnviada} a las ${horaEnviada}. Ya aparece en la línea de tiempo del proceso.`
@@ -1129,6 +1164,55 @@ export default function ProcesoDetallePage() {
                   <CalendarIcon className="w-3.5 h-3.5" />
                   Ocultar calendario
                 </button>
+              )}
+            </div>
+
+            <div className="mb-4 rounded-sm border border-dashed border-numa-200 bg-numa-50/50 p-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  ref={archivoInvitacionRef}
+                  type="file"
+                  accept=".docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="hidden"
+                  onChange={(e) => handleLeerInvitacion(e.target.files?.[0] || null)}
+                />
+                <button
+                  type="button"
+                  onClick={() => archivoInvitacionRef.current?.click()}
+                  disabled={leyendoInvitacion}
+                  className="btn-secondary btn-sm disabled:opacity-50"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  {leyendoInvitacion ? 'Leyendo...' : 'Subir invitación ya llena (Word o PDF)'}
+                </button>
+                <p className="text-xs text-numa-500">
+                  El sistema lee la fecha y la hora y llena el formulario de abajo; tú lo
+                  revisas y creas la invitación. El archivo no se guarda.
+                </p>
+              </div>
+
+              {lecturaInvitacion && (
+                <div className="mt-3 text-sm space-y-2">
+                  <p className="text-numa-700 font-medium">Esto fue lo que se leyó del documento:</p>
+                  <ul className="space-y-0.5">
+                    {lecturaInvitacion.partes.map((pt: any, i: number) => (
+                      <li key={i} className={pt.encontrado ? 'text-green-700' : 'text-amber-700'}>
+                        {pt.encontrado ? '✓' : '⚠'} {pt.nombre}{' '}
+                        <span className="text-xs text-numa-400">
+                          ({pt.rol === 'solicitante' ? 'solicitante' : 'invitado'})
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  {lecturaInvitacion.avisos.map((a: string, i: number) => (
+                    <p key={i} className="text-amber-700 text-xs">
+                      ⚠ {a}
+                    </p>
+                  ))}
+                  <p className="text-xs text-numa-500">
+                    Revisa la fecha, la hora y las observaciones abajo; puedes corregir lo que haga falta.
+                  </p>
+                </div>
               )}
             </div>
 

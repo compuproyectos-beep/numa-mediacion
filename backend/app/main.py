@@ -5014,6 +5014,180 @@ def datos_invitacion_imprimible(proceso_id: int, usuario=Depends(obtener_usuario
 
 
 # =========================
+# LEER UNA INVITACIÓN YA LLENA (Word o PDF) — Camino A
+# =========================
+_MESES_ES = {
+    "enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5, "junio": 6,
+    "julio": 7, "agosto": 8, "septiembre": 9, "setiembre": 9, "octubre": 10,
+    "noviembre": 11, "diciembre": 12,
+}
+_ORDINALES_INV = ["primera", "segunda", "tercera", "cuarta", "quinta", "sexta"]
+
+
+def _sin_tildes(texto):
+    return "".join(
+        c for c in unicodedata.normalize("NFD", texto or "")
+        if unicodedata.category(c) != "Mn"
+    )
+
+
+def _texto_de_documento(nombre, contenido):
+    """Texto plano de un .docx (sin librerías extra) o de un PDF con texto.
+    Devuelve None si el PDF es solo una imagen escaneada."""
+    nombre = (nombre or "").lower()
+    if nombre.endswith(".docx"):
+        try:
+            with zipfile.ZipFile(io.BytesIO(contenido)) as z:
+                xml = z.read("word/document.xml").decode("utf-8", errors="ignore")
+        except Exception:
+            raise HTTPException(status_code=400, detail="No se pudo abrir el archivo Word")
+        xml = re.sub(r"</w:p>", "\n", xml)
+        xml = re.sub(r"<w:tab/>", " ", xml)
+        xml = re.sub(r"<[^>]+>", "", xml)
+        import html as _html
+        return _html.unescape(xml)
+
+    if nombre.endswith(".pdf"):
+        try:
+            from pypdf import PdfReader
+            lector = PdfReader(io.BytesIO(contenido))
+            texto = "\n".join((pag.extract_text() or "") for pag in lector.pages)
+        except Exception:
+            raise HTTPException(status_code=400, detail="No se pudo leer el archivo PDF")
+        return texto if len(texto.strip()) >= 50 else None
+
+    raise HTTPException(status_code=400, detail="Sube un archivo Word (.docx) o PDF")
+
+
+def _datos_de_invitacion(texto):
+    """Busca en el texto la fecha, la hora, el 'Primera/Segunda invitación'
+    y el lugar de la audiencia."""
+    norm = _sin_tildes(texto).lower()
+    norm = re.sub(r"\s+", " ", norm)
+
+    inicio = norm.find("convoca")
+    if inicio < 0:
+        inicio = norm.find("efectu")
+    desde = max(inicio, 0)
+
+    fechas = []
+    for m in re.finditer(
+        r"(\d{1,2})\s+de\s+([a-z]+)\s+(?:de|del)(?:\s+ano)?\s+(\d{4})", norm
+    ):
+        if m.group(2) in _MESES_ES:
+            fechas.append(m)
+    elegida = next((m for m in fechas if m.start() >= desde), None) or (fechas[-1] if fechas else None)
+
+    fecha = None
+    hora = None
+    if elegida:
+        try:
+            fecha = datetime.date(
+                int(elegida.group(3)), _MESES_ES[elegida.group(2)], int(elegida.group(1))
+            ).isoformat()
+        except ValueError:
+            fecha = None
+        cola = norm[elegida.end(): elegida.end() + 80]
+        mh = re.search(r"(\d{1,2})\s*(?:h|:)\s*(\d{2})", cola)
+        if mh and int(mh.group(1)) < 24 and int(mh.group(2)) < 60:
+            hora = f"{int(mh.group(1)):02d}:{mh.group(2)}"
+
+    ordinal = None
+    mo = re.search(r"(primera|segunda|tercera|cuarta|quinta|sexta)\s+invitacion", norm)
+    if mo:
+        ordinal = _ORDINALES_INV.index(mo.group(1)) + 1
+
+    lugar = None
+    texto_plano = re.sub(r"\s+", " ", texto)
+    ml = re.search(r"(en las oficinas.{10,300}?)(?:\.\s|\.$)", texto_plano, re.IGNORECASE)
+    if ml:
+        lugar = ml.group(1).strip()
+
+    return {"fecha": fecha, "hora": hora, "ordinal": ordinal, "lugar": lugar}
+
+
+def _parte_aparece(texto_norm_palabras, parte):
+    """¿Aparece esta parte (persona, o empresa/representante) en el texto?"""
+    def _todas(nombre):
+        palabras = [w for w in re.findall(r"[a-z0-9]+", _sin_tildes(nombre or "").lower()) if len(w) >= 3]
+        return bool(palabras) and all(w in texto_norm_palabras for w in palabras)
+
+    if parte["tipo"] == "empresa":
+        return _todas(parte["nombre"]) or _todas(parte.get("representante_nombre"))
+    return _todas(f"{parte['nombre']} {parte.get('apellido') or ''}")
+
+
+@app.post("/procesos/{proceso_id}/invitacion-leer")
+async def leer_invitacion_llena(
+    proceso_id: int,
+    archivo: UploadFile = File(...),
+    usuario=Depends(obtener_usuario_actual)
+):
+    """Lee una invitación ya llena (Word o PDF) y devuelve lo que entendió
+    para que el mediador lo revise. No guarda el archivo ni crea nada."""
+    contenido = await archivo.read()
+    if len(contenido) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="El archivo es muy pesado (máximo 10 MB)")
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("SELECT id, usuario_id FROM procesos_mediacion WHERE id = %s", (proceso_id,))
+        p = cur.fetchone()
+        if not p:
+            raise HTTPException(status_code=404, detail="Proceso no encontrado")
+        if usuario["rol"] != "administrador" and p["usuario_id"] != usuario["id"]:
+            raise HTTPException(status_code=403, detail="No puedes modificar este proceso")
+
+        texto = _texto_de_documento(archivo.filename, contenido)
+        if texto is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Este PDF es una imagen (escaneado) y no se puede leer. Sube el Word o el PDF generado en computadora."
+            )
+
+        datos = _datos_de_invitacion(texto)
+        palabras = set(re.findall(r"[a-z0-9]+", _sin_tildes(texto).lower()))
+
+        partes = []
+        for pt in _consulta_partes(cur, proceso_id):
+            nombre = (
+                f"{pt['nombre']} {pt.get('apellido') or ''}".strip()
+                if pt["tipo"] != "empresa" else pt["nombre"]
+            )
+            partes.append({
+                "nombre": nombre,
+                "rol": pt["rol"],
+                "encontrado": _parte_aparece(palabras, pt),
+            })
+
+        cur.execute("SELECT COUNT(*) AS n FROM citas WHERE proceso_id = %s", (proceso_id,))
+        existentes = cur.fetchone()["n"]
+
+        avisos = []
+        if not datos["fecha"]:
+            avisos.append("No se encontró la fecha de la audiencia. Escríbela abajo.")
+        if datos["fecha"] and not datos["hora"]:
+            avisos.append("No se encontró la hora. Escríbela abajo.")
+        faltan = [x["nombre"] for x in partes if not x["encontrado"]]
+        if faltan:
+            avisos.append(
+                "No aparecen en el documento: " + ", ".join(faltan)
+                + ". Revisa que sea la invitación de este proceso."
+            )
+        if datos["ordinal"] and datos["ordinal"] != existentes + 1:
+            avisos.append(
+                f"El documento dice «{_ORDINALES_INV[datos['ordinal'] - 1].capitalize()} invitación», "
+                f"pero este proceso ya tiene {existentes} invitación(es)."
+            )
+
+        return {**datos, "partes": partes, "avisos": avisos}
+    finally:
+        cur.close()
+        conn.close()
+
+
+# =========================
 # CONTADORES DE ACTAS COMPLETAS (visibles para todos los mediadores)
 # =========================
 @app.get("/actas/resumen-mes")

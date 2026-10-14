@@ -473,6 +473,18 @@ export async function crearInvitacionProceso(
 }
 
 
+export async function leerInvitacionLlena(
+  procesoId: number,
+  archivo: File
+): Promise<any> {
+  const form = new FormData();
+  form.append('archivo', archivo);
+  const res = await api.post(`/procesos/${procesoId}/invitacion-leer`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+  return res.data;
+}
+
 export async function getAvancesProceso(
   procesoId: number
 ): Promise<any[]> {
