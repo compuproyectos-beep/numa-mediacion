@@ -283,6 +283,27 @@ export default function ProcesoDetallePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [procesoId]);
 
+  // La invitación se redacta en otra pestaña ("Redactar sobre el documento").
+  // Al volver a esta pestaña se recargan el proceso y su seguimiento, para que
+  // la invitación recién creada aparezca sin tener que refrescar a mano.
+  useEffect(() => {
+    let ultima = Date.now();
+    const alVolver = async () => {
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - ultima < 3000) return;
+      ultima = Date.now();
+      const p = await cargarProceso();
+      if (p) await cargarSeguimiento(p);
+    };
+    document.addEventListener('visibilitychange', alVolver);
+    window.addEventListener('focus', alVolver);
+    return () => {
+      document.removeEventListener('visibilitychange', alVolver);
+      window.removeEventListener('focus', alVolver);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [procesoId]);
+
   // Todas las invitaciones pendientes de este mediador (en cualquier
   // proceso), para poder avisar de una vez si la fecha/hora elegida ya
   // está ocupada, sin tener que esperar al error del servidor al enviar.
