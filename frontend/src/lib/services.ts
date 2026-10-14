@@ -50,8 +50,10 @@ export async function restablecerPassword(
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
-export async function getDashboard(): Promise<DashboardStats> {
-  const res = await api.get<DashboardStats>('/dashboard');
+export async function getDashboard(soloMios = false): Promise<DashboardStats> {
+  const res = await api.get<DashboardStats>('/dashboard', {
+    params: soloMios ? { solo_mios: true } : undefined,
+  });
   return res.data;
 }
 

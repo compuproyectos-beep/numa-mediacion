@@ -951,17 +951,19 @@ def restablecer_password(token: str = Form(...), nueva_password: str = Form(...)
 # DASHBOARD
 # =========================
 @app.get("/dashboard")
-def dashboard(usuario=Depends(obtener_usuario_actual)):
+def dashboard(solo_mios: bool = False, usuario=Depends(obtener_usuario_actual)):
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
     try:
         # Cada mediador ve solo sus propias estadísticas (sus procesos y
         # actas); el admin ve las de todos.
+        # El admin puede pedir solo lo suyo con ?solo_mios=true.
+        filtrar = usuario["rol"] != "administrador" or solo_mios
         filtro_usuario = ""
         params = []
 
-        if usuario["rol"] != "administrador":
+        if filtrar:
             filtro_usuario = " AND usuario_id = %s"
             params.append(usuario["id"])
 
@@ -984,7 +986,7 @@ def dashboard(usuario=Depends(obtener_usuario_actual)):
             FROM actas_proceso ap
             JOIN procesos_mediacion p ON ap.proceso_id = p.id
             WHERE 1=1
-            {" AND p.usuario_id = %s" if usuario["rol"] != "administrador" else ""}
+            {" AND p.usuario_id = %s" if filtrar else ""}
         """, tuple(params))
 
         conteo_actas = cur.fetchone()
@@ -1011,7 +1013,7 @@ def dashboard(usuario=Depends(obtener_usuario_actual)):
             JOIN ciudades ci ON s.ciudad_id = ci.id
             JOIN usuarios u ON p.usuario_id = u.id
             WHERE 1=1
-            {" AND p.usuario_id = %s" if usuario["rol"] != "administrador" else ""}
+            {" AND p.usuario_id = %s" if filtrar else ""}
             ORDER BY p.id DESC
             LIMIT 5
         """, tuple(params))
@@ -1040,7 +1042,7 @@ def dashboard(usuario=Depends(obtener_usuario_actual)):
             JOIN usuarios u ON p.usuario_id = u.id
             LEFT JOIN usuarios us ON ap.usuario_id = us.id
             WHERE 1=1
-            {" AND p.usuario_id = %s" if usuario["rol"] != "administrador" else ""}
+            {" AND p.usuario_id = %s" if filtrar else ""}
             ORDER BY ap.id DESC
             LIMIT 6
         """, tuple(params))

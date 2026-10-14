@@ -19,12 +19,25 @@ const etiquetaDia = (fecha: string, hoy: string) => {
   return `${d}/${m}/${a}`;
 };
 
-export default function MiDia({ esAdmin = false, miId }: { esAdmin?: boolean; miId?: number }) {
+export default function MiDia({
+  esAdmin = false,
+  miId,
+  vista = 'todos'
+}: {
+  esAdmin?: boolean;
+  miId?: number;
+  vista?: 'mios' | 'todos';
+}) {
   const [citas, setCitas] = useState<any[] | null>(null);
   const [procesos, setProcesos] = useState<any[] | null>(null);
   const hoy = hoyEcuador();
-  // Solo el administrador: ver lo suyo o lo de los demás mediadores.
-  const [vista, setVista] = useState<'mios' | 'otros'>('mios');
+  const [pagina, setPagina] = useState(0);
+  const POR_PAGINA = 4;
+
+  // Al cambiar entre "Mis cosas" y "Todos" se vuelve a la primera página.
+  useEffect(() => {
+    setPagina(0);
+  }, [vista]);
 
   useEffect(() => {
     getCitas({ fecha_desde: hoy, fecha_hasta: sumarDias(hoy, 14) })
@@ -41,28 +54,16 @@ export default function MiDia({ esAdmin = false, miId }: { esAdmin?: boolean; mi
   if (citas === null || procesos === null) return null;
 
   const esDeOtro = (x: any) => esAdmin && miId != null && x.usuario_id !== miId;
-  const verOtros = esAdmin && vista === 'otros';
-  // Para el administrador, "mío" o "de otros" según la pestaña; el mediador
-  // normal ya recibe solo lo suyo.
-  const enVista = (x: any) => (!esAdmin ? true : verOtros ? esDeOtro(x) : !esDeOtro(x));
+  // Administrador: "Mis cosas" muestra solo lo suyo; "Todos" muestra todo y
+  // pone el nombre del mediador en cada fila. El mediador ya recibe solo lo suyo.
+  const verOtros = esAdmin && vista === 'todos';
+  const enVista = (x: any) => (!esAdmin || verOtros ? true : !esDeOtro(x));
 
   const pendientes = citas.filter(
     (c) => (c.estado === 'pendiente' || c.estado === 'reagendada') && enVista(c)
   );
-  const pendientesOtros = citas.filter(
-    (c) =>
-      esAdmin &&
-      esDeOtro(c) &&
-      (c.estado === 'pendiente' || c.estado === 'reagendada') &&
-      String(c.fecha).slice(0, 10) === hoy
-  ).length;
   const citasHoy = pendientes.filter((c) => String(c.fecha).slice(0, 10) === hoy);
   const proxima = pendientes.find((c) => String(c.fecha).slice(0, 10) > hoy);
-
-  const porHacerOtros = esAdmin
-    ? procesos.filter((p) => esDeOtro(p) && accionProceso(p, true).urgente).length
-    : 0;
-  const totalOtros = pendientesOtros + porHacerOtros;
 
   const porHacer = procesos
     .filter(enVista)
@@ -79,6 +80,12 @@ export default function MiDia({ esAdmin = false, miId }: { esAdmin?: boolean; mi
     .sort((a, b) => a.p.id - b.p.id);
   const lista = [...porHacer, ...esperando];
 
+  // Se ven de 4 en 4, con flechas para pasar de página.
+  const totalPaginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA));
+  const paginaActual = Math.min(pagina, totalPaginas - 1);
+  const desde = paginaActual * POR_PAGINA;
+  const visibles = lista.slice(desde, desde + POR_PAGINA);
+
   const textoDia = new Intl.DateTimeFormat('es-EC', {
     weekday: 'long',
     day: 'numeric',
@@ -92,41 +99,9 @@ export default function MiDia({ esAdmin = false, miId }: { esAdmin?: boolean; mi
 
   return (
     <section aria-label="Mi día" className="space-y-2">
-      {esAdmin && (
-        <div className="inline-flex rounded-md border border-numa-200 bg-white p-0.5 text-xs font-semibold">
-          <button
-            type="button"
-            onClick={() => setVista('mios')}
-            className={`px-3 py-1 rounded ${
-              vista === 'mios' ? 'bg-numa-800 text-white' : 'text-numa-600 hover:bg-numa-50'
-            }`}
-          >
-            Mis pendientes
-          </button>
-          <button
-            type="button"
-            onClick={() => setVista('otros')}
-            className={`px-3 py-1 rounded flex items-center gap-1.5 ${
-              vista === 'otros' ? 'bg-numa-800 text-white' : 'text-numa-600 hover:bg-numa-50'
-            }`}
-          >
-            De otros mediadores
-            <span
-              className={`min-w-[20px] text-center rounded-full px-1.5 ${
-                vista === 'otros'
-                  ? 'bg-white/25 text-white'
-                  : totalOtros > 0
-                  ? 'bg-gold-400 text-numa-950'
-                  : 'bg-numa-100 text-numa-400'
-              }`}
-            >
-              {totalOtros}
-            </span>
-          </button>
-        </div>
-      )}
-    <div className="grid gap-3 lg:grid-cols-2">
-      {/* Invitaciones de hoy */}
+    <div className={`grid gap-3 ${esAdmin ? '' : 'lg:grid-cols-2'}`}>
+      {/* Invitaciones de hoy (solo mediadores) */}
+      {!esAdmin && (
       <div className="card p-4">
         <div className="flex items-baseline justify-between gap-3 mb-2">
           <h2 className="text-sm font-bold uppercase tracking-wider text-numa-800 flex items-center gap-2">
@@ -195,6 +170,7 @@ export default function MiDia({ esAdmin = false, miId }: { esAdmin?: boolean; mi
           </ul>
         )}
       </div>
+      )}
 
       {/* Lo que toca hacer */}
       <div className="card p-4">
@@ -204,8 +180,36 @@ export default function MiDia({ esAdmin = false, miId }: { esAdmin?: boolean; mi
             Por hacer
           </h2>
           {lista.length > 0 && (
-            <span className="text-xs text-numa-500">
-              {lista.length} {lista.length === 1 ? 'proceso' : 'procesos'}
+            <span className="flex items-center gap-1.5 text-xs text-numa-500">
+              {lista.length > POR_PAGINA ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setPagina(paginaActual - 1)}
+                    disabled={paginaActual === 0}
+                    aria-label="Anteriores"
+                    className="px-1.5 py-0.5 rounded border border-numa-200 bg-white font-semibold hover:bg-numa-50 disabled:opacity-30 disabled:cursor-default"
+                  >
+                    ‹ Anterior
+                  </button>
+                  <span className="tabular-nums">
+                    {desde + 1}–{Math.min(desde + POR_PAGINA, lista.length)} de {lista.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPagina(paginaActual + 1)}
+                    disabled={paginaActual >= totalPaginas - 1}
+                    aria-label="Siguientes"
+                    className="px-1.5 py-0.5 rounded border border-numa-200 bg-white font-semibold hover:bg-numa-50 disabled:opacity-30 disabled:cursor-default"
+                  >
+                    Siguiente ›
+                  </button>
+                </>
+              ) : (
+                <>
+                  {lista.length} {lista.length === 1 ? 'proceso' : 'procesos'}
+                </>
+              )}
             </span>
           )}
         </div>
@@ -221,7 +225,7 @@ export default function MiDia({ esAdmin = false, miId }: { esAdmin?: boolean; mi
           </div>
         ) : (
           <ul className="space-y-1.5">
-            {lista.slice(0, 5).map(({ p, accion }) => (
+            {visibles.map(({ p, accion }) => (
               <li key={p.id}>
                 <Link
                   href={`/procesos/${p.id}`}
@@ -254,14 +258,6 @@ export default function MiDia({ esAdmin = false, miId }: { esAdmin?: boolean; mi
           </ul>
         )}
 
-        {lista.length > 5 && (
-          <Link
-            href="/procesos"
-            className="mt-3 inline-block text-sm font-medium text-gold-700 hover:text-gold-800"
-          >
-            Ver los {lista.length} procesos
-          </Link>
-        )}
       </div>
     </div>
     </section>

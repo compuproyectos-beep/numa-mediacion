@@ -134,6 +134,8 @@ export default function DashboardPage() {
   const { user, isAdmin } = useAuth();
   const { mostrar: mostrarGuia, cerrarGuia, abrirGuia } = useGuiaBienvenida();
   const [stats, setStats] = useState<any | null>(null);
+  // Solo el administrador: ver el panorama de todos o solo lo suyo.
+  const [vista, setVista] = useState<'todos' | 'mios'>('todos');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -206,9 +208,14 @@ export default function DashboardPage() {
       const info = CATEGORIAS[clave];
       let data: any[];
       if (info.estadoProceso) {
-        data = await getProcesos({ estado: info.estadoProceso });
+        data = await getProcesos({
+          estado: info.estadoProceso,
+          ...(isAdmin && vista === 'mios' ? { usuario_id: user?.id } : {})
+        });
       } else {
-        const todas = await getActasFinales();
+        const todas = await getActasFinales(
+          isAdmin && vista === 'mios' ? { usuario_id: user?.id } : undefined
+        );
         // Cada acta guarda su tipo: 'acuerdo' o 'no_acuerdo'.
         data = todas.filter((a: any) =>
           clave === 'actas_no_acuerdo' ? a.tipo === 'no_acuerdo' : a.tipo !== 'no_acuerdo'
@@ -224,13 +231,20 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    getDashboard()
-      .then(setStats)
+    // Con el interruptor del administrador se recargan las cifras; la lista
+    // abierta de una tarjeta se cierra porque ya no corresponde.
+    setCategoriaAbierta(null);
+    getDashboard(isAdmin && vista === 'mios')
+      .then((d) => {
+        setStats(d);
+        setError('');
+      })
       .catch(() =>
         setError('No se pudo cargar el dashboard. Verifique la conexión con el servidor.')
       )
       .finally(() => setLoading(false));
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, vista]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -253,9 +267,34 @@ export default function DashboardPage() {
             : `${user?.sucursal || 'Sucursal'} · ${user?.ciudad || 'Ciudad'}`
         }
         action={
-          <button type="button" onClick={mostrarGuia ? cerrarGuia : abrirGuia} className="btn-secondary btn-sm">
-            ¿Cómo funciona?
-          </button>
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <div className="inline-flex rounded-md border border-numa-200 bg-white p-0.5 text-xs font-semibold">
+                {(
+                  [
+                    ['mios', 'Mis cosas'],
+                    ['todos', 'Todos los mediadores']
+                  ] as const
+                ).map(([clave, texto]) => (
+                  <button
+                    key={clave}
+                    type="button"
+                    onClick={() => setVista(clave)}
+                    className={`px-3 py-1 rounded ${
+                      vista === clave
+                        ? 'bg-numa-800 text-white'
+                        : 'text-numa-600 hover:bg-numa-50'
+                    }`}
+                  >
+                    {texto}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button type="button" onClick={mostrarGuia ? cerrarGuia : abrirGuia} className="btn-secondary btn-sm">
+              ¿Cómo funciona?
+            </button>
+          </div>
         }
       />
 
@@ -270,7 +309,7 @@ export default function DashboardPage() {
           {isAdmin && <AlertaActasAtrasadas />}
 
           {/* Lo que toca hoy (mediador y administrador), antes que las cifras. */}
-          <MiDia esAdmin={isAdmin} miId={user?.id} />
+          <MiDia esAdmin={isAdmin} miId={user?.id} vista={vista} />
 
           {/* Las cajas van directo sobre el fondo de la página: sus colores
               suaves ya las distinguen, sin franja detrás. */}
