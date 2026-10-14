@@ -1186,8 +1186,9 @@ export default function ProcesoDetallePage() {
                   {leyendoInvitacion ? 'Leyendo...' : 'Subir invitación ya llena (Word o PDF)'}
                 </button>
                 <p className="text-xs text-numa-500">
-                  El sistema lee la fecha y la hora y llena el formulario de abajo; tú lo
-                  revisas y creas la invitación. El archivo no se guarda.
+                  Sube el Word o el PDF hecho en computadora (no una foto, un escaneo ni un
+                  documento escrito a mano). El sistema lee la fecha y la hora y llena el
+                  formulario de abajo; tú lo revisas y creas la invitación. El archivo no se guarda.
                 </p>
               </div>
 
