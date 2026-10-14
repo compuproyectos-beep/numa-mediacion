@@ -69,6 +69,13 @@ export default function ImprimirActaPage() {
       .finally(() => setLoading(false));
   }, [procesoId]);
 
+  // El nombre del archivo al guardar como PDF sale del título de la página.
+  useEffect(() => {
+    if (data?.proceso?.codigo_acta) {
+      document.title = `${data.proceso.estado === 'cerrado_sin_acuerdo' ? 'Acta de no acuerdo' : 'Acta de mediación'} ${data.proceso.codigo_acta}`;
+    }
+  }, [data]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-numa-50 text-numa-500 text-sm">
@@ -184,12 +191,16 @@ export default function ImprimirActaPage() {
             <ArrowLeft className="w-4 h-4" />
             Volver al proceso
           </Link>
+          <p className="hidden md:block text-xs text-numa-500 flex-1 text-center">
+            Para guardarla en tu computador o en una memoria USB, en la ventana de impresión elige
+            &quot;Guardar como PDF&quot;.
+          </p>
           <button
             onClick={() => window.print()}
             className="inline-flex items-center gap-2 px-4 py-2 bg-numa-900 text-numa-50 rounded-sm text-sm font-medium hover:bg-numa-950 transition-colors"
           >
             <Printer className="w-4 h-4" />
-            Imprimir
+            Descargar o imprimir
           </button>
         </div>
       </div>

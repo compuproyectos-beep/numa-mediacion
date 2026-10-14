@@ -272,8 +272,8 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
   };
 
   const botonImprimir = (
-    texto = 'Imprimir acta para firmar',
-    ayuda = 'Genera el acta con los datos del sistema y espacios en blanco para firmar'
+    texto = 'Descargar o imprimir acta para firmar',
+    ayuda = 'Genera el acta con los datos del sistema y espacios en blanco para firmar. Puedes imprimirla o guardarla como PDF.'
   ) => (
     <button
       type="button"
