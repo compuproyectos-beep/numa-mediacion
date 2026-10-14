@@ -601,20 +601,25 @@ function ImprimirInvitacion() {
     <main className="min-h-screen bg-numa-100 print:bg-white">
       <style>{`
         @page { size: A4; margin: 0; }
-        .membrete { position: absolute; top: 0; left: 0; width: 210mm; height: 297mm; z-index: 0; }
+        /* En pantalla la hoja crece con el texto: el membrete (arriba) se queda
+           arriba y el pie se pega al final de la hoja, así nunca se encima
+           con el texto. Al imprimir cada hoja A4 lleva el membrete completo. */
+        .membrete { position: absolute; top: 0; left: 0; width: 210mm; height: 297mm; z-index: 0; clip-path: inset(0 0 42mm 0); }
+        .membrete-pie { position: absolute; left: 0; bottom: 0; width: 210mm; height: 297mm; z-index: 0; clip-path: inset(255mm 0 0 0); pointer-events: none; }
         .campo-edit { background: #fff7cc; border-bottom: 1px dashed #c9a400; outline: none; padding: 0 1px; cursor: text; border-radius: 2px; }
         .campo-edit:focus { background: #ffefa0; }
         .campo-edit:empty::before { content: attr(data-ph); color: #8a7a20; font-weight: 400; text-transform: none; }
-        .pie-capa { position: absolute; top: 0; left: 0; width: 210mm; height: 297mm; z-index: 5; pointer-events: none; }
+        .pie-capa { position: absolute; bottom: 0; left: 0; width: 210mm; height: 297mm; z-index: 5; pointer-events: none; }
         .pie-capa > div { pointer-events: auto; }
         @media print {
           .campo-edit { background: none !important; border: 0 !important; padding: 0 !important; }
           .campo-edit:empty::before { content: '' !important; }
           .extras-vacio { display: none !important; }
-          .pie-capa { position: fixed; }
+          .pie-capa { position: fixed; top: 0; bottom: auto; }
           html, body { background: #fff !important; }
           .hoja { box-shadow: none !important; margin: 0 !important; min-height: 0 !important; }
-          .membrete { position: fixed; }
+          .membrete { position: fixed; clip-path: none; }
+          .membrete-pie { display: none; }
         }
       `}</style>
 
@@ -738,6 +743,16 @@ function ImprimirInvitacion() {
         {/* Membrete: logo, líneas doradas, marca de agua y pie. En la
             impresión se repite en todas las hojas. */}
         <div className="membrete">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/membrete-numa.jpg"
+            alt=""
+            style={{ position: 'absolute', top: 0, left: 0, width: '210mm', height: '297mm' }}
+          />
+        </div>
+
+        {/* Pie del membrete: solo en pantalla, pegado al final de la hoja. */}
+        <div className="membrete-pie">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/images/membrete-numa.jpg"
