@@ -137,8 +137,10 @@ export default function ProcesoDetallePage() {
       setLecturaInvitacion(lectura);
       const orden = ['Primera', 'Segunda', 'Tercera', 'Cuarta', 'Quinta', 'Sexta'];
       setInvitacionForm((prev) => ({
-        fecha: lectura.fecha || prev.fecha,
-        hora: lectura.hora || prev.hora,
+        // Si el documento nuevo no trae fecha u hora, se vacían: así no queda
+        // la fecha de un documento anterior por error.
+        fecha: lectura.fecha || '',
+        hora: lectura.hora || '',
         observaciones:
           prev.observaciones ||
           (lectura.ordinal && orden[lectura.ordinal - 1]

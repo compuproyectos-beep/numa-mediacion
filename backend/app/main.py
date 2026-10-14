@@ -5070,27 +5070,52 @@ def _datos_de_invitacion(texto):
         inicio = norm.find("efectu")
     desde = max(inicio, 0)
 
-    fechas = []
-    for m in re.finditer(
-        r"(\d{1,2})\s+de\s+([a-z]+)\s+(?:de|del)(?:\s+ano)?\s+(\d{4})", norm
-    ):
-        if m.group(2) in _MESES_ES:
-            fechas.append(m)
-    elegida = next((m for m in fechas if m.start() >= desde), None) or (fechas[-1] if fechas else None)
+    # Todas las formas de escribir una fecha que se aceptan. Cada una arma
+    # (posición, fin, año, mes, día). Si el documento usa números con barras
+    # (11/10/2026) se entiende día/mes/año, como se escribe en Ecuador.
+    meses = "|".join(_MESES_ES.keys())
+    candidatos = []
+
+    def _agregar(m, anio, mes, dia):
+        try:
+            datetime.date(int(anio), int(mes), int(dia))
+        except ValueError:
+            return
+        candidatos.append((m.start(), m.end(), int(anio), int(mes), int(dia)))
+
+    # 20 de octubre de 2026 · 20 de octubre del año 2026 · 20 octubre 2026
+    for m in re.finditer(rf"(\d{{1,2}})\s+(?:de\s+)?({meses})\s*,?\s*(?:de|del)?\s*(?:ano\s+)?(\d{{4}})", norm):
+        _agregar(m, m.group(3), _MESES_ES[m.group(2)], m.group(1))
+    # octubre 20, 2026 · octubre 20 de 2026
+    for m in re.finditer(rf"({meses})\s+(\d{{1,2}})\s*,?\s*(?:de|del)?\s*(?:ano\s+)?(\d{{4}})", norm):
+        _agregar(m, m.group(3), _MESES_ES[m.group(1)], m.group(2))
+    # 2026 octubre 20 · 2026, octubre 20
+    for m in re.finditer(rf"(\d{{4}})\s*,?\s*({meses})\s*,?\s*(\d{{1,2}})(?!\d)", norm):
+        _agregar(m, m.group(1), _MESES_ES[m.group(2)], m.group(3))
+    # 2026-10-20 · 2026/10/20 · 2026.10.20
+    for m in re.finditer(r"(?<!\d)(\d{4})\s*[-/.]\s*(\d{1,2})\s*[-/.]\s*(\d{1,2})(?!\d)", norm):
+        _agregar(m, m.group(1), m.group(2), m.group(3))
+    # 20/10/2026 · 20-10-2026 (día primero)
+    for m in re.finditer(r"(?<!\d)(\d{1,2})\s*[-/.]\s*(\d{1,2})\s*[-/.]\s*(\d{4})(?!\d)", norm):
+        _agregar(m, m.group(3), m.group(2), m.group(1))
+
+    candidatos.sort()
+    elegida = next((c for c in candidatos if c[0] >= desde), None) or (
+        candidatos[-1] if candidatos else None
+    )
 
     fecha = None
     hora = None
     if elegida:
-        try:
-            fecha = datetime.date(
-                int(elegida.group(3)), _MESES_ES[elegida.group(2)], int(elegida.group(1))
-            ).isoformat()
-        except ValueError:
-            fecha = None
-        cola = norm[elegida.end(): elegida.end() + 80]
+        fecha = datetime.date(elegida[2], elegida[3], elegida[4]).isoformat()
+        cola = norm[elegida[1]: elegida[1] + 80]
         mh = re.search(r"(\d{1,2})\s*(?:h|:)\s*(\d{2})", cola)
         if mh and int(mh.group(1)) < 24 and int(mh.group(2)) < 60:
             hora = f"{int(mh.group(1)):02d}:{mh.group(2)}"
+        else:
+            mh = re.search(r"a las\s+(\d{1,2})\s*(?:horas|hrs|h)\b", cola)
+            if mh and int(mh.group(1)) < 24:
+                hora = f"{int(mh.group(1)):02d}:00"
 
     ordinal = None
     mo = re.search(r"(primera|segunda|tercera|cuarta|quinta|sexta)\s+invitacion", norm)
