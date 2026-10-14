@@ -253,7 +253,7 @@ export default function DashboardPage() {
             : `${user?.sucursal || 'Sucursal'} · ${user?.ciudad || 'Ciudad'}`
         }
         action={
-          <button type="button" onClick={abrirGuia} className="btn-secondary btn-sm">
+          <button type="button" onClick={mostrarGuia ? cerrarGuia : abrirGuia} className="btn-secondary btn-sm">
             ¿Cómo funciona?
           </button>
         }
