@@ -2,7 +2,8 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { Printer, Save } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowLeft, Printer, Save } from 'lucide-react';
 import {
   getDatosInvitacion,
   crearInvitacionProceso,
@@ -617,16 +618,18 @@ function ImprimirInvitacion() {
       {/* Panel de datos: no se imprime */}
       <div className="print:hidden max-w-5xl mx-auto px-4 pt-6 pb-4">
         <div className="bg-white border border-numa-200 rounded-sm p-4">
+          <Link
+            href={`/procesos/${procesoId}`}
+            className="inline-flex items-center gap-1.5 text-sm text-numa-600 hover:text-numa-900 mb-3"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            {esNueva ? 'Volver al proceso sin guardar' : 'Volver al proceso'}
+          </Link>
           <div className="flex items-start justify-between gap-3 mb-3">
             <div>
               <h1 className="text-lg font-semibold text-numa-900">
                 {esNueva ? 'Nueva invitación' : 'Invitación'} — {proceso.codigo_proceso}
               </h1>
-              <p className="text-xs text-numa-500">
-                {esNueva
-                  ? 'Escribe la fecha, la hora y los demás datos: el documento de abajo se va llenando. Al presionar “Guardar invitación” se crea en el sistema y después puedes imprimirla o guardarla como PDF.'
-                  : 'Revisa los datos, corrige lo que haga falta y presiona Imprimir (o guarda como PDF). “Guardar cambios” deja guardados los textos de este documento.'}
-              </p>
             </div>
             <div className="flex flex-wrap gap-2 justify-end shrink-0">
               <button
