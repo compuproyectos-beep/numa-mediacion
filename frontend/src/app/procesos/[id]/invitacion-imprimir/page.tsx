@@ -234,6 +234,9 @@ function ImprimirInvitacion() {
         }
         if (!tel) tel = d.proceso?.sucursal_telefono || '';
         setTelefono(tel);
+        // El correo de contacto es el del mediador (las partes le responden a él);
+        // si no tuviera, el del centro.
+        setCorreo(d.proceso?.mediador_email || CORREO_DEFECTO);
 
         // Si la invitación ya tiene textos guardados, se usan esos. Para una
         // nueva, se parte de los de la última invitación (lugar, asunto, etc.).

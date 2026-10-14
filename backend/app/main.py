@@ -4987,7 +4987,8 @@ def datos_invitacion_imprimible(proceso_id: int, usuario=Depends(obtener_usuario
                 s.telefono AS sucursal_telefono,
                 ci.nombre AS ciudad,
                 u.nombre AS mediador_nombre, u.apellido AS mediador_apellido,
-                u.cedula AS mediador_cedula, u.telefono AS mediador_telefono
+                u.cedula AS mediador_cedula, u.telefono AS mediador_telefono,
+                u.email AS mediador_email
             FROM procesos_mediacion p
             JOIN sucursales s ON s.id = p.sucursal_id
             JOIN ciudades ci ON ci.id = s.ciudad_id
