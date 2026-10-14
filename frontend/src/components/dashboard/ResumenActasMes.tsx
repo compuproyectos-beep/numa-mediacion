@@ -29,25 +29,37 @@ export default function ResumenActasMes() {
       .finally(() => setCargando(false));
   }, [mes]);
 
+  const pastilla = (n: number, tono: 'verde' | 'dorado') =>
+    `shrink-0 min-w-[28px] text-center text-xs font-bold px-2 py-0.5 rounded-full ${
+      n === 0
+        ? 'bg-numa-100 text-numa-400'
+        : tono === 'verde'
+        ? 'bg-emerald-100 text-emerald-800'
+        : 'bg-gold-100 text-gold-800'
+    }`;
+
   return (
-    <div className="card p-6">
-      <div className="flex items-center justify-between gap-3 mb-1 flex-wrap">
-        <h2 className="text-sm font-semibold text-numa-700 uppercase tracking-wider flex items-center gap-2">
-          <FileCheck className="w-4 h-4 text-numa-400" />
-          Actas completas del mes
-        </h2>
+    <div className="card p-4 border-l-4 border-l-emerald-500 bg-gradient-to-br from-emerald-50/60 via-white to-white">
+      <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+        <div>
+          <h2 className="text-sm font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-2">
+            <span className="w-7 h-7 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center">
+              <FileCheck className="w-4 h-4" />
+            </span>
+            Actas completas del mes
+          </h2>
+          <p className="text-[11px] text-numa-500 mt-0.5">
+            Solo cuentan las actas terminadas (con el acta firmada subida).
+          </p>
+        </div>
 
         <input
           type="month"
           value={mes}
           onChange={(e) => setMes(e.target.value)}
-          className="input-field !w-auto text-xs"
+          className="input-field !w-auto !py-1 text-xs"
         />
       </div>
-
-      <p className="text-xs text-numa-400 mb-4">
-        Solo cuentan las actas terminadas (con el acta firmada subida).
-      </p>
 
       {cargando ? (
         <Spinner />
@@ -56,34 +68,37 @@ export default function ResumenActasMes() {
       ) : !datos || datos.mediadores.length === 0 ? (
         <EmptyState message="No hay mediadores para mostrar." />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div>
-            <p className="text-xs font-semibold text-numa-500 uppercase tracking-wide mb-2">
-              Por sucursal · total {datos.total}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="rounded-md bg-white/70 border border-emerald-100 px-3 py-2">
+            <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide mb-1 flex items-center justify-between">
+              <span>Por sucursal</span>
+              <span className="bg-emerald-600 text-white rounded-full px-2 py-0.5">
+                Total {datos.total}
+              </span>
             </p>
-            <ul className="divide-y divide-numa-100">
+            <ul className="divide-y divide-emerald-50">
               {datos.sucursales.map((s: any) => (
-                <li key={s.sucursal_id} className="flex items-center justify-between py-2 text-sm">
-                  <span className="text-numa-800">
-                    {s.sucursal} <span className="text-numa-400">· {s.ciudad}</span>
+                <li key={s.sucursal_id} className="flex items-center justify-between gap-2 py-1 text-sm">
+                  <span className="text-numa-800 truncate">
+                    {s.sucursal} <span className="text-numa-400 text-xs">· {s.ciudad}</span>
                   </span>
-                  <span className="font-semibold text-numa-900">{s.total}</span>
+                  <span className={pastilla(s.total, 'verde')}>{s.total}</span>
                 </li>
               ))}
             </ul>
           </div>
 
-          <div>
-            <p className="text-xs font-semibold text-numa-500 uppercase tracking-wide mb-2">
+          <div className="rounded-md bg-white/70 border border-gold-200 px-3 py-2">
+            <p className="text-[11px] font-bold text-gold-700 uppercase tracking-wide mb-1">
               Por mediador
             </p>
-            <ul className="divide-y divide-numa-100">
+            <ul className="divide-y divide-gold-50">
               {datos.mediadores.map((m: any) => (
-                <li key={m.usuario_id} className="flex items-center justify-between py-2 text-sm">
-                  <span className="text-numa-800">
-                    {m.mediador} <span className="text-numa-400">· {m.sucursal}</span>
+                <li key={m.usuario_id} className="flex items-center justify-between gap-2 py-1 text-sm">
+                  <span className="text-numa-800 truncate">
+                    {m.mediador} <span className="text-numa-400 text-xs">· {m.sucursal}</span>
                   </span>
-                  <span className="font-semibold text-numa-900">{m.total}</span>
+                  <span className={pastilla(m.total, 'dorado')}>{m.total}</span>
                 </li>
               ))}
             </ul>
