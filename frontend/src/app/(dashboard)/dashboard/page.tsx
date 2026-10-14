@@ -65,15 +65,26 @@ const TEMA_CATEGORIA: Record<
     item: 'border-slate-200 border-t-4 border-t-slate-400 hover:border-slate-300',
     titulo: 'text-slate-700'
   },
-  actas_finales: {
+  actas_acuerdo: {
     caja: 'bg-amber-100 border-amber-300',
     icono: 'bg-numa-900 text-gold-400',
     texto: 'text-numa-900',
     panel: 'bg-amber-50 border-amber-200',
     item: 'border-amber-200 border-t-4 border-t-gold-500 hover:border-amber-300',
     titulo: 'text-amber-800'
+  },
+  actas_no_acuerdo: {
+    caja: 'bg-orange-100 border-orange-300',
+    icono: 'bg-orange-700 text-white',
+    texto: 'text-orange-950',
+    panel: 'bg-orange-50 border-orange-200',
+    item: 'border-orange-200 border-t-4 border-t-orange-500 hover:border-orange-300',
+    titulo: 'text-orange-800'
   }
 };
+
+// Las dos tarjetas de actas muestran actas subidas (no procesos).
+const esCategoriaActas = (c: string | null) => c === 'actas_acuerdo' || c === 'actas_no_acuerdo';
 
 const CATEGORIAS: Record<
   string,
@@ -99,8 +110,12 @@ const CATEGORIAS: Record<
     estadoProceso: 'archivado',
     verTodoHref: '/procesos?estado=archivado'
   },
-  actas_finales: {
-    titulo: 'Actas finales',
+  actas_acuerdo: {
+    titulo: 'Actas finales de acuerdo',
+    verTodoHref: '/actas-finales'
+  },
+  actas_no_acuerdo: {
+    titulo: 'Actas finales de no acuerdo',
     verTodoHref: '/actas-finales'
   }
 };
@@ -190,9 +205,16 @@ export default function DashboardPage() {
 
     try {
       const info = CATEGORIAS[clave];
-      const data = info.estadoProceso
-        ? await getProcesos({ estado: info.estadoProceso })
-        : await getActasFinales();
+      let data: any[];
+      if (info.estadoProceso) {
+        data = await getProcesos({ estado: info.estadoProceso });
+      } else {
+        const todas = await getActasFinales();
+        // Cada acta guarda su tipo: 'acuerdo' o 'no_acuerdo'.
+        data = todas.filter((a: any) =>
+          clave === 'actas_no_acuerdo' ? a.tipo === 'no_acuerdo' : a.tipo !== 'no_acuerdo'
+        );
+      }
 
       setListaCategoria(data);
     } catch {
@@ -253,8 +275,9 @@ export default function DashboardPage() {
 
           {/* Las cajas van directo sobre el fondo de la página: sus colores
               suaves ya las distinguen, sin franja detrás. */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
             <StatCard
+              compacto
               label="En negociación"
               value={procesos.en_negociacion ?? 0}
               icon={Clock}
@@ -264,6 +287,7 @@ export default function DashboardPage() {
             />
 
             <StatCard
+              compacto
               label="Con acuerdo"
               value={procesos.cerrados_con_acuerdo ?? 0}
               icon={CheckCircle}
@@ -273,6 +297,7 @@ export default function DashboardPage() {
             />
 
             <StatCard
+              compacto
               label="Sin acuerdo"
               value={procesos.cerrados_sin_acuerdo ?? 0}
               icon={FileText}
@@ -282,6 +307,7 @@ export default function DashboardPage() {
             />
 
             <StatCard
+              compacto
               label="Archivados"
               value={procesos.archivados ?? 0}
               icon={Archive}
@@ -290,13 +316,24 @@ export default function DashboardPage() {
               active={categoriaAbierta === 'archivado'}
             />
 
-            <StatCard
-              label="Actas finales"
-              value={stats.actas_finales ?? 0}
+<StatCard
+              compacto
+              label="Actas de acuerdo"
+              value={stats.actas_acuerdo ?? 0}
               icon={FileCheck}
-              color={TEMA_CATEGORIA.actas_finales.icono} relleno={TEMA_CATEGORIA.actas_finales.caja} textoColor={TEMA_CATEGORIA.actas_finales.texto}
-              onClick={() => toggleCategoria('actas_finales')}
-              active={categoriaAbierta === 'actas_finales'}
+              color={TEMA_CATEGORIA.actas_acuerdo.icono} relleno={TEMA_CATEGORIA.actas_acuerdo.caja} textoColor={TEMA_CATEGORIA.actas_acuerdo.texto}
+              onClick={() => toggleCategoria('actas_acuerdo')}
+              active={categoriaAbierta === 'actas_acuerdo'}
+            />
+
+            <StatCard
+              compacto
+              label="Actas de no acuerdo"
+              value={stats.actas_no_acuerdo ?? 0}
+              icon={FileCheck}
+              color={TEMA_CATEGORIA.actas_no_acuerdo.icono} relleno={TEMA_CATEGORIA.actas_no_acuerdo.caja} textoColor={TEMA_CATEGORIA.actas_no_acuerdo.texto}
+              onClick={() => toggleCategoria('actas_no_acuerdo')}
+              active={categoriaAbierta === 'actas_no_acuerdo'}
             />
           </div>
 
@@ -339,7 +376,7 @@ export default function DashboardPage() {
                       onClick={() =>
                         router.push(
                           `/procesos/${
-                            categoriaAbierta === 'actas_finales' ? item.proceso_id : item.id
+                            esCategoriaActas(categoriaAbierta) ? item.proceso_id : item.id
                           }`
                         )
                       }
@@ -348,7 +385,7 @@ export default function DashboardPage() {
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 flex-wrap min-w-0">
                           <p className="font-semibold text-numa-900 code-text">
-                            {categoriaAbierta === 'actas_finales'
+                            {esCategoriaActas(categoriaAbierta)
                               ? item.codigo_acta
                               : item.codigo_proceso}
                           </p>
@@ -372,7 +409,7 @@ export default function DashboardPage() {
                       </p>
 
                       <p className="text-xs text-numa-500 mt-1 flex flex-wrap gap-x-3">
-                        {categoriaAbierta === 'actas_finales' && <span>Proceso: {item.codigo_proceso}</span>}
+                        {esCategoriaActas(categoriaAbierta) && <span>Proceso: {item.codigo_proceso}</span>}
                         <span>{item.ciudad || '—'} · {item.sucursal || '—'}</span>
                         {isAdmin && <span>Mediador: {item.usuario || '—'}</span>}
                       </p>

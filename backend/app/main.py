@@ -978,14 +978,19 @@ def dashboard(usuario=Depends(obtener_usuario_actual)):
         procesos = cur.fetchone()
 
         cur.execute(f"""
-            SELECT COUNT(*) AS total
+            SELECT
+                COUNT(*) AS total,
+                COUNT(*) FILTER (WHERE ap.tipo = 'no_acuerdo') AS no_acuerdo
             FROM actas_proceso ap
             JOIN procesos_mediacion p ON ap.proceso_id = p.id
             WHERE 1=1
             {" AND p.usuario_id = %s" if usuario["rol"] != "administrador" else ""}
         """, tuple(params))
 
-        actas_finales = cur.fetchone()["total"]
+        conteo_actas = cur.fetchone()
+        actas_finales = conteo_actas["total"]
+        actas_no_acuerdo = conteo_actas["no_acuerdo"]
+        actas_acuerdo = actas_finales - actas_no_acuerdo
 
         cur.execute(f"""
             SELECT
@@ -1045,6 +1050,8 @@ def dashboard(usuario=Depends(obtener_usuario_actual)):
         return {
             "procesos": procesos,
             "actas_finales": actas_finales,
+            "actas_acuerdo": actas_acuerdo,
+            "actas_no_acuerdo": actas_no_acuerdo,
             "procesos_recientes": procesos_recientes,
             "actas_recientes": actas_recientes
         }

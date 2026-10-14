@@ -229,7 +229,7 @@ export function PageHeader({ title, subtitle, action }: {
 }
 
 // ── STAT CARD ─────────────────────────────────────────────────────────────────
-export function StatCard({ label, value, icon: Icon, color, relleno, textoColor, onClick, active }: {
+export function StatCard({ label, value, icon: Icon, color, relleno, textoColor, onClick, active, compacto }: {
   label: string;
   value: number | string;
   icon: React.ComponentType<{ className?: string }>;
@@ -240,26 +240,29 @@ export function StatCard({ label, value, icon: Icon, color, relleno, textoColor,
   textoColor?: string;
   onClick?: () => void;
   active?: boolean;
+  // Versión más pequeña para poder poner más cajas en una fila.
+  compacto?: boolean;
 }) {
   const contenido = (
     <>
       <div
         className={clsx(
-          'w-10 h-10 rounded-md flex items-center justify-center shrink-0',
+          compacto ? 'w-9 h-9' : 'w-10 h-10',
+          'rounded-md flex items-center justify-center shrink-0',
           color
         )}
       >
         <Icon className="w-5 h-5" />
       </div>
       <div>
-        <p className={clsx('text-2xl font-bold tabular-nums', textoColor || 'text-numa-900')}>{value}</p>
-        <p className={clsx('text-xs uppercase tracking-wide font-semibold opacity-80', textoColor || 'text-numa-600')}>{label}</p>
+        <p className={clsx(compacto ? 'text-xl' : 'text-2xl', 'font-bold tabular-nums', textoColor || 'text-numa-900')}>{value}</p>
+        <p className={clsx(compacto ? 'text-[11px] leading-tight' : 'text-xs', 'uppercase tracking-wide font-semibold opacity-80', textoColor || 'text-numa-600')}>{label}</p>
       </div>
     </>
   );
 
   const base = clsx(
-    'p-5 flex items-center gap-4 rounded-md',
+    compacto ? 'p-3.5 flex items-center gap-3 rounded-md' : 'p-5 flex items-center gap-4 rounded-md',
     relleno ? clsx(relleno, 'border shadow-sm') : 'card'
   );
 
