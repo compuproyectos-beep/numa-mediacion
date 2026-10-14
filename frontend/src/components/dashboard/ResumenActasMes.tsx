@@ -35,7 +35,7 @@ export default function ResumenActasMes() {
         ? 'bg-numa-100 text-numa-400'
         : tono === 'verde'
         ? 'bg-emerald-100 text-emerald-800'
-        : 'bg-gold-100 text-gold-800'
+        : 'bg-amber-100 text-amber-800'
     }`;
 
   return (
@@ -88,11 +88,11 @@ export default function ResumenActasMes() {
             </ul>
           </div>
 
-          <div className="rounded-md bg-white/70 border border-gold-200 px-3 py-2">
-            <p className="text-[11px] font-bold text-gold-700 uppercase tracking-wide mb-1">
+          <div className="rounded-md bg-white/70 border border-amber-200 px-3 py-2">
+            <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wide mb-1">
               Por mediador
             </p>
-            <ul className="divide-y divide-gold-50">
+            <ul className="divide-y divide-amber-50">
               {datos.mediadores.map((m: any) => (
                 <li key={m.usuario_id} className="flex items-center justify-between gap-2 py-1 text-sm">
                   <span className="text-numa-800 truncate">
