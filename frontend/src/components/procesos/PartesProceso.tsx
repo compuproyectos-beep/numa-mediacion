@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { Plus, Star, X, Building2, User } from 'lucide-react';
+import { getCiudadesCached } from '@/lib/catalogCache';
 import { Modal, SelectField, InputField, ErrorAlert, Spinner } from '@/components/ui';
 import {
   getClientes,
   createCliente,
+  getProvincias,
   getPartesProceso,
   agregarParteProceso,
   cambiarResponsableParte,
@@ -50,11 +52,17 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
     razon_social: '',
     ruc: '',
     representante_nombre: '',
-    representante_cedula: ''
+    representante_cedula: '',
+    email: '',
+    direccion: ''
   };
   const [creando, setCreando] = useState(false);
   const [nuevo, setNuevo] = useState(VACIO);
   const [creandoGuardando, setCreandoGuardando] = useState(false);
+  const [provincias, setProvincias] = useState<any[]>([]);
+  const [ciudades, setCiudades] = useState<any[]>([]);
+  const [provinciaId, setProvinciaId] = useState('');
+  const [ciudadId, setCiudadId] = useState('');
   const campoNuevo = (k: keyof typeof VACIO, soloNumeros = 0) => ({
     value: nuevo[k],
     onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -66,6 +74,10 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
 
   const guardarNuevoCliente = async () => {
     setError('');
+    if (nuevo.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(nuevo.email)) {
+      setError('Ingresa un email válido');
+      return;
+    }
     setCreandoGuardando(true);
     try {
       const esEmpresa = tipoParte === 'empresa';
@@ -77,14 +89,20 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
               ruc: nuevo.ruc,
               representante_nombre: nuevo.representante_nombre,
               representante_cedula: nuevo.representante_cedula,
-              telefono: nuevo.telefono || undefined
+              telefono: nuevo.telefono || undefined,
+              email: nuevo.email || undefined,
+              direccion: nuevo.direccion || undefined,
+              ciudad_id: ciudadId ? Number(ciudadId) : undefined
             }
           : {
               tipo: 'persona',
               nombre: nuevo.nombre,
               apellido: nuevo.apellido,
               cedula: nuevo.cedula,
-              telefono: nuevo.telefono || undefined
+              telefono: nuevo.telefono || undefined,
+              email: nuevo.email || undefined,
+              direccion: nuevo.direccion || undefined,
+              ciudad_id: ciudadId ? Number(ciudadId) : undefined
             }) as any
       );
       // El cliente nuevo queda en la lista y ya elegido.
@@ -93,6 +111,8 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
       setEmpresaId('');
       setCreando(false);
       setNuevo(VACIO);
+      setProvinciaId('');
+      setCiudadId('');
     } catch (e: any) {
       setError(mensajeError(e, 'No se pudo crear el cliente'));
     } finally {
@@ -113,6 +133,8 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
   useEffect(() => {
     cargar();
     getClientes().then(setClientes).catch(() => setClientes([]));
+    getProvincias().then(setProvincias).catch(() => setProvincias([]));
+    getCiudadesCached().then(setCiudades).catch(() => setCiudades([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [procesoId]);
 
@@ -126,6 +148,8 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
     setTipoParte('persona');
     setCreando(false);
     setNuevo(VACIO);
+    setProvinciaId('');
+    setCiudadId('');
     setError('');
   };
 
@@ -322,6 +346,7 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
       <Modal
         open={rolAgregar !== null}
         onClose={cerrarAgregar}
+        size="lg"
         title={rolAgregar ? `Agregar ${rolAgregar}` : ''}
       >
         {error && rolAgregar && (
@@ -422,6 +447,53 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
                 </div>
               )}
 
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <InputField
+                    label="Email (opcional)"
+                    placeholder="cliente@correo.com"
+                    {...campoNuevo('email')}
+                  />
+                </div>
+                <SelectField
+                  label="Provincia de domicilio"
+                  value={provinciaId}
+                  onChange={(e) => {
+                    setProvinciaId(e.target.value);
+                    setCiudadId('');
+                  }}
+                >
+                  <option value="">Seleccione</option>
+                  {provincias.map((p: any) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}
+                    </option>
+                  ))}
+                </SelectField>
+                <SelectField
+                  label="Ciudad de domicilio"
+                  value={ciudadId}
+                  onChange={(e) => setCiudadId(e.target.value)}
+                  disabled={!provinciaId}
+                >
+                  <option value="">Seleccione</option>
+                  {ciudades
+                    .filter((c: any) => String(c.provincia_id) === String(provinciaId))
+                    .map((c: any) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nombre}
+                      </option>
+                    ))}
+                </SelectField>
+                <div className="col-span-2">
+                  <InputField
+                    label="Dirección domiciliaria (opcional)"
+                    placeholder="Av. Principal y calle secundaria"
+                    {...campoNuevo('direccion')}
+                  />
+                </div>
+              </div>
+
               <div className="flex justify-end gap-2">
                 <button
                   type="button"
@@ -470,8 +542,7 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
           )}
 
           <p className="text-xs text-numa-400">
-            Los datos completos del cliente (dirección, correo, ciudad) se pueden completar
-            después en la sección &quot;Clientes&quot;.
+            El cliente nuevo queda guardado también en la sección &quot;Clientes&quot;.
           </p>
         </div>
 
