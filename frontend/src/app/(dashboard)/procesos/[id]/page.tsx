@@ -886,7 +886,11 @@ export default function ProcesoDetallePage() {
                             : getEstadoCitaBadgeClass(cita.estado)
                         }`}
                       >
-                        {citaEstaAtrasada(cita) ? 'Atrasada' : cita.estado}
+                        {citaEstaAtrasada(cita)
+                          ? 'Atrasada'
+                          : cita.estado === 'no_realizada'
+                            ? 'No asistió'
+                            : cita.estado}
                       </span>
                     </div>
 
