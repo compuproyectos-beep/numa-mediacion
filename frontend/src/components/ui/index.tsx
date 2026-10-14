@@ -247,7 +247,7 @@ export function StatCard({ label, value, icon: Icon, color, relleno, textoColor,
     <>
       <div
         className={clsx(
-          compacto ? 'w-9 h-9' : 'w-10 h-10',
+          compacto ? 'w-8 h-8' : 'w-10 h-10',
           'rounded-md flex items-center justify-center shrink-0',
           color
         )}
@@ -255,14 +255,14 @@ export function StatCard({ label, value, icon: Icon, color, relleno, textoColor,
         <Icon className="w-5 h-5" />
       </div>
       <div>
-        <p className={clsx(compacto ? 'text-xl' : 'text-2xl', 'font-bold tabular-nums', textoColor || 'text-numa-900')}>{value}</p>
+        <p className={clsx(compacto ? 'text-lg leading-tight' : 'text-2xl', 'font-bold tabular-nums', textoColor || 'text-numa-900')}>{value}</p>
         <p className={clsx(compacto ? 'text-[11px] leading-tight' : 'text-xs', 'uppercase tracking-wide font-semibold opacity-80', textoColor || 'text-numa-600')}>{label}</p>
       </div>
     </>
   );
 
   const base = clsx(
-    compacto ? 'p-3.5 flex items-center gap-3 rounded-md' : 'p-5 flex items-center gap-4 rounded-md',
+    compacto ? 'px-3 py-2 flex items-center gap-2.5 rounded-md' : 'p-5 flex items-center gap-4 rounded-md',
     relleno ? clsx(relleno, 'border shadow-sm') : 'card'
   );
 
