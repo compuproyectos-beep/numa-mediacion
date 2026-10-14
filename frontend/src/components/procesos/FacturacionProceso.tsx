@@ -217,8 +217,8 @@ export default function FacturacionProceso({ procesoId, editable, onEstado, fina
         </p>
       ) : estado !== 'cerrado_con_acuerdo' ? (
         <p className="text-sm text-numa-500">
-          Aún no se indica a nombre de quién va la factura. Puedes completarlo ahora o al cerrar
-          con acuerdo; es obligatorio antes de subir el acta.
+          Aún no se indica a nombre de quién va la factura. Puedes completarlo ahora o más
+          adelante; es obligatorio antes de subir el acta.
         </p>
       ) : (
         <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-sm px-3 py-2 inline-flex items-start gap-2">
