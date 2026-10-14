@@ -192,8 +192,7 @@ export default function ImprimirActaPage() {
             Volver al proceso
           </Link>
           <p className="hidden md:block text-xs text-numa-500 flex-1 text-center">
-            Para guardarla en tu computador o en una memoria USB, en la ventana de impresión elige
-            &quot;Guardar como PDF&quot;.
+            Para guardarla, elige &quot;Guardar como PDF&quot;.
           </p>
           <button
             onClick={() => window.print()}
