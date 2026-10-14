@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import PasosProceso from '@/components/procesos/PasosProceso';
-import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon, Eye, Download, Receipt } from 'lucide-react';
+import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon, Eye, Download, Receipt, FileText } from 'lucide-react';
 import { isAdmin as esAdminSesion } from '@/lib/auth';
 import PartesProceso from '@/components/procesos/PartesProceso';
 import FacturacionProceso from '@/components/procesos/FacturacionProceso';
@@ -1186,6 +1186,16 @@ export default function ProcesoDetallePage() {
                 >
                   <Upload className="w-3.5 h-3.5" />
                   {leyendoInvitacion ? 'Leyendo...' : 'Subir invitación ya llena (Word o PDF)'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    window.open(`/procesos/${proceso.id}/invitacion-imprimir?nueva=1`, '_blank')
+                  }
+                  className="btn-secondary btn-sm"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  Redactar sobre el documento
                 </button>
                 <p className="text-xs text-numa-500">
                   Sube el Word o el PDF hecho en computadora (no una foto, un escaneo ni un

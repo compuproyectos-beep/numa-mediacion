@@ -5002,12 +5002,74 @@ def datos_invitacion_imprimible(proceso_id: int, usuario=Depends(obtener_usuario
             raise HTTPException(status_code=403, detail="No puedes ver este proceso")
 
         cur.execute("""
-            SELECT id, fecha, hora, estado, observaciones
+            SELECT id, fecha, hora, estado, observaciones, documento
             FROM citas WHERE proceso_id = %s ORDER BY id ASC
         """, (proceso_id,))
         citas = cur.fetchall()
 
         return {"proceso": p, "partes": _consulta_partes(cur, proceso_id), "citas": citas}
+    finally:
+        cur.close()
+        conn.close()
+
+
+# =========================
+# GUARDAR LOS TEXTOS DEL DOCUMENTO DE LA INVITACIÓN
+# =========================
+_CAMPOS_DOCUMENTO = {
+    "modelo": 20, "titulo": 120, "fecha_emision": 10, "asunto": 500,
+    "lugar": 1000, "pie": 500, "telefono": 40, "correo": 200, "extras": 1500,
+}
+
+
+@app.put("/procesos/{proceso_id}/citas/{cita_id}/documento")
+def guardar_documento_invitacion(
+    proceso_id: int,
+    cita_id: int,
+    datos: dict,
+    usuario=Depends(obtener_usuario_actual)
+):
+    """Guarda los textos con los que se arma el documento de la invitación
+    (lugar, asunto, título, etc.) para poder reimprimirlo igual después."""
+    limpio = {}
+    for campo, maximo in _CAMPOS_DOCUMENTO.items():
+        valor = datos.get(campo)
+        if valor is None:
+            continue
+        if not isinstance(valor, str):
+            raise HTTPException(status_code=400, detail=f"Campo inválido: {campo}")
+        limpio[campo] = valor.strip()[:maximo]
+
+    if limpio.get("modelo") and limpio["modelo"] not in ("natural", "empresa"):
+        raise HTTPException(status_code=400, detail="Modelo inválido")
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT p.usuario_id
+            FROM citas c
+            JOIN procesos_mediacion p ON p.id = c.proceso_id
+            WHERE c.id = %s AND c.proceso_id = %s
+        """, (cita_id, proceso_id))
+        fila = cur.fetchone()
+        if not fila:
+            raise HTTPException(status_code=404, detail="Invitación no encontrada")
+        if usuario["rol"] != "administrador" and fila["usuario_id"] != usuario["id"]:
+            raise HTTPException(status_code=403, detail="No puedes modificar esta invitación")
+
+        cur.execute(
+            "UPDATE citas SET documento = %s::jsonb WHERE id = %s",
+            (json.dumps(limpio), cita_id)
+        )
+        conn.commit()
+        return {"ok": True, "documento": limpio}
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         cur.close()
         conn.close()

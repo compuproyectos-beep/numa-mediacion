@@ -1,9 +1,13 @@
 'use client';
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
-import { Printer } from 'lucide-react';
-import { getDatosInvitacion } from '@/lib/services';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { Printer, Save } from 'lucide-react';
+import {
+  getDatosInvitacion,
+  crearInvitacionProceso,
+  guardarDocumentoInvitacion
+} from '@/lib/services';
 import { hoyEcuador } from '@/lib/accionProceso';
 
 type Modelo = 'natural' | 'empresa';
@@ -90,8 +94,11 @@ const etiqueta = 'block text-[11px] uppercase tracking-wide text-numa-500 mb-1';
 function ImprimirInvitacion() {
   const params = useParams();
   const search = useSearchParams();
+  const router = useRouter();
   const procesoId = Number(params.id);
   const citaParam = Number(search.get('cita') || 0);
+  // ?nueva=1: se redacta la invitación sobre el documento y al guardar se crea.
+  const esNueva = search.get('nueva') === '1';
 
   const [data, setData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -107,6 +114,25 @@ function ImprimirInvitacion() {
   const [telefono, setTelefono] = useState('');
   const [correo, setCorreo] = useState(CORREO_DEFECTO);
   const [extras, setExtras] = useState('');
+  const [fechaNueva, setFechaNueva] = useState('');
+  const [horaNueva, setHoraNueva] = useState('');
+  const [guardando, setGuardando] = useState(false);
+  const [errorGuardar, setErrorGuardar] = useState('');
+  const [okGuardar, setOkGuardar] = useState('');
+
+  // Rellena los campos con los textos que se guardaron con una invitación.
+  const aplicarDocumento = (doc: any, conTitulo = true) => {
+    if (!doc) return;
+    if (doc.modelo === 'natural' || doc.modelo === 'empresa') setModelo(doc.modelo);
+    if (conTitulo && doc.titulo) setTitulo(doc.titulo);
+    if (doc.fecha_emision) setFechaEmision(doc.fecha_emision);
+    if (typeof doc.asunto === 'string') setAsunto(doc.asunto);
+    if (doc.lugar) setLugar(doc.lugar);
+    if (doc.pie) setPie(doc.pie);
+    if (doc.telefono) setTelefono(doc.telefono);
+    if (doc.correo) setCorreo(doc.correo);
+    if (typeof doc.extras === 'string') setExtras(doc.extras);
+  };
 
   useEffect(() => {
     if (!procesoId) return;
@@ -114,11 +140,15 @@ function ImprimirInvitacion() {
       .then((d) => {
         setData(d);
         const citas = d.citas || [];
-        const activa =
-          citas.find((c: any) => c.id === citaParam) ||
-          [...citas].reverse().find((c: any) => c.estado !== 'cancelada') ||
-          citas[citas.length - 1];
-        if (activa) {
+        const activa = esNueva
+          ? null
+          : citas.find((c: any) => c.id === citaParam) ||
+            [...citas].reverse().find((c: any) => c.estado !== 'cancelada') ||
+            citas[citas.length - 1];
+        if (esNueva) {
+          setCitaId(0);
+          setTitulo(`${ORDINALES[citas.length] || `Invitación ${citas.length + 1}`} invitación`);
+        } else if (activa) {
           setCitaId(activa.id);
           const idx = citas.findIndex((c: any) => c.id === activa.id);
           setTitulo(`${ORDINALES[idx] || `Invitación ${idx + 1}`} invitación`);
@@ -151,12 +181,22 @@ function ImprimirInvitacion() {
         }
         if (!tel) tel = d.proceso?.sucursal_telefono || '';
         setTelefono(tel);
+
+        // Si la invitación ya tiene textos guardados, se usan esos. Para una
+        // nueva, se parte de los de la última invitación (lugar, asunto, etc.).
+        if (activa?.documento) {
+          aplicarDocumento(activa.documento);
+        } else if (esNueva) {
+          const previa = [...citas].reverse().find((c: any) => c.documento);
+          if (previa) aplicarDocumento(previa.documento, false);
+        }
       })
       .catch((e) =>
         setError(e?.response?.data?.detail || 'No se pudo cargar la invitación.')
       )
       .finally(() => setLoading(false));
-  }, [procesoId, citaParam]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [procesoId, citaParam, esNueva]);
 
   const guardarTelefono = (v: string) => {
     setTelefono(v);
@@ -164,6 +204,60 @@ function ImprimirInvitacion() {
       window.localStorage.setItem('numa_tel_invitacion', v);
     } catch {
       /* no pasa nada */
+    }
+  };
+
+  const documentoActual = () => ({
+    modelo,
+    titulo,
+    fecha_emision: fechaEmision,
+    asunto,
+    lugar,
+    pie,
+    telefono,
+    correo,
+    extras
+  });
+
+  // Nueva: crea la invitación en el sistema y guarda los textos del documento.
+  // Existente: solo guarda los textos.
+  const guardar = async () => {
+    setErrorGuardar('');
+    setOkGuardar('');
+    if (esNueva) {
+      if (!fechaNueva || !horaNueva) {
+        setErrorGuardar('Escribe la fecha y la hora de la audiencia para guardar la invitación.');
+        return;
+      }
+      if (fechaNueva < hoyEcuador()) {
+        setErrorGuardar('La fecha de la audiencia no puede ser pasada.');
+        return;
+      }
+    }
+    setGuardando(true);
+    try {
+      if (esNueva) {
+        const nueva = await crearInvitacionProceso(procesoId, {
+          fecha: fechaNueva,
+          hora: horaNueva,
+          observaciones: titulo || 'Invitación'
+        });
+        try {
+          await guardarDocumentoInvitacion(procesoId, nueva.id, documentoActual());
+        } catch {
+          /* la invitación ya existe; los textos se pueden guardar luego */
+        }
+        router.replace(`/procesos/${procesoId}/invitacion-imprimir?cita=${nueva.id}`);
+      } else if (citaId) {
+        await guardarDocumentoInvitacion(procesoId, citaId, documentoActual());
+        setOkGuardar('Cambios del documento guardados.');
+      }
+    } catch (e: any) {
+      setErrorGuardar(
+        e?.response?.data?.detail || 'No se pudo guardar. Revisa los datos e inténtalo de nuevo.'
+      );
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -194,10 +288,12 @@ function ImprimirInvitacion() {
   const mediador = `${proceso.mediador_nombre} ${proceso.mediador_apellido}`.trim();
   const plural = (l: any[], a: string, b: string) => (l.length > 1 ? b : a);
 
-  const fechaCita = cita?.fecha
+  const fechaBase = esNueva ? fechaNueva : cita?.fecha;
+  const horaBase = esNueva ? horaNueva : cita?.hora;
+  const fechaCita = fechaBase
     ? (() => {
-        const p = partes(cita.fecha);
-        return `${p.dia} ${String(p.d).padStart(2, '0')} de ${MESES[p.m - 1]} del año ${p.y}, a las ${horaTexto(cita.hora)}`;
+        const p = partes(fechaBase);
+        return `${p.dia} ${String(p.d).padStart(2, '0')} de ${MESES[p.m - 1]} del año ${p.y}, a las ${horaBase ? horaTexto(horaBase) : '__H__'}`;
       })()
     : '__ de ______ del año ____, a las __H__';
 
@@ -370,21 +466,45 @@ function ImprimirInvitacion() {
           <div className="flex items-start justify-between gap-3 mb-3">
             <div>
               <h1 className="text-lg font-semibold text-numa-900">
-                Invitación — {proceso.codigo_proceso}
+                {esNueva ? 'Nueva invitación' : 'Invitación'} — {proceso.codigo_proceso}
               </h1>
               <p className="text-xs text-numa-500">
-                Revisa los datos, corrige lo que haga falta y presiona Imprimir (o guarda como PDF).
-                El documento no se guarda: se puede volver a generar cuando quieras.
+                {esNueva
+                  ? 'Escribe la fecha, la hora y los demás datos: el documento de abajo se va llenando. Al presionar “Guardar invitación” se crea en el sistema y después puedes imprimirla o guardarla como PDF.'
+                  : 'Revisa los datos, corrige lo que haga falta y presiona Imprimir (o guarda como PDF). “Guardar cambios” deja guardados los textos de este documento.'}
               </p>
             </div>
-            <button
-              onClick={() => window.print()}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-numa-900 text-numa-50 rounded-sm text-sm font-medium hover:bg-numa-950 transition-colors shrink-0"
-            >
-              <Printer className="w-4 h-4" />
-              Imprimir
-            </button>
+            <div className="flex flex-wrap gap-2 justify-end shrink-0">
+              <button
+                onClick={guardar}
+                disabled={guardando || (!esNueva && !citaId)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-numa-900 text-numa-50 rounded-sm text-sm font-medium hover:bg-numa-950 transition-colors disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                {guardando ? 'Guardando...' : esNueva ? 'Guardar invitación' : 'Guardar cambios'}
+              </button>
+              {!esNueva && (
+                <button
+                  onClick={() => window.print()}
+                  className="inline-flex items-center gap-2 px-4 py-2 border border-numa-300 text-numa-800 bg-white rounded-sm text-sm font-medium hover:bg-numa-50 transition-colors"
+                >
+                  <Printer className="w-4 h-4" />
+                  Imprimir
+                </button>
+              )}
+            </div>
           </div>
+
+          {errorGuardar && (
+            <p className="mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-sm px-3 py-2">
+              {errorGuardar}
+            </p>
+          )}
+          {okGuardar && (
+            <p className="mb-3 text-sm text-green-700 bg-green-50 border border-green-200 rounded-sm px-3 py-2">
+              {okGuardar}
+            </p>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
@@ -398,26 +518,52 @@ function ImprimirInvitacion() {
                 <option value="empresa">Empresa / institución</option>
               </select>
             </div>
-            <div>
-              <label className={etiqueta}>Invitación</label>
-              <select
-                className={campo}
-                value={citaId}
-                onChange={(e) => {
-                  const id = Number(e.target.value);
-                  setCitaId(id);
-                  const idx = (data.citas || []).findIndex((c: any) => c.id === id);
-                  if (idx >= 0)
-                    setTitulo(`${ORDINALES[idx] || `Invitación ${idx + 1}`} invitación`);
-                }}
-              >
-                {(data.citas || []).map((c: any, i: number) => (
-                  <option key={c.id} value={c.id}>
-                    #{i + 1} · {c.fecha ? fechaLarga(c.fecha) : ''} · {(c.hora || '').slice(0, 5)}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {esNueva ? (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className={etiqueta}>Fecha de la audiencia</label>
+                  <input
+                    type="date"
+                    className={campo}
+                    min={hoyEcuador()}
+                    value={fechaNueva}
+                    onChange={(e) => setFechaNueva(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className={etiqueta}>Hora</label>
+                  <input
+                    type="time"
+                    className={campo}
+                    value={horaNueva}
+                    onChange={(e) => setHoraNueva(e.target.value)}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label className={etiqueta}>Invitación</label>
+                <select
+                  className={campo}
+                  value={citaId}
+                  onChange={(e) => {
+                    const id = Number(e.target.value);
+                    setCitaId(id);
+                    const idx = (data.citas || []).findIndex((c: any) => c.id === id);
+                    if (idx >= 0) {
+                      setTitulo(`${ORDINALES[idx] || `Invitación ${idx + 1}`} invitación`);
+                      aplicarDocumento(data.citas[idx].documento);
+                    }
+                  }}
+                >
+                  {(data.citas || []).map((c: any, i: number) => (
+                    <option key={c.id} value={c.id}>
+                      #{i + 1} · {c.fecha ? fechaLarga(c.fecha) : ''} · {(c.hora || '').slice(0, 5)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label className={etiqueta}>Título (editable)</label>
               <input

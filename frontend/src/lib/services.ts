@@ -473,6 +473,15 @@ export async function crearInvitacionProceso(
 }
 
 
+export async function guardarDocumentoInvitacion(
+  procesoId: number,
+  citaId: number,
+  documento: Record<string, string>
+): Promise<any> {
+  const res = await api.put(`/procesos/${procesoId}/citas/${citaId}/documento`, documento);
+  return res.data;
+}
+
 export async function leerInvitacionLlena(
   procesoId: number,
   archivo: File
