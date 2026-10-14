@@ -4939,9 +4939,11 @@ def datos_acta_imprimible(proceso_id: int, usuario=Depends(obtener_usuario_actua
                 p.fecha_acuerdo, p.acuerdo_texto, p.requiere_acta_no_acuerdo,
                 ap.codigo_acta, ap.tipo AS tipo_acta, ap.fecha_subida AS fecha_acta,
                 s.nombre AS sucursal, s.direccion AS sucursal_direccion,
+                s.telefono AS sucursal_telefono,
                 ci.nombre AS ciudad,
                 u.nombre AS mediador_nombre, u.apellido AS mediador_apellido,
-                u.cedula AS mediador_cedula
+                u.cedula AS mediador_cedula, u.telefono AS mediador_telefono,
+                u.email AS mediador_email
             FROM procesos_mediacion p
             JOIN sucursales s ON s.id = p.sucursal_id
             JOIN ciudades ci ON ci.id = s.ciudad_id

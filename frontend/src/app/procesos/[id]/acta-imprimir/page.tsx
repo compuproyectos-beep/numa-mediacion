@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Printer } from 'lucide-react';
+import { Printer, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 import { getDatosActa } from '@/lib/services';
 
 const fmtFecha = (v?: string) => {
@@ -20,6 +21,14 @@ const fmtFecha = (v?: string) => {
         timeZone: 'America/Guayaquil'
       });
 };
+
+const PIE_MATRIZ =
+  'Calles Tulcán y Babahoyo, Edif. Andrade,\nPrimer piso, Oficinas 101-107\nSanto Domingo, Ecuador';
+const CORREO_DEFECTO = 'numacentromediacion@gmail.com';
+// Medidas de la hoja (mm), iguales a las de la invitación.
+const ESPACIO_SUP = 50;
+const ESPACIO_INF = 38;
+const MARGEN_LAT = 20;
 
 const nombreCompleto = (p: any) => `${p.nombre} ${p.apellido || ''}`.trim();
 
@@ -87,13 +96,39 @@ export default function ImprimirActaPage() {
     ? proceso.fecha_cierre_sin_acuerdo || proceso.fecha_acta
     : proceso.fecha_acuerdo;
 
+  const esMatriz = /santo domingo/i.test(proceso.ciudad || '');
+  const pie = esMatriz
+    ? PIE_MATRIZ
+    : `${proceso.sucursal_direccion || ''}\n${proceso.ciudad || ''}, Ecuador`.trim();
+  const telefono = proceso.mediador_telefono || proceso.sucursal_telefono || '';
+  const correo = proceso.mediador_email || CORREO_DEFECTO;
+
+  const estiloPie: React.CSSProperties = {
+    position: 'absolute',
+    fontFamily: "'Open Sans', Arial, sans-serif",
+    fontWeight: 700,
+    fontSize: '7.6pt',
+    lineHeight: 1.45,
+    color: '#1f2a7a',
+    textAlign: 'left'
+  };
+
+  const pDefault: React.CSSProperties = { margin: '0 0 3.2mm' };
+  const etiqueta: React.CSSProperties = {
+    margin: '0 0 1mm',
+    fontSize: '8.5pt',
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase',
+    color: '#555'
+  };
+
   const bloquePartes = (titulo: string, lista: any[]) => (
-    <div className="mb-4">
-      <p className="text-[11px] uppercase tracking-wide text-numa-400 mb-1">{titulo}</p>
-      <ul className="space-y-1">
+    <div style={{ marginBottom: '4mm' }}>
+      <p style={etiqueta}>{titulo}</p>
+      <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
         {lista.map((p: any) => (
-          <li key={p.id} className="text-sm text-numa-800">
-            <span className="font-medium">{nombreCompleto(p)}</span>
+          <li key={p.id} style={{ marginBottom: '1.5mm' }}>
+            <strong>{nombreCompleto(p)}</strong>
             {p.es_responsable && lista.length > 1 ? ' (responsable)' : ''}
             {p.tipo === 'empresa'
               ? ` — RUC ${p.ruc || '—'}; representante legal: ${p.representante_nombre || '—'}${
@@ -108,115 +143,183 @@ export default function ImprimirActaPage() {
   );
 
   const firma = (key: string, nombre: string, cedula: string | null, detalle: string, rol: string) => (
-    <div key={key} className="break-inside-avoid text-center">
-      <div className="h-16 border-b border-numa-400" />
-      <p className="text-sm font-semibold text-numa-900 mt-2">{nombre}</p>
-      <p className="text-xs text-numa-500">C.I. {cedula || '—'}</p>
-      {detalle && <p className="text-[11px] text-numa-500">{detalle}</p>}
-      <p className="text-[11px] uppercase tracking-wide text-numa-400 mt-1">{rol}</p>
+    <div key={key} style={{ breakInside: 'avoid', pageBreakInside: 'avoid', textAlign: 'center' }}>
+      <div style={{ height: '16mm', borderBottom: '1px solid #444' }} />
+      <p style={{ margin: '2mm 0 0', fontWeight: 700 }}>{nombre}</p>
+      <p style={{ margin: 0, fontSize: '9.5pt' }}>C.I. {cedula || '—'}</p>
+      {detalle && <p style={{ margin: 0, fontSize: '9pt' }}>{detalle}</p>}
+      <p style={{ margin: '1mm 0 0', fontSize: '8.5pt', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#555' }}>
+        {rol}
+      </p>
     </div>
   );
 
+  const textoCierre = noAcuerdo
+    ? solicitantes.length > 1
+      ? 'Leída el acta, los solicitantes se ratifican en su contenido y la firman junto con el mediador.'
+      : 'Leída el acta, el solicitante se ratifica en su contenido y la firma junto con el mediador.'
+    : 'Leída el acta, las partes se ratifican en su contenido y la firman junto con el mediador.';
+
   return (
-    <main className="min-h-screen bg-numa-100 print:bg-white py-10 print:py-0">
-      <div className="max-w-3xl mx-auto bg-white shadow-md print:shadow-none border border-numa-200 print:border-0 rounded-sm">
-        <div className="border-b-2 border-gold-500 px-10 pt-8 pb-6 relative">
+    <main className="min-h-screen bg-numa-100 print:bg-white">
+      <style>{`
+        @page { size: A4; margin: 0; }
+        .membrete { position: absolute; top: 0; left: 0; width: 210mm; height: 297mm; z-index: 0; clip-path: inset(0 0 42mm 0); }
+        .membrete-pie { position: absolute; left: 0; bottom: 0; width: 210mm; height: 297mm; z-index: 0; clip-path: inset(255mm 0 0 0); pointer-events: none; }
+        .pie-capa { position: absolute; bottom: 0; left: 0; width: 210mm; height: 297mm; z-index: 5; pointer-events: none; }
+        @media print {
+          .pie-capa { position: fixed; top: 0; bottom: auto; }
+          html, body { background: #fff !important; }
+          .hoja { box-shadow: none !important; margin: 0 !important; min-height: 0 !important; }
+          .membrete { position: fixed; clip-path: none; }
+          .membrete-pie { display: none; }
+        }
+      `}</style>
+
+      {/* Barra superior: no se imprime */}
+      <div className="print:hidden max-w-5xl mx-auto px-4 pt-6 pb-4">
+        <div className="bg-white border border-numa-200 rounded-sm p-4 flex items-center justify-between gap-3">
+          <Link
+            href={`/procesos/${procesoId}`}
+            className="inline-flex items-center gap-1.5 text-sm text-numa-600 hover:text-numa-900"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Volver al proceso
+          </Link>
           <button
             onClick={() => window.print()}
-            className="print:hidden absolute top-8 right-10 inline-flex items-center gap-2 px-4 py-2 bg-numa-900 text-numa-50 rounded-sm text-sm font-medium hover:bg-numa-950 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-numa-900 text-numa-50 rounded-sm text-sm font-medium hover:bg-numa-950 transition-colors"
           >
             <Printer className="w-4 h-4" />
             Imprimir
           </button>
-
-          <div className="flex items-center justify-center gap-3 text-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/images/logo-numa-simbolo.png"
-              alt="Logo NUMA"
-              className="h-14 w-14 object-contain"
-            />
-            <div>
-              <p className="text-[11px] tracking-[0.2em] text-gold-600 font-semibold uppercase mb-1">
-                Centro de Mediación
-              </p>
-              <h1 className="font-display text-2xl font-bold text-numa-900">NUMA</h1>
-            </div>
-          </div>
-
-          <div className="mt-6 text-center">
-            <h2 className="font-display text-xl font-bold text-numa-900">
-              {noAcuerdo ? 'Acta de No Acuerdo' : 'Acta de Mediación'}
-            </h2>
-            <p className="text-sm text-numa-600 mt-1">
-              Código: <span className="font-semibold code-text">{proceso.codigo_acta || '—'}</span>
-            </p>
-          </div>
-        </div>
-
-        <div className="px-10 pt-6 pb-2">
-          <p className="text-sm text-numa-700 mb-5">
-            En la ciudad de {proceso.ciudad}, sucursal {proceso.sucursal}, con fecha{' '}
-            {fmtFecha(fechaActa)}, ante el mediador{' '}
-            <strong>{mediador}</strong>, comparecen las siguientes partes:
-          </p>
-
-          {bloquePartes('Solicitante(s)', solicitantes)}
-          {bloquePartes('Invitado(s)', invitados)}
-
-          <div className="mb-4">
-            <p className="text-[11px] uppercase tracking-wide text-numa-400 mb-1">Tema</p>
-            <p className="text-sm text-numa-800 whitespace-pre-line">{proceso.tema}</p>
-          </div>
-
-          <div className="mb-6">
-            <p className="text-[11px] uppercase tracking-wide text-numa-400 mb-1">
-              {noAcuerdo ? 'Resultado: no acuerdo' : 'Resultado: acuerdo'}
-            </p>
-            <div className="border border-numa-200 rounded-sm p-4 text-sm text-numa-800 whitespace-pre-line">
-              {noAcuerdo
-                ? 'El mediador certifica que, habiéndose llevado a cabo el proceso de mediación, las partes no llegaron a un acuerdo.' +
-                  (proceso.observacion_cierre ? `\n\n${proceso.observacion_cierre}` : '')
-                : proceso.acuerdo_texto || '—'}
-            </div>
-          </div>
-
-          <p className="text-sm text-numa-700 mb-2">
-            {noAcuerdo
-              ? solicitantes.length > 1
-                ? 'Leída el acta, los solicitantes se ratifican en su contenido y la firman junto con el mediador.'
-                : 'Leída el acta, el solicitante se ratifica en su contenido y la firma junto con el mediador.'
-              : 'Leída el acta, las partes se ratifican en su contenido y la firman junto con el mediador.'}
-          </p>
-        </div>
-
-        <div className="px-10 pb-8 pt-4">
-          <h3 className="font-display text-base font-bold text-numa-900 mb-6 pb-2 border-b border-numa-200">
-            Firmas
-          </h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-12">
-            {(noAcuerdo ? solicitantes : [...solicitantes, ...invitados]).map((p: any) => {
-              const f = datosFirma(p);
-              return firma(
-                `p-${p.id}`,
-                f.nombre,
-                f.cedula,
-                f.detalle,
-                p.rol === 'solicitante' ? 'Solicitante' : 'Invitado'
-              );
-            })}
-            {firma('mediador', mediador, proceso.mediador_cedula, '', 'Mediador')}
-          </div>
-        </div>
-
-        <div className="px-10 py-4 border-t border-numa-200 text-center">
-          <p className="text-[11px] text-numa-400">
-            NUMA · Sistema Integral de Gestión de Mediación · Documento generado el{' '}
-            {new Date().toLocaleDateString('es-EC')}
-          </p>
         </div>
       </div>
+
+      <div
+        className="hoja relative mx-auto bg-white shadow-md"
+        style={{
+          width: '210mm',
+          minHeight: '297mm',
+          boxSizing: 'border-box',
+          fontFamily: 'Arial, Helvetica, sans-serif',
+          fontSize: '11pt',
+          lineHeight: 1.35,
+          color: '#111',
+          textAlign: 'justify'
+        }}
+      >
+        <div className="membrete">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/membrete-numa.jpg"
+            alt=""
+            style={{ position: 'absolute', top: 0, left: 0, width: '210mm', height: '297mm' }}
+          />
+        </div>
+        <div className="membrete-pie">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/membrete-numa.jpg"
+            alt=""
+            style={{ position: 'absolute', top: 0, left: 0, width: '210mm', height: '297mm' }}
+          />
+        </div>
+
+        <div className="pie-capa">
+          <div style={{ ...estiloPie, top: '278.5mm', left: '7.5mm', width: '95mm', whiteSpace: 'pre-line' }}>
+            {pie}
+          </div>
+          <div style={{ ...estiloPie, top: '281mm', right: '4mm', width: '85mm', textAlign: 'right' }}>
+            {telefono && (
+              <>
+                Celular: {telefono}
+                <br />
+              </>
+            )}
+            Correo: {correo}
+          </div>
+        </div>
+
+        <table style={{ width: '100%', borderCollapse: 'collapse', position: 'relative', zIndex: 2 }}>
+          <thead>
+            <tr>
+              <td style={{ padding: 0 }}>
+                <div style={{ height: `${ESPACIO_SUP}mm` }} />
+              </td>
+            </tr>
+          </thead>
+          <tfoot>
+            <tr>
+              <td style={{ padding: 0 }}>
+                <div style={{ height: `${ESPACIO_INF}mm` }} />
+              </td>
+            </tr>
+          </tfoot>
+          <tbody>
+            <tr>
+              <td style={{ padding: `0 ${MARGEN_LAT}mm`, verticalAlign: 'top' }}>
+                <div style={{ textAlign: 'center', marginBottom: '6mm' }}>
+                  <p style={{ margin: 0, fontSize: '13pt', fontWeight: 700 }}>
+                    {noAcuerdo ? 'ACTA DE NO ACUERDO' : 'ACTA DE MEDIACIÓN'}
+                  </p>
+                  <p style={{ margin: 0 }}>CENTRO DE MEDIACIÓN “NUMA” · REGISTRO No.231</p>
+                  <p style={{ margin: 0 }}>Código: <strong>{proceso.codigo_acta || '—'}</strong></p>
+                </div>
+
+                <p style={pDefault}>
+                  En la ciudad de {proceso.ciudad}, sucursal {proceso.sucursal}, con fecha{' '}
+                  {fmtFecha(fechaActa)}, ante el mediador <strong>{mediador}</strong>, comparecen las
+                  siguientes partes:
+                </p>
+
+                {bloquePartes('Solicitante(s)', solicitantes)}
+                {bloquePartes('Invitado(s)', invitados)}
+
+                <div style={{ marginBottom: '4mm' }}>
+                  <p style={etiqueta}>Tema</p>
+                  <p style={{ margin: 0, whiteSpace: 'pre-line' }}>{proceso.tema}</p>
+                </div>
+
+                <div style={{ marginBottom: '5mm' }}>
+                  <p style={etiqueta}>{noAcuerdo ? 'Resultado: no acuerdo' : 'Resultado: acuerdo'}</p>
+                  <div style={{ whiteSpace: 'pre-line' }}>
+                    {noAcuerdo
+                      ? 'El mediador certifica que, habiéndose llevado a cabo el proceso de mediación, las partes no llegaron a un acuerdo.' +
+                        (proceso.observacion_cierre ? `\n\n${proceso.observacion_cierre}` : '')
+                      : proceso.acuerdo_texto || '—'}
+                  </div>
+                </div>
+
+                <p style={pDefault}>{textoCierre}</p>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    columnGap: '12mm',
+                    rowGap: '14mm',
+                    marginTop: '16mm'
+                  }}
+                >
+                  {(noAcuerdo ? solicitantes : [...solicitantes, ...invitados]).map((p: any) => {
+                    const f = datosFirma(p);
+                    return firma(
+                      `p-${p.id}`,
+                      f.nombre,
+                      f.cedula,
+                      f.detalle,
+                      p.rol === 'solicitante' ? 'Solicitante' : 'Invitado'
+                    );
+                  })}
+                  {firma('mediador', mediador, proceso.mediador_cedula, '', 'Mediador')}
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div className="print:hidden h-10" />
     </main>
   );
 }
