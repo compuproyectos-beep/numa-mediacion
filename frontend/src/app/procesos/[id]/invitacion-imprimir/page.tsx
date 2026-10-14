@@ -343,6 +343,11 @@ function ImprimirInvitacion() {
   }
 
   const { proceso } = data;
+  // Modelo que corresponde según las partes del proceso (el mismo criterio con
+  // que se elige solo al abrir). Si se elige otro, se avisa, sin bloquear.
+  const modeloRecomendado: Modelo = (data.partes || []).some((p: any) => p.tipo === 'empresa')
+    ? 'empresa'
+    : 'natural';
   const solicitantes = (data.partes || []).filter((p: any) => p.rol === 'solicitante');
   const invitados = (data.partes || []).filter((p: any) => p.rol === 'invitado');
   const mediador = `${proceso.mediador_nombre} ${proceso.mediador_apellido}`.trim();
@@ -688,6 +693,13 @@ function ImprimirInvitacion() {
                 <option value="natural">Persona natural</option>
                 <option value="empresa">Empresa / institución</option>
               </select>
+              {modelo !== modeloRecomendado && (
+                <p className="mt-1 text-[11px] leading-snug rounded-sm border border-amber-300 bg-amber-50 text-amber-800 px-2 py-1">
+                  {modeloRecomendado === 'empresa'
+                    ? 'Este proceso tiene una empresa o institución: se debería escoger el modelo Empresa / institución.'
+                    : 'Este proceso solo tiene personas naturales: se debería escoger el modelo Persona natural.'}
+                </p>
+              )}
             </div>
             {!esNueva && (
               <div>
