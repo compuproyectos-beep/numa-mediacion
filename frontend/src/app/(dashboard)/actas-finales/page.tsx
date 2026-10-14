@@ -308,7 +308,7 @@ const handleExportarZip = async () => {
         </div>
       )}
 
-      <div className="card p-4 mb-4">
+      <div className="card px-3 py-2.5 mb-3">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -316,7 +316,7 @@ const handleExportarZip = async () => {
           }}
         >
           {/* Fila 1: buscar + los filtros de "dónde" */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
             <div className="xl:col-span-2">
               <InputField
                 label="Buscar"
@@ -398,7 +398,7 @@ const handleExportarZip = async () => {
               que "Descargar..." caiga justo debajo de "Mediador" (columna 5)
               en vez de pegarse al borde derecho de la tarjeta. Fechas juntas
               (cols 1-2), Buscar/Limpiar juntos (cols 3-4), Descargar (col 5). */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mt-3 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 mt-2 items-end">
             <div className="xl:col-span-2 flex items-end gap-2">
               <div className="w-36">
                 <InputField
@@ -455,14 +455,14 @@ const handleExportarZip = async () => {
         </form>
       </div>
 
-      <div className="mb-3 text-sm text-numa-500">
+      <div className="mb-2 text-[13px] text-numa-500">
         Mostrando{' '}
         <span className="font-semibold text-numa-800">
           {actas.length}
         </span>{' '}
         {actas.length === 1 ? 'acta final' : 'actas finales'}
       </div>
-    <div className="space-y-3">
+    <div className="space-y-2">
       {loading ? (
         <Spinner />
       ) : actas.length === 0 ? (
@@ -473,13 +473,13 @@ const handleExportarZip = async () => {
         actas.map((a) => (
           <div
             key={a.id}
-            className={`card p-4 border border-numa-100 border-l-4 ${
+            className={`card px-3 py-2 border border-numa-100 border-l-4 ${
               a.ruta_comprobante_pago ? 'border-l-green-500' : 'border-l-amber-400'
             }`}
           >
-            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
+              <div className="space-y-0.5 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
                   <FileText className="w-4 h-4 text-numa-500" />
 
                   <span className="font-semibold text-numa-900">
@@ -497,23 +497,19 @@ const handleExportarZip = async () => {
                   )}
                 </div>
 
-                <p className="text-sm text-numa-800">
+                <p className="text-[13px] text-numa-800">
                   {a.demandante} vs {a.demandado}
                 </p>
 
-                <p className="text-xs text-numa-400">
-                  {a.ciudad} · {a.sucursal}
-                </p>
-
-                <p className="text-xs text-numa-400">
-                  Subido por: {a.usuario || '—'} · Fecha:{' '}
+                <p className="text-[11px] text-numa-400">
+                  {a.ciudad} · {a.sucursal} · Subido por: {a.usuario || '—'} · Fecha:{' '}
                   {a.fecha_subida
                     ? new Date(a.fecha_subida).toLocaleDateString('es-EC')
                     : '—'}
                 </p>
 
                 {a.fact_nombre && (
-                  <p className="text-xs text-numa-500">
+                  <p className="text-[11px] text-numa-500">
                     Facturar a: <span className="font-medium text-numa-700">{a.fact_nombre}</span>
                     {' · '}
                     {a.fact_tipo_identificacion === 'ruc'
@@ -526,7 +522,7 @@ const handleExportarZip = async () => {
                 )}
 
                 {(formatearPeso(a.tamano_bytes) || formatearPeso(a.tamano_comprobante_bytes)) && (
-                  <p className="text-xs text-numa-400">
+                  <p className="text-[11px] text-numa-400">
                     Peso — Acta: {formatearPeso(a.tamano_bytes) || '—'}
                     {a.ruta_comprobante_pago && (
                       <> · Comprobante: {formatearPeso(a.tamano_comprobante_bytes) || '—'}</>
@@ -539,13 +535,13 @@ const handleExportarZip = async () => {
               {/* Documentos: una grilla de 3 columnas (nombre · ver · descargar)
                   para que todo quede alineado, con las acciones de control
                   del administrador separadas abajo. */}
-              <div className="lg:w-[370px] shrink-0 border-t border-numa-100 pt-3 lg:border-t-0 lg:pt-0 lg:border-l lg:pl-5">
-                <p className="text-[11px] font-semibold text-numa-500 uppercase tracking-wider mb-2">
+              <div className="lg:w-[330px] shrink-0 border-t border-numa-100 pt-2 lg:border-t-0 lg:pt-0 lg:border-l lg:pl-4">
+                <p className="text-[11px] font-semibold text-numa-500 uppercase tracking-wider mb-1">
                   Documentos
                 </p>
-                <div className="grid grid-cols-[1fr_auto_2rem] items-center gap-x-2 gap-y-2 text-sm">
+                <div className="grid grid-cols-[1fr_auto_2rem] items-center gap-x-2 gap-y-1 text-[13px]">
                   <span className="text-numa-700 whitespace-nowrap">Documentos del acta</span>
-                  <button type="button" onClick={() => handleVerPdf(a.id)} className="btn-secondary btn-sm w-[7.5rem]">
+                  <button type="button" onClick={() => handleVerPdf(a.id)} className="btn-secondary btn-sm w-[6rem]">
                     <Eye className="w-3.5 h-3.5" /> Ver
                   </button>
                   {isAdmin ? (
@@ -567,7 +563,7 @@ const handleExportarZip = async () => {
                       <span className="text-numa-700 whitespace-nowrap">
                         {a.comprobante_final_id ? 'Comprobante 1.er pago' : 'Comprobante de pago'}
                       </span>
-                      <button type="button" onClick={() => handleVerComprobante(a.id)} className="btn-secondary btn-sm w-[7.5rem]">
+                      <button type="button" onClick={() => handleVerComprobante(a.id)} className="btn-secondary btn-sm w-[6rem]">
                         <Eye className="w-3.5 h-3.5" /> Ver
                       </button>
                       {isAdmin ? (
@@ -594,7 +590,7 @@ const handleExportarZip = async () => {
                       <button
                         type="button"
                         onClick={() => handleVerComprobanteFinal(a.proceso_id)}
-                        className="btn-secondary btn-sm w-[7.5rem]"
+                        className="btn-secondary btn-sm w-[6rem]"
                       >
                         <Eye className="w-3.5 h-3.5" /> Ver
                       </button>
@@ -626,7 +622,7 @@ const handleExportarZip = async () => {
                         <button
                           type="button"
                           onClick={() => handleVerFirmada(a.proceso_id)}
-                          className="btn-secondary btn-sm w-[7.5rem]"
+                          className="btn-secondary btn-sm w-[6rem]"
                         >
                           <Eye className="w-3.5 h-3.5" /> Ver
                         </button>
@@ -634,7 +630,7 @@ const handleExportarZip = async () => {
                         <a
                           href={`/procesos/${a.proceso_id}`}
                           title="Ir al proceso para subirla"
-                          className="pill bg-amber-50 text-amber-800 border-amber-200 w-[7.5rem] justify-center hover:bg-amber-100"
+                          className="pill bg-amber-50 text-amber-800 border-amber-200 w-[6rem] justify-center hover:bg-amber-100"
                         >
                           <Clock className="w-3.5 h-3.5" /> Falta subir
                         </a>
@@ -657,7 +653,7 @@ const handleExportarZip = async () => {
                 </div>
 
                 {isAdmin && (
-                  <div className="flex gap-1 mt-3 pt-2 border-t border-numa-100">
+                  <div className="flex gap-1 mt-1.5 pt-1 border-t border-numa-100">
                     <button
                       type="button"
                       onClick={() => window.open(`/actas-finales/${a.id}/historial-imprimir`, '_blank')}

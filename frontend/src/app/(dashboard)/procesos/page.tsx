@@ -324,7 +324,7 @@ export default function ProcesosPage() {
           { id: 'acta', texto: 'Actas pendientes (en fila)' }
         ];
         return (
-          <div className="flex flex-wrap gap-2 mb-4" role="group" aria-label="Filtros rápidos">
+          <div className="flex flex-wrap gap-1.5 mb-3" role="group" aria-label="Filtros rápidos">
             {chips.map((c) => {
               const n = procesos.filter((p) => cumple(p, c.id)).length;
               const activo = rapido === c.id;
@@ -334,7 +334,7 @@ export default function ProcesosPage() {
                   type="button"
                   onClick={() => setRapido(c.id)}
                   aria-pressed={activo}
-                  className={`min-h-[40px] px-3.5 rounded-full border text-sm font-medium transition-colors ${
+                  className={`min-h-[32px] px-3 rounded-full border text-[13px] font-medium transition-colors ${
                     activo
                       ? 'bg-numa-900 border-numa-900 text-white'
                       : 'bg-white border-numa-200 text-numa-700 hover:border-gold-400'
@@ -349,7 +349,7 @@ export default function ProcesosPage() {
         );
       })()}
 
-      <div className="card p-4 mb-4">
+      <div className="card px-3 py-2.5 mb-3">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -357,7 +357,7 @@ export default function ProcesosPage() {
           }}
         >
           {/* Fila 1: buscar + los filtros de "dónde" / "qué estado" */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
             <div className="xl:col-span-2">
               <InputField
                 label="Buscar"
@@ -428,7 +428,7 @@ export default function ProcesosPage() {
           {/* Fila 2: las dos fechas juntas, lado a lado, y los botones —
               antes podían quedar una arriba y otra abajo según cuántos
               filtros de ciudad/sucursal se mostraran en la fila 1. */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-3 mt-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-2 mt-2">
             <InputField
               label="Fecha desde"
               type="date"
@@ -460,7 +460,7 @@ export default function ProcesosPage() {
         </form>
       </div>
 
-      <div className="mb-3 text-sm text-numa-500">
+      <div className="mb-2 text-[13px] text-numa-500">
         {loading ? (
           'Cargando procesos...'
         ) : (
@@ -471,7 +471,7 @@ export default function ProcesosPage() {
         )}
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {loading ? (
           <Spinner />
         ) : visibles.length === 0 ? (
@@ -502,10 +502,10 @@ export default function ProcesosPage() {
             <div
               key={p.id}
               onClick={() => router.push(`/procesos/${p.id}`)}
-              className={`card card-lift p-4 border-l-4 ${estadoFranja(p.estado)} cursor-pointer`}
+              className={`card card-lift px-3 py-2 border-l-4 ${estadoFranja(p.estado)} cursor-pointer`}
             >
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-                <div className="space-y-1.5 min-w-0">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
+                <div className="space-y-0.5 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="code-text text-numa-500">{p.codigo_proceso}</span>
                     <Pill label={estadoLabelProceso(p.estado, p.requiere_acta_no_acuerdo)} {...estadoPill(p.estado)} />
@@ -515,7 +515,7 @@ export default function ProcesosPage() {
                     {etapaActaBadge(p) && <Pill {...etapaActaBadge(p)!} />}
                   </div>
 
-                  <p className="text-[15px] font-semibold text-numa-900 leading-snug">
+                  <p className="text-sm font-semibold text-numa-900 leading-snug">
                     {p.demandante}
                     {p.total_solicitantes > 1 && (
                       <span className="font-normal text-numa-400"> y {p.total_solicitantes - 1} más</span>
@@ -526,9 +526,9 @@ export default function ProcesosPage() {
                     )}
                   </p>
 
-                  <p className="text-sm text-numa-700 line-clamp-2">{mayusInicial(p.tema)}</p>
+                  <p className="text-[13px] text-numa-700 line-clamp-1">{mayusInicial(p.tema)}</p>
 
-                  <p className="text-xs text-numa-500 flex flex-wrap gap-x-3 gap-y-0.5">
+                  <p className="text-[11px] text-numa-500 flex flex-wrap gap-x-3 gap-y-0">
                     <span>{p.ciudad || '—'} · {p.sucursal || '—'}</span>
                     <span>Mediador: {p.usuario || '—'}</span>
                     <span>
