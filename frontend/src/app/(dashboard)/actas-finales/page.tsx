@@ -544,7 +544,7 @@ const handleExportarZip = async () => {
                   Documentos
                 </p>
                 <div className="grid grid-cols-[1fr_auto_2rem] items-center gap-x-2 gap-y-2 text-sm">
-                  <span className="text-numa-700">Acta final</span>
+                  <span className="text-numa-700 whitespace-nowrap">Documentos del acta</span>
                   <button type="button" onClick={() => handleVerPdf(a.id)} className="btn-secondary btn-sm w-[7.5rem]">
                     <Eye className="w-3.5 h-3.5" /> Ver
                   </button>
@@ -552,8 +552,8 @@ const handleExportarZip = async () => {
                     <button
                       type="button"
                       onClick={() => handleDescargarPdf(a.id, a.codigo_acta)}
-                      title="Descargar acta final"
-                      aria-label="Descargar acta final"
+                      title="Descargar documentos del acta"
+                      aria-label="Descargar documentos del acta"
                       className="btn-icon"
                     >
                       <Download className="w-4 h-4" />

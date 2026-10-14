@@ -4081,7 +4081,7 @@ async def subir_acta_final_proceso(
         if archivo.content_type != "application/pdf":
             raise HTTPException(
                 status_code=400,
-                detail="El acta final solo se puede subir en PDF"
+                detail="Los documentos del acta solo se pueden subir en PDF"
             )
 
         tipos_comprobante_permitidos = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
@@ -4121,7 +4121,7 @@ async def subir_acta_final_proceso(
         if not _con_acta(proceso["estado"], proceso["requiere_acta_no_acuerdo"]):
             raise HTTPException(
                 status_code=400,
-                detail="Solo se puede subir acta final cuando el proceso está cerrado con acuerdo "
+                detail="Solo se pueden subir los documentos del acta cuando el proceso está cerrado con acuerdo "
                        "(o cerrado sin acuerdo con el acta de no acuerdo solicitada)"
             )
 
@@ -4163,7 +4163,7 @@ async def subir_acta_final_proceso(
         if usuario["rol"] != "administrador" and proceso["usuario_id"] != usuario["id"]:
             raise HTTPException(
                 status_code=403,
-                detail="Solo el mediador asignado a este proceso puede subir el acta final"
+                detail="Solo el mediador asignado a este proceso puede subir los documentos del acta"
             )
 
         if proceso["suspendido"]:
@@ -4199,7 +4199,7 @@ async def subir_acta_final_proceso(
             if bloqueante and bloqueante["id"] != proceso_id:
                 faltante = (
                     "el acta firmada" if bloqueante["finalizado"]
-                    else "el acta final y el comprobante de pago"
+                    else "los documentos del acta y el comprobante de pago"
                 )
                 _f_cola = bloqueante["fecha_acuerdo"] or bloqueante["fecha_solicitud_acta_na"]
                 fecha_txt = (
@@ -4298,7 +4298,7 @@ async def subir_acta_final_proceso(
         if response_acta.status_code not in [200, 201]:
             raise HTTPException(
                 status_code=500,
-                detail=f"Error subiendo el acta final a Supabase: {response_acta.text}"
+                detail=f"Error subiendo los documentos del acta a Supabase: {response_acta.text}"
             )
 
         response_comprobante = _subir_a_supabase(
@@ -4384,7 +4384,7 @@ async def subir_acta_final_proceso(
         conn.commit()
 
         return {
-            "mensaje": "Acta final y comprobante de pago subidos correctamente",
+            "mensaje": "Documentos del acta y comprobante de pago subidos correctamente",
             "codigo_acta": codigo_acta,
             "ruta": ruta_storage,
             "ruta_comprobante": ruta_comprobante
@@ -4455,7 +4455,7 @@ async def subir_acta_firmada(
         if not _con_acta(proceso["estado"], proceso["requiere_acta_no_acuerdo"]) or not proceso["finalizado"]:
             raise HTTPException(
                 status_code=400,
-                detail="Primero se debe subir el acta final y el comprobante de pago"
+                detail="Primero se deben subir los documentos del acta y el comprobante de pago"
             )
 
         if proceso["suspendido"]:
@@ -4960,7 +4960,7 @@ def datos_acta_imprimible(proceso_id: int, usuario=Depends(obtener_usuario_actua
         if not _con_acta(p["estado"], p["requiere_acta_no_acuerdo"]) or not p["finalizado"]:
             raise HTTPException(
                 status_code=400,
-                detail="El acta imprimible se habilita cuando ya se subió el acta final y el comprobante de pago"
+                detail="El acta imprimible se habilita cuando ya se subieron los documentos del acta y el comprobante de pago"
             )
 
         # En el acta de no acuerdo, el texto es lo que el mediador dejó

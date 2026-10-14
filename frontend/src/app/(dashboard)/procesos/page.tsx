@@ -766,7 +766,7 @@ export default function ProcesosPage() {
               <p className="text-xs text-blue-700">
                 Al crear el proceso irás directo a su pantalla, donde podrás
                 agendar invitaciones, registrar avances y, cuando se cierre,
-                subir el acta final.
+                subir los documentos del acta.
               </p>
             </div>
           </div>

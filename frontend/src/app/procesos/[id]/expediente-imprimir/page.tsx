@@ -249,7 +249,7 @@ export default function ImprimirExpedientePage() {
           <div className="px-8 pb-3">
             <div className="border border-green-200 bg-green-50/50 rounded-sm px-3 py-2">
               <p className="text-sm font-semibold text-green-800 mb-1">
-                Acta final
+                Documentos del acta
               </p>
 
               <p className="text-sm text-green-700">

@@ -486,7 +486,7 @@ export default function ProcesoDetallePage() {
 
   const handleSubirActaFinal = async () => {
     if (!proceso || !archivoActaFinal || !archivoComprobantePago) {
-      setError('Debe seleccionar el acta final (PDF) y el comprobante de pago');
+      setError('Debe seleccionar los documentos del acta (PDF) y el comprobante de pago');
       return;
     }
 
@@ -531,9 +531,9 @@ export default function ProcesoDetallePage() {
       const p = await cargarProceso();
       if (p) await cargarSeguimiento(p);
 
-      setSuccessMessage(`${esNoAcuerdo(proceso) ? 'Acta de no acuerdo' : 'Acta final'} y comprobante de pago subidos correctamente: ${data.codigo_acta}`);
+      setSuccessMessage(`${esNoAcuerdo(proceso) ? 'Documentos del acta de no acuerdo' : 'Documentos del acta'} y comprobante de pago subidos correctamente: ${data.codigo_acta}`);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Error al subir el acta final y el comprobante de pago');
+      setError(err?.response?.data?.detail || 'Error al subir los documentos del acta y el comprobante de pago');
     } finally {
       setSubiendoActaFinal(false);
     }
@@ -548,7 +548,7 @@ export default function ProcesoDetallePage() {
       const url = window.URL.createObjectURL(blob);
       window.open(url, '_blank');
     } catch {
-      setError('No se pudo abrir el PDF del acta final');
+      setError('No se pudo abrir los documentos del acta');
     }
   };
 
@@ -567,7 +567,7 @@ export default function ProcesoDetallePage() {
 
       window.URL.revokeObjectURL(url);
     } catch {
-      setError('No se pudo descargar el PDF del acta final');
+      setError('No se pudo descargar los documentos del acta');
     }
   };
 
@@ -1113,7 +1113,7 @@ export default function ProcesoDetallePage() {
         {expedienteProceso?.acta_final && (
           <div className="card p-4 bg-green-50/40 border-green-100">
             <h3 className="text-sm font-semibold text-green-800 mb-3">
-              Acta final y comprobante
+              Documentos del acta y comprobante
             </h3>
 
             {/* Código acta se queda fijo a la izquierda (como estaba antes),
@@ -1134,8 +1134,8 @@ export default function ProcesoDetallePage() {
             {(
               <div className="mt-2 space-y-0.5">
                 <DocFila
-                  etiqueta="Acta final"
-                  textoVer="Ver acta"
+                  etiqueta="Documentos del acta"
+                  textoVer="Ver documentos"
                   onVer={() => handleVerPdfActaFinal(expedienteProceso.acta_final.id)}
                   onDescargar={
                     esAdminSesion()
@@ -1508,7 +1508,7 @@ export default function ProcesoDetallePage() {
                   ? `Este proceso necesita su acta, pero primero debes completar el proceso ${procesoPrimeroEnFila.codigo_proceso} (es el primero en la fila).`
                   : esNoAcuerdo(proceso)
                   ? 'Se pidió el acta de no acuerdo. Sube el acta y el comprobante de pago para cerrarla.'
-                  : 'El proceso llegó a un acuerdo. Sube el acta final y el comprobante de pago para cerrarlo.'}
+                  : 'El proceso llegó a un acuerdo. Sube los documentos del acta y el comprobante de pago para cerrarlo.'}
               </p>
 
               {procesoPrimeroEnFila ? (
@@ -1573,7 +1573,7 @@ export default function ProcesoDetallePage() {
           setArchivoComprobantePago(null);
           setError('');
         }}
-        title={`${esNoAcuerdo(proceso) ? 'Subir Acta de No Acuerdo' : 'Subir Acta Final'} — ${proceso.codigo_proceso}`}
+        title={`${esNoAcuerdo(proceso) ? 'Subir documentos del acta de no acuerdo' : 'Subir documentos del acta'} — ${proceso.codigo_proceso}`}
         size="md"
       >
         {error && (
@@ -1592,7 +1592,7 @@ export default function ProcesoDetallePage() {
 
           <div>
             <label className="block text-sm font-medium text-numa-700 mb-1">
-              {esNoAcuerdo(proceso) ? 'Acta final no acuerdo (PDF)' : 'Acta final (PDF)'}
+              {esNoAcuerdo(proceso) ? 'Documentos del acta de no acuerdo (PDF)' : 'Documentos del acta (PDF)'}
             </label>
             <input
               type="file"
