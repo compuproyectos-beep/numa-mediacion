@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Printer, Save } from 'lucide-react';
@@ -99,6 +99,10 @@ const etiqueta = 'block text-[11px] uppercase tracking-wide text-numa-500 mb-1';
 // se vuelve a pintar mientras se escribe (así el cursor no salta); solo se
 // reescribe cuando el valor cambia desde otro lado (por ejemplo el mismo dato
 // que aparece dos veces en el documento).
+// Cuando la invitación ya no está pendiente (realizada, cancelada, etc.) el
+// documento queda de solo lectura: solo se puede imprimir.
+const SoloLecturaCtx = createContext(false);
+
 function Editable({
   value,
   onChange,
@@ -112,6 +116,7 @@ function Editable({
   multi?: boolean;
   upper?: boolean;
 }) {
+  const soloLectura = useContext(SoloLecturaCtx);
   const ref = useRef<HTMLSpanElement>(null);
   const leer = (el: HTMLElement) =>
     (multi ? el.innerText : el.textContent || '').replace(/\u00a0/g, ' ');
@@ -124,11 +129,11 @@ function Editable({
   return (
     <span
       ref={ref}
-      contentEditable
+      contentEditable={!soloLectura}
       suppressContentEditableWarning
       spellCheck={false}
       data-ph={placeholder}
-      className="campo-edit"
+      className={soloLectura ? undefined : 'campo-edit'}
       style={{
         textTransform: upper ? 'uppercase' : undefined,
         whiteSpace: multi ? 'pre-line' : 'pre-wrap'
@@ -325,6 +330,9 @@ function ImprimirInvitacion() {
     () => (data?.citas || []).find((c: any) => c.id === citaId),
     [data, citaId]
   );
+
+  // Una invitación ya realizada, cancelada o reagendada no se puede modificar.
+  const bloqueada = !esNueva && !!cita && cita.estado !== 'pendiente';
 
   if (loading) {
     return (
@@ -604,6 +612,7 @@ function ImprimirInvitacion() {
 
   return (
     <main className="min-h-screen bg-numa-100 print:bg-white">
+     <SoloLecturaCtx.Provider value={bloqueada}>
       <style>{`
         @page { size: A4; margin: 0; }
         /* En pantalla la hoja crece con el texto: el membrete (arriba) se queda
@@ -645,7 +654,8 @@ function ImprimirInvitacion() {
               </h1>
             </div>
             <div className="flex flex-wrap gap-2 justify-end shrink-0">
-              <button
+              {!bloqueada && (
+                <button
                 onClick={guardar}
                 disabled={guardando || (!esNueva && !citaId)}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-numa-900 text-numa-50 rounded-sm text-sm font-medium hover:bg-numa-950 transition-colors disabled:opacity-50"
@@ -653,13 +663,14 @@ function ImprimirInvitacion() {
                 <Save className="w-4 h-4" />
                 {guardando ? 'Guardando...' : esNueva ? 'Guardar invitación' : 'Guardar cambios'}
               </button>
+              )}
               {!esNueva && (
                 <button
                   onClick={() => window.print()}
                   className="inline-flex items-center gap-2 px-4 py-2 border border-numa-300 text-numa-800 bg-white rounded-sm text-sm font-medium hover:bg-numa-50 transition-colors"
                 >
                   <Printer className="w-4 h-4" />
-                  Imprimir
+                  Descargar o imprimir
                 </button>
               )}
             </div>
@@ -676,7 +687,14 @@ function ImprimirInvitacion() {
             </p>
           )}
 
-          <p className="text-xs text-numa-600 mb-3">
+          {bloqueada && (
+            <p className="mb-3 text-sm text-numa-700 bg-numa-50 border border-numa-200 rounded-sm px-3 py-2">
+              Esta invitación ya no está pendiente ({cita?.estado === 'realizada' ? 'ya se realizó' : cita?.estado === 'cancelada' ? 'fue cancelada' : 'cambió de estado'}),
+              por eso solo se puede imprimir o guardar como PDF. No se puede modificar.
+            </p>
+          )}
+
+          <p className={`text-xs text-numa-600 mb-3 ${bloqueada ? 'hidden' : ''}`}>
             Escribe directamente sobre el documento: los campos con fondo amarillo se pueden
             editar{esNueva ? ' (la fecha y la hora se eligen tocando el campo de la fecha)' : ''}. Lo
             amarillo no sale impreso.
@@ -687,6 +705,7 @@ function ImprimirInvitacion() {
               <label className={etiqueta}>Modelo</label>
               <select
                 className={campo}
+                disabled={bloqueada}
                 value={modelo}
                 onChange={(e) => setModelo(e.target.value as Modelo)}
               >
@@ -730,6 +749,7 @@ function ImprimirInvitacion() {
               <input
                 type="date"
                 className={campo}
+                disabled={bloqueada}
                 value={fechaEmision}
                 onChange={(e) => setFechaEmision(e.target.value)}
               />
@@ -823,6 +843,7 @@ function ImprimirInvitacion() {
         </table>
       </div>
       <div className="print:hidden h-10" />
+     </SoloLecturaCtx.Provider>
     </main>
   );
 }

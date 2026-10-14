@@ -5089,7 +5089,7 @@ def guardar_documento_invitacion(
     cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
         cur.execute("""
-            SELECT p.usuario_id
+            SELECT p.usuario_id, c.estado
             FROM citas c
             JOIN procesos_mediacion p ON p.id = c.proceso_id
             WHERE c.id = %s AND c.proceso_id = %s
@@ -5097,6 +5097,11 @@ def guardar_documento_invitacion(
         fila = cur.fetchone()
         if not fila:
             raise HTTPException(status_code=404, detail="Invitación no encontrada")
+        if fila["estado"] != "pendiente":
+            raise HTTPException(
+                status_code=400,
+                detail="Esta invitación ya no está pendiente: solo se puede imprimir, no modificar"
+            )
         if usuario["rol"] != "administrador" and fila["usuario_id"] != usuario["id"]:
             raise HTTPException(status_code=403, detail="No puedes modificar esta invitación")
 
