@@ -712,7 +712,7 @@ function ImprimirInvitacion() {
                 <option value="natural">Persona natural</option>
                 <option value="empresa">Empresa / institución</option>
               </select>
-              {modelo !== modeloRecomendado && (
+              {!bloqueada && modelo !== modeloRecomendado && (
                 <p className="mt-1 text-[11px] leading-snug rounded-sm border border-amber-300 bg-amber-50 text-amber-800 px-2 py-1">
                   {modeloRecomendado === 'empresa'
                     ? 'Este proceso tiene una empresa o institución: se debería escoger el modelo Empresa / institución.'
