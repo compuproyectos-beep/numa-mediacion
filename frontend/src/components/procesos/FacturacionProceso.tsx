@@ -43,7 +43,7 @@ const VACIO: DatosFacturacion = {
 
 // Bloque "Datos de facturación": a nombre de quién se emite la factura (la
 // factura se hace en el sistema propio del centro; aquí solo se guardan los
-// datos). Obligatorio antes de subir el acta y el comprobante.
+// datos). Obligatorio antes de subir la documentación y el comprobante.
 export default function FacturacionProceso({ procesoId, editable, onEstado, finalizado, estado }: Props) {
   const [datos, setDatos] = useState<DatosFacturacion | null>(null);
   const [partes, setPartes] = useState<any[]>([]);
@@ -218,12 +218,12 @@ export default function FacturacionProceso({ procesoId, editable, onEstado, fina
       ) : estado !== 'cerrado_con_acuerdo' ? (
         <p className="text-sm text-numa-500">
           Aún no se indica a nombre de quién va la factura. Puedes completarlo ahora o más
-          adelante; es obligatorio antes de subir el acta.
+          adelante; es obligatorio antes de subir la documentación.
         </p>
       ) : (
         <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-sm px-3 py-2 inline-flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-          Falta indicar a nombre de quién va la factura. Es obligatorio antes de subir el acta y
+          Falta indicar a nombre de quién va la factura. Es obligatorio antes de subir la documentación y
           el comprobante de pago.
         </p>
       )}

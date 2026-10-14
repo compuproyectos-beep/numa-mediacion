@@ -70,7 +70,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
     try {
       await solicitarActaNoAcuerdo(proceso.id);
       setConfirmandoNA(false);
-      setOk('Acta de no acuerdo pedida. Ahora sube el acta y el comprobante de pago.');
+      setOk('Acta de no acuerdo pedida. Ahora sube la documentación y el comprobante de pago.');
       onCambio();
     } catch (e: any) {
       setError(msg(e, 'No se pudo pedir el acta de no acuerdo'));

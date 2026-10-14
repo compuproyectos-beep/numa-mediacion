@@ -26,9 +26,9 @@ const pasos = [
   },
   {
     icon: FileCheck2,
-    titulo: '4. Sube los documentos del acta',
+    titulo: '4. Sube la documentación',
     texto:
-      'Cuando el proceso se cierre (con o sin acuerdo), sube los documentos del acta y el comprobante de pago desde el mismo proceso.'
+      'Cuando el proceso se cierre (con o sin acuerdo), sube la documentación y el comprobante de pago desde el mismo proceso.'
   }
 ];
 

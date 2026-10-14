@@ -96,7 +96,7 @@ const DESCRIPCIONES: Record<TipoReporte, string> = {
   'sin-avance':
     'Procesos que siguen en negociación y llevan al menos esos días sin que se registre ningún avance. Sirve para saber cuáles se están quedando olvidados. Los días se cuentan desde el último avance (o desde que se creó el proceso, si nunca tuvo uno).',
   'actas-pendientes':
-    'Procesos cerrados con acuerdo que aún no están completos: les falta subir el acta y el comprobante, o el acta firmada (o están suspendidos). Se muestra cuántos días llevan pendientes desde la fecha del acuerdo.'
+    'Procesos cerrados con acuerdo que aún no están completos: les falta subir la documentación y el comprobante, o el acta firmada (o están suspendidos). Se muestra cuántos días llevan pendientes desde la fecha del acuerdo.'
 };
 
 const COLOR_ESTADO: Record<string, string> = ESTADO_COLOR_GRAFICO;

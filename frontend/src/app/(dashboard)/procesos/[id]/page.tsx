@@ -226,9 +226,11 @@ export default function ProcesoDetallePage() {
     }
   };
 
-  const cargarSeguimiento = async (p: any) => {
+  // silencioso: recarga sin mostrar los círculos de carga (se usa al volver
+  // a la pestaña, para que la pantalla no parpadee).
+  const cargarSeguimiento = async (p: any, silencioso = false) => {
     if (p?.finalizado || p?.estado === 'archivado') {
-      setLoadingExpediente(true);
+      if (!silencioso) setLoadingExpediente(true);
 
       try {
         const data = await getExpedienteProceso(p.id);
@@ -248,7 +250,7 @@ export default function ProcesoDetallePage() {
       return;
     }
 
-    setLoadingCitas(true);
+    if (!silencioso) setLoadingCitas(true);
 
     try {
       const citas = await getCitasProceso(p.id);
@@ -259,7 +261,7 @@ export default function ProcesoDetallePage() {
       setLoadingCitas(false);
     }
 
-    setLoadingAvances(true);
+    if (!silencioso) setLoadingAvances(true);
 
     try {
       const avances = await getAvancesProceso(p.id);
@@ -291,10 +293,10 @@ export default function ProcesoDetallePage() {
     let ultima = Date.now();
     const alVolver = async () => {
       if (document.visibilityState !== 'visible') return;
-      if (Date.now() - ultima < 3000) return;
+      if (Date.now() - ultima < 15000) return;
       ultima = Date.now();
       const p = await cargarProceso();
-      if (p) await cargarSeguimiento(p);
+      if (p) await cargarSeguimiento(p, true);
     };
     document.addEventListener('visibilitychange', alVolver);
     window.addEventListener('focus', alVolver);
@@ -448,7 +450,7 @@ export default function ProcesoDetallePage() {
 
       setSuccessMessage(
         conActaNoAcuerdo
-          ? 'Proceso cerrado con no acuerdo. Sube el acta de no acuerdo y el comprobante de pago.'
+          ? 'Proceso cerrado con no acuerdo. Sube la documentación del acta de no acuerdo y el comprobante de pago.'
           : `Avance registrado: ${estadoLabel(avanceForm.resultado)}.`
       );
     } catch (err: any) {
@@ -638,11 +640,11 @@ export default function ProcesoDetallePage() {
     }
 
     if (conActa(proceso) && tieneFacturacion === false) {
-      return 'Completa los datos de facturación y luego sube el acta y el comprobante de pago.';
+      return 'Completa los datos de facturación y luego sube la documentación y el comprobante de pago.';
     }
 
     if (conActa(proceso)) {
-      return 'Sube el acta y el comprobante de pago para finalizar el proceso.';
+      return 'Sube la documentación y el comprobante de pago para finalizar el proceso.';
     }
 
     if (proceso.estado === 'cerrado_sin_acuerdo') {
@@ -692,7 +694,7 @@ export default function ProcesoDetallePage() {
     return [
       ...base,
       { etiqueta: 'Facturación', hecho: tieneFacturacion === true },
-      { etiqueta: 'Acta y comprobante', hecho: !!proceso.finalizado },
+      { etiqueta: 'Documentación y comprobante', hecho: !!proceso.finalizado },
       {
         etiqueta: 'Acta firmada',
         hecho: !!proceso.finalizado && proceso.etapa_acta !== 'falta_firmada'
@@ -1427,7 +1429,7 @@ export default function ProcesoDetallePage() {
                     Úsalo cuando las partes asistieron y no llegaron a un acuerdo. Este texto
                     sale tal cual en el acta de no acuerdo, después de la constancia del
                     mediador: revísalo bien. El proceso pasa a tu fila de actas pendientes:
-                    deberás subir el acta y el comprobante de pago.
+                    deberás subir la documentación y el comprobante de pago.
                   </div>
                 )}
 
@@ -1507,8 +1509,8 @@ export default function ProcesoDetallePage() {
                 {procesoPrimeroEnFila
                   ? `Este proceso necesita su acta, pero primero debes completar el proceso ${procesoPrimeroEnFila.codigo_proceso} (es el primero en la fila).`
                   : esNoAcuerdo(proceso)
-                  ? 'Se pidió el acta de no acuerdo. Sube el acta y el comprobante de pago para cerrarla.'
-                  : 'El proceso llegó a un acuerdo. Sube los documentos del acta y el comprobante de pago para cerrarlo.'}
+                  ? 'Se pidió el acta de no acuerdo. Sube la documentación y el comprobante de pago para cerrarla.'
+                  : 'El proceso llegó a un acuerdo. Sube la documentación y el comprobante de pago para cerrarlo.'}
               </p>
 
               {procesoPrimeroEnFila ? (
@@ -1546,7 +1548,7 @@ export default function ProcesoDetallePage() {
                   className="btn-primary shrink-0"
                 >
                   <Upload className="w-4 h-4" />
-                  Subir Acta y Comprobante
+                  Subir documentación y comprobante
                 </button>
               )}
             </div>
@@ -1584,7 +1586,7 @@ export default function ProcesoDetallePage() {
 
         <div className="space-y-4">
           <p className="text-sm text-numa-600">
-            Debes subir el acta y el comprobante de pago juntos. Después
+            Debes subir la documentación y el comprobante de pago juntos. Después
             podrás imprimir el acta con las firmas y subirla firmada.
             Mientras este proceso no esté completo, no podrás subir actas de tus
             otros procesos.
@@ -1717,7 +1719,7 @@ export default function ProcesoDetallePage() {
               disabled={subiendoActaFinal || !archivoActaFinal || !archivoComprobantePago}
               className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {subiendoActaFinal ? 'Subiendo...' : 'Subir Acta y Comprobante'}
+              {subiendoActaFinal ? 'Subiendo...' : 'Subir documentación y comprobante'}
             </button>
           </div>
         </div>
