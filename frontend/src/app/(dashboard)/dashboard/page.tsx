@@ -8,6 +8,7 @@ import {
   Clock,
   Archive,
   FileCheck,
+  PauseCircle,
   LayoutDashboard,
   HardDrive,
   ChevronDown,
@@ -64,6 +65,14 @@ const TEMA_CATEGORIA: Record<
     item: 'border-slate-200 border-t-4 border-t-slate-400 hover:border-slate-300',
     titulo: 'text-slate-700'
   },
+  suspendido: {
+    caja: 'bg-rose-100 border-rose-300',
+    icono: 'bg-rose-600 text-white',
+    texto: 'text-rose-900',
+    panel: 'bg-rose-50 border-rose-200',
+    item: 'border-rose-200 border-t-4 border-t-rose-500 hover:border-rose-300',
+    titulo: 'text-rose-800'
+  },
   actas_acuerdo: {
     caja: 'bg-amber-100 border-amber-300',
     icono: 'bg-numa-900 text-gold-400',
@@ -108,6 +117,10 @@ const CATEGORIAS: Record<
     titulo: 'Procesos archivados',
     estadoProceso: 'archivado',
     verTodoHref: '/procesos?estado=archivado'
+  },
+  suspendido: {
+    titulo: 'Procesos suspendidos',
+    verTodoHref: '/procesos'
   },
   actas_acuerdo: {
     titulo: 'Actas finales de acuerdo',
@@ -207,7 +220,12 @@ export default function DashboardPage() {
     try {
       const info = CATEGORIAS[clave];
       let data: any[];
-      if (info.estadoProceso) {
+      if (clave === 'suspendido') {
+        data = await getProcesos({
+          suspendido: true,
+          ...(isAdmin && vista === 'mios' ? { usuario_id: user?.id } : {})
+        });
+      } else if (info.estadoProceso) {
         data = await getProcesos({
           estado: info.estadoProceso,
           ...(isAdmin && vista === 'mios' ? { usuario_id: user?.id } : {})
@@ -313,7 +331,7 @@ export default function DashboardPage() {
 
           {/* Las cajas van directo sobre el fondo de la página: sus colores
               suaves ya las distinguen, sin franja detrás. */}
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
             <StatCard
               compacto
               label={procesos.en_negociacion === 1 ? 'proceso en negociación' : 'procesos en negociación'}
@@ -355,6 +373,16 @@ export default function DashboardPage() {
             />
 
 <StatCard
+              compacto
+              label={procesos.suspendidos === 1 ? 'proceso suspendido' : 'procesos suspendidos'}
+              value={procesos.suspendidos ?? 0}
+              icon={PauseCircle}
+              color={TEMA_CATEGORIA.suspendido.icono} relleno={TEMA_CATEGORIA.suspendido.caja} textoColor={TEMA_CATEGORIA.suspendido.texto}
+              onClick={() => toggleCategoria('suspendido')}
+              active={categoriaAbierta === 'suspendido'}
+            />
+
+            <StatCard
               compacto
               label={stats.actas_acuerdo === 1 ? 'acta de acuerdo' : 'actas de acuerdo'}
               value={stats.actas_acuerdo ?? 0}
@@ -429,7 +457,7 @@ export default function DashboardPage() {
                           </p>
                           {/* Un proceso "cerrado con acuerdo" no significa que ya
                               esté todo listo: se muestra qué le falta. */}
-                          {(categoriaAbierta === 'cerrado_con_acuerdo' || categoriaAbierta === 'cerrado_sin_acuerdo') && etapaActaBadge(item) && (
+                          {(categoriaAbierta === 'cerrado_con_acuerdo' || categoriaAbierta === 'cerrado_sin_acuerdo' || categoriaAbierta === 'suspendido') && etapaActaBadge(item) && (
                             <Pill {...etapaActaBadge(item)!} />
                           )}
                         </div>
@@ -451,6 +479,11 @@ export default function DashboardPage() {
                         <span>{item.ciudad || '—'} · {item.sucursal || '—'}</span>
                         {isAdmin && <span>Mediador: {item.usuario || '—'}</span>}
                       </p>
+                      {categoriaAbierta === 'suspendido' && item.motivo_suspension && (
+                        <p className="text-xs text-rose-700 mt-0.5 line-clamp-1">
+                          Motivo: {item.motivo_suspension}
+                        </p>
+                      )}
                     </div>
                   ))}
 
