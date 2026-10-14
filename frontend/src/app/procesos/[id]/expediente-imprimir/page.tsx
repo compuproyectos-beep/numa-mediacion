@@ -86,14 +86,14 @@ export default function ImprimirExpedientePage() {
 
   return (
     <main className="min-h-screen bg-numa-100 print:bg-white py-10 print:py-0">
-      <div className="max-w-3xl mx-auto bg-white shadow-md print:shadow-none border border-numa-200 print:border-0 rounded-sm">
+      <div className="max-w-[760px] mx-auto bg-white shadow-md print:shadow-none border border-numa-200 print:border-0 rounded-sm">
         {/* Encabezado tipo membrete. El logo y el nombre van centrados en
             la hoja; el botón de Imprimir queda flotando aparte (y
             desaparece al imprimir). */}
-        <div className="border-b-2 border-gold-500 px-10 pt-8 pb-6 relative">
+        <div className="border-b-2 border-gold-500 px-8 pt-5 pb-3 relative">
           <button
             onClick={() => window.print()}
-            className="print:hidden absolute top-8 right-10 inline-flex items-center gap-2 px-4 py-2 bg-numa-900 text-numa-50 rounded-sm text-sm font-medium hover:bg-numa-950 transition-colors"
+            className="print:hidden absolute top-5 right-8 inline-flex items-center gap-2 px-3 py-1.5 bg-numa-900 text-numa-50 rounded-sm text-sm font-medium hover:bg-numa-950 transition-colors"
           >
             <Printer className="w-4 h-4" />
             Imprimir
@@ -104,22 +104,22 @@ export default function ImprimirExpedientePage() {
             <img
               src="/images/logo-numa-simbolo.png"
               alt="Logo NUMA"
-              className="h-14 w-14 object-contain"
+              className="h-10 w-10 object-contain"
             />
 
             <div>
-              <p className="text-[11px] tracking-[0.2em] text-gold-600 font-semibold uppercase mb-1">
+              <p className="text-[11px] tracking-[0.2em] text-gold-600 font-semibold uppercase mb-0.5">
                 Centro de Mediación
               </p>
-              <h1 className="font-display text-2xl font-bold text-numa-900">
+              <h1 className="font-display text-xl font-bold text-numa-900 leading-tight">
                 NUMA
               </h1>
             </div>
           </div>
 
-          <div className="mt-6 flex items-center justify-between flex-wrap gap-2">
+          <div className="mt-3 flex items-center justify-between flex-wrap gap-2">
             <div>
-              <h2 className="font-display text-xl font-bold text-numa-900">
+              <h2 className="font-display text-base font-bold text-numa-900">
                 Expediente de Mediación
               </h2>
             </div>
@@ -131,10 +131,10 @@ export default function ImprimirExpedientePage() {
         </div>
 
         {/* Datos generales del proceso */}
-        <div className="px-10 pt-6">
+        <div className="px-8 pt-3">
           <div className="border border-numa-200 rounded-sm">
             <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-numa-200">
-              <div className="p-4 space-y-3">
+              <div className="px-3 py-2 space-y-1.5">
                 <div>
                   <p className="text-[11px] uppercase tracking-wide text-numa-400">
                     Solicitante(s)
@@ -161,7 +161,7 @@ export default function ImprimirExpedientePage() {
                 </div>
               </div>
 
-              <div className="p-4 space-y-3">
+              <div className="px-3 py-2 space-y-1.5">
                 <div>
                   <p className="text-[11px] uppercase tracking-wide text-numa-400">
                     Ciudad / Sucursal
@@ -183,18 +183,18 @@ export default function ImprimirExpedientePage() {
         </div>
 
         {/* Línea de tiempo */}
-        <div className="px-10 py-6">
-          <h3 className="font-display text-base font-bold text-numa-900 mb-4 pb-2 border-b border-numa-200">
+        <div className="px-8 py-3">
+          <h3 className="font-display text-sm font-bold text-numa-900 mb-2 pb-1 border-b border-numa-200">
             Línea de tiempo
           </h3>
 
-          <div className="space-y-4">
+          <div className="space-y-2">
             {linea_tiempo?.map((item: any, index: number) => (
               <div
                 key={item.id}
-                className="border border-numa-200 rounded-sm p-4 break-inside-avoid"
+                className="border border-numa-200 rounded-sm px-3 py-2 break-inside-avoid"
               >
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-1">
                   <p className="text-sm font-semibold text-numa-900">
                     Invitación #{index + 1}
                   </p>
@@ -224,7 +224,7 @@ export default function ImprimirExpedientePage() {
                 )}
 
                 {item.resultado && (
-                  <div className="mt-3 pt-3 border-t border-numa-100">
+                  <div className="mt-2 pt-2 border-t border-numa-100">
                     <p className="text-sm font-medium text-numa-800">
                       {getEstadoLabel(item.resultado)}
                     </p>
@@ -246,9 +246,9 @@ export default function ImprimirExpedientePage() {
 
         {/* Acta final */}
         {acta_final && (
-          <div className="px-10 pb-6">
-            <div className="border border-green-200 bg-green-50/50 rounded-sm p-4">
-              <p className="text-sm font-semibold text-green-800 mb-2">
+          <div className="px-8 pb-3">
+            <div className="border border-green-200 bg-green-50/50 rounded-sm px-3 py-2">
+              <p className="text-sm font-semibold text-green-800 mb-1">
                 Acta final
               </p>
 
@@ -281,14 +281,14 @@ export default function ImprimirExpedientePage() {
         )}
 
         {/* Firma: solo la del mediador (las partes ya no firman el expediente) */}
-        <div className="px-10 pb-8 pt-4 break-inside-avoid">
-          <h3 className="font-display text-base font-bold text-numa-900 mb-6 pb-2 border-b border-numa-200">
+        <div className="px-8 pb-4 pt-2 break-inside-avoid">
+          <h3 className="font-display text-sm font-bold text-numa-900 mb-3 pb-1 border-b border-numa-200">
             Firma del mediador
           </h3>
 
           <div className="flex justify-center">
             <div className="w-full max-w-xs text-center">
-              <div className="h-16 border-b border-numa-400" />
+              <div className="h-12 border-b border-numa-400" />
               <p className="text-sm font-semibold text-numa-900 mt-2">
                 {nombreCorto(proceso.mediador_nombre, proceso.mediador_apellido) || '—'}
               </p>
@@ -303,7 +303,7 @@ export default function ImprimirExpedientePage() {
         </div>
 
         {/* Pie de página */}
-        <div className="px-10 py-4 border-t border-numa-200 text-center">
+        <div className="px-8 py-2 border-t border-numa-200 text-center">
           <p className="text-[11px] text-numa-400">
             NUMA · Sistema Integral de Gestión de Mediación · Documento generado el{' '}
             {new Date().toLocaleDateString('es-EC')}
