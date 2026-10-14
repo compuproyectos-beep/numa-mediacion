@@ -28,6 +28,7 @@ import { hoyEcuador } from '@/lib/accionProceso';
 import {
   getProcesos,
   getCitasProceso,
+  solicitarActaNoAcuerdo,
   crearInvitacionProceso,
   leerInvitacionLlena,
   getAvancesProceso,
@@ -411,11 +412,26 @@ export default function ProcesoDetallePage() {
     setError('');
     setSuccessMessage('');
 
+    // "Cerrado con no acuerdo" = cierra sin acuerdo y pide el acta de no
+    // acuerdo de una vez (las partes asistieron y no se pusieron de acuerdo).
+    const conActaNoAcuerdo = avanceForm.resultado === 'cerrado_no_acuerdo';
+
     try {
       await crearAvanceProceso(proceso.id, {
-        resultado: avanceForm.resultado,
+        resultado: conActaNoAcuerdo ? 'cerrado_sin_acuerdo' : avanceForm.resultado,
         observacion: avanceForm.observacion
       });
+
+      if (conActaNoAcuerdo) {
+        try {
+          await solicitarActaNoAcuerdo(proceso.id);
+        } catch (e: any) {
+          setError(
+            (e?.response?.data?.detail || 'No se pudo pedir el acta de no acuerdo') +
+              '. El proceso ya quedó cerrado: puedes pedirla con el botón "Emitir acta de no acuerdo".'
+          );
+        }
+      }
 
       const avances = await getAvancesProceso(proceso.id);
       setAvancesProceso(avances);
@@ -431,7 +447,9 @@ export default function ProcesoDetallePage() {
       });
 
       setSuccessMessage(
-        `Avance registrado: ${estadoLabel(avanceForm.resultado)}.`
+        conActaNoAcuerdo
+          ? 'Proceso cerrado con no acuerdo. Sube el acta de no acuerdo y el comprobante de pago.'
+          : `Avance registrado: ${estadoLabel(avanceForm.resultado)}.`
       );
     } catch (err: any) {
       setError(err?.response?.data?.detail || 'Error al registrar avance');
@@ -1372,7 +1390,8 @@ export default function ProcesoDetallePage() {
                 <option value="en_negociacion">En negociación</option>
                 <option value="no_realizada">No asistió / no se realizó</option>
                 <option value="cerrado_con_acuerdo">Cerrado con acuerdo</option>
-                <option value="cerrado_sin_acuerdo">Cerrado sin acuerdo</option>
+                <option value="cerrado_no_acuerdo">Cerrado con no acuerdo (con acta de no acuerdo)</option>
+                <option value="cerrado_sin_acuerdo">Cerrado sin acuerdo (sin acta)</option>
                 <option value="archivado">Archivado</option>
               </SelectField>
 
@@ -1401,6 +1420,14 @@ export default function ProcesoDetallePage() {
                   </div>
                 )}
 
+                {avanceForm.resultado === 'cerrado_no_acuerdo' && !confirmandoCierre && (
+                  <div className="mb-3 p-3 border border-gold-200 bg-gold-50 rounded-sm text-xs text-gold-800">
+                    Úsalo cuando las partes asistieron y no llegaron a un acuerdo. El proceso
+                    pasa a tu fila de actas pendientes: deberás subir el acta de no acuerdo
+                    y el comprobante de pago.
+                  </div>
+                )}
+
                 {avanceForm.resultado === 'cerrado_con_acuerdo' && !confirmandoCierre && (
                   <div className="mb-3 p-3 border border-gold-200 bg-gold-50 rounded-sm text-xs text-gold-800">
                     Este texto es el acuerdo oficial: se escribe una sola vez y sale en
@@ -1422,9 +1449,19 @@ export default function ProcesoDetallePage() {
                       </>
                     ) : (
                       <>
-                        Vas a marcar este proceso como{' '}
-                        <strong>{estadoLabel(avanceForm.resultado)}</strong>.
-                        Después de esto ya no podrás cambiar el resultado. ¿Confirmas?
+                        {avanceForm.resultado === 'cerrado_no_acuerdo' ? (
+                          <>
+                            Vas a cerrar este proceso con <strong>no acuerdo</strong> y a pedir su
+                            acta de no acuerdo: entrará a tu fila de actas pendientes. Después de
+                            esto ya no podrás cambiar el resultado. ¿Confirmas?
+                          </>
+                        ) : (
+                          <>
+                            Vas a marcar este proceso como{' '}
+                            <strong>{estadoLabel(avanceForm.resultado)}</strong>.
+                            Después de esto ya no podrás cambiar el resultado. ¿Confirmas?
+                          </>
+                        )}
                       </>
                     )}
                   </div>
