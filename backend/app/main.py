@@ -4944,6 +4944,49 @@ def datos_acta_imprimible(proceso_id: int, usuario=Depends(obtener_usuario_actua
 
 
 # =========================
+# DATOS PARA IMPRIMIR LA INVITACIÓN
+# =========================
+@app.get("/procesos/{proceso_id}/invitacion-datos")
+def datos_invitacion_imprimible(proceso_id: int, usuario=Depends(obtener_usuario_actual)):
+    """Datos para generar la invitación imprimible (no se guarda nada: el
+    documento se puede volver a generar cuando haga falta)."""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT
+                p.id, p.usuario_id, p.tema, p.codigo_proceso,
+                s.nombre AS sucursal, s.direccion AS sucursal_direccion,
+                s.telefono AS sucursal_telefono,
+                ci.nombre AS ciudad,
+                u.nombre AS mediador_nombre, u.apellido AS mediador_apellido,
+                u.cedula AS mediador_cedula
+            FROM procesos_mediacion p
+            JOIN sucursales s ON s.id = p.sucursal_id
+            JOIN ciudades ci ON ci.id = s.ciudad_id
+            JOIN usuarios u ON u.id = p.usuario_id
+            WHERE p.id = %s
+        """, (proceso_id,))
+        p = cur.fetchone()
+
+        if not p:
+            raise HTTPException(status_code=404, detail="Proceso no encontrado")
+        if usuario["rol"] != "administrador" and p["usuario_id"] != usuario["id"]:
+            raise HTTPException(status_code=403, detail="No puedes ver este proceso")
+
+        cur.execute("""
+            SELECT id, fecha, hora, estado, observaciones
+            FROM citas WHERE proceso_id = %s ORDER BY id ASC
+        """, (proceso_id,))
+        citas = cur.fetchall()
+
+        return {"proceso": p, "partes": _consulta_partes(cur, proceso_id), "citas": citas}
+    finally:
+        cur.close()
+        conn.close()
+
+
+# =========================
 # CONTADORES DE ACTAS COMPLETAS (visibles para todos los mediadores)
 # =========================
 @app.get("/actas/resumen-mes")

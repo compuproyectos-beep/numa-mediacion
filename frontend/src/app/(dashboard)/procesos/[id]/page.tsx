@@ -916,6 +916,22 @@ export default function ProcesoDetallePage() {
                             Invitación creada por: {cita.creado_por}
                           </p>
                         )}
+
+                        {cita.estado !== 'cancelada' && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              window.open(
+                                `/procesos/${proceso.id}/invitacion-imprimir?cita=${cita.id}`,
+                                '_blank'
+                              )
+                            }
+                            className="btn-secondary btn-sm mt-2"
+                          >
+                            <Printer className="w-3.5 h-3.5" />
+                            Imprimir invitación
+                          </button>
+                        )}
                       </div>
 
                       <span

@@ -792,6 +792,11 @@ export async function getDatosActa(procesoId: number): Promise<any> {
   return res.data;
 }
 
+export async function getDatosInvitacion(procesoId: number): Promise<any> {
+  const res = await api.get(`/procesos/${procesoId}/invitacion-datos`);
+  return res.data;
+}
+
 export async function getResumenActasMes(mes?: string): Promise<any> {
   const res = await api.get('/actas/resumen-mes', { params: mes ? { mes } : {} });
   return res.data;
