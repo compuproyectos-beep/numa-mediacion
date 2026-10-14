@@ -261,12 +261,16 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
   };
 
   const botonImprimir = (
+    texto = 'Imprimir acta para firmar',
+    ayuda = 'Genera el acta con los datos del sistema y espacios en blanco para firmar'
+  ) => (
     <button
       type="button"
       onClick={() => window.open(`/procesos/${proceso.id}/acta-imprimir`, '_blank')}
+      title={ayuda}
       className="btn-secondary btn-sm"
     >
-      <Printer className="w-3.5 h-3.5" /> Imprimir acta
+      <Printer className="w-3.5 h-3.5" /> {texto}
     </button>
   );
 
@@ -354,7 +358,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
             {!esAdmin && ' Mientras falte, no podrás subir las actas de tus otros procesos.'}
           </p>
           <div className="flex flex-wrap gap-2">
-            {botonImprimir}
+            {botonImprimir()}
             <button
               type="button"
               onClick={() => {
@@ -385,7 +389,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
           <div className="flex flex-wrap items-center gap-2">
             {proceso.tiene_acta_firmada && (
               <button type="button" onClick={verFirmada} className="btn-secondary btn-sm">
-                <Eye className="w-3.5 h-3.5" /> Ver acta firmada
+                <Eye className="w-3.5 h-3.5" /> Ver acta firmada (archivo subido)
               </button>
             )}
             {esAdmin && proceso.tiene_acta_firmada && (
@@ -399,7 +403,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
                 <Download className="w-4 h-4" />
               </button>
             )}
-            {botonImprimir}
+            {botonImprimir('Imprimir acta sin firmas', 'Es solo una copia en blanco generada por el sistema; el acta firmada es la que se ve en "Ver acta firmada"')}
           </div>
         </div>
       )}
