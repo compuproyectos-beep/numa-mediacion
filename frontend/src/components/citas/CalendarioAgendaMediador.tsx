@@ -23,6 +23,7 @@ const localizer = dateFnsLocalizer({
 const colorPorEstado: Record<string, string> = {
   pendiente: '#E0B84A',
   realizada: '#16A34A',
+  no_realizada: '#D97706',
   cancelada: '#DC2626',
   reagendada: '#4A6789',
 };
@@ -560,7 +561,9 @@ export default function CalendarioAgendaMediador({
               </p>
               <p className="text-xs text-numa-500 mt-0.5">
                 Estado:{' '}
-                <span className="font-semibold capitalize">{citaActiva.estado}</span>
+                <span className="font-semibold capitalize">
+                  {citaActiva.estado === 'no_realizada' ? 'no realizada' : citaActiva.estado}
+                </span>
               </p>
             </div>
 
@@ -570,12 +573,14 @@ export default function CalendarioAgendaMediador({
                   ? 'badge bg-gold-400/10 text-gold-600'
                   : citaActiva.estado === 'realizada'
                   ? 'badge bg-green-50 text-green-700'
+                  : citaActiva.estado === 'no_realizada'
+                  ? 'badge bg-amber-50 text-amber-800'
                   : citaActiva.estado === 'cancelada'
                   ? 'badge bg-red-50 text-red-700'
                   : 'badge bg-numa-100 text-numa-700'
               }
             >
-              {citaActiva.estado}
+              {citaActiva.estado === 'no_realizada' ? 'no realizada' : citaActiva.estado}
             </span>
           </div>
 
@@ -698,12 +703,14 @@ export default function CalendarioAgendaMediador({
                         ? 'badge bg-gold-400/10 text-gold-600 hover:bg-gold-400/20'
                         : c.estado === 'realizada'
                         ? 'badge bg-green-50 text-green-700 hover:bg-green-100'
+                        : c.estado === 'no_realizada'
+                        ? 'badge bg-amber-50 text-amber-800 hover:bg-amber-100'
                         : c.estado === 'cancelada'
                         ? 'badge bg-red-50 text-red-700 hover:bg-red-100'
                         : 'badge bg-numa-100 text-numa-700 hover:bg-numa-200'
                     }
                   >
-                    {c.hora?.slice(0, 5)} · {c.estado}
+                    {c.hora?.slice(0, 5)} · {c.estado === 'no_realizada' ? 'no realizada' : c.estado}
                     {partes && ` · ${partes}`}
                   </button>
                 );

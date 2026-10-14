@@ -3707,6 +3707,12 @@ def crear_avance_proceso(
         if not observacion.strip():
             raise HTTPException(status_code=400, detail="La observación es obligatoria")
 
+        if resultado not in [
+            "en_negociacion", "no_realizada",
+            "cerrado_con_acuerdo", "cerrado_sin_acuerdo", "archivado"
+        ]:
+            raise HTTPException(status_code=400, detail="Resultado no válido")
+
         cur.execute("""
             SELECT *
             FROM procesos_mediacion
@@ -3757,14 +3763,20 @@ def crear_avance_proceso(
         cita_id = cita_pendiente["id"]
         nueva_cita_id = None
 
-        # Marcar invitación como realizada
+        # "no_realizada": la invitación no se pudo llevar a cabo (no asistió
+        # una parte, etc.). La nota queda como constancia, la invitación se
+        # cierra con ese estado y el proceso sigue en negociación para poder
+        # programar la siguiente invitación.
+        es_no_realizada = (resultado == "no_realizada")
+
+        # Marcar invitación como realizada (o como no realizada)
         cur.execute("""
             UPDATE citas
             SET
-                estado = 'realizada',
+                estado = %s,
                 fecha_modificacion = NOW()
             WHERE id = %s
-        """, (cita_id,))
+        """, ("no_realizada" if es_no_realizada else "realizada", cita_id))
 
         # Si programa nueva invitación
         if proxima_fecha and proxima_hora:
@@ -3869,6 +3881,13 @@ def crear_avance_proceso(
                 observacion.strip(),
                 proceso_id
             ))
+        elif es_no_realizada:
+            # El proceso no cambia de estado: sigue en negociación.
+            cur.execute("""
+                UPDATE procesos_mediacion
+                SET fecha_modificacion = NOW()
+                WHERE id = %s
+            """, (proceso_id,))
         else:
             cur.execute("""
                 UPDATE procesos_mediacion

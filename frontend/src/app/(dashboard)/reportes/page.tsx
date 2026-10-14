@@ -44,6 +44,7 @@ const ETIQUETAS_CITA: Record<string, string> = {
   pendiente: 'Pendiente',
   confirmada: 'Confirmada',
   realizada: 'Realizada',
+  no_realizada: 'No asistió / no se realizó',
   cancelada: 'Cancelada'
 };
 

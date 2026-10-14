@@ -45,6 +45,7 @@ const getEstadoCitaBadgeClass = (estado: string) => {
   const classes: any = {
     pendiente: 'bg-gold-400/10 text-gold-700',
     realizada: 'bg-green-50 text-green-700',
+    no_realizada: 'bg-amber-50 text-amber-800',
     cancelada: 'bg-red-50 text-red-700',
     reagendada: 'bg-numa-100 text-numa-700'
   };
@@ -56,6 +57,7 @@ const getEstadoCitaBorderClass = (estado: string) => {
   const classes: any = {
     pendiente: 'border-l-gold-400',
     realizada: 'border-l-green-600',
+    no_realizada: 'border-l-amber-500',
     cancelada: 'border-l-red-600',
     reagendada: 'border-l-numa-600'
   };
@@ -325,7 +327,13 @@ export default function ProcesoDetallePage() {
       return;
     }
 
-    if (avanceForm.resultado !== 'en_negociacion' && !yaConfirmado) {
+    // "En negociación" y "No asistió" no cierran el proceso: no piden la
+    // confirmación de cierre.
+    if (
+      avanceForm.resultado !== 'en_negociacion' &&
+      avanceForm.resultado !== 'no_realizada' &&
+      !yaConfirmado
+    ) {
       setError('');
       setConfirmandoCierre(true);
       return;
@@ -1185,6 +1193,7 @@ export default function ProcesoDetallePage() {
                 }}
               >
                 <option value="en_negociacion">En negociación</option>
+                <option value="no_realizada">No asistió / no se realizó</option>
                 <option value="cerrado_con_acuerdo">Cerrado con acuerdo</option>
                 <option value="cerrado_sin_acuerdo">Cerrado sin acuerdo</option>
                 <option value="archivado">Archivado</option>
@@ -1195,7 +1204,9 @@ export default function ProcesoDetallePage() {
                   label={
                     avanceForm.resultado === 'cerrado_con_acuerdo'
                       ? 'Detalle del acuerdo (se imprimirá tal cual en el acta)'
-                      : 'Observación / registro de reunión'
+                      : avanceForm.resultado === 'no_realizada'
+                        ? 'Constancia: quién no asistió y el motivo'
+                        : 'Observación / registro de reunión'
                   }
                   rows={4}
                   value={avanceForm.observacion}

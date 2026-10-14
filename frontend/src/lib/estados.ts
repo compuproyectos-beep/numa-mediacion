@@ -13,7 +13,10 @@ export const ESTADO_LABEL: Record<string, string> = {
   cerrado_con_acuerdo: 'Cerrado con acuerdo',
   cerrado_sin_acuerdo: 'Cerrado sin acuerdo',
   archivado: 'Archivado',
-  anulado: 'Anulado'
+  anulado: 'Anulado',
+  // Resultado de una invitación que no se pudo realizar (no es un estado del
+  // proceso: el proceso sigue en negociación).
+  no_realizada: 'No asistió / no se realizó'
 };
 
 // Clases de la etiqueta (fondo, texto, borde) y del punto.
