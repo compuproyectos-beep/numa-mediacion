@@ -1115,7 +1115,7 @@ export default function ProcesoDetallePage() {
         {expedienteProceso?.acta_final && (
           <div className="card p-4 bg-green-50/40 border-green-100">
             <h3 className="text-sm font-semibold text-green-800 mb-3">
-              Documentos del acta y comprobante
+              Documentos del acta y comprobante de pago
             </h3>
 
             {/* Código acta se queda fijo a la izquierda (como estaba antes),
@@ -1548,7 +1548,7 @@ export default function ProcesoDetallePage() {
                   className="btn-primary shrink-0"
                 >
                   <Upload className="w-4 h-4" />
-                  Subir documentación y comprobante
+                  Subir documentación y comprobante de pago
                 </button>
               )}
             </div>
@@ -1719,7 +1719,7 @@ export default function ProcesoDetallePage() {
               disabled={subiendoActaFinal || !archivoActaFinal || !archivoComprobantePago}
               className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {subiendoActaFinal ? 'Subiendo...' : 'Subir documentación y comprobante'}
+              {subiendoActaFinal ? 'Subiendo...' : 'Subir documentación y comprobante de pago'}
             </button>
           </div>
         </div>
