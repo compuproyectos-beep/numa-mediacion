@@ -3184,7 +3184,12 @@ def _sql_tiene_acta(a: str = "p") -> str:
 def _sql_fecha_cola(a: str = "p") -> str:
     # Fecha que ordena la fila de actas: la del acuerdo o, en el acta de no
     # acuerdo, la de cuando se pidió el acta.
-    return f"COALESCE({a}.fecha_acuerdo, {a}.fecha_solicitud_acta_na)"
+    # Un proceso reactivado por el administrador pasa primero en la fila (si
+    # hay varios reactivados, va primero el que se reactivó antes).
+    return (
+        f"COALESCE({a}.reactivado_fecha - INTERVAL '100 years', "
+        f"{a}.fecha_acuerdo, {a}.fecha_solicitud_acta_na)"
+    )
 
 
 def _con_acta(estado, requiere_na) -> bool:
@@ -4833,13 +4838,13 @@ def reactivar_proceso(proceso_id: int, usuario=Depends(obtener_usuario_actual)):
 
         cur.execute("""
             UPDATE procesos_mediacion
-            SET suspendido = false, fecha_modificacion = NOW()
+            SET suspendido = false, reactivado_fecha = NOW(), fecha_modificacion = NOW()
             WHERE id = %s
         """, (proceso_id,))
 
         crear_notificacion(
             cur, p["usuario_id"], "Proceso reactivado",
-            f"El administrador reactivó el proceso {p['codigo_proceso']}: vuelve a la fila para completar su acta.",
+            f"El administrador reactivó el proceso {p['codigo_proceso']}: pasa a ser el primero de tu fila para completar su acta.",
             "proceso", "proceso_mediacion", proceso_id
         )
         registrar_auditoria(
