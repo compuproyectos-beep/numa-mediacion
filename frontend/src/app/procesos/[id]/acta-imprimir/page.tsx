@@ -1,5 +1,6 @@
 'use client';
 
+import { mayusInicial } from '@/lib/texto';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Printer, ArrowLeft } from 'lucide-react';
@@ -293,7 +294,7 @@ export default function ImprimirActaPage() {
 
                 <div style={{ marginBottom: '4mm' }}>
                   <p style={etiqueta}>Tema</p>
-                  <p style={{ margin: 0, whiteSpace: 'pre-line' }}>{proceso.tema}</p>
+                  <p style={{ margin: 0, whiteSpace: 'pre-line' }}>{mayusInicial(proceso.tema)}</p>
                 </div>
 
                 <div style={{ marginBottom: '5mm' }}>

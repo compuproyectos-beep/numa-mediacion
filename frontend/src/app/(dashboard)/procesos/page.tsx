@@ -1,5 +1,6 @@
 'use client';
 
+import { mayusInicial } from '@/lib/texto';
 import { etapaActaBadge } from '@/lib/etapaActa';
 import { conActa } from '@/lib/actaProceso';
 import { estadoLabelProceso, estadoPill, estadoFranja } from '@/lib/estados';
@@ -525,7 +526,7 @@ export default function ProcesosPage() {
                     )}
                   </p>
 
-                  <p className="text-sm text-numa-700 line-clamp-2">{p.tema}</p>
+                  <p className="text-sm text-numa-700 line-clamp-2">{mayusInicial(p.tema)}</p>
 
                   <p className="text-xs text-numa-500 flex flex-wrap gap-x-3 gap-y-0.5">
                     <span>{p.ciudad || '—'} · {p.sucursal || '—'}</span>

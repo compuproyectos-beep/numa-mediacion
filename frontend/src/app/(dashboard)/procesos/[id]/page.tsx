@@ -1,5 +1,6 @@
 'use client';
 
+import { mayusInicial } from '@/lib/texto';
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import PasosProceso from '@/components/procesos/PasosProceso';
@@ -869,7 +870,7 @@ export default function ProcesoDetallePage() {
 
         <div>
           <p className="text-numa-400 text-xs mb-1">Tema</p>
-          <p className="text-numa-800 font-medium">{proceso.tema}</p>
+          <p className="text-numa-800 font-medium">{mayusInicial(proceso.tema)}</p>
         </div>
 
         <div>

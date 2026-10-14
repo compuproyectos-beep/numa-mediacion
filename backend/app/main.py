@@ -2857,6 +2857,9 @@ def crear_proceso_mediacion(
                 detail="Solicitante e invitado no pueden ser iguales"
             )
 
+        # La primera letra del tema siempre va en mayúscula.
+        tema = tema.strip()
+        tema = tema[:1].upper() + tema[1:]
         if not tema.strip():
             raise HTTPException(
                 status_code=400,

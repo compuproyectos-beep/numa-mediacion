@@ -1,5 +1,6 @@
 'use client';
 
+import { mayusInicial } from '@/lib/texto';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { getExpedienteProceso } from '@/lib/services';
@@ -176,7 +177,7 @@ export default function ImprimirExpedientePage() {
                   <p className="text-[11px] uppercase tracking-wide text-numa-400">
                     Tema
                   </p>
-                  <p className="text-sm text-numa-800">{proceso.tema}</p>
+                  <p className="text-sm text-numa-800">{mayusInicial(proceso.tema)}</p>
                 </div>
               </div>
             </div>
