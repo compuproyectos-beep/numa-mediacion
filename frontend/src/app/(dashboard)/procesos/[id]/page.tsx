@@ -1400,7 +1400,9 @@ export default function ProcesoDetallePage() {
                   label={
                     avanceForm.resultado === 'cerrado_con_acuerdo'
                       ? 'Detalle del acuerdo (se imprimirá tal cual en el acta)'
-                      : avanceForm.resultado === 'no_realizada'
+                      : avanceForm.resultado === 'cerrado_no_acuerdo'
+                        ? 'Detalle del no acuerdo (se imprimirá tal cual en el acta)'
+                        : avanceForm.resultado === 'no_realizada'
                         ? 'Constancia: quién no asistió y el motivo'
                         : 'Observación / registro de reunión'
                   }
@@ -1422,9 +1424,10 @@ export default function ProcesoDetallePage() {
 
                 {avanceForm.resultado === 'cerrado_no_acuerdo' && !confirmandoCierre && (
                   <div className="mb-3 p-3 border border-gold-200 bg-gold-50 rounded-sm text-xs text-gold-800">
-                    Úsalo cuando las partes asistieron y no llegaron a un acuerdo. El proceso
-                    pasa a tu fila de actas pendientes: deberás subir el acta de no acuerdo
-                    y el comprobante de pago.
+                    Úsalo cuando las partes asistieron y no llegaron a un acuerdo. Este texto
+                    sale tal cual en el acta de no acuerdo, después de la constancia del
+                    mediador: revísalo bien. El proceso pasa a tu fila de actas pendientes:
+                    deberás subir el acta y el comprobante de pago.
                   </div>
                 )}
 
