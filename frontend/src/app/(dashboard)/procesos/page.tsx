@@ -2,7 +2,7 @@
 
 import { etapaActaBadge } from '@/lib/etapaActa';
 import { conActa } from '@/lib/actaProceso';
-import { estadoLabel, estadoPill, estadoFranja } from '@/lib/estados';
+import { estadoLabelProceso, estadoPill, estadoFranja } from '@/lib/estados';
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus, Check, ChevronRight } from 'lucide-react';
@@ -507,7 +507,7 @@ export default function ProcesosPage() {
                 <div className="space-y-1.5 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="code-text text-numa-500">{p.codigo_proceso}</span>
-                    <Pill label={estadoLabel(p.estado)} {...estadoPill(p.estado)} />
+                    <Pill label={estadoLabelProceso(p.estado, p.requiere_acta_no_acuerdo)} {...estadoPill(p.estado)} />
                     {/* Un proceso "cerrado con acuerdo" no significa que ya
                         esté todo listo: se muestra qué falta (o si espera
                         su turno en la fila del mediador). */}

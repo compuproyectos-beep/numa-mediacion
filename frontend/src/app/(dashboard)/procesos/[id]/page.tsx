@@ -21,7 +21,7 @@ import {
   Modal,
   Pill
 } from '@/components/ui';
-import { estadoLabel, estadoPill } from '@/lib/estados';
+import { estadoLabel, estadoLabelProceso, estadoPill } from '@/lib/estados';
 import { conActa, esNoAcuerdo, dinero } from '@/lib/actaProceso';
 import { hoyEcuador } from '@/lib/accionProceso';
 
@@ -788,7 +788,7 @@ export default function ProcesoDetallePage() {
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-<Pill label={estadoLabel(proceso.estado)} {...estadoPill(proceso.estado)} />
+<Pill label={estadoLabelProceso(proceso.estado, proceso.requiere_acta_no_acuerdo)} {...estadoPill(proceso.estado)} />
 
           {/* El cliente pidió que "Imprimir expediente" esté disponible en
               cualquier etapa del proceso, no solo cuando ya está finalizado
@@ -1058,7 +1058,7 @@ export default function ProcesoDetallePage() {
                         </p>
 
                         <p className="text-sm font-medium text-numa-800">
-                          {estadoLabel(avance.resultado)}
+                          {estadoLabelProceso(avance.resultado, proceso.requiere_acta_no_acuerdo)}
                         </p>
 
                         <p className="text-xs font-semibold text-numa-500 mt-3">

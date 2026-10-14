@@ -48,6 +48,14 @@ export const ESTADO_COLOR_GRAFICO: Record<string, string> = {
 
 export const estadoLabel = (estado: string) => ESTADO_LABEL[estado] || estado;
 
+// Para un proceso concreto: si cerró sin acuerdo pero se emitió el acta de no
+// acuerdo, se muestra "Cerrado con no acuerdo". (Internamente sigue siendo
+// 'cerrado_sin_acuerdo', así que los reportes no cambian.)
+export const estadoLabelProceso = (estado: string, conActaNoAcuerdo?: boolean) =>
+  estado === 'cerrado_sin_acuerdo' && conActaNoAcuerdo
+    ? 'Cerrado con no acuerdo'
+    : estadoLabel(estado);
+
 export const estadoPill = (estado: string) =>
   ESTADO_PILL[estado] || { pill: 'bg-numa-100 text-numa-700 border-numa-200', dot: 'bg-numa-400' };
 

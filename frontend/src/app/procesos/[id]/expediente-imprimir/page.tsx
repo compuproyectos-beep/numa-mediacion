@@ -13,7 +13,8 @@ const nombreCorto = (nombre?: string, apellido?: string) => {
   return [n, a].filter(Boolean).join(' ');
 };
 
-const getEstadoLabel = (estado: string) => {
+const getEstadoLabel = (estado: string, conActaNoAcuerdo?: boolean) => {
+  if (estado === 'cerrado_sin_acuerdo' && conActaNoAcuerdo) return 'Cerrado con no acuerdo';
   const labels: any = {
     en_negociacion: 'En negociación',
     cerrado_con_acuerdo: 'Cerrado con acuerdo',
@@ -125,7 +126,7 @@ export default function ImprimirExpedientePage() {
             </div>
 
             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gold-500/10 text-gold-700 border border-gold-500/30">
-              {getEstadoLabel(proceso.estado)}
+              {getEstadoLabel(proceso.estado, proceso.requiere_acta_no_acuerdo)}
             </span>
           </div>
         </div>
@@ -226,7 +227,7 @@ export default function ImprimirExpedientePage() {
                 {item.resultado && (
                   <div className="mt-2 pt-2 border-t border-numa-100">
                     <p className="text-sm font-medium text-numa-800">
-                      {getEstadoLabel(item.resultado)}
+                      {getEstadoLabel(item.resultado, proceso.requiere_acta_no_acuerdo)}
                     </p>
 
                     <p className="text-sm text-numa-700 mt-1">
