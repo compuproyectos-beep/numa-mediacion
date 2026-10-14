@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Printer, Upload, Eye, Download, PauseCircle, PlayCircle, Pencil, FileX } from 'lucide-react';
+import { Printer, Upload, Eye, Download, PauseCircle, Pencil, FileX } from 'lucide-react';
 import { Modal, ErrorAlert, TextareaField } from '@/components/ui';
 import {
   subirActaFirmada,
@@ -9,7 +9,6 @@ import {
   corregirAcuerdo,
   getHistorialAcuerdo,
   suspenderProceso,
-  reactivarProceso,
   solicitarActaNoAcuerdo,
   descargarComprobanteFinal,
   marcarActaImpresa
@@ -260,17 +259,6 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
     }
   };
 
-  const reactivar = async () => {
-    setError('');
-    try {
-      await reactivarProceso(proceso.id);
-      setOk('Proceso reactivado.');
-      onCambio();
-    } catch (e: any) {
-      setError(msg(e, 'No se pudo reactivar'));
-    }
-  };
-
   const botonImprimir = (
     texto = 'Descargar o imprimir acta para firmar',
     ayuda = 'Genera el acta con los datos del sistema y espacios en blanco para firmar. Puedes imprimirla o guardarla como PDF.'
@@ -343,21 +331,8 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
       )}
 
       {/* Suspendido */}
-      {etapa === 'suspendido' && (
-        <div className="card p-4 border-amber-200 bg-amber-50">
-          <p className="text-sm text-amber-900">
-            <strong>Proceso suspendido por el administrador.</strong>{' '}
-            {proceso.motivo_suspension ? `Motivo: ${proceso.motivo_suspension}. ` : ''}
-            Ya no bloquea al mediador. Los documentos pendientes se podrán completar cuando el
-            administrador lo reactive.
-          </p>
-          {esAdmin && (
-            <button type="button" onClick={reactivar} className="btn-primary btn-sm mt-3">
-              <PlayCircle className="w-4 h-4" /> Reactivar proceso
-            </button>
-          )}
-        </div>
-      )}
+      {/* El aviso de proceso suspendido (y el botón de reactivar) se muestra arriba de
+          la pantalla del proceso, no aquí. */}
 
       {/* Falta el acta firmada */}
       {etapa === 'falta_firmada' && (

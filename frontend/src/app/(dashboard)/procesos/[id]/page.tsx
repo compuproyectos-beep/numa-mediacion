@@ -4,7 +4,7 @@ import { mayusInicial } from '@/lib/texto';
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import PasosProceso from '@/components/procesos/PasosProceso';
-import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon, Eye, Download, Receipt, FileText } from 'lucide-react';
+import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon, Eye, Download, Receipt, FileText, PlayCircle } from 'lucide-react';
 import { isAdmin as esAdminSesion } from '@/lib/auth';
 import PartesProceso from '@/components/procesos/PartesProceso';
 import FacturacionProceso from '@/components/procesos/FacturacionProceso';
@@ -30,6 +30,7 @@ import {
   getProcesos,
   getCitasProceso,
   solicitarActaNoAcuerdo,
+  reactivarProceso,
   crearInvitacionProceso,
   leerInvitacionLlena,
   getAvancesProceso,
@@ -810,6 +811,40 @@ export default function ProcesoDetallePage() {
           </button>
         </div>
       </div>
+
+      {/* Proceso suspendido: va primero para que el administrador vea de una vez
+          el aviso y el botón de reactivar, sin bajar por toda la pantalla. */}
+      {proceso.etapa_acta === 'suspendido' && (
+        <div className="mb-4 px-4 py-3 rounded-sm border-2 border-amber-300 bg-amber-50 flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-sm text-amber-900">
+            <strong>Proceso suspendido por el administrador.</strong>{' '}
+            {proceso.motivo_suspension ? `Motivo: ${proceso.motivo_suspension}. ` : ''}
+            Ya no bloquea al mediador. Los documentos pendientes se podrán completar cuando el
+            administrador lo reactive.
+          </p>
+          {esAdminSesion() && (
+            <button
+              type="button"
+              onClick={async () => {
+                setError('');
+                try {
+                  await reactivarProceso(proceso.id);
+                  setSuccessMessage('Proceso reactivado.');
+                  await cargarProceso();
+                  try {
+                    setExpedienteProceso(await getExpedienteProceso(proceso.id));
+                  } catch {}
+                } catch (e: any) {
+                  setError(e?.response?.data?.detail || 'No se pudo reactivar el proceso');
+                }
+              }}
+              className="btn-primary btn-sm shrink-0"
+            >
+              <PlayCircle className="w-4 h-4" /> Reactivar proceso
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Se muestra justo debajo del encabezado (no al fondo de la página)
           para que el mediador vea de una vez si este proceso tiene su acta
