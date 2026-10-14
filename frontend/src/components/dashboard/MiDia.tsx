@@ -19,10 +19,12 @@ const etiquetaDia = (fecha: string, hoy: string) => {
   return `${d}/${m}/${a}`;
 };
 
-export default function MiDia({ esAdmin = false }: { esAdmin?: boolean }) {
+export default function MiDia({ esAdmin = false, miId }: { esAdmin?: boolean; miId?: number }) {
   const [citas, setCitas] = useState<any[] | null>(null);
   const [procesos, setProcesos] = useState<any[] | null>(null);
   const hoy = hoyEcuador();
+  // Solo el administrador: ver lo suyo o lo de los demás mediadores.
+  const [vista, setVista] = useState<'mios' | 'otros'>('mios');
 
   useEffect(() => {
     getCitas({ fecha_desde: hoy, fecha_hasta: sumarDias(hoy, 14) })
@@ -38,13 +40,32 @@ export default function MiDia({ esAdmin = false }: { esAdmin?: boolean }) {
   // Mientras carga no se muestra nada (evita que la página "salte").
   if (citas === null || procesos === null) return null;
 
+  const esDeOtro = (x: any) => esAdmin && miId != null && x.usuario_id !== miId;
+  const verOtros = esAdmin && vista === 'otros';
+  // Para el administrador, "mío" o "de otros" según la pestaña; el mediador
+  // normal ya recibe solo lo suyo.
+  const enVista = (x: any) => (!esAdmin ? true : verOtros ? esDeOtro(x) : !esDeOtro(x));
+
   const pendientes = citas.filter(
-    (c) => c.estado === 'pendiente' || c.estado === 'reagendada'
+    (c) => (c.estado === 'pendiente' || c.estado === 'reagendada') && enVista(c)
   );
+  const pendientesOtros = citas.filter(
+    (c) =>
+      esAdmin &&
+      esDeOtro(c) &&
+      (c.estado === 'pendiente' || c.estado === 'reagendada') &&
+      String(c.fecha).slice(0, 10) === hoy
+  ).length;
   const citasHoy = pendientes.filter((c) => String(c.fecha).slice(0, 10) === hoy);
   const proxima = pendientes.find((c) => String(c.fecha).slice(0, 10) > hoy);
 
+  const porHacerOtros = esAdmin
+    ? procesos.filter((p) => esDeOtro(p) && accionProceso(p, true).urgente).length
+    : 0;
+  const totalOtros = pendientesOtros + porHacerOtros;
+
   const porHacer = procesos
+    .filter(enVista)
     .map((p) => ({ p, accion: accionProceso(p, esAdmin) }))
     .filter((x) => x.accion.urgente)
     .sort((a, b) => a.accion.prioridad - b.accion.prioridad || b.p.id - a.p.id);
@@ -52,6 +73,7 @@ export default function MiDia({ esAdmin = false }: { esAdmin?: boolean }) {
   // Procesos con acta pendiente que esperan su turno en la fila (primero se
   // termina el más antiguo). Se muestran al final, en gris.
   const esperando = procesos
+    .filter(enVista)
     .map((p) => ({ p, accion: accionProceso(p, esAdmin) }))
     .filter((x) => !x.accion.urgente && x.accion.texto === 'Esperando turno')
     .sort((a, b) => a.p.id - b.p.id);
@@ -69,7 +91,41 @@ export default function MiDia({ esAdmin = false }: { esAdmin?: boolean }) {
   const todoAlDia = citasHoy.length === 0 && porHacer.length === 0;
 
   return (
-    <section aria-label="Mi día" className="grid gap-3 lg:grid-cols-2">
+    <section aria-label="Mi día" className="space-y-2">
+      {esAdmin && (
+        <div className="inline-flex rounded-md border border-numa-200 bg-white p-0.5 text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => setVista('mios')}
+            className={`px-3 py-1 rounded ${
+              vista === 'mios' ? 'bg-numa-800 text-white' : 'text-numa-600 hover:bg-numa-50'
+            }`}
+          >
+            Mis pendientes
+          </button>
+          <button
+            type="button"
+            onClick={() => setVista('otros')}
+            className={`px-3 py-1 rounded flex items-center gap-1.5 ${
+              vista === 'otros' ? 'bg-numa-800 text-white' : 'text-numa-600 hover:bg-numa-50'
+            }`}
+          >
+            De otros mediadores
+            <span
+              className={`min-w-[20px] text-center rounded-full px-1.5 ${
+                vista === 'otros'
+                  ? 'bg-white/25 text-white'
+                  : totalOtros > 0
+                  ? 'bg-gold-400 text-numa-950'
+                  : 'bg-numa-100 text-numa-400'
+              }`}
+            >
+              {totalOtros}
+            </span>
+          </button>
+        </div>
+      )}
+    <div className="grid gap-3 lg:grid-cols-2">
       {/* Invitaciones de hoy */}
       <div className="card p-4">
         <div className="flex items-baseline justify-between gap-3 mb-2">
@@ -117,6 +173,7 @@ export default function MiDia({ esAdmin = false }: { esAdmin?: boolean }) {
                         {c.demandado}
                       </span>
                       <span className="block text-xs text-numa-500 truncate">
+                        {verOtros ? `${c.mediador} · ` : ''}
                         {c.sucursal || '—'}
                         {paso ? ' · ya pasó la hora' : ''}
                       </span>
@@ -177,6 +234,7 @@ export default function MiDia({ esAdmin = false }: { esAdmin?: boolean }) {
                     </span>
                     <span className="block text-xs text-numa-500 truncate">
                       <span className="code-text">{p.codigo_proceso}</span>
+                      {verOtros && <> · {p.usuario}</>}
                     </span>
                   </span>
 
@@ -205,6 +263,7 @@ export default function MiDia({ esAdmin = false }: { esAdmin?: boolean }) {
           </Link>
         )}
       </div>
+    </div>
     </section>
   );
 }

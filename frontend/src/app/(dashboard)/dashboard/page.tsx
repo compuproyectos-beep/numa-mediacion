@@ -270,7 +270,7 @@ export default function DashboardPage() {
           {isAdmin && <AlertaActasAtrasadas />}
 
           {/* Lo que toca hoy (mediador y administrador), antes que las cifras. */}
-          <MiDia esAdmin={isAdmin} />
+          <MiDia esAdmin={isAdmin} miId={user?.id} />
 
           {/* Las cajas van directo sobre el fondo de la página: sus colores
               suaves ya las distinguen, sin franja detrás. */}
