@@ -16,7 +16,6 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { StatCard, Spinner, ErrorAlert, PageHeader, Badge, EmptyState, Pill } from '@/components/ui';
-import { estadoLabel, estadoPill } from '@/lib/estados';
 import { getDashboard, getUsoAlmacenamiento, getProcesos, getActasFinales, enviarRespaldoManual } from '@/lib/services';
 import { useAuth } from '@/hooks/useAuth';
 import { GuiaBienvenida, useGuiaBienvenida } from '@/components/dashboard/GuiaBienvenida';
@@ -91,22 +90,22 @@ const CATEGORIAS: Record<
   { titulo: string; estadoProceso?: string; verTodoHref: string }
 > = {
   en_negociacion: {
-    titulo: 'En negociación',
+    titulo: 'Procesos en negociación',
     estadoProceso: 'en_negociacion',
     verTodoHref: '/procesos?estado=en_negociacion'
   },
   cerrado_con_acuerdo: {
-    titulo: 'Con acuerdo',
+    titulo: 'Procesos con acuerdo',
     estadoProceso: 'cerrado_con_acuerdo',
     verTodoHref: '/procesos?estado=cerrado_con_acuerdo'
   },
   cerrado_sin_acuerdo: {
-    titulo: 'Sin acuerdo',
+    titulo: 'Procesos sin acuerdo',
     estadoProceso: 'cerrado_sin_acuerdo',
     verTodoHref: '/procesos?estado=cerrado_sin_acuerdo'
   },
   archivado: {
-    titulo: 'Archivados',
+    titulo: 'Procesos archivados',
     estadoProceso: 'archivado',
     verTodoHref: '/procesos?estado=archivado'
   },
@@ -278,7 +277,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
             <StatCard
               compacto
-              label="En negociación"
+              label={procesos.en_negociacion === 1 ? 'proceso en negociación' : 'procesos en negociación'}
               value={procesos.en_negociacion ?? 0}
               icon={Clock}
               color={TEMA_CATEGORIA.en_negociacion.icono} relleno={TEMA_CATEGORIA.en_negociacion.caja} textoColor={TEMA_CATEGORIA.en_negociacion.texto}
@@ -288,7 +287,7 @@ export default function DashboardPage() {
 
             <StatCard
               compacto
-              label="Con acuerdo"
+              label={procesos.cerrados_con_acuerdo === 1 ? 'proceso con acuerdo' : 'procesos con acuerdo'}
               value={procesos.cerrados_con_acuerdo ?? 0}
               icon={CheckCircle}
               color={TEMA_CATEGORIA.cerrado_con_acuerdo.icono} relleno={TEMA_CATEGORIA.cerrado_con_acuerdo.caja} textoColor={TEMA_CATEGORIA.cerrado_con_acuerdo.texto}
@@ -298,7 +297,7 @@ export default function DashboardPage() {
 
             <StatCard
               compacto
-              label="Sin acuerdo"
+              label={procesos.cerrados_sin_acuerdo === 1 ? 'proceso sin acuerdo' : 'procesos sin acuerdo'}
               value={procesos.cerrados_sin_acuerdo ?? 0}
               icon={FileText}
               color={TEMA_CATEGORIA.cerrado_sin_acuerdo.icono} relleno={TEMA_CATEGORIA.cerrado_sin_acuerdo.caja} textoColor={TEMA_CATEGORIA.cerrado_sin_acuerdo.texto}
@@ -308,7 +307,7 @@ export default function DashboardPage() {
 
             <StatCard
               compacto
-              label="Archivados"
+              label={procesos.archivados === 1 ? 'proceso archivado' : 'procesos archivados'}
               value={procesos.archivados ?? 0}
               icon={Archive}
               color={TEMA_CATEGORIA.archivado.icono} relleno={TEMA_CATEGORIA.archivado.caja} textoColor={TEMA_CATEGORIA.archivado.texto}
@@ -318,7 +317,7 @@ export default function DashboardPage() {
 
 <StatCard
               compacto
-              label="Actas de acuerdo"
+              label={stats.actas_acuerdo === 1 ? 'acta de acuerdo' : 'actas de acuerdo'}
               value={stats.actas_acuerdo ?? 0}
               icon={FileCheck}
               color={TEMA_CATEGORIA.actas_acuerdo.icono} relleno={TEMA_CATEGORIA.actas_acuerdo.caja} textoColor={TEMA_CATEGORIA.actas_acuerdo.texto}
@@ -328,7 +327,7 @@ export default function DashboardPage() {
 
             <StatCard
               compacto
-              label="Actas de no acuerdo"
+              label={stats.actas_no_acuerdo === 1 ? 'acta de no acuerdo' : 'actas de no acuerdo'}
               value={stats.actas_no_acuerdo ?? 0}
               icon={FileCheck}
               color={TEMA_CATEGORIA.actas_no_acuerdo.icono} relleno={TEMA_CATEGORIA.actas_no_acuerdo.caja} textoColor={TEMA_CATEGORIA.actas_no_acuerdo.texto}
@@ -427,69 +426,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <div className="card p-6">
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="text-sm font-semibold text-numa-700 uppercase tracking-wider">
-                  Procesos recientes
-                </h2>
-
-                <Link href="/procesos" className="text-xs text-gold-600 hover:text-gold-700">
-                  Ver todos
-                </Link>
-              </div>
-
-              {stats.procesos_recientes?.length ? (
-                <div className="space-y-3">
-                  {stats.procesos_recientes.map((p: any) => (
-                    <div
-                      key={p.id}
-                      onClick={() => router.push(`/procesos/${p.id}`)}
-                      className="p-4 border border-numa-100 rounded-sm bg-numa-50 cursor-pointer hover:shadow-md transition-shadow duration-200"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <p className="font-semibold text-numa-800">
-                            {p.codigo_proceso}
-                          </p>
-
-                          <p className="text-sm text-numa-600 mt-1">
-                            {p.demandante} vs {p.demandado}
-                          </p>
-
-                          <p className="text-xs text-numa-400 mt-1">
-                            {p.ciudad || '—'} · {p.sucursal || '—'}
-                          </p>
-
-                          {isAdmin && (
-                            <p className="text-xs text-numa-400 mt-1">
-                              Mediador: {p.usuario || '—'}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="text-right">
-                          <Pill label={estadoLabel(p.estado)} {...estadoPill(p.estado)} />
-
-                          <p className="text-xs text-numa-400 mt-2">
-                            {p.fecha_creacion
-                              ? new Date(p.fecha_creacion).toLocaleDateString('es-EC')
-                              : '—'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState
-                  message="Todavía no tienes procesos registrados."
-                  actionLabel="Crear tu primer proceso"
-                  onAction={() => router.push('/procesos?crear=1')}
-                />
-              )}
-            </div>
-
+          <div className="grid grid-cols-1 gap-6">
             <div className="card p-6">
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-sm font-semibold text-numa-700 uppercase tracking-wider">
