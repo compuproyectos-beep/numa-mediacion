@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Printer, Save } from 'lucide-react';
 import {
@@ -91,6 +91,58 @@ const listaNombres = (lista: any[]) =>
 const campo = 'w-full border border-numa-300 rounded-sm px-2 py-1.5 text-sm bg-white';
 const etiqueta = 'block text-[11px] uppercase tracking-wide text-numa-500 mb-1';
 
+// Texto que se escribe directamente sobre la hoja. Es un span editable que no
+// se vuelve a pintar mientras se escribe (así el cursor no salta); solo se
+// reescribe cuando el valor cambia desde otro lado (por ejemplo el mismo dato
+// que aparece dos veces en el documento).
+function Editable({
+  value,
+  onChange,
+  placeholder,
+  multi = false,
+  upper = false
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  multi?: boolean;
+  upper?: boolean;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const leer = (el: HTMLElement) =>
+    (multi ? el.innerText : el.textContent || '').replace(/\u00a0/g, ' ');
+  const norm = (t: string) => t.replace(/\s+$/, '');
+  useEffect(() => {
+    const el = ref.current;
+    if (el && norm(leer(el)) !== norm(value || '')) el.textContent = value || '';
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+  return (
+    <span
+      ref={ref}
+      contentEditable
+      suppressContentEditableWarning
+      spellCheck={false}
+      data-ph={placeholder}
+      className="campo-edit"
+      style={{
+        textTransform: upper ? 'uppercase' : undefined,
+        whiteSpace: multi ? 'pre-line' : 'pre-wrap'
+      }}
+      onInput={(e) => onChange(leer(e.currentTarget))}
+      onKeyDown={(e) => {
+        if (!multi && e.key === 'Enter') e.preventDefault();
+      }}
+      onPaste={(e) => {
+        e.preventDefault();
+        let t = e.clipboardData.getData('text/plain');
+        if (!multi) t = t.replace(/\s*\n+\s*/g, ' ');
+        document.execCommand('insertText', false, t);
+      }}
+    />
+  );
+}
+
 function ImprimirInvitacion() {
   const params = useParams();
   const search = useSearchParams();
@@ -119,6 +171,7 @@ function ImprimirInvitacion() {
   const [guardando, setGuardando] = useState(false);
   const [errorGuardar, setErrorGuardar] = useState('');
   const [okGuardar, setOkGuardar] = useState('');
+  const [popFecha, setPopFecha] = useState(false);
 
   // Rellena los campos con los textos que se guardaron con una invitación.
   const aplicarDocumento = (doc: any, conTitulo = true) => {
@@ -226,7 +279,7 @@ function ImprimirInvitacion() {
     setOkGuardar('');
     if (esNueva) {
       if (!fechaNueva || !horaNueva) {
-        setErrorGuardar('Escribe la fecha y la hora de la audiencia para guardar la invitación.');
+        setErrorGuardar('Falta la fecha y la hora de la audiencia: toca el campo amarillo de la fecha en el documento.');
         return;
       }
       if (fechaNueva < hoyEcuador()) {
@@ -297,8 +350,80 @@ function ImprimirInvitacion() {
       })()
     : '__ de ______ del año ____, a las __H__';
 
+  const chipFecha = (
+    <span style={{ position: 'relative' }}>
+      <b
+        className={esNueva ? 'campo-edit' : undefined}
+        style={{ cursor: esNueva ? 'pointer' : undefined }}
+        onClick={() => esNueva && setPopFecha(true)}
+      >
+        {fechaCita}
+      </b>
+      {esNueva && popFecha && (
+        <span
+          className="print:hidden"
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            zIndex: 30,
+            display: 'flex',
+            gap: '8px',
+            alignItems: 'flex-end',
+            background: '#fff',
+            border: '1px solid #bbb',
+            borderRadius: 4,
+            padding: 10,
+            boxShadow: '0 4px 14px rgba(0,0,0,.18)',
+            textAlign: 'left',
+            fontSize: '10pt',
+            fontWeight: 400,
+            width: 'max-content'
+          }}
+        >
+          <span>
+            <span className={etiqueta}>Fecha</span>
+            <input
+              type="date"
+              className={campo}
+              min={hoyEcuador()}
+              value={fechaNueva}
+              onChange={(e) => setFechaNueva(e.target.value)}
+            />
+          </span>
+          <span>
+            <span className={etiqueta}>Hora</span>
+            <input
+              type="time"
+              className={campo}
+              value={horaNueva}
+              onChange={(e) => setHoraNueva(e.target.value)}
+            />
+          </span>
+          <button
+            type="button"
+            onClick={() => setPopFecha(false)}
+            className="px-3 py-1.5 bg-numa-900 text-numa-50 rounded-sm text-sm"
+          >
+            Listo
+          </button>
+        </span>
+      )}
+    </span>
+  );
+
   const ciudadEmision = proceso.ciudad || 'Santo Domingo';
   const lineaFecha = `${ciudadEmision}, ${fechaLarga(fechaEmision)}.`;
+
+  const estiloPie: React.CSSProperties = {
+    position: 'absolute',
+    fontFamily: "'Open Sans', Arial, sans-serif",
+    fontWeight: 700,
+    fontSize: '7.6pt',
+    lineHeight: 1.45,
+    color: '#1f2a7a',
+    textAlign: 'left'
+  };
 
   const pDefault: React.CSSProperties = { margin: '0 0 3.2mm' };
 
@@ -316,9 +441,13 @@ function ImprimirInvitacion() {
   const contacto = (
     <>
       Agradeceré confirmar su asistencia con el suscrito al teléfono{' '}
-      <b>{telefono || '__________'}</b>
+      <b>
+        <Editable value={telefono} onChange={guardarTelefono} placeholder="teléfono" />
+      </b>
       {modelo === 'empresa' ? ' o al correo electrónico ' : ', email '}
-      <b>{correo}</b>
+      <b>
+        <Editable value={correo} onChange={setCorreo} placeholder="correo" />
+      </b>
       {modelo === 'empresa' ? '.' : ''}
     </>
   );
@@ -346,19 +475,25 @@ function ImprimirInvitacion() {
         </div>
       </div>
 
-      <p style={pDefault}>{titulo}.</p>
+      <p style={pDefault}>
+        <Editable value={titulo} onChange={setTitulo} placeholder="Primera invitación" />.
+      </p>
       <p style={pDefault}>De mi consideración:</p>
 
       <p style={pDefault}>
         {plural(solicitantes, 'La persona', 'Las personas')} {listaNombres(solicitantes)},{' '}
         {plural(solicitantes, 'ha solicitado', 'han solicitado')} una Audiencia de Mediación, con{' '}
         {listaNombres(invitados)}, y así poder solucionar, de manera extrajudicial, un conflicto de ámbito{' '}
-        <b>{(asunto || '').toUpperCase()}</b>.
+        <b>
+          <Editable value={asunto} onChange={setAsunto} placeholder="ámbito del conflicto" upper />
+        </b>
+        .
       </p>
 
       <p style={pDefault}>
         Este centro acepta prestar sus servicios, para cuyo efecto convoca a la Audiencia de
-        Mediación que se efectuará el <b>{fechaCita}</b>, a realizarse {lugar}.
+        Mediación que se efectuará el {chipFecha}, a realizarse{' '}
+        <Editable value={lugar} onChange={setLugar} placeholder="lugar de la audiencia" multi />.
       </p>
 
       <p style={pDefault}>{contacto}</p>
@@ -373,19 +508,21 @@ function ImprimirInvitacion() {
         <b>{plural(invitados, 'SEÑOR(A):', 'SEÑORES:')}</b>
       </p>
       <p style={pDefault}>{listaNombres(invitados)}.</p>
-      {extras
-        .split('\n')
-        .map((l) => l.trim())
-        .filter(Boolean)
-        .map((l, i) => (
-          <p key={i} style={pDefault}>
-            {l}
-          </p>
-        ))}
-      <p style={pDefault}>
-        <b>ASUNTO:</b> {asunto}.
+      <p style={pDefault} className={extras.trim() ? undefined : 'extras-vacio'}>
+        <Editable
+          value={extras}
+          onChange={setExtras}
+          placeholder="Líneas adicionales (opcional): delegados, cargos…"
+          multi
+        />
       </p>
-      <p style={pDefault}>{titulo}.</p>
+      <p style={pDefault}>
+        <b>ASUNTO:</b>{' '}
+        <Editable value={asunto} onChange={setAsunto} placeholder="asunto" />.
+      </p>
+      <p style={pDefault}>
+        <Editable value={titulo} onChange={setTitulo} placeholder="Primera invitación" />.
+      </p>
       <p style={pDefault}>
         <b>De mi consideración:</b>
       </p>
@@ -404,7 +541,11 @@ function ImprimirInvitacion() {
         {listaNombres(solicitantes)}, {plural(solicitantes, 'ha solicitado', 'han solicitado')} que
         invite a {listaNombres(invitados)}, para llevar a cabo una audiencia en el Centro de
         Mediación “NUMA”, con el fin de resolver el conflicto mediante acuerdos voluntarios
-        extrajudiciales, referente a: <b>{asunto}</b>.
+        extrajudiciales, referente a:{' '}
+        <b>
+          <Editable value={asunto} onChange={setAsunto} placeholder="asunto" />
+        </b>
+        .
       </p>
 
       <p style={pDefault}>
@@ -412,7 +553,8 @@ function ImprimirInvitacion() {
       </p>
       <p style={pDefault}>
         Este centro acepta prestar sus servicios, para cuyo efecto convoca a la audiencia de
-        mediación que se efectuará el <b>{fechaCita}</b>, {lugar}, lugar donde se procurará un
+        mediación que se efectuará el {chipFecha},{' '}
+        <Editable value={lugar} onChange={setLugar} placeholder="lugar de la audiencia" multi />, lugar donde se procurará un
         acuerdo voluntario que verse sobre materia transigible, de carácter extrajudicial y
         definitivo, que ponga fin al conflicto.
       </p>
@@ -453,7 +595,16 @@ function ImprimirInvitacion() {
       <style>{`
         @page { size: A4; margin: 0; }
         .membrete { position: absolute; top: 0; left: 0; width: 210mm; height: 297mm; z-index: 0; }
+        .campo-edit { background: #fff7cc; border-bottom: 1px dashed #c9a400; outline: none; padding: 0 1px; cursor: text; border-radius: 2px; }
+        .campo-edit:focus { background: #ffefa0; }
+        .campo-edit:empty::before { content: attr(data-ph); color: #8a7a20; font-weight: 400; text-transform: none; }
+        .pie-capa { position: absolute; top: 0; left: 0; width: 210mm; height: 297mm; z-index: 5; pointer-events: none; }
+        .pie-capa > div { pointer-events: auto; }
         @media print {
+          .campo-edit { background: none !important; border: 0 !important; padding: 0 !important; }
+          .campo-edit:empty::before { content: '' !important; }
+          .extras-vacio { display: none !important; }
+          .pie-capa { position: fixed; }
           html, body { background: #fff !important; }
           .hoja { box-shadow: none !important; margin: 0 !important; min-height: 0 !important; }
           .membrete { position: fixed; }
@@ -506,6 +657,12 @@ function ImprimirInvitacion() {
             </p>
           )}
 
+          <p className="text-xs text-numa-600 mb-3">
+            Escribe directamente sobre el documento: los campos con fondo amarillo se pueden
+            editar{esNueva ? ' (la fecha y la hora se eligen tocando el campo de la fecha)' : ''}. Lo
+            amarillo no sale impreso.
+          </p>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <label className={etiqueta}>Modelo</label>
@@ -518,29 +675,7 @@ function ImprimirInvitacion() {
                 <option value="empresa">Empresa / institución</option>
               </select>
             </div>
-            {esNueva ? (
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className={etiqueta}>Fecha de la audiencia</label>
-                  <input
-                    type="date"
-                    className={campo}
-                    min={hoyEcuador()}
-                    value={fechaNueva}
-                    onChange={(e) => setFechaNueva(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className={etiqueta}>Hora</label>
-                  <input
-                    type="time"
-                    className={campo}
-                    value={horaNueva}
-                    onChange={(e) => setHoraNueva(e.target.value)}
-                  />
-                </div>
-              </div>
-            ) : (
+            {!esNueva && (
               <div>
                 <label className={etiqueta}>Invitación</label>
                 <select
@@ -565,20 +700,6 @@ function ImprimirInvitacion() {
               </div>
             )}
             <div>
-              <label className={etiqueta}>Título (editable)</label>
-              <input
-                className={campo}
-                value={titulo}
-                onChange={(e) => setTitulo(e.target.value)}
-                list="titulos-invitacion"
-              />
-              <datalist id="titulos-invitacion">
-                <option value="Primera invitación" />
-                <option value="Segunda invitación" />
-                <option value="Tercera invitación" />
-              </datalist>
-            </div>
-            <div>
               <label className={etiqueta}>Fecha del documento</label>
               <input
                 type="date"
@@ -587,63 +708,6 @@ function ImprimirInvitacion() {
                 onChange={(e) => setFechaEmision(e.target.value)}
               />
             </div>
-            <div className="md:col-span-2">
-              <label className={etiqueta}>
-                {modelo === 'empresa' ? 'Asunto' : 'Ámbito del conflicto (familia, deuda, etc.)'}
-              </label>
-              <input
-                className={campo}
-                value={asunto}
-                onChange={(e) => setAsunto(e.target.value)}
-              />
-            </div>
-            <div className="md:col-span-3">
-              <label className={etiqueta}>Lugar de la audiencia</label>
-              <textarea
-                className={campo}
-                rows={2}
-                value={lugar}
-                onChange={(e) => setLugar(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className={etiqueta}>Teléfono del mediador</label>
-              <input
-                className={campo}
-                value={telefono}
-                onChange={(e) => guardarTelefono(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className={etiqueta}>Correo</label>
-              <input
-                className={campo}
-                value={correo}
-                onChange={(e) => setCorreo(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className={etiqueta}>Dirección del pie de página</label>
-              <textarea
-                className={campo}
-                rows={3}
-                value={pie}
-                onChange={(e) => setPie(e.target.value)}
-              />
-            </div>
-            {modelo === 'empresa' && (
-              <div className="md:col-span-3">
-                <label className={etiqueta}>
-                  Líneas adicionales bajo “Señores” (opcional, una por línea: delegados, cargos…)
-                </label>
-                <textarea
-                  className={campo}
-                  rows={2}
-                  value={extras}
-                  onChange={(e) => setExtras(e.target.value)}
-                />
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -671,22 +735,19 @@ function ImprimirInvitacion() {
             alt=""
             style={{ position: 'absolute', top: 0, left: 0, width: '210mm', height: '297mm' }}
           />
+        </div>
+
+        {/* Textos editables del pie (dirección, celular y correo). */}
+        <div className="pie-capa">
+          <div style={{ ...estiloPie, top: '278.5mm', left: '7.5mm', width: '95mm' }}>
+            <Editable value={pie} onChange={setPie} placeholder="dirección del pie" multi />
+          </div>
           <div
-            style={{
-              position: 'absolute',
-              top: '278.5mm',
-              left: '7.5mm',
-              width: '95mm',
-              fontFamily: "'Open Sans', Arial, sans-serif",
-              fontWeight: 700,
-              fontSize: '7.6pt',
-              lineHeight: 1.45,
-              color: '#1f2a7a',
-              textAlign: 'left',
-              whiteSpace: 'pre-line'
-            }}
+            style={{ ...estiloPie, top: '281mm', right: '4mm', width: '85mm', textAlign: 'right' }}
           >
-            {pie}
+            Celular: <Editable value={telefono} onChange={guardarTelefono} placeholder="celular" />
+            <br />
+            Correo: <Editable value={correo} onChange={setCorreo} placeholder="correo" />
           </div>
         </div>
 
