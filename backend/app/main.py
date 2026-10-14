@@ -5109,10 +5109,31 @@ def _datos_de_invitacion(texto):
     if elegida:
         fecha = datetime.date(elegida[2], elegida[3], elegida[4]).isoformat()
         cola = norm[elegida[1]: elegida[1] + 80]
-        mh = re.search(r"(\d{1,2})\s*(?:h|:)\s*(\d{2})", cola)
-        if mh and int(mh.group(1)) < 24 and int(mh.group(2)) < 60:
-            hora = f"{int(mh.group(1)):02d}:{mh.group(2)}"
-        else:
+
+        def _a_24h(h, minutos, pm):
+            h = int(h)
+            minutos = int(minutos or 0)
+            if not (1 <= h <= 12) or minutos > 59:
+                return None
+            if pm and h < 12:
+                h += 12
+            if not pm and h == 12:
+                h = 0
+            return f"{h:02d}:{minutos:02d}"
+
+        # 3 p.m. · 3pm · 8:30 a. m. · 8 de la mañana · 3 de la tarde
+        mh = re.search(r"(?<!\d)(\d{1,2})(?:\s*[:h.]\s*(\d{2}))?\s*([ap])\s*\.?\s*m(?![a-z])", cola)
+        if mh:
+            hora = _a_24h(mh.group(1), mh.group(2), mh.group(3) == "p")
+        if not hora:
+            mh = re.search(r"(?<!\d)(\d{1,2})(?:\s*[:h]\s*(\d{2}))?\s*de la\s+(manana|tarde|noche)", cola)
+            if mh:
+                hora = _a_24h(mh.group(1), mh.group(2), mh.group(3) != "manana")
+        if not hora:
+            mh = re.search(r"(\d{1,2})\s*(?:h|:)\s*(\d{2})", cola)
+            if mh and int(mh.group(1)) < 24 and int(mh.group(2)) < 60:
+                hora = f"{int(mh.group(1)):02d}:{mh.group(2)}"
+        if not hora:
             mh = re.search(r"a las\s+(\d{1,2})\s*(?:horas|hrs|h)\b", cola)
             if mh and int(mh.group(1)) < 24:
                 hora = f"{int(mh.group(1)):02d}:00"
