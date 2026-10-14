@@ -35,6 +35,9 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
   const [rolAgregar, setRolAgregar] = useState<Rol | null>(null);
   const [clienteId, setClienteId] = useState('');
   const [empresaId, setEmpresaId] = useState('');
+  // Qué se agrega: una persona o una empresa/institución. Así la lista no mezcla
+  // los dos tipos y no se elige una empresa por error.
+  const [tipoParte, setTipoParte] = useState<'persona' | 'empresa'>('persona');
   const [guardando, setGuardando] = useState(false);
 
   const cargar = async () => {
@@ -60,6 +63,7 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
     setRolAgregar(rol);
     setClienteId('');
     setEmpresaId('');
+    setTipoParte('persona');
     setError('');
   };
 
@@ -69,9 +73,24 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
   };
 
   const yaEnProceso = new Set(partes.map((p) => p.cliente_id));
-  const disponibles = clientes.filter((c) => !yaEnProceso.has(c.id));
-  const empresas = clientes.filter((c) => c.tipo === 'empresa');
+  const disponibles = clientes.filter(
+    (c) => !yaEnProceso.has(c.id) && (tipoParte === 'empresa' ? c.tipo === 'empresa' : c.tipo !== 'empresa')
+  );
+  // Una persona solo puede representar a una empresa que YA es parte del
+  // mismo lado del proceso (la empresa se agrega primero). Así no hay forma de
+  // elegir una empresa que no tiene nada que ver con el proceso.
+  const empresas = clientes.filter(
+    (c) =>
+      c.tipo === 'empresa' &&
+      partes.some((p) => p.cliente_id === c.id && p.rol === rolAgregar)
+  );
   const elegido = clientes.find((c) => String(c.id) === clienteId);
+  const empresaElegida = empresas.find((c) => String(c.id) === empresaId);
+  const noEsRepresentante =
+    !!empresaElegida &&
+    !!elegido &&
+    !!empresaElegida.representante_cedula &&
+    String(empresaElegida.representante_cedula).trim() !== String(elegido.cedula || '').trim();
 
   const guardar = async () => {
     if (!rolAgregar || !clienteId) {
@@ -249,8 +268,32 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
         )}
 
         <div className="space-y-4">
+          <div className="inline-flex rounded-md border border-numa-200 bg-white p-0.5 text-xs font-semibold">
+            {(
+              [
+                ['persona', 'Persona natural'],
+                ['empresa', 'Empresa o institución']
+              ] as const
+            ).map(([clave, texto]) => (
+              <button
+                key={clave}
+                type="button"
+                onClick={() => {
+                  setTipoParte(clave);
+                  setClienteId('');
+                  setEmpresaId('');
+                }}
+                className={`px-3 py-1 rounded ${
+                  tipoParte === clave ? 'bg-numa-800 text-white' : 'text-numa-600 hover:bg-numa-50'
+                }`}
+              >
+                {texto}
+              </button>
+            ))}
+          </div>
+
           <SelectField
-            label="Cliente"
+            label={tipoParte === 'empresa' ? 'Empresa o institución' : 'Persona'}
             value={clienteId}
             onChange={(e) => {
               setClienteId(e.target.value);
@@ -280,6 +323,14 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
                 </option>
               ))}
             </SelectField>
+          )}
+
+          {noEsRepresentante && (
+            <p className="text-xs rounded-md border border-amber-300 bg-amber-50 text-amber-800 px-3 py-2">
+              Esta persona no figura como representante legal de{' '}
+              <strong>{empresaElegida?.nombre}</strong>. Continúa solo si actúa con poder o
+              autorización de la empresa.
+            </p>
           )}
 
           <p className="text-xs text-numa-400">
