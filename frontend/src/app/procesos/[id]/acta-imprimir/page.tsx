@@ -183,7 +183,9 @@ export default function ImprimirActaPage() {
 
           <p className="text-sm text-numa-700 mb-2">
             {noAcuerdo
-              ? 'Leída el acta, el solicitante se ratifica en su contenido y la firma junto con el mediador.'
+              ? solicitantes.length > 1
+                ? 'Leída el acta, los solicitantes se ratifican en su contenido y la firman junto con el mediador.'
+                : 'Leída el acta, el solicitante se ratifica en su contenido y la firma junto con el mediador.'
               : 'Leída el acta, las partes se ratifican en su contenido y la firman junto con el mediador.'}
           </p>
         </div>

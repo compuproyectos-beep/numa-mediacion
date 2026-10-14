@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { Plus, Star, X, Building2, User } from 'lucide-react';
-import { Modal, SelectField, ErrorAlert, Spinner } from '@/components/ui';
+import { Modal, SelectField, InputField, ErrorAlert, Spinner } from '@/components/ui';
 import {
   getClientes,
+  createCliente,
   getPartesProceso,
   agregarParteProceso,
   cambiarResponsableParte,
@@ -40,6 +41,65 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
   const [tipoParte, setTipoParte] = useState<'persona' | 'empresa'>('persona');
   const [guardando, setGuardando] = useState(false);
 
+  // Crear un cliente nuevo sin salir de esta ventana.
+  const VACIO = {
+    nombre: '',
+    apellido: '',
+    cedula: '',
+    telefono: '',
+    razon_social: '',
+    ruc: '',
+    representante_nombre: '',
+    representante_cedula: ''
+  };
+  const [creando, setCreando] = useState(false);
+  const [nuevo, setNuevo] = useState(VACIO);
+  const [creandoGuardando, setCreandoGuardando] = useState(false);
+  const campoNuevo = (k: keyof typeof VACIO, soloNumeros = 0) => ({
+    value: nuevo[k],
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+      setNuevo({
+        ...nuevo,
+        [k]: soloNumeros ? e.target.value.replace(/\D/g, '').slice(0, soloNumeros) : e.target.value
+      })
+  });
+
+  const guardarNuevoCliente = async () => {
+    setError('');
+    setCreandoGuardando(true);
+    try {
+      const esEmpresa = tipoParte === 'empresa';
+      const c: any = await createCliente(
+        (esEmpresa
+          ? {
+              tipo: 'empresa',
+              razon_social: nuevo.razon_social,
+              ruc: nuevo.ruc,
+              representante_nombre: nuevo.representante_nombre,
+              representante_cedula: nuevo.representante_cedula,
+              telefono: nuevo.telefono || undefined
+            }
+          : {
+              tipo: 'persona',
+              nombre: nuevo.nombre,
+              apellido: nuevo.apellido,
+              cedula: nuevo.cedula,
+              telefono: nuevo.telefono || undefined
+            }) as any
+      );
+      // El cliente nuevo queda en la lista y ya elegido.
+      setClientes((prev) => [...prev, c]);
+      setClienteId(String(c.id));
+      setEmpresaId('');
+      setCreando(false);
+      setNuevo(VACIO);
+    } catch (e: any) {
+      setError(mensajeError(e, 'No se pudo crear el cliente'));
+    } finally {
+      setCreandoGuardando(false);
+    }
+  };
+
   const cargar = async () => {
     try {
       setPartes(await getPartesProceso(procesoId));
@@ -64,11 +124,14 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
     setClienteId('');
     setEmpresaId('');
     setTipoParte('persona');
+    setCreando(false);
+    setNuevo(VACIO);
     setError('');
   };
 
   const cerrarAgregar = () => {
     setRolAgregar(null);
+    setCreando(false);
     setError('');
   };
 
@@ -282,6 +345,8 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
                   setTipoParte(clave);
                   setClienteId('');
                   setEmpresaId('');
+                  setCreando(false);
+                  setNuevo(VACIO);
                 }}
                 className={`px-3 py-1 rounded ${
                   tipoParte === clave ? 'bg-numa-800 text-white' : 'text-numa-600 hover:bg-numa-50'
@@ -292,6 +357,8 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
             ))}
           </div>
 
+          {!creando && (
+            <>
           <SelectField
             label={tipoParte === 'empresa' ? 'Empresa o institución' : 'Persona'}
             value={clienteId}
@@ -309,6 +376,75 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
               </option>
             ))}
           </SelectField>
+              <button
+                type="button"
+                onClick={() => {
+                  setCreando(true);
+                  setClienteId('');
+                  setEmpresaId('');
+                  setError('');
+                }}
+                className="text-xs font-semibold text-gold-600 hover:text-gold-700 -mt-2"
+              >
+                + {tipoParte === 'empresa' ? 'Nueva empresa' : 'Nueva persona'} (si no está en la lista)
+              </button>
+            </>
+          )}
+
+          {creando && (
+            <div className="rounded-md border border-gold-300 bg-gold-50/40 p-3 space-y-3">
+              <p className="text-xs font-semibold text-numa-700">
+                {tipoParte === 'empresa' ? 'Nueva empresa o institución' : 'Nueva persona natural'}
+              </p>
+
+              {tipoParte === 'empresa' ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <InputField label="Razón social" {...campoNuevo('razon_social')} />
+                  </div>
+                  <InputField label="RUC (13 dígitos)" {...campoNuevo('ruc', 13)} />
+                  <InputField label="Teléfono (opcional)" {...campoNuevo('telefono', 10)} />
+                  <InputField
+                    label="Representante legal"
+                    {...campoNuevo('representante_nombre')}
+                  />
+                  <InputField
+                    label="Cédula del representante"
+                    {...campoNuevo('representante_cedula', 10)}
+                  />
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <InputField label="Nombres" {...campoNuevo('nombre')} />
+                  <InputField label="Apellidos" {...campoNuevo('apellido')} />
+                  <InputField label="Cédula" {...campoNuevo('cedula', 10)} />
+                  <InputField label="Teléfono (opcional)" {...campoNuevo('telefono', 10)} />
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCreando(false);
+                    setNuevo(VACIO);
+                    setError('');
+                  }}
+                  className="btn-secondary btn-sm"
+                >
+                  Volver a la lista
+                </button>
+                <button
+                  type="button"
+                  onClick={guardarNuevoCliente}
+                  disabled={creandoGuardando}
+                  className="btn-primary btn-sm"
+                >
+                  {creandoGuardando ? 'Guardando...' : 'Guardar cliente'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {elegido && elegido.tipo !== 'empresa' && empresas.length > 0 && (
             <SelectField
@@ -334,8 +470,8 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
           )}
 
           <p className="text-xs text-numa-400">
-            Si la persona o empresa todavía no existe, créala primero en la sección
-            &quot;Clientes&quot;.
+            Los datos completos del cliente (dirección, correo, ciudad) se pueden completar
+            después en la sección &quot;Clientes&quot;.
           </p>
         </div>
 
@@ -343,7 +479,7 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
           <button onClick={cerrarAgregar} className="btn-secondary">
             Cancelar
           </button>
-          <button onClick={guardar} disabled={guardando} className="btn-primary">
+          <button onClick={guardar} disabled={guardando || creando} className="btn-primary">
             {guardando ? 'Guardando...' : 'Agregar'}
           </button>
         </div>
