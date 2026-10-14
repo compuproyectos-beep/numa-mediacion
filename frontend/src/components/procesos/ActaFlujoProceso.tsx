@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Printer, Upload, Eye, Download, PauseCircle, PlayCircle, Pencil, FileX } from 'lucide-react';
 import { Modal, ErrorAlert, TextareaField } from '@/components/ui';
 import {
@@ -35,6 +35,25 @@ const fmt = (v?: string) => {
 // suspender/reactivar el proceso.
 export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) {
   const [error, setError] = useState('');
+  // El botón de subir el acta firmada se habilita después de abrir
+  // "Imprimir acta para firmar" (se recuerda en este navegador).
+  const claveImpresa = `acta_impresa_${proceso.id}`;
+  const [yaImprimio, setYaImprimio] = useState(false);
+  useEffect(() => {
+    try {
+      setYaImprimio(window.localStorage.getItem(claveImpresa) === '1');
+    } catch {
+      /* sin almacenamiento: se habilita al imprimir en esta sesión */
+    }
+  }, [claveImpresa]);
+  const marcarImpresa = () => {
+    setYaImprimio(true);
+    try {
+      window.localStorage.setItem(claveImpresa, '1');
+    } catch {
+      /* ignorar */
+    }
+  };
   const [ok, setOk] = useState('');
 
   // Acta firmada
@@ -266,7 +285,10 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
   ) => (
     <button
       type="button"
-      onClick={() => window.open(`/procesos/${proceso.id}/acta-imprimir`, '_blank')}
+      onClick={() => {
+        marcarImpresa();
+        window.open(`/procesos/${proceso.id}/acta-imprimir`, '_blank');
+      }}
       title={ayuda}
       className="btn-secondary btn-sm"
     >
@@ -361,6 +383,12 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
             {botonImprimir()}
             <button
               type="button"
+              disabled={!esAdmin && !yaImprimio}
+              title={
+                !esAdmin && !yaImprimio
+                  ? 'Primero imprime el acta para firmar'
+                  : 'Subir el acta ya firmada (PDF)'
+              }
               onClick={() => {
                 setShowFirmada(true);
                 setArchivoFirmada(null);
@@ -369,11 +397,16 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
                 setConfirmoFirmada(false);
                 setError('');
               }}
-              className="btn-primary btn-sm"
+              className="btn-primary btn-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Upload className="w-4 h-4" /> Subir acta firmada
             </button>
           </div>
+          {!esAdmin && !yaImprimio && (
+            <p className="text-xs text-numa-500 mt-2">
+              Primero imprime el acta para firmar; luego se habilita &quot;Subir acta firmada&quot;.
+            </p>
+          )}
         </div>
       )}
 
