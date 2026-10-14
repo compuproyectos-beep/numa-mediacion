@@ -41,38 +41,38 @@ export function GuiaBienvenida({ open, onClose }: GuiaBienvenidaProps) {
   if (!open) return null;
 
   return (
-    <div className="card p-6 mb-6 border-2 border-gold-200 bg-gold-50/40 animate-fade-in relative">
+    <div className="card p-4 mb-3 border-2 border-gold-200 bg-gold-50/40 animate-fade-in relative">
       <button
         type="button"
         onClick={onClose}
-        className="absolute top-4 right-4 text-numa-400 hover:text-numa-700"
+        className="absolute top-3 right-3 text-numa-400 hover:text-numa-700"
         aria-label="Cerrar guía"
       >
         <X className="w-4 h-4" />
       </button>
 
-      <h2 className="text-sm font-semibold text-numa-800 uppercase tracking-wider mb-1">
+      <h2 className="text-sm font-semibold text-numa-800 uppercase tracking-wider mb-0.5">
         Bienvenido a NUMA
       </h2>
 
-      <p className="text-sm text-numa-600 mb-5">Así funciona el sistema, paso a paso:</p>
+      <p className="text-xs text-numa-600 mb-3">Así funciona el sistema, paso a paso:</p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-3">
         {pasos.map((p) => (
-          <div key={p.titulo} className="flex gap-3">
-            <div className="w-9 h-9 rounded-full bg-white border border-gold-200 flex items-center justify-center shrink-0">
+          <div key={p.titulo} className="flex gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-white border border-gold-200 flex items-center justify-center shrink-0">
               <p.icon className="w-4 h-4 text-gold-600" />
             </div>
 
             <div>
               <p className="text-sm font-semibold text-numa-800">{p.titulo}</p>
-              <p className="text-xs text-numa-500 mt-1">{p.texto}</p>
+              <p className="text-xs text-numa-500 mt-0.5 leading-snug">{p.texto}</p>
             </div>
           </div>
         ))}
       </div>
 
-      <button type="button" onClick={onClose} className="btn-primary btn-sm">
+      <button type="button" onClick={onClose} className="btn-primary btn-sm !py-1">
         Entendido
       </button>
     </div>
