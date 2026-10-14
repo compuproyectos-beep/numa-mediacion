@@ -58,8 +58,8 @@ export default function ImprimirExpedientePage() {
 
   const { proceso, linea_tiempo, acta_final, historial_pdf } = data;
 
-  // Por lado: solo el nombre del responsable (o el primero) y, si hay
-  // más partes, "y más".
+  // Por lado: todos los responsables (con su empresa) y, si hay otras
+  // partes que no son responsables, "y más".
   const partes: any[] = data.partes || [];
   const nombreParte = (p: any) =>
     `${p.nombre} ${p.apellido || ''}`.trim() +
@@ -67,8 +67,12 @@ export default function ImprimirExpedientePage() {
   const listaPartes = (rol: string, respaldo: string) => {
     const lado = partes.filter((p) => p.rol === rol);
     if (lado.length === 0) return [respaldo];
-    const principal = lado.find((p) => p.es_responsable) || lado[0];
-    return [nombreParte(principal) + (lado.length > 1 ? ' y más' : '')];
+    let resp = lado.filter((p) => p.es_responsable);
+    if (resp.length === 0) resp = [lado[0]];
+    const hayMas = lado.length > resp.length;
+    const nombres = resp.map(nombreParte);
+    if (hayMas) nombres[nombres.length - 1] += ' y más';
+    return nombres;
   };
 
   return (
