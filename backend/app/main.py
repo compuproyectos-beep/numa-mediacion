@@ -3005,6 +3005,7 @@ def obtener_procesos_mediacion(
                 af.tipo AS tipo_acta,
                 (p.acta_firmada_ruta IS NOT NULL) AS tiene_acta_firmada,
                 p.acta_firmada_fecha,
+                (p.acta_impresa_fecha IS NOT NULL) AS acta_impresa,
                 -- Si ya tiene una invitación pendiente, no se puede agendar
                 -- otra hasta que esa se resuelva (realizada/cancelada) —
                 -- usado para saber qué procesos se pueden elegir al crear
@@ -4401,6 +4402,35 @@ async def subir_acta_final_proceso(
     finally:
         cur.close()
         conn.close()
+
+# =========================
+# MARCAR QUE EL ACTA PARA FIRMAR YA SE ABRIÓ PARA IMPRIMIR
+# (habilita el botón "Subir acta firmada" desde cualquier computador)
+# =========================
+@app.post("/procesos/{proceso_id}/acta-impresa")
+def marcar_acta_impresa(proceso_id: int, usuario=Depends(obtener_usuario_actual)):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("SELECT usuario_id FROM procesos_mediacion WHERE id = %s", (proceso_id,))
+        p = cur.fetchone()
+        if not p:
+            raise HTTPException(status_code=404, detail="Proceso no encontrado")
+        if usuario["rol"] != "administrador" and p["usuario_id"] != usuario["id"]:
+            raise HTTPException(status_code=403, detail="No puedes modificar este proceso")
+        cur.execute(
+            "UPDATE procesos_mediacion SET acta_impresa_fecha = COALESCE(acta_impresa_fecha, NOW()) WHERE id = %s",
+            (proceso_id,)
+        )
+        conn.commit()
+        return {"ok": True}
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cur.close()
+        conn.close()
+
 
 # =========================
 # ACTA FIRMADA (PDF firmado por las partes)

@@ -797,6 +797,10 @@ export async function solicitarActaNoAcuerdo(procesoId: number): Promise<any> {
   return res.data;
 }
 
+export async function marcarActaImpresa(procesoId: number): Promise<void> {
+  await api.post(`/procesos/${procesoId}/acta-impresa`);
+}
+
 export async function descargarComprobanteFinal(procesoId: number): Promise<Blob> {
   const res = await api.get(`/procesos/${procesoId}/comprobante-final`, { responseType: 'blob' });
   return res.data;

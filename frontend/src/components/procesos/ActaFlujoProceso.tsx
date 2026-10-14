@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Printer, Upload, Eye, Download, PauseCircle, PlayCircle, Pencil, FileX } from 'lucide-react';
 import { Modal, ErrorAlert, TextareaField } from '@/components/ui';
 import {
@@ -11,7 +11,8 @@ import {
   suspenderProceso,
   reactivarProceso,
   solicitarActaNoAcuerdo,
-  descargarComprobanteFinal
+  descargarComprobanteFinal,
+  marcarActaImpresa
 } from '@/lib/services';
 import { conActa, esNoAcuerdo, dinero, saldoPago, fechaDia } from '@/lib/actaProceso';
 import { hoyEcuador } from '@/lib/accionProceso';
@@ -36,23 +37,14 @@ const fmt = (v?: string) => {
 export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) {
   const [error, setError] = useState('');
   // El botón de subir el acta firmada se habilita después de abrir
-  // "Imprimir acta para firmar" (se recuerda en este navegador).
-  const claveImpresa = `acta_impresa_${proceso.id}`;
-  const [yaImprimio, setYaImprimio] = useState(false);
-  useEffect(() => {
-    try {
-      setYaImprimio(window.localStorage.getItem(claveImpresa) === '1');
-    } catch {
-      /* sin almacenamiento: se habilita al imprimir en esta sesión */
-    }
-  }, [claveImpresa]);
+  // "Imprimir acta para firmar" una vez. Se guarda en el servidor, así que
+  // vale desde cualquier computador.
+  const [imprimioAhora, setImprimioAhora] = useState(false);
+  const yaImprimio = !!proceso.acta_impresa || imprimioAhora;
   const marcarImpresa = () => {
-    setYaImprimio(true);
-    try {
-      window.localStorage.setItem(claveImpresa, '1');
-    } catch {
-      /* ignorar */
-    }
+    if (yaImprimio) return;
+    setImprimioAhora(true);
+    marcarActaImpresa(proceso.id).catch(() => {});
   };
   const [ok, setOk] = useState('');
 
