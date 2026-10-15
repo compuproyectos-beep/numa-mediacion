@@ -62,7 +62,7 @@ const TITULOS: Record<TipoReporte, string> = {
   'actas-pendientes': 'Reporte de Actas Pendientes de Subir'
 };
 
-const COLOR_ESTADO: Record<string, string> = ESTADO_COLOR_GRAFICO;
+const COLOR_ESTADO: Record<string, string> = { ...ESTADO_COLOR_GRAFICO, suspendido: '#F43F5E' };
 
 const getEstadoLabel = (estado: string) => {
   const labels: any = {
@@ -70,7 +70,8 @@ const getEstadoLabel = (estado: string) => {
     cerrado_con_acuerdo: 'Cerrado con acuerdo',
     cerrado_sin_acuerdo: 'Cerrado sin acuerdo',
     archivado: 'Archivado',
-    anulado: 'Anulado'
+    anulado: 'Anulado',
+    suspendido: 'Suspendido'
   };
 
   return labels[estado] || estado;
@@ -173,7 +174,7 @@ function DetalleProcesos({
                     ? new Date(p.fecha_subida_acta).toLocaleDateString('es-EC', { timeZone: 'America/Guayaquil' })
                     : '—'}
                 </td>
-                <td className="py-0.5 pr-2">{getEstadoLabel(p.estado)}</td>
+                <td className="py-0.5 pr-2">{getEstadoLabel(p.suspendido ? 'suspendido' : p.estado)}</td>
                 <td className="py-0.5 pr-2">
                   {p.demandante} vs {p.demandado}
                 </td>
@@ -268,7 +269,9 @@ function ImprimirReporteContenido() {
     tipo === 'procesos'
       ? datos.reduce(
           (acc: any, p: any) => {
-            acc[p.estado] = (acc[p.estado] || 0) + 1;
+            // Un proceso suspendido se cuenta aparte (no en "con acuerdo").
+            const k = p.suspendido ? 'suspendido' : p.estado;
+            acc[k] = (acc[k] || 0) + 1;
             return acc;
           },
           {} as Record<string, number>
@@ -400,6 +403,9 @@ function ImprimirReporteContenido() {
                       <th className="text-left py-1 pr-4 font-semibold text-numa-700">
                         Archivados
                       </th>
+                      <th className="text-left py-1 pr-4 font-semibold text-numa-700">
+                        Suspendidos
+                      </th>
                       <th className="text-left py-1 pr-4 font-semibold text-numa-700">Total</th>
                       <th className="text-left py-1 pr-4 font-semibold text-amber-700">
                         Con acuerdo sin acta
@@ -429,6 +435,9 @@ function ImprimirReporteContenido() {
                       </td>
                       <td className="py-1 pr-4 text-numa-800 text-sm font-semibold">
                         {resumenProcesos.archivado || 0}
+                      </td>
+                      <td className="py-1 pr-4 text-numa-800 text-sm font-semibold">
+                        {resumenProcesos.suspendido || 0}
                       </td>
                       <td className="py-1 pr-4 text-numa-900 text-sm font-bold">
                         {datos.length}
@@ -683,7 +692,7 @@ function ImprimirReporteContenido() {
                 {tipo === 'procesos' &&
                   datos.map((p: any) => (
                     <tr key={p.id} className="border-b border-numa-300">
-                      <td className="py-1.5 pr-2">{getEstadoLabel(p.estado)}</td>
+                      <td className="py-1.5 pr-2">{getEstadoLabel(p.suspendido ? 'suspendido' : p.estado)}</td>
                       <td className="py-1.5 pr-2">
                         {p.estado === 'cerrado_con_acuerdo' && !p.finalizado
                           ? 'Pendiente'

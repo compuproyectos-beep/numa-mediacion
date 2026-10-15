@@ -67,14 +67,14 @@ const formatoFecha = (v: any) => {
 };
 
 const TIPOS: { valor: TipoReporte; titulo: string; adminOnly?: boolean }[] = [
-  { valor: 'procesos', titulo: 'Procesos por periodo' },
-  { valor: 'productividad', titulo: 'Equipo de mediadores', adminOnly: true },
   { valor: 'actas', titulo: 'Actas finales emitidas' },
-  { valor: 'sucursales', titulo: 'Sucursales', adminOnly: true },
-  { valor: 'clientes', titulo: 'Clientes' },
+  { valor: 'procesos', titulo: 'Procesos por periodo' },
   { valor: 'agenda', titulo: 'Agenda de reuniones' },
   { valor: 'sin-avance', titulo: 'Procesos sin avance' },
-  { valor: 'actas-pendientes', titulo: 'Actas pendientes de subir' }
+  { valor: 'actas-pendientes', titulo: 'Actas pendientes de subir' },
+  { valor: 'productividad', titulo: 'Equipo de mediadores', adminOnly: true },
+  { valor: 'sucursales', titulo: 'Sucursales', adminOnly: true },
+  { valor: 'clientes', titulo: 'Clientes' }
 ];
 
 // Explicación en palabras simples de qué muestra cada reporte y cómo leer
@@ -82,7 +82,7 @@ const TIPOS: { valor: TipoReporte; titulo: string; adminOnly?: boolean }[] = [
 // los números sin tener que preguntar.
 const DESCRIPCIONES: Record<TipoReporte, string> = {
   procesos:
-    'Lista todos los procesos de mediación creados en el rango de fechas elegido, con su estado actual. Da clic en cualquier fila para abrir ese proceso. "Tasa de acuerdo" es, de los procesos ya resueltos (con o sin acuerdo — los archivados no cuentan porque no llegaron a resolverse), qué porcentaje terminó con acuerdo.',
+    'Lista todos los procesos de mediación creados en el rango de fechas elegido, con su estado actual (los suspendidos se cuentan aparte). Da clic en cualquier fila para abrir ese proceso. "Tasa de acuerdo" es, de los procesos ya resueltos (con o sin acuerdo — los archivados no cuentan porque no llegaron a resolverse), qué porcentaje terminó con acuerdo.',
   productividad:
     'El listado del equipo de mediadores (activos e inactivos), con cuántos procesos maneja cada uno y qué tan rápido los resuelve. "Prom. días cierre" es el promedio de días entre que se crea un proceso y se cierra (con o sin acuerdo, o archivado); mientras más bajo, más rápido resuelve. Da clic en un mediador para ver el detalle de sus procesos.',
   actas:
@@ -99,7 +99,7 @@ const DESCRIPCIONES: Record<TipoReporte, string> = {
     'Procesos cerrados con acuerdo que aún no están completos: les falta subir la documentación y el comprobante, o el acta firmada (o están suspendidos). Se muestra cuántos días llevan pendientes desde la fecha del acuerdo.'
 };
 
-const COLOR_ESTADO: Record<string, string> = ESTADO_COLOR_GRAFICO;
+const COLOR_ESTADO: Record<string, string> = { ...ESTADO_COLOR_GRAFICO, suspendido: '#F43F5E' };
 
 const getEstadoLabel = (estado: string) => {
   const labels: any = {
@@ -107,7 +107,8 @@ const getEstadoLabel = (estado: string) => {
     cerrado_con_acuerdo: 'Cerrado con acuerdo',
     cerrado_sin_acuerdo: 'Cerrado sin acuerdo',
     archivado: 'Archivado',
-    anulado: 'Anulado'
+    anulado: 'Anulado',
+    suspendido: 'Suspendido'
   };
 
   return labels[estado] || estado;
@@ -123,7 +124,7 @@ export default function ReportesPage() {
 
   const tiposVisibles = TIPOS.filter((t) => !t.adminOnly || admin);
 
-  const [tipo, setTipo] = useState<TipoReporte>('procesos');
+  const [tipo, setTipo] = useState<TipoReporte>('actas');
   const [diasMinimo, setDiasMinimo] = useState('7');
   const esOperativo = TIPOS_OPERATIVOS.includes(tipo);
 
@@ -403,7 +404,9 @@ export default function ReportesPage() {
     tipo === 'procesos'
       ? datos.reduce(
           (acc: any, p: any) => {
-            acc[p.estado] = (acc[p.estado] || 0) + 1;
+            // Un proceso suspendido se cuenta aparte (no en "con acuerdo").
+            const k = p.suspendido ? 'suspendido' : p.estado;
+            acc[k] = (acc[k] || 0) + 1;
             return acc;
           },
           {} as Record<string, number>
@@ -972,7 +975,7 @@ export default function ReportesPage() {
                               style={{ backgroundColor: COLOR_ESTADO[p.estado] || '#94A3B8' }}
                               aria-hidden="true"
                             />
-                            {getEstadoLabel(p.estado)}
+                            {getEstadoLabel(p.suspendido ? 'suspendido' : p.estado)}
                           </span>
                         </td>
                         <td className="table-cell">
@@ -1110,7 +1113,7 @@ export default function ReportesPage() {
                                       </div>
 
                                       <span className="text-xs text-numa-500">
-                                        {getEstadoLabel(p.estado)} ·{' '}
+                                        {getEstadoLabel(p.suspendido ? 'suspendido' : p.estado)} ·{' '}
                                         {p.fecha_creacion
                                           ? new Date(p.fecha_creacion).toLocaleDateString('es-EC')
                                           : '—'}
@@ -1242,7 +1245,7 @@ export default function ReportesPage() {
                                       </div>
 
                                       <span className="text-xs text-numa-500">
-                                        {getEstadoLabel(p.estado)} ·{' '}
+                                        {getEstadoLabel(p.suspendido ? 'suspendido' : p.estado)} ·{' '}
                                         {p.fecha_creacion
                                           ? new Date(p.fecha_creacion).toLocaleDateString('es-EC')
                                           : '—'}
@@ -1356,7 +1359,7 @@ export default function ReportesPage() {
                                       </div>
 
                                       <span className="text-xs text-numa-500">
-                                        {getEstadoLabel(p.estado)} ·{' '}
+                                        {getEstadoLabel(p.suspendido ? 'suspendido' : p.estado)} ·{' '}
                                         {p.fecha_creacion
                                           ? new Date(p.fecha_creacion).toLocaleDateString('es-EC')
                                           : '—'}
