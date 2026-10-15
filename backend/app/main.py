@@ -6150,7 +6150,8 @@ def exportar_pdfs_actas_finales(
                 cd.cedula AS demandante_cedula,
                 cdd.nombre || ' ' || cdd.apellido AS demandado,
                 cdd.cedula AS demandado_cedula,
-                u.nombre || ' ' || u.apellido AS mediador
+                u.nombre || ' ' || u.apellido AS mediador,
+                p.acta_firmada_ruta
             FROM actas_proceso ap
             JOIN procesos_mediacion p ON ap.proceso_id = p.id
             JOIN sucursales s ON p.sucursal_id = s.id
@@ -6159,8 +6160,11 @@ def exportar_pdfs_actas_finales(
             JOIN clientes cd ON p.cliente_demandante_id = cd.id
             JOIN clientes cdd ON p.cliente_demandado_id = cdd.id
             JOIN usuarios u ON p.usuario_id = u.id
-            WHERE p.estado = 'cerrado_con_acuerdo'
+            WHERE (p.estado = 'cerrado_con_acuerdo'
+                   OR (p.estado = 'cerrado_sin_acuerdo' AND COALESCE(p.requiere_acta_no_acuerdo, false)))
               AND p.finalizado = true
+              AND (NOT COALESCE(p.requiere_acta_firmada, false) OR p.acta_firmada_ruta IS NOT NULL)
+              AND COALESCE(p.suspendido, false) = false
         """
 
         params = []
@@ -6215,44 +6219,51 @@ def exportar_pdfs_actas_finales(
             "apikey": SUPABASE_KEY,
         }
 
+        def _limpiar(texto):
+            texto = texto or ""
+            texto = unicodedata.normalize("NFD", texto)
+            texto = "".join(c for c in texto if unicodedata.category(c) != "Mn")
+            texto = re.sub(r"[^A-Za-z0-9]+", "_", texto).strip("_")
+            return texto.upper()
+
+        def _descargar(ruta_storage):
+            if not ruta_storage:
+                return None
+            url_archivo = (
+                f"{SUPABASE_URL.rstrip('/')}/storage/v1/object/"
+                f"{SUPABASE_BUCKET}/{quote(ruta_storage, safe='/')}"
+            )
+            r = requests.get(url_archivo, headers=headers)
+            return r.content if r.status_code == 200 else None
+
+        incluidas = []
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
             for acta in actas:
-                ruta_storage = acta["archivo_pdf"]
+                firmada = _descargar(acta.get("acta_firmada_ruta"))
+                documentacion = _descargar(acta["archivo_pdf"])
 
-                if not ruta_storage:
+                if firmada is None and documentacion is None:
                     continue
 
-                ruta_encoded = quote(ruta_storage, safe="/")
+                provincia = _limpiar(acta["provincia"] or "Sin provincia")
+                ciudad = _limpiar(acta["ciudad"] or "Sin ciudad")
+                sucursal = _limpiar(acta["sucursal"] or "Sin sucursal")
+                mediador = _limpiar(acta.get("mediador") or "Sin mediador")
+                codigo = acta["codigo_acta"] or f"acta_{acta['id']}"
+                fecha = acta.get("fecha_subida")
+                mes = fecha.strftime("%Y-%m") if fecha else "Sin fecha"
 
-                download_url = (
-                    f"{SUPABASE_URL.rstrip('/')}/storage/v1/object/"
-                    f"{SUPABASE_BUCKET}/{ruta_encoded}"
+                carpeta = (
+                    f"{provincia}/{ciudad}/{sucursal}/{mediador}/{mes}/"
+                    f"{codigo}_{_limpiar(acta.get('demandante'))}_VS_{_limpiar(acta.get('demandado'))}"
                 )
 
-                response = requests.get(download_url, headers=headers)
+                if firmada is not None:
+                    zipf.writestr(f"{carpeta}/ACTA_FIRMADA.pdf", firmada)
+                if documentacion is not None:
+                    zipf.writestr(f"{carpeta}/DOCUMENTACION.pdf", documentacion)
 
-                if response.status_code != 200:
-                    continue
-
-                provincia = acta["provincia"] or "Sin provincia"
-                ciudad = acta["ciudad"] or "Sin ciudad"
-                sucursal = acta["sucursal"] or "Sin sucursal"
-                codigo = acta["codigo_acta"] or f"acta_{acta['id']}"
-
-                def _limpiar(texto):
-                    texto = texto or ""
-                    texto = unicodedata.normalize("NFD", texto)
-                    texto = "".join(c for c in texto if unicodedata.category(c) != "Mn")
-                    texto = re.sub(r"[^A-Za-z0-9]+", "_", texto).strip("_")
-                    return texto.upper()
-
-                demandante_archivo = _limpiar(acta.get("demandante"))
-                demandado_archivo = _limpiar(acta.get("demandado"))
-
-                nombre_archivo = f"{codigo}_{demandante_archivo}_VS_{demandado_archivo}.pdf"
-                ruta_zip = f"{provincia}/{ciudad}/{sucursal}/{nombre_archivo}"
-
-                zipf.writestr(ruta_zip, response.content)
+                incluidas.append(acta)
 
             # ── Índice en Excel, con nombre que llama la atención al abrir el ZIP ──
             wb = Workbook()
@@ -6276,7 +6287,7 @@ def exportar_pdfs_actas_finales(
             for celda in ws[1]:
                 celda.font = Font(bold=True)
 
-            for acta in actas:
+            for acta in incluidas:
                 ws.append([
                     acta.get("codigo_acta") or "",
                     acta.get("demandante") or "",
