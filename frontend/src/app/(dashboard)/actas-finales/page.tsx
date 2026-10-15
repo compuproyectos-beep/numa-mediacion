@@ -60,6 +60,7 @@ export default function ActasFinalesPage() {
   const [reemplazando, setReemplazando] = useState(false);
   const [mensajeReemplazo, setMensajeReemplazo] = useState('');
   const [error, setError] = useState('');
+  const [exportando, setExportando] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -267,6 +268,9 @@ export default function ActasFinalesPage() {
 
 
 const handleExportarZip = async () => {
+  if (exportando) return;
+  setExportando(true);
+  setError('');
   try {
     const blob = await exportarActasFinalesZip({
       ciudad_id: filters.ciudad_id || undefined,
@@ -292,6 +296,8 @@ const handleExportarZip = async () => {
         'No se pudo exportar el ZIP'
     );
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  } finally {
+    setExportando(false);
   }
 };
 
@@ -443,10 +449,13 @@ const handleExportarZip = async () => {
             <button
               type="button"
               onClick={handleExportarZip}
-              className="btn-primary whitespace-nowrap justify-self-start"
+              disabled={exportando}
+              className="btn-primary whitespace-nowrap justify-self-start disabled:opacity-70 disabled:cursor-wait"
             >
-              <Download className="w-4 h-4" />
-              {filters.ciudad_id || filters.sucursal_id || filters.fecha_desde || filters.fecha_hasta
+              <Download className={`w-4 h-4 ${exportando ? 'animate-bounce' : ''}`} />
+              {exportando
+                ? 'Preparando descarga, espera un momento...'
+                : filters.ciudad_id || filters.sucursal_id || filters.fecha_desde || filters.fecha_hasta
                 ? 'Descargar filtrados'
                 : 'Descargar todos'}
             </button>
