@@ -86,7 +86,7 @@ const DESCRIPCIONES: Record<TipoReporte, string> = {
   productividad:
     'El listado del equipo de mediadores (activos e inactivos), con cuántos procesos maneja cada uno y qué tan rápido los resuelve. "Prom. días cierre" es el promedio de días entre que se crea un proceso y se cierra (con o sin acuerdo, o archivado); mientras más bajo, más rápido resuelve. Da clic en un mediador para ver el detalle de sus procesos.',
   actas:
-    'Lista todas las actas finales subidas en el rango de fechas elegido. Da clic en cualquier fila para abrir el proceso al que pertenece esa acta.',
+    'Lista las actas finales emitidas en el rango de fechas elegido: solo las que ya tienen el acta firmada subida (no basta con subir los documentos del acta). Da clic en cualquier fila para abrir el proceso al que pertenece esa acta.',
   sucursales:
     'Compara cuántos procesos ha manejado cada sucursal, con su desglose por estado y el promedio de días de cierre.',
   clientes:
@@ -98,6 +98,10 @@ const DESCRIPCIONES: Record<TipoReporte, string> = {
   'actas-pendientes':
     'Procesos cerrados con acuerdo que aún no están completos: les falta subir la documentación y el comprobante, o el acta firmada (o están suspendidos). Se muestra cuántos días llevan pendientes desde la fecha del acuerdo.'
 };
+
+// Un acta cuenta como lista solo cuando ya está subida el acta firmada (si la requiere).
+const actaLista = (p: any) =>
+  !!p.finalizado && (!p.requiere_acta_firmada || !!p.tiene_acta_firmada);
 
 const COLOR_ESTADO: Record<string, string> = { ...ESTADO_COLOR_GRAFICO, suspendido: '#F43F5E' };
 
@@ -174,7 +178,7 @@ export default function ReportesPage() {
   // la lista.
   const [soloPendientesDetalle, setSoloPendientesDetalle] = useState(false);
 
-  const esActaPendiente = (p: any) => conActa(p) && !p.finalizado;
+  const esActaPendiente = (p: any) => conActa(p) && !actaLista(p);
 
   useEffect(() => {
     // Productividad y Sucursales son solo para el administrador; si por
@@ -246,7 +250,9 @@ export default function ReportesPage() {
       } else if (esOperativo) {
         data = await getReporteOperativo(tipo as 'agenda' | 'sin-avance' | 'actas-pendientes', filtrosOperativo);
       } else {
-        data = await getActasFinales(filtrosActivos);
+        // Solo cuentan como emitidas las actas con el acta firmada ya subida
+        // (no basta con los documentos del acta).
+        data = (await getActasFinales(filtrosActivos)).filter((a: any) => !a.requiere_acta_firmada || a.tiene_acta_firmada);
       }
 
       setDatos(data);
@@ -415,7 +421,7 @@ export default function ReportesPage() {
 
   const actasPendientesProcesos =
     tipo === 'procesos'
-      ? datos.filter((p: any) => conActa(p) && !p.finalizado).length
+      ? datos.filter((p: any) => conActa(p) && !actaLista(p)).length
       : 0;
 
   // El sistema gira ante todo en torno a las actas, así que ese gráfico va
@@ -426,12 +432,12 @@ export default function ReportesPage() {
   // En Equipo/Sucursales, es un listado por mediador/sucursal, igual que ya
   // existía para "pendientes" — ahora con su contraparte "completas".
   const actasSubidasProcesos =
-    tipo === 'procesos' ? datos.filter((p: any) => p.finalizado).length : 0;
+    tipo === 'procesos' ? datos.filter((p: any) => actaLista(p)).length : 0;
 
   const barrasActas: { label: string; valor: number; color?: string }[] | null =
     tipo === 'procesos'
       ? [
-          { label: 'Actas subidas', valor: actasSubidasProcesos, color: '#10B981' },
+          { label: 'Actas firmadas', valor: actasSubidasProcesos, color: '#10B981' },
           { label: 'Actas pendientes', valor: actasPendientesProcesos, color: '#F59E0B' }
         ]
       : tipo === 'productividad'
@@ -683,7 +689,7 @@ export default function ReportesPage() {
                     </div>
                   )}
                   <div>
-                    <dt className="text-xs text-numa-500">Con acuerdo sin acta subida</dt>
+                    <dt className="text-xs text-numa-500">Con acuerdo sin acta firmada firmada</dt>
                     <dd
                       className={`text-base font-bold tabular-nums ${
                         actasPendientesProcesos > 0 ? 'text-amber-700' : 'text-numa-900'
@@ -728,7 +734,7 @@ export default function ReportesPage() {
               <p className="text-xs font-semibold text-numa-500 mb-2 uppercase tracking-wide">
                 {tipo === 'procesos'
                   ? 'Actas'
-                  : 'Actas subidas por ' + (tipo === 'productividad' ? 'mediador' : 'sucursal')}
+                  : 'Actas firmadas por ' + (tipo === 'productividad' ? 'mediador' : 'sucursal')}
               </p>
               <BarrasResumen items={barrasActas} />
             </div>
@@ -793,7 +799,7 @@ export default function ReportesPage() {
                         <th className="table-header">Sin acuerdo</th>
                         <th className="table-header">Archivados</th>
                         <th className="table-header">Anulados</th>
-                        <th className="table-header">Actas subidas</th>
+                        <th className="table-header">Actas firmadas</th>
                         <th className="table-header">Actas pendientes</th>
                         <th className="table-header">Prom. días cierre</th>
                       </>
@@ -822,7 +828,7 @@ export default function ReportesPage() {
                         <th className="table-header">Sin acuerdo</th>
                         <th className="table-header">Archivados</th>
                         <th className="table-header">Anulados</th>
-                        <th className="table-header">Actas subidas</th>
+                        <th className="table-header">Actas firmadas</th>
                         <th className="table-header">Actas pendientes</th>
                         <th className="table-header">Prom. días cierre</th>
                       </>
@@ -841,7 +847,7 @@ export default function ReportesPage() {
                         <th className="table-header">Sin acuerdo</th>
                         <th className="table-header">Archivados</th>
                         <th className="table-header">Anulados</th>
-                        <th className="table-header">Actas subidas</th>
+                        <th className="table-header">Actas firmadas</th>
                         <th className="table-header">Actas pendientes</th>
                         <th className="table-header">Procesos (códigos)</th>
                         <th className="table-header">Actas (códigos)</th>
@@ -979,13 +985,13 @@ export default function ReportesPage() {
                           </span>
                         </td>
                         <td className="table-cell">
-                          {conActa(p) && !p.finalizado ? (
+                          {conActa(p) && !actaLista(p) ? (
                             <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 text-xs font-medium">
                               Pendiente
                             </span>
-                          ) : p.finalizado ? (
+                          ) : actaLista(p) ? (
                             <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-xs font-medium">
-                              Subida
+                              Firmada
                             </span>
                           ) : (
                             <span className="text-numa-300">—</span>

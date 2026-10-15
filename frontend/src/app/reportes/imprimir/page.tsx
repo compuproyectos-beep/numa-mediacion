@@ -62,6 +62,10 @@ const TITULOS: Record<TipoReporte, string> = {
   'actas-pendientes': 'Reporte de Actas Pendientes de Subir'
 };
 
+// Un acta cuenta como lista solo cuando ya está subida el acta firmada (si la requiere).
+const actaLista = (p: any) =>
+  !!p.finalizado && (!p.requiere_acta_firmada || !!p.tiene_acta_firmada);
+
 const COLOR_ESTADO: Record<string, string> = { ...ESTADO_COLOR_GRAFICO, suspendido: '#F43F5E' };
 
 const getEstadoLabel = (estado: string) => {
@@ -131,7 +135,7 @@ function DetalleProcesos({
   // Primero las que ya tienen acta subida (la más reciente arriba), luego las
   // pendientes de acta y por último las que aún no tienen acta.
   const rango = (p: any) =>
-    p.finalizado ? 0 : p.estado === 'cerrado_con_acuerdo' ? 1 : 2;
+    actaLista(p) ? 0 : p.estado === 'cerrado_con_acuerdo' ? 1 : 2;
   filas = [...filas].sort((a: any, b: any) => {
     const r = rango(a) - rango(b);
     if (r !== 0) return r;
@@ -163,10 +167,10 @@ function DetalleProcesos({
               <tr key={p.id} className="text-numa-600">
                 <td className="py-0.5 pr-2 code-text">{p.codigo_acta || '—'}</td>
                 <td className="py-0.5 pr-2">
-                  {p.estado === 'cerrado_con_acuerdo' && !p.finalizado
+                  {p.estado === 'cerrado_con_acuerdo' && !actaLista(p)
                     ? 'Acta pendiente'
-                    : p.finalizado
-                    ? 'Acta subida'
+                    : actaLista(p)
+                    ? 'Acta firmada'
                     : '—'}
                 </td>
                 <td className="py-0.5 pr-2">
@@ -223,7 +227,7 @@ function ImprimirReporteContenido() {
       tipo === 'productividad'
         ? getReporteProductividad(filtros)
         : tipo === 'actas'
-        ? getActasFinales(filtros)
+        ? getActasFinales(filtros).then((lista: any[]) => lista.filter((a: any) => !a.requiere_acta_firmada || a.tiene_acta_firmada))
         : tipo === 'sucursales'
         ? getReporteSucursales(filtros)
         : tipo === 'clientes'
@@ -280,7 +284,7 @@ function ImprimirReporteContenido() {
 
   const actasPendientesProcesos =
     tipo === 'procesos'
-      ? datos.filter((p: any) => p.estado === 'cerrado_con_acuerdo' && !p.finalizado).length
+      ? datos.filter((p: any) => p.estado === 'cerrado_con_acuerdo' && !actaLista(p)).length
       : 0;
 
   const barrasResumen: { label: string; valor: number; color?: string }[] | null =
@@ -299,12 +303,12 @@ function ImprimirReporteContenido() {
   // El sistema gira ante todo en torno a las actas, así que este gráfico se
   // muestra primero, antes que el desglose general — igual que en pantalla.
   const actasSubidasProcesos =
-    tipo === 'procesos' ? datos.filter((p: any) => p.finalizado).length : 0;
+    tipo === 'procesos' ? datos.filter((p: any) => actaLista(p)).length : 0;
 
   const barrasActas: { label: string; valor: number; color?: string }[] | null =
     tipo === 'procesos'
       ? [
-          { label: 'Actas subidas', valor: actasSubidasProcesos, color: '#10B981' },
+          { label: 'Actas firmadas', valor: actasSubidasProcesos, color: '#10B981' },
           { label: 'Actas pendientes', valor: actasPendientesProcesos, color: '#F59E0B' }
         ]
       : tipo === 'productividad'
@@ -408,7 +412,7 @@ function ImprimirReporteContenido() {
                       </th>
                       <th className="text-left py-1 pr-4 font-semibold text-numa-700">Total</th>
                       <th className="text-left py-1 pr-4 font-semibold text-amber-700">
-                        Con acuerdo sin acta
+                        Con acuerdo sin acta firmada
                       </th>
                       {resumenIndicadores && resumenIndicadores.tasa_acuerdo !== null && (
                         <th className="text-left py-1 pr-4 font-semibold text-emerald-700">
@@ -475,7 +479,7 @@ function ImprimirReporteContenido() {
                   <p className="text-[11px] font-semibold text-numa-700 uppercase tracking-wide mb-2">
                     {tipo === 'procesos'
                       ? 'Actas'
-                      : 'Actas subidas por ' + (tipo === 'productividad' ? 'mediador' : 'sucursal')}
+                      : 'Actas firmadas por ' + (tipo === 'productividad' ? 'mediador' : 'sucursal')}
                   </p>
                   <BarrasResumen compacto items={barrasActas} />
                 </div>
@@ -555,7 +559,7 @@ function ImprimirReporteContenido() {
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Estado</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Ingreso</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sucursal</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas subidas</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas firmadas</th>
                       <th className="text-left py-2 pr-2 font-semibold text-amber-700">Actas pendientes</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Total</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">En negociación</th>
@@ -582,7 +586,7 @@ function ImprimirReporteContenido() {
                     <>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sucursal</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Ciudad</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas subidas</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas firmadas</th>
                       <th className="text-left py-2 pr-2 font-semibold text-amber-700">Actas pendientes</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Total</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">En negociación</th>
@@ -598,7 +602,7 @@ function ImprimirReporteContenido() {
                     <>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Cliente</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Cédula</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas subidas</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas firmadas</th>
                       <th className="text-left py-2 pr-2 font-semibold text-amber-700">Actas pendientes</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Total</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">En negociación</th>
@@ -694,10 +698,10 @@ function ImprimirReporteContenido() {
                     <tr key={p.id} className="border-b border-numa-300">
                       <td className="py-1.5 pr-2">{getEstadoLabel(p.suspendido ? 'suspendido' : p.estado)}</td>
                       <td className="py-1.5 pr-2">
-                        {p.estado === 'cerrado_con_acuerdo' && !p.finalizado
+                        {p.estado === 'cerrado_con_acuerdo' && !actaLista(p)
                           ? 'Pendiente'
-                          : p.finalizado
-                          ? 'Subida'
+                          : actaLista(p)
+                          ? 'Firmada'
                           : '—'}
                       </td>
                       <td className="py-1.5 pr-2">{p.demandante}</td>
@@ -715,7 +719,7 @@ function ImprimirReporteContenido() {
                 {tipo === 'productividad' &&
                   datos.map((m: any, i: number) => (
                     <Fragment key={m.usuario_id}>
-                    {i > 0 && <RotulosGrupo etiquetas={['Mediador', 'Estado', 'Ingreso', 'Sucursal', 'Actas subidas', 'Actas pendientes', 'Total', 'En negociación', 'Con acuerdo', 'Sin acuerdo', 'Archivados', 'Anulados', 'Prom. días']} />}
+                    {i > 0 && <RotulosGrupo etiquetas={['Mediador', 'Estado', 'Ingreso', 'Sucursal', 'Actas firmadas', 'Actas pendientes', 'Total', 'En negociación', 'Con acuerdo', 'Sin acuerdo', 'Archivados', 'Anulados', 'Prom. días']} />}
                     <tr className="bg-numa-50">
                       <td className="py-1.5 pr-2 font-semibold text-numa-900">{m.mediador}</td>
                       <td className="py-1.5 pr-2">{m.activo ? 'Activo' : 'Inactivo'}</td>
@@ -760,7 +764,7 @@ function ImprimirReporteContenido() {
                 {tipo === 'sucursales' &&
                   datos.map((s: any, i: number) => (
                     <Fragment key={s.sucursal_id}>
-                    {i > 0 && <RotulosGrupo etiquetas={['Sucursal', 'Ciudad', 'Actas subidas', 'Actas pendientes', 'Total', 'En negociación', 'Con acuerdo', 'Sin acuerdo', 'Archivados', 'Anulados', 'Prom. días']} />}
+                    {i > 0 && <RotulosGrupo etiquetas={['Sucursal', 'Ciudad', 'Actas firmadas', 'Actas pendientes', 'Total', 'En negociación', 'Con acuerdo', 'Sin acuerdo', 'Archivados', 'Anulados', 'Prom. días']} />}
                     <tr className="bg-numa-50">
                       <td className="py-1.5 pr-2 font-semibold text-numa-900">{s.sucursal}</td>
                       <td className="py-1.5 pr-2">{s.ciudad || '—'}</td>
@@ -783,7 +787,7 @@ function ImprimirReporteContenido() {
                 {tipo === 'clientes' &&
                   datos.map((c: any, i: number) => (
                     <Fragment key={c.cliente_id}>
-                    {i > 0 && <RotulosGrupo etiquetas={['Cliente', 'Cédula', 'Actas subidas', 'Actas pendientes', 'Total', 'En negociación', 'Con acuerdo', 'Sin acuerdo', 'Archivados', 'Anulados']} />}
+                    {i > 0 && <RotulosGrupo etiquetas={['Cliente', 'Cédula', 'Actas firmadas', 'Actas pendientes', 'Total', 'En negociación', 'Con acuerdo', 'Sin acuerdo', 'Archivados', 'Anulados']} />}
                     <tr className="bg-numa-50">
                       <td className="py-1.5 pr-2 font-semibold text-numa-900">{c.cliente}</td>
                       <td className="py-1.5 pr-2 code-text whitespace-nowrap">{c.cedula || '—'}</td>

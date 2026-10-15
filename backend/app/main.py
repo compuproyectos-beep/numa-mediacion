@@ -6446,14 +6446,14 @@ def obtener_reporte_productividad(
                 COUNT(*) FILTER (WHERE p.estado = 'cerrado_sin_acuerdo') AS cerrados_sin_acuerdo,
                 COUNT(*) FILTER (WHERE p.estado = 'archivado') AS archivados,
                 COUNT(*) FILTER (WHERE p.estado = 'anulado') AS anulados,
-                COUNT(*) FILTER (WHERE p.finalizado = true) AS actas_subidas,
+                COUNT(*) FILTER (WHERE (p.finalizado = true AND (NOT COALESCE(p.requiere_acta_firmada, false) OR p.acta_firmada_ruta IS NOT NULL))) AS actas_subidas,
                 -- Cerrado con acuerdo pero el acta final + comprobante de
                 -- pago todavía no se han subido: para que el admin no
                 -- asuma que "cerrado" ya significa "acta lista".
                 COUNT(*) FILTER (
                     WHERE (p.estado = 'cerrado_con_acuerdo'
                            OR (p.estado = 'cerrado_sin_acuerdo' AND p.requiere_acta_no_acuerdo))
-                      AND p.finalizado = false
+                      AND NOT (p.finalizado = true AND (NOT COALESCE(p.requiere_acta_firmada, false) OR p.acta_firmada_ruta IS NOT NULL))
                 ) AS actas_pendientes,
                 ROUND(
                     AVG(
@@ -6563,11 +6563,11 @@ def obtener_reporte_sucursales(
                 COUNT(*) FILTER (WHERE p.estado = 'cerrado_sin_acuerdo') AS cerrados_sin_acuerdo,
                 COUNT(*) FILTER (WHERE p.estado = 'archivado') AS archivados,
                 COUNT(*) FILTER (WHERE p.estado = 'anulado') AS anulados,
-                COUNT(*) FILTER (WHERE p.finalizado = true) AS actas_subidas,
+                COUNT(*) FILTER (WHERE (p.finalizado = true AND (NOT COALESCE(p.requiere_acta_firmada, false) OR p.acta_firmada_ruta IS NOT NULL))) AS actas_subidas,
                 COUNT(*) FILTER (
                     WHERE (p.estado = 'cerrado_con_acuerdo'
                            OR (p.estado = 'cerrado_sin_acuerdo' AND p.requiere_acta_no_acuerdo))
-                      AND p.finalizado = false
+                      AND NOT (p.finalizado = true AND (NOT COALESCE(p.requiere_acta_firmada, false) OR p.acta_firmada_ruta IS NOT NULL))
                 ) AS actas_pendientes,
                 ROUND(
                     AVG(
@@ -6655,18 +6655,18 @@ def obtener_reporte_clientes(
                 COUNT(DISTINCT p.id) FILTER (WHERE p.estado = 'cerrado_sin_acuerdo') AS cerrados_sin_acuerdo,
                 COUNT(DISTINCT p.id) FILTER (WHERE p.estado = 'archivado') AS archivados,
                 COUNT(DISTINCT p.id) FILTER (WHERE p.estado = 'anulado') AS anulados,
-                COUNT(DISTINCT p.id) FILTER (WHERE p.finalizado = true) AS actas_subidas,
+                COUNT(DISTINCT p.id) FILTER (WHERE (p.finalizado = true AND (NOT COALESCE(p.requiere_acta_firmada, false) OR p.acta_firmada_ruta IS NOT NULL))) AS actas_subidas,
                 COUNT(DISTINCT p.id) FILTER (
                     WHERE (p.estado = 'cerrado_con_acuerdo'
                            OR (p.estado = 'cerrado_sin_acuerdo' AND p.requiere_acta_no_acuerdo))
-                      AND p.finalizado = false
+                      AND NOT (p.finalizado = true AND (NOT COALESCE(p.requiere_acta_firmada, false) OR p.acta_firmada_ruta IS NOT NULL))
                 ) AS actas_pendientes,
                 -- Los códigos concretos, para que salgan también al imprimir
                 -- y en el Excel (no solo las cantidades).
                 STRING_AGG(DISTINCT p.codigo_proceso, ', ' ORDER BY p.codigo_proceso)
                     FILTER (WHERE p.estado <> 'anulado') AS codigos_procesos,
                 STRING_AGG(DISTINCT af.codigo_acta, ', ' ORDER BY af.codigo_acta)
-                    FILTER (WHERE p.finalizado = true) AS codigos_actas
+                    FILTER (WHERE (p.finalizado = true AND (NOT COALESCE(p.requiere_acta_firmada, false) OR p.acta_firmada_ruta IS NOT NULL))) AS codigos_actas
             FROM clientes cl
             JOIN proceso_partes pp ON pp.cliente_id = cl.id
             JOIN procesos_mediacion p ON p.id = pp.proceso_id
@@ -6992,14 +6992,13 @@ def exportar_reporte_excel(
 
         filas_excel = [
             [
-                ETIQUETAS_ESTADO_REPORTE.get(f.get("estado"), f.get("estado")),
-                # Para que "cerrado" no se confunda con "acta ya subida": un
-                # proceso puede estar cerrado con acuerdo y seguir esperando
-                # su acta final + comprobante de pago.
-                "Pendiente"
-                if (f.get("estado") == "cerrado_con_acuerdo"
-                    or (f.get("estado") == "cerrado_sin_acuerdo" and f.get("requiere_acta_no_acuerdo"))) and not f.get("finalizado")
-                else ("Subida" if f.get("finalizado") else "—"),
+                "Suspendido" if f.get("suspendido")
+                else ETIQUETAS_ESTADO_REPORTE.get(f.get("estado"), f.get("estado")),
+                # Para que "cerrado" no se confunda con "acta lista": el acta
+                # solo cuenta cuando ya está subida el acta firmada.
+                ("Suspendida" if f.get("etapa_acta") == "suspendido"
+                 else "Pendiente" if f.get("etapa_acta") in ("falta_acta", "falta_firmada")
+                 else ("Firmada" if f.get("etapa_acta") == "completa" else "—")),
                 f.get("demandante"),
                 f.get("demandado"),
                 f.get("ciudad"),
@@ -7171,6 +7170,9 @@ def exportar_reporte_excel(
             q=None, ciudad_id=ciudad_id, sucursal_id=sucursal_id, usuario_id=usuario_id,
             fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, usuario=usuario
         )
+        # Solo cuentan como emitidas las actas con el acta firmada subida.
+        filas = [f for f in filas
+                 if (not f.get("requiere_acta_firmada")) or f.get("tiene_acta_firmada")]
 
         encabezados = [
             "Código de acta", "Solicitante", "Invitado", "Ciudad",
