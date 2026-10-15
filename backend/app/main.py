@@ -987,6 +987,7 @@ def dashboard(solo_mios: bool = False, usuario=Depends(obtener_usuario_actual)):
             FROM actas_proceso ap
             JOIN procesos_mediacion p ON ap.proceso_id = p.id
             WHERE 1=1
+            AND (p.finalizado = true AND (NOT COALESCE(p.requiere_acta_firmada, false) OR p.acta_firmada_ruta IS NOT NULL))
             {" AND p.usuario_id = %s" if filtrar else ""}
         """, tuple(params))
 
@@ -1043,6 +1044,7 @@ def dashboard(solo_mios: bool = False, usuario=Depends(obtener_usuario_actual)):
             JOIN usuarios u ON p.usuario_id = u.id
             LEFT JOIN usuarios us ON ap.usuario_id = us.id
             WHERE 1=1
+            AND (p.finalizado = true AND (NOT COALESCE(p.requiere_acta_firmada, false) OR p.acta_firmada_ruta IS NOT NULL))
             {" AND p.usuario_id = %s" if filtrar else ""}
             ORDER BY ap.id DESC
             LIMIT 6
@@ -7021,7 +7023,7 @@ def exportar_reporte_excel(
         encabezados = [
             "Mediador", "Estado", "Fecha de ingreso", "Ciudad", "Sucursal",
             "Total procesos", "En negociación", "Cerrados con acuerdo",
-            "Cerrados sin acuerdo", "Archivados", "Anulados", "Actas subidas",
+            "Cerrados sin acuerdo", "Archivados", "Anulados", "Actas firmadas",
             "Actas pendientes", "Promedio días de cierre"
         ]
 
@@ -7056,7 +7058,7 @@ def exportar_reporte_excel(
         encabezados = [
             "Sucursal", "Ciudad", "Total procesos", "En negociación",
             "Cerrados con acuerdo", "Cerrados sin acuerdo", "Archivados", "Anulados",
-            "Actas subidas", "Actas pendientes", "Promedio días de cierre"
+            "Actas firmadas", "Actas pendientes", "Promedio días de cierre"
         ]
 
         filas_excel = [
@@ -7087,7 +7089,7 @@ def exportar_reporte_excel(
         encabezados = [
             "Cliente", "Cédula", "Teléfono", "Email", "Total procesos",
             "En negociación", "Cerrados con acuerdo", "Cerrados sin acuerdo",
-            "Archivados", "Anulados", "Actas subidas", "Actas pendientes",
+            "Archivados", "Anulados", "Actas firmadas", "Actas pendientes",
             "Procesos (códigos)", "Actas (códigos)"
         ]
 
