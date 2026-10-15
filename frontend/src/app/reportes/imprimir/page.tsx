@@ -2,7 +2,6 @@
 
 import { Fragment, Suspense, useEffect, useState } from 'react';
 import { ESTADO_COLOR_GRAFICO } from '@/lib/estados';
-import { conActa } from '@/lib/actaProceso';
 import { useSearchParams } from 'next/navigation';
 import { Printer } from 'lucide-react';
 import {
@@ -131,7 +130,7 @@ function DetalleProcesos({
   // Primero las que ya tienen acta subida (la más reciente arriba), luego las
   // pendientes de acta y por último las que aún no tienen acta.
   const rango = (p: any) =>
-    p.finalizado ? 0 : conActa(p) ? 1 : 2;
+    p.finalizado ? 0 : p.estado === 'cerrado_con_acuerdo' ? 1 : 2;
   filas = [...filas].sort((a: any, b: any) => {
     const r = rango(a) - rango(b);
     if (r !== 0) return r;
@@ -163,7 +162,7 @@ function DetalleProcesos({
               <tr key={p.id} className="text-numa-600">
                 <td className="py-0.5 pr-2 code-text">{p.codigo_acta || '—'}</td>
                 <td className="py-0.5 pr-2">
-                  {conActa(p) && !p.finalizado
+                  {p.estado === 'cerrado_con_acuerdo' && !p.finalizado
                     ? 'Acta pendiente'
                     : p.finalizado
                     ? 'Acta subida'
@@ -278,7 +277,7 @@ function ImprimirReporteContenido() {
 
   const actasPendientesProcesos =
     tipo === 'procesos'
-      ? datos.filter((p: any) => conActa(p) && !p.finalizado).length
+      ? datos.filter((p: any) => p.estado === 'cerrado_con_acuerdo' && !p.finalizado).length
       : 0;
 
   const barrasResumen: { label: string; valor: number; color?: string }[] | null =
@@ -340,10 +339,10 @@ function ImprimirReporteContenido() {
         {/* Encabezado tipo membrete, igual al de los expedientes impresos.
             El logo y el nombre van centrados en la hoja; el botón de
             Imprimir queda flotando aparte (y desaparece al imprimir). */}
-        <div className="border-b-2 border-gold-500 px-10 pt-8 pb-6 relative">
+        <div className="border-b-2 border-gold-500 px-10 pt-5 pb-3 relative">
           <button
             onClick={() => window.print()}
-            className="print:hidden absolute top-8 right-10 inline-flex items-center gap-2 px-4 py-2 bg-numa-900 text-numa-50 rounded-sm text-sm font-medium hover:bg-numa-950 transition-colors"
+            className="print:hidden absolute top-5 right-10 inline-flex items-center gap-2 px-4 py-2 bg-numa-900 text-numa-50 rounded-sm text-sm font-medium hover:bg-numa-950 transition-colors"
           >
             <Printer className="w-4 h-4" />
             Imprimir
@@ -365,7 +364,7 @@ function ImprimirReporteContenido() {
             </div>
           </div>
 
-          <div className="mt-6">
+          <div className="mt-3">
             <h2 className="font-display text-xl font-bold text-numa-900">{TITULOS[tipo]}</h2>
             <p className="text-sm text-numa-500 mt-1">{rangoFechas}</p>
             <p className="text-xs text-numa-400 mt-1">
@@ -374,7 +373,7 @@ function ImprimirReporteContenido() {
           </div>
         </div>
 
-        <div className="px-10 py-6">
+        <div className="px-10 py-4">
           {datos.length === 0 ? (
             <p className="text-sm text-numa-400 text-center py-10">
               No hay resultados con esos filtros.
@@ -383,35 +382,35 @@ function ImprimirReporteContenido() {
             <>
               {resumenProcesos && (
                 <section className="print:break-inside-avoid">
-                <h3 className="text-[11px] font-bold text-numa-900 uppercase tracking-[0.12em] mb-3 pb-1.5 border-b-2 border-gold-500">
+                <h3 className="text-[11px] font-bold text-numa-900 uppercase tracking-[0.12em] mb-2 pb-1 border-b-2 border-gold-500">
                   Resumen
                 </h3>
                 <table className="w-full text-xs border-collapse">
                   <thead>
                     <tr className="border-b-2 border-numa-800">
-                      <th className="text-left py-2 pr-4 font-semibold text-numa-700">
+                      <th className="text-left py-1 pr-4 font-semibold text-numa-700">
                         En negociación
                       </th>
-                      <th className="text-left py-2 pr-4 font-semibold text-numa-700">
+                      <th className="text-left py-1 pr-4 font-semibold text-numa-700">
                         Con acuerdo
                       </th>
-                      <th className="text-left py-2 pr-4 font-semibold text-numa-700">
+                      <th className="text-left py-1 pr-4 font-semibold text-numa-700">
                         Sin acuerdo
                       </th>
-                      <th className="text-left py-2 pr-4 font-semibold text-numa-700">
+                      <th className="text-left py-1 pr-4 font-semibold text-numa-700">
                         Archivados
                       </th>
-                      <th className="text-left py-2 pr-4 font-semibold text-numa-700">Total</th>
-                      <th className="text-left py-2 pr-4 font-semibold text-amber-700">
+                      <th className="text-left py-1 pr-4 font-semibold text-numa-700">Total</th>
+                      <th className="text-left py-1 pr-4 font-semibold text-amber-700">
                         Con acuerdo sin acta
                       </th>
                       {resumenIndicadores && resumenIndicadores.tasa_acuerdo !== null && (
-                        <th className="text-left py-2 pr-4 font-semibold text-emerald-700">
+                        <th className="text-left py-1 pr-4 font-semibold text-emerald-700">
                           Tasa de acuerdo
                         </th>
                       )}
                       {resumenIndicadores && resumenIndicadores.promedio_dias_resolucion !== null && (
-                        <th className="text-left py-2 pr-4 font-semibold text-numa-700">
+                        <th className="text-left py-1 pr-4 font-semibold text-numa-700">
                           Prom. días resolución
                         </th>
                       )}
@@ -419,31 +418,31 @@ function ImprimirReporteContenido() {
                   </thead>
                   <tbody>
                     <tr>
-                      <td className="py-2 pr-4 text-numa-800 text-sm font-semibold">
+                      <td className="py-1 pr-4 text-numa-800 text-sm font-semibold">
                         {resumenProcesos.en_negociacion || 0}
                       </td>
-                      <td className="py-2 pr-4 text-numa-800 text-sm font-semibold">
+                      <td className="py-1 pr-4 text-numa-800 text-sm font-semibold">
                         {resumenProcesos.cerrado_con_acuerdo || 0}
                       </td>
-                      <td className="py-2 pr-4 text-numa-800 text-sm font-semibold">
+                      <td className="py-1 pr-4 text-numa-800 text-sm font-semibold">
                         {resumenProcesos.cerrado_sin_acuerdo || 0}
                       </td>
-                      <td className="py-2 pr-4 text-numa-800 text-sm font-semibold">
+                      <td className="py-1 pr-4 text-numa-800 text-sm font-semibold">
                         {resumenProcesos.archivado || 0}
                       </td>
-                      <td className="py-2 pr-4 text-numa-900 text-sm font-bold">
+                      <td className="py-1 pr-4 text-numa-900 text-sm font-bold">
                         {datos.length}
                       </td>
-                      <td className="py-2 pr-4 text-amber-700 text-sm font-bold">
+                      <td className="py-1 pr-4 text-amber-700 text-sm font-bold">
                         {actasPendientesProcesos}
                       </td>
                       {resumenIndicadores && resumenIndicadores.tasa_acuerdo !== null && (
-                        <td className="py-2 pr-4 text-emerald-700 text-sm font-bold">
+                        <td className="py-1 pr-4 text-emerald-700 text-sm font-bold">
                           {resumenIndicadores.tasa_acuerdo}%
                         </td>
                       )}
                       {resumenIndicadores && resumenIndicadores.promedio_dias_resolucion !== null && (
-                        <td className="py-2 pr-4 text-numa-800 text-sm font-semibold">
+                        <td className="py-1 pr-4 text-numa-800 text-sm font-semibold">
                           {resumenIndicadores.promedio_dias_resolucion} días
                         </td>
                       )}
@@ -456,14 +455,14 @@ function ImprimirReporteContenido() {
               {((barrasActas && barrasActas.length > 0) ||
                 (barrasResumen && barrasResumen.length > 0) ||
                 (barrasActasPendientes && barrasActasPendientes.length > 0)) && (
-                <h3 className="mt-8 text-[11px] font-bold text-numa-900 uppercase tracking-[0.12em] mb-3 pb-1.5 border-b-2 border-gold-500">
+                <h3 className="mt-5 text-[11px] font-bold text-numa-900 uppercase tracking-[0.12em] mb-2 pb-1 border-b-2 border-gold-500">
                   Gráficos
                 </h3>
               )}
 
               {/* El gráfico de actas va primero: es el corazón del sistema. */}
               {barrasActas && barrasActas.length > 0 && (
-                <div className="mb-5 pb-4 border-b border-dashed border-numa-200 last:border-b-0 print:break-inside-avoid">
+                <div className="mb-3 pb-2 border-b border-dashed border-numa-200 last:border-b-0 print:break-inside-avoid">
                   <p className="text-[11px] font-semibold text-numa-700 uppercase tracking-wide mb-2">
                     {tipo === 'procesos'
                       ? 'Actas'
@@ -474,7 +473,7 @@ function ImprimirReporteContenido() {
               )}
 
               {barrasActasPendientes && barrasActasPendientes.length > 0 && (
-                <div className="mb-5 pb-4 border-b border-dashed border-numa-200 last:border-b-0 print:break-inside-avoid">
+                <div className="mb-3 pb-2 border-b border-dashed border-numa-200 last:border-b-0 print:break-inside-avoid">
                   <p className="text-[11px] font-semibold text-amber-700 uppercase tracking-wide mb-2">
                     Actas pendientes de subir por {tipo === 'productividad' ? 'mediador' : 'sucursal'}
                   </p>
@@ -483,7 +482,7 @@ function ImprimirReporteContenido() {
               )}
 
               {barrasResumen && barrasResumen.length > 0 && (
-                <div className="mb-5 pb-4 border-b border-dashed border-numa-200 last:border-b-0 print:break-inside-avoid">
+                <div className="mb-3 pb-2 border-b border-dashed border-numa-200 last:border-b-0 print:break-inside-avoid">
                   <p className="text-[11px] font-semibold text-numa-700 uppercase tracking-wide mb-2">
                     {tipo === 'procesos'
                       ? 'Procesos por estado'
@@ -499,7 +498,7 @@ function ImprimirReporteContenido() {
                   (barrasActas && barrasActas.length > 0) ||
                   (barrasResumen && barrasResumen.length > 0) ||
                   (barrasActasPendientes && barrasActasPendientes.length > 0)
-                    ? 'mt-9'
+                    ? 'mt-5'
                     : 'mt-0'
                 } text-[11px] font-bold text-numa-900 uppercase tracking-[0.12em] mb-1 pb-1.5 border-b-2 border-gold-500`}
               >
@@ -686,7 +685,7 @@ function ImprimirReporteContenido() {
                     <tr key={p.id} className="border-b border-numa-300">
                       <td className="py-1.5 pr-2">{getEstadoLabel(p.estado)}</td>
                       <td className="py-1.5 pr-2">
-                        {conActa(p) && !p.finalizado
+                        {p.estado === 'cerrado_con_acuerdo' && !p.finalizado
                           ? 'Pendiente'
                           : p.finalizado
                           ? 'Subida'
@@ -796,7 +795,7 @@ function ImprimirReporteContenido() {
             </>
           )}
 
-          <p className="text-[10px] text-numa-400 mt-8 pt-3 border-t border-numa-100 text-center">
+          <p className="text-[10px] text-numa-400 mt-4 pt-2 border-t border-numa-100 text-center">
             NUMA · Sistema Integral de Gestión de Mediación · Documento de uso interno
           </p>
         </div>

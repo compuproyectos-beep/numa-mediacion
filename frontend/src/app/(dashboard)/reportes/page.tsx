@@ -638,13 +638,13 @@ export default function ReportesPage() {
           {tipo === 'procesos' && resumenProcesos && (
             <div className="card px-4 py-3 grid gap-4 md:grid-cols-[1.4fr_1fr] md:divide-x md:divide-numa-100">
               <div>
-                <p className="text-xs font-semibold text-numa-500 uppercase tracking-wide mb-3">Procesos</p>
+                <p className="text-xs font-semibold text-numa-500 uppercase tracking-wide mb-2">Procesos</p>
                 <div className="flex items-end gap-6 flex-wrap">
                   <div>
                     <p className="text-2xl font-bold text-numa-900 leading-none tabular-nums">{datos.length}</p>
                     <p className="text-xs text-numa-500 mt-1">en total</p>
                   </div>
-                  <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-numa-700">
+                  <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-numa-700">
                     {Object.entries(resumenProcesos).map(([estado, cantidad]) => (
                       <li key={estado} className="inline-flex items-center gap-2">
                         <span
@@ -661,20 +661,20 @@ export default function ReportesPage() {
               </div>
 
               <div className="md:pl-5">
-                <p className="text-xs font-semibold text-numa-500 uppercase tracking-wide mb-3">Indicadores</p>
-                <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                <p className="text-xs font-semibold text-numa-500 uppercase tracking-wide mb-2">Indicadores</p>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
                   {resumenIndicadores && resumenIndicadores.tasa_acuerdo !== null && (
                     <div
                       title={`De ${resumenIndicadores.total_resueltos} procesos resueltos (con o sin acuerdo), ${resumenIndicadores.cerrados_con_acuerdo} terminaron con acuerdo.`}
                     >
                       <dt className="text-xs text-numa-500">Tasa de acuerdo</dt>
-                      <dd className="text-lg font-bold text-emerald-700 tabular-nums">{resumenIndicadores.tasa_acuerdo}%</dd>
+                      <dd className="text-base font-bold text-emerald-700 tabular-nums">{resumenIndicadores.tasa_acuerdo}%</dd>
                     </div>
                   )}
                   {resumenIndicadores && resumenIndicadores.promedio_dias_resolucion !== null && (
                     <div>
                       <dt className="text-xs text-numa-500">Tiempo promedio de resolución</dt>
-                      <dd className="text-lg font-bold text-numa-900 tabular-nums">
+                      <dd className="text-base font-bold text-numa-900 tabular-nums">
                         {resumenIndicadores.promedio_dias_resolucion} días
                       </dd>
                     </div>
@@ -682,7 +682,7 @@ export default function ReportesPage() {
                   <div>
                     <dt className="text-xs text-numa-500">Con acuerdo sin acta subida</dt>
                     <dd
-                      className={`text-lg font-bold tabular-nums ${
+                      className={`text-base font-bold tabular-nums ${
                         actasPendientesProcesos > 0 ? 'text-amber-700' : 'text-numa-900'
                       }`}
                     >
@@ -695,7 +695,7 @@ export default function ReportesPage() {
           )}
 
           {tipo !== 'procesos' && (
-            <div className="text-sm text-numa-500">
+            <div className="text-[13px] text-numa-500">
               Mostrando <span className="font-semibold text-numa-800">{datos.length}</span>{' '}
               {tipo === 'productividad' &&
                 (datos.length === 1 ? 'mediador' : 'mediadores')}
@@ -711,7 +711,7 @@ export default function ReportesPage() {
           {((barrasActas && barrasActas.length > 0) ||
             (barrasResumen && barrasResumen.length > 0) ||
             (barrasActasPendientes && barrasActasPendientes.length > 0)) && (
-            <div className="flex items-center gap-3 pt-4">
+            <div className="flex items-center gap-3 pt-1">
             <span className="text-[11px] font-bold text-numa-700 uppercase tracking-[0.14em] whitespace-nowrap">Gráficos</span>
             <span className="h-px flex-1 bg-numa-300" aria-hidden="true" />
           </div>
@@ -719,9 +719,10 @@ export default function ReportesPage() {
 
           {/* El gráfico de actas va primero: es el corazón del sistema,
               antes que el desglose general de procesos. */}
-          {barrasActas && barrasActas.length > 0 && (
+          <div className="grid gap-3 md:grid-cols-2 items-start">
+{barrasActas && barrasActas.length > 0 && (
             <div className="card px-3 py-2.5">
-              <p className="text-xs font-semibold text-numa-500 mb-3 uppercase tracking-wide">
+              <p className="text-xs font-semibold text-numa-500 mb-2 uppercase tracking-wide">
                 {tipo === 'procesos'
                   ? 'Actas'
                   : 'Actas subidas por ' + (tipo === 'productividad' ? 'mediador' : 'sucursal')}
@@ -732,7 +733,7 @@ export default function ReportesPage() {
 
           {barrasResumen && barrasResumen.length > 0 && (
             <div className="card px-3 py-2.5">
-              <p className="text-xs font-semibold text-numa-500 mb-3 uppercase tracking-wide">
+              <p className="text-xs font-semibold text-numa-500 mb-2 uppercase tracking-wide">
                 {tipo === 'procesos' ? 'Por estado' : 'Procesos por ' + (tipo === 'productividad' ? 'mediador' : 'sucursal')}
               </p>
               <BarrasResumen items={barrasResumen} />
@@ -741,14 +742,15 @@ export default function ReportesPage() {
 
           {barrasActasPendientes && barrasActasPendientes.length > 0 && (
             <div className="card px-3 py-2.5 border-amber-200">
-              <p className="text-xs font-semibold text-amber-700 mb-3 uppercase tracking-wide">
+              <p className="text-xs font-semibold text-amber-700 mb-2 uppercase tracking-wide">
                 Actas pendientes de subir por {tipo === 'productividad' ? 'mediador' : 'sucursal'}
               </p>
               <BarrasResumen items={barrasActasPendientes} />
             </div>
           )}
+          </div>
 
-          <div className="flex items-center gap-3 pt-4">
+          <div className="flex items-center gap-3 pt-1">
             <span className="text-[11px] font-bold text-numa-700 uppercase tracking-[0.14em] whitespace-nowrap">Detalle</span>
             <span className="h-px flex-1 bg-numa-300" aria-hidden="true" />
           </div>

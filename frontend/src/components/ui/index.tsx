@@ -326,14 +326,14 @@ export function BarrasResumen({
   const forzarColor = { WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' } as React.CSSProperties;
 
   return (
-    <div className={compacto ? 'grid grid-cols-2 gap-x-8 gap-y-1' : 'space-y-2'}>
+    <div className={compacto ? 'grid grid-cols-2 gap-x-8 gap-y-1' : 'space-y-1.5'}>
       {items.map((it) => (
         <div key={it.label} className="flex items-center gap-2">
           <span className={`${compacto ? 'w-40' : 'w-36'} shrink-0 text-xs text-numa-600 truncate`}>
             {it.label}
           </span>
           <div
-            className={`flex-1 ${compacto ? 'h-1.5' : 'h-2.5'} bg-numa-100 rounded-full overflow-hidden`}
+            className={`flex-1 ${compacto ? 'h-1.5' : 'h-2'} bg-numa-100 rounded-full overflow-hidden`}
             style={forzarColor}
           >
             <div
