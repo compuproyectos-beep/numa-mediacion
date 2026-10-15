@@ -29,8 +29,8 @@ import clsx from 'clsx';
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Panel General' },
   { href: '/procesos', icon: FileText, label: 'Procesos' },
-  { href: '/agenda', icon: CalendarDays, label: 'Agenda' },
   { href: '/actas-finales', icon: FileCheck, label: 'Actas Finales' },
+  { href: '/agenda', icon: CalendarDays, label: 'Agenda' },
   { href: '/clientes', icon: Users, label: 'Clientes' },
   { href: '/reportes', icon: BarChart3, label: 'Reportes' },
   { href: '/usuarios', icon: UserCircle, label: 'Usuarios', adminOnly: true },
