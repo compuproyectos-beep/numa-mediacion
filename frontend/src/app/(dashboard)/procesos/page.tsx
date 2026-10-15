@@ -22,7 +22,8 @@ import {
 import {
   getProcesos,
   createProceso,
-  getClientes
+  getClientes,
+  getUsuarios
 } from '@/lib/services';
 import { getCiudadesCached, getSucursalesCached } from '@/lib/catalogCache';
 
@@ -54,6 +55,7 @@ export default function ProcesosPage() {
   const [clientes, setClientes] = useState<any[]>([]);
   const [sucursales, setSucursales] = useState<any[]>([]);
   const [ciudades, setCiudades] = useState<any[]>([]);
+  const [mediadores, setMediadores] = useState<any[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -79,6 +81,7 @@ export default function ProcesosPage() {
     estado: estadoDesdeUrl,
     ciudad_id: '',
     sucursal_id: '',
+    usuario_id: '',
     fecha_desde: '',
     fecha_hasta: ''
   });
@@ -112,6 +115,7 @@ export default function ProcesosPage() {
         estado: filters.estado || undefined,
         ciudad_id: filters.ciudad_id || undefined,
         sucursal_id: filters.sucursal_id || undefined,
+        usuario_id: filters.usuario_id || undefined,
         fecha_desde: filters.fecha_desde || undefined,
         fecha_hasta: filters.fecha_hasta || undefined
       });
@@ -130,6 +134,7 @@ export default function ProcesosPage() {
     getClientes().then(setClientes).catch(() => setClientes([]));
     getSucursalesCached().then(setSucursales).catch(() => setSucursales([]));
     getCiudadesCached(true).then(setCiudades).catch(() => setCiudades([]));
+    if (isAdmin()) getUsuarios().then(setMediadores).catch(() => setMediadores([]));
 
     if (crearDesdeUrl) abrirCrear();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -142,6 +147,7 @@ export default function ProcesosPage() {
       estado: '',
       ciudad_id: '',
       sucursal_id: '',
+      usuario_id: '',
       fecha_desde: '',
       fecha_hasta: ''
     });
@@ -419,6 +425,24 @@ export default function ProcesosPage() {
                   .map((s: any) => (
                     <option key={s.id} value={s.id}>
                       {s.nombre}
+                    </option>
+                  ))}
+              </SelectField>
+            )}
+
+            {isAdmin() && (
+              <SelectField
+                label="Mediador"
+                value={filters.usuario_id}
+                onChange={(e) => setFilters({ ...filters, usuario_id: e.target.value })}
+              >
+                <option value="">Todos</option>
+                {mediadores
+                  .filter((m: any) => m.activo !== false)
+                  .map((m: any) => (
+                    <option key={m.id} value={m.id}>
+                      {m.nombre} {m.apellido}
+                      {m.rol === 'administrador' ? ' (administrador)' : ''}
                     </option>
                   ))}
               </SelectField>

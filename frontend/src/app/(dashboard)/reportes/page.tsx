@@ -597,7 +597,7 @@ export default function ReportesPage() {
               <option value="">Todos</option>
               {mediadores.map((m: any) => (
                 <option key={m.id} value={m.id}>
-                  {m.nombre} {m.apellido}
+                  {m.nombre} {m.apellido}{m.rol === 'administrador' ? ' (administrador)' : ''}
                 </option>
               ))}
             </SelectField>
