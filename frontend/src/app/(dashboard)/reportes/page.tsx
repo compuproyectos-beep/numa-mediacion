@@ -1147,7 +1147,7 @@ export default function ReportesPage() {
                         <td className="table-cell">{a.demandado}</td>
                         <td className="table-cell">{a.ciudad || '—'}</td>
                         <td className="table-cell">{a.sucursal ? labelSucursal(a) : "—"}</td>
-                        {admin && <td className="table-cell">{a.usuario || '—'}</td>}
+                        {admin && <td className="table-cell">{a.mediador || a.usuario || '—'}</td>}
                         <td className="table-cell">
                           {a.fecha_subida
                             ? new Date(a.fecha_subida).toLocaleDateString('es-EC')

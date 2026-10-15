@@ -753,7 +753,7 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2">{a.demandante}</td>
                       <td className="py-1.5 pr-2">{a.demandado}</td>
                       <td className="py-1.5 pr-2">{a.sucursal ? `${a.sucursal}${a.ciudad ? ` (${a.ciudad})` : ''}` : '—'}</td>
-                      <td className="py-1.5 pr-2">{a.usuario || '—'}</td>
+                      <td className="py-1.5 pr-2">{a.mediador || a.usuario || '—'}</td>
                       <td className="py-1.5 pr-2">
                         {a.fecha_subida
                           ? new Date(a.fecha_subida).toLocaleDateString('es-EC')

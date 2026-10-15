@@ -5659,7 +5659,8 @@ def obtener_actas_finales(
                 s.nombre AS sucursal,
                 ci.id AS ciudad_id,
                 ci.nombre AS ciudad,
-                u.nombre || ' ' || u.apellido AS usuario
+                u.nombre || ' ' || u.apellido AS usuario,
+                um.nombre || ' ' || um.apellido AS mediador
             FROM actas_proceso ap
             JOIN procesos_mediacion p ON ap.proceso_id = p.id
             JOIN clientes cd ON p.cliente_demandante_id = cd.id
@@ -5667,6 +5668,7 @@ def obtener_actas_finales(
             JOIN sucursales s ON p.sucursal_id = s.id
             JOIN ciudades ci ON s.ciudad_id = ci.id
             JOIN usuarios u ON ap.usuario_id = u.id
+            JOIN usuarios um ON p.usuario_id = um.id
             LEFT JOIN proceso_facturacion fac ON fac.proceso_id = p.id
             WHERE 1=1
         """
@@ -7189,7 +7191,7 @@ def exportar_reporte_excel(
                 f.get("demandado"),
                 f.get("ciudad"),
                 f.get("sucursal"),
-                f.get("usuario"),
+                f.get("mediador") or f.get("usuario"),
                 _fecha_excel_ec(f.get("fecha_subida")),
                 f.get("fact_nombre") or "",
                 f.get("fact_identificacion") or "",
