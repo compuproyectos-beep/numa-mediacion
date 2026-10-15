@@ -118,11 +118,11 @@
   }
 
   .table-header {
-    @apply text-left text-[11px] font-semibold text-numa-500 uppercase tracking-wider py-3 px-4;
+    @apply text-left text-[11px] font-semibold text-numa-500 uppercase tracking-wider py-2 px-3;
   }
 
   .table-cell {
-    @apply py-3.5 px-4 text-sm text-numa-800 whitespace-nowrap;
+    @apply py-2 px-3 text-[13px] text-numa-800 whitespace-nowrap;
   }
 
   .table-row {
@@ -180,11 +180,11 @@
   }
 
   .section-title {
-    @apply text-2xl font-display font-bold text-numa-900 tracking-tight;
+    @apply text-xl font-display font-bold text-numa-900 tracking-tight;
   }
 
   .page-header {
-    @apply flex items-center justify-between mb-4;
+    @apply flex items-center justify-between mb-3;
   }
 }
 

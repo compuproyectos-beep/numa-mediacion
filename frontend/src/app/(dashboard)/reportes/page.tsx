@@ -485,7 +485,7 @@ export default function ReportesPage() {
       )}
 
       {/* Selector de tipo de reporte */}
-      <div className="flex gap-2 mb-4 flex-wrap">
+      <div className="flex gap-1.5 mb-3 flex-wrap">
         {tiposVisibles.map((t) => (
           <button
             key={t.valor}
@@ -502,19 +502,19 @@ export default function ReportesPage() {
         ))}
       </div>
 
-      <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-sm p-3 mb-4">
+      <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-sm p-2.5 mb-3">
         <Info className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
         <p className="text-xs text-blue-700">{DESCRIPCIONES[tipo]}</p>
       </div>
 
-      <div className="card p-4 mb-4">
+      <div className="card px-3 py-2.5 mb-3">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             buscar();
           }}
         >
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-2">
           {tipo !== 'sin-avance' && tipo !== 'actas-pendientes' && (
             <>
               <InputField
@@ -595,7 +595,7 @@ export default function ReportesPage() {
           )}
         </div>
 
-        <div className="flex flex-wrap gap-3 mt-4">
+        <div className="flex flex-wrap gap-2 mt-3">
           <button type="submit" className="btn-primary">
             <Search className="w-4 h-4" />
             Generar reporte
@@ -626,22 +626,22 @@ export default function ReportesPage() {
       {loading ? (
         <Spinner />
       ) : !buscado ? (
-        <div className="card p-6">
+        <div className="card px-3 py-2.5">
           <EmptyState message="Elige un tipo de reporte, ajusta los filtros y da clic en &quot;Generar reporte&quot;." />
         </div>
       ) : datos.length === 0 ? (
-        <div className="card p-6">
+        <div className="card px-3 py-2.5">
           <EmptyState message="No hay resultados con esos filtros." />
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {tipo === 'procesos' && resumenProcesos && (
-            <div className="card p-5 grid gap-5 md:grid-cols-[1.4fr_1fr] md:divide-x md:divide-numa-100">
+            <div className="card px-4 py-3 grid gap-4 md:grid-cols-[1.4fr_1fr] md:divide-x md:divide-numa-100">
               <div>
                 <p className="text-xs font-semibold text-numa-500 uppercase tracking-wide mb-3">Procesos</p>
                 <div className="flex items-end gap-6 flex-wrap">
                   <div>
-                    <p className="text-3xl font-bold text-numa-900 leading-none tabular-nums">{datos.length}</p>
+                    <p className="text-2xl font-bold text-numa-900 leading-none tabular-nums">{datos.length}</p>
                     <p className="text-xs text-numa-500 mt-1">en total</p>
                   </div>
                   <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-numa-700">
@@ -720,7 +720,7 @@ export default function ReportesPage() {
           {/* El gráfico de actas va primero: es el corazón del sistema,
               antes que el desglose general de procesos. */}
           {barrasActas && barrasActas.length > 0 && (
-            <div className="card p-4">
+            <div className="card px-3 py-2.5">
               <p className="text-xs font-semibold text-numa-500 mb-3 uppercase tracking-wide">
                 {tipo === 'procesos'
                   ? 'Actas'
@@ -731,7 +731,7 @@ export default function ReportesPage() {
           )}
 
           {barrasResumen && barrasResumen.length > 0 && (
-            <div className="card p-4">
+            <div className="card px-3 py-2.5">
               <p className="text-xs font-semibold text-numa-500 mb-3 uppercase tracking-wide">
                 {tipo === 'procesos' ? 'Por estado' : 'Procesos por ' + (tipo === 'productividad' ? 'mediador' : 'sucursal')}
               </p>
@@ -740,7 +740,7 @@ export default function ReportesPage() {
           )}
 
           {barrasActasPendientes && barrasActasPendientes.length > 0 && (
-            <div className="card p-4 border-amber-200">
+            <div className="card px-3 py-2.5 border-amber-200">
               <p className="text-xs font-semibold text-amber-700 mb-3 uppercase tracking-wide">
                 Actas pendientes de subir por {tipo === 'productividad' ? 'mediador' : 'sucursal'}
               </p>
@@ -1060,7 +1060,7 @@ export default function ReportesPage() {
 
                         {mediadorExpandidoId === m.usuario_id && (
                           <tr key={`${m.usuario_id}-detalle`}>
-                            <td colSpan={14} className="bg-numa-50 px-4 py-4">
+                            <td colSpan={14} className="bg-numa-50 px-3 py-3">
                               {cargandoDetalleId === m.usuario_id ? (
                                 <Spinner />
                               ) : !detalleProcesos[m.usuario_id]?.length ? (
@@ -1192,7 +1192,7 @@ export default function ReportesPage() {
 
                         {sucursalExpandidoId === s.sucursal_id && (
                           <tr key={`${s.sucursal_id}-detalle`}>
-                            <td colSpan={12} className="bg-numa-50 px-4 py-4">
+                            <td colSpan={12} className="bg-numa-50 px-3 py-3">
                               {cargandoDetalleSucursalId === s.sucursal_id ? (
                                 <Spinner />
                               ) : !detalleSucursal[s.sucursal_id]?.length ? (
@@ -1306,7 +1306,7 @@ export default function ReportesPage() {
 
                         {clienteExpandidoId === c.cliente_id && (
                           <tr key={`${c.cliente_id}-detalle`}>
-                            <td colSpan={15} className="bg-numa-50 px-4 py-4">
+                            <td colSpan={15} className="bg-numa-50 px-3 py-3">
                               {cargandoDetalleClienteId === c.cliente_id ? (
                                 <Spinner />
                               ) : !detalleCliente[c.cliente_id]?.length ? (

@@ -173,7 +173,7 @@ const ciudadesFiltradas = ciudades.filter((c: any) => {
       subtitle="Catálogo oficial de ciudades/cantones del Ecuador"
     />
     
-    <div className="mb-4 relative max-w-sm">
+    <div className="mb-3 relative max-w-sm">
       <Search className="w-4 h-4 text-numa-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
 
       <input
@@ -181,7 +181,7 @@ const ciudadesFiltradas = ciudades.filter((c: any) => {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Buscar ciudad, provincia o prefijo..."
-        className="w-full pl-9 pr-4 py-2 border border-numa-200 rounded-full text-xs bg-white focus:outline-none focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200"
+        className="w-full pl-9 pr-4 py-1.5 border border-numa-200 rounded-full text-xs bg-white focus:outline-none focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200"
       />
     </div>
 
@@ -228,7 +228,7 @@ const ciudadesFiltradas = ciudades.filter((c: any) => {
                       <td className="table-cell">
                         {c.prefijo ? (
                           <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border code-text ${getBadgeClass(
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border code-text ${getBadgeClass(
                               c.id
                             )}`}
                           >
