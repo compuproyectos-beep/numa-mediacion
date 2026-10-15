@@ -1373,7 +1373,7 @@ export default function ProcesoDetallePage() {
 
             <div ref={observacionesRef} className="mt-4">
               <TextareaField
-                label="Observaciones"
+                label="Observaciones (obligatorio)"
                 rows={3}
                 value={invitacionForm.observaciones}
                 onChange={(e) =>

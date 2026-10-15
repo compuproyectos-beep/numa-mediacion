@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import { ESTADO_COLOR_GRAFICO } from '@/lib/estados';
 import { conActa } from '@/lib/actaProceso';
+import { mayusInicial } from '@/lib/texto';
 import { FileSpreadsheet, Printer, Search, ChevronDown, ChevronRight, Info } from 'lucide-react';
 import {
   PageHeader,
@@ -1005,7 +1006,7 @@ export default function ReportesPage() {
                             {p.usuario || '—'}
                           </td>
                         )}
-                        <td className="table-cell max-w-[200px] truncate" title={p.tema}>{p.tema}</td>
+                        <td className="table-cell max-w-[200px] truncate" title={mayusInicial(p.tema)}>{mayusInicial(p.tema)}</td>
                         <td className="table-cell">
                           {p.fecha_creacion
                             ? new Date(p.fecha_creacion).toLocaleDateString('es-EC')
