@@ -535,13 +535,13 @@ const handleExportarZip = async () => {
               {/* Documentos: una grilla de 3 columnas (nombre · ver · descargar)
                   para que todo quede alineado, con las acciones de control
                   del administrador separadas abajo. */}
-              <div className="lg:w-[330px] shrink-0 border-t border-numa-100 pt-2 lg:border-t-0 lg:pt-0 lg:border-l lg:pl-4">
-                <p className="text-[11px] font-semibold text-numa-500 uppercase tracking-wider mb-1">
+              <div className="lg:w-[340px] shrink-0 rounded-md border border-numa-200 bg-numa-50 px-3 py-2">
+                <p className="text-[11px] font-bold text-numa-700 uppercase tracking-wider mb-1.5 pb-1 border-b border-numa-200">
                   Documentos
                 </p>
                 <div className="grid grid-cols-[1fr_auto_2rem] items-center gap-x-2 gap-y-1 text-[13px]">
-                  <span className="text-numa-700 whitespace-nowrap">Documentos del acta</span>
-                  <button type="button" onClick={() => handleVerPdf(a.id)} className="btn-secondary btn-sm w-[6rem]">
+                  <span className="text-numa-800 font-medium whitespace-nowrap">Documentos del acta</span>
+                  <button type="button" onClick={() => handleVerPdf(a.id)} className="btn-sm w-[6rem] inline-flex items-center justify-center gap-1.5 rounded-md bg-numa-900 text-white font-semibold hover:bg-numa-800 transition-colors">
                     <Eye className="w-3.5 h-3.5" /> Ver
                   </button>
                   {isAdmin ? (
@@ -550,7 +550,7 @@ const handleExportarZip = async () => {
                       onClick={() => handleDescargarPdf(a.id, a.codigo_acta)}
                       title="Descargar documentos del acta"
                       aria-label="Descargar documentos del acta"
-                      className="btn-icon"
+                      className="btn-icon bg-white border border-numa-200 text-numa-700 hover:border-gold-400 hover:bg-gold-400/10"
                     >
                       <Download className="w-4 h-4" />
                     </button>
@@ -560,10 +560,10 @@ const handleExportarZip = async () => {
 
                   {a.ruta_comprobante_pago && (
                     <>
-                      <span className="text-numa-700 whitespace-nowrap">
+                      <span className="text-numa-800 font-medium whitespace-nowrap">
                         {a.comprobante_final_id ? 'Comprobante 1.er pago' : 'Comprobante de pago'}
                       </span>
-                      <button type="button" onClick={() => handleVerComprobante(a.id)} className="btn-secondary btn-sm w-[6rem]">
+                      <button type="button" onClick={() => handleVerComprobante(a.id)} className="btn-sm w-[6rem] inline-flex items-center justify-center gap-1.5 rounded-md bg-numa-900 text-white font-semibold hover:bg-numa-800 transition-colors">
                         <Eye className="w-3.5 h-3.5" /> Ver
                       </button>
                       {isAdmin ? (
@@ -574,7 +574,7 @@ const handleExportarZip = async () => {
                           }
                           title="Descargar comprobante"
                           aria-label="Descargar comprobante"
-                          className="btn-icon"
+                          className="btn-icon bg-white border border-numa-200 text-numa-700 hover:border-gold-400 hover:bg-gold-400/10"
                         >
                           <Download className="w-4 h-4" />
                         </button>
@@ -586,11 +586,11 @@ const handleExportarZip = async () => {
 
                   {a.comprobante_final_id && (
                     <>
-                      <span className="text-numa-700 whitespace-nowrap">Comprobante 2.º pago</span>
+                      <span className="text-numa-800 font-medium whitespace-nowrap">Comprobante 2.º pago</span>
                       <button
                         type="button"
                         onClick={() => handleVerComprobanteFinal(a.proceso_id)}
-                        className="btn-secondary btn-sm w-[6rem]"
+                        className="btn-sm w-[6rem] inline-flex items-center justify-center gap-1.5 rounded-md bg-numa-900 text-white font-semibold hover:bg-numa-800 transition-colors"
                       >
                         <Eye className="w-3.5 h-3.5" /> Ver
                       </button>
@@ -600,7 +600,7 @@ const handleExportarZip = async () => {
                           onClick={() => handleDescargarComprobanteFinal(a.proceso_id, a.codigo_acta)}
                           title="Descargar comprobante del 2.º pago"
                           aria-label="Descargar comprobante del 2.º pago"
-                          className="btn-icon"
+                          className="btn-icon bg-white border border-numa-200 text-numa-700 hover:border-gold-400 hover:bg-gold-400/10"
                         >
                           <Download className="w-4 h-4" />
                         </button>
@@ -612,7 +612,7 @@ const handleExportarZip = async () => {
 
                   {a.requiere_acta_firmada && (
                     <>
-                      <span className="text-numa-700 inline-flex items-center gap-1.5">
+                      <span className="text-numa-800 font-medium inline-flex items-center gap-1.5">
                         Acta firmada
                         {a.tiene_acta_firmada ? (
                           <CheckCircle2 className="w-4 h-4 text-emerald-600" aria-label="Subida" />
@@ -622,7 +622,7 @@ const handleExportarZip = async () => {
                         <button
                           type="button"
                           onClick={() => handleVerFirmada(a.proceso_id)}
-                          className="btn-secondary btn-sm w-[6rem]"
+                          className="btn-sm w-[6rem] inline-flex items-center justify-center gap-1.5 rounded-md bg-numa-900 text-white font-semibold hover:bg-numa-800 transition-colors"
                         >
                           <Eye className="w-3.5 h-3.5" /> Ver
                         </button>
@@ -641,7 +641,7 @@ const handleExportarZip = async () => {
                           onClick={() => handleDescargarFirmada(a.proceso_id, a.codigo_acta)}
                           title="Descargar acta firmada"
                           aria-label="Descargar acta firmada"
-                          className="btn-icon"
+                          className="btn-icon bg-white border border-numa-200 text-numa-700 hover:border-gold-400 hover:bg-gold-400/10"
                         >
                           <Download className="w-4 h-4" />
                         </button>
@@ -653,11 +653,11 @@ const handleExportarZip = async () => {
                 </div>
 
                 {isAdmin && (
-                  <div className="flex gap-1 mt-1.5 pt-1 border-t border-numa-100">
+                  <div className="flex gap-1 mt-1.5 pt-1 border-t border-numa-200">
                     <button
                       type="button"
                       onClick={() => window.open(`/actas-finales/${a.id}/historial-imprimir`, '_blank')}
-                      className="btn-ghost btn-sm"
+                      className="btn-sm inline-flex items-center gap-1.5 rounded-md bg-white border border-numa-200 text-numa-700 font-medium hover:border-gold-400"
                     >
                       <History className="w-3.5 h-3.5" /> Historial
                     </button>
@@ -669,7 +669,7 @@ const handleExportarZip = async () => {
                         setMotivoReemplazo('');
                         setMensajeReemplazo('');
                       }}
-                      className="btn-ghost btn-sm"
+                      className="btn-sm inline-flex items-center gap-1.5 rounded-md bg-white border border-numa-200 text-numa-700 font-medium hover:border-gold-400"
                     >
                       <RefreshCw className="w-3.5 h-3.5" /> Reemplazar PDF
                     </button>
