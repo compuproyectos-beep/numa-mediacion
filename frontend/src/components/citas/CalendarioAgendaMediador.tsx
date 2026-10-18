@@ -84,76 +84,74 @@ function BarraCalendario({ date, onNavigate }: any) {
     onNavigate('DATE', new Date(anio, mes, 1));
   };
 
+  // Mes y año en grande, como el título de la agenda, y a la derecha los
+  // controles: "Hoy" y las dos flechas pegadas en un solo bloque.
   const estiloSelector =
-    'text-sm font-semibold text-numa-800 capitalize bg-transparent border-none ' +
+    'text-xl font-bold text-numa-900 capitalize bg-transparent border-none ' +
     'rounded-sm px-1 py-0.5 cursor-pointer hover:bg-gold-400/10 ' +
     'focus:outline-none focus:ring-1 focus:ring-gold-400';
 
-  // Las flechas de "mes anterior / siguiente" van en un círculo oscuro
-  // relleno — a propósito bien distintas de la flechita gris chiquita que
-  // el navegador ya le dibuja a cada <select> (la de "mes ▾" y "año ▾"),
-  // para que no se confundan siendo dos cosas distintas: estas SIEMPRE
-  // mueven un mes para adelante o atrás; las de los selectores abren la
-  // lista para saltar directo a cualquier mes o año.
-  const estiloFlecha =
-    'p-1.5 rounded-full bg-numa-800 text-white hover:bg-numa-900 ' +
-    'transition-colors shrink-0';
+  const estiloBotonNav =
+    'px-3 py-1.5 text-numa-700 hover:bg-numa-50 transition-colors';
 
   return (
-    <div className="flex items-center justify-center mb-3 gap-2 flex-wrap">
-      <button
-        type="button"
-        onClick={() => onNavigate('PREV')}
-        aria-label="Mes anterior"
-        className={estiloFlecha}
-      >
-        <ChevronLeft className="w-4 h-4" />
-      </button>
+    <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
+      <div className="flex items-center gap-1">
+        <select
+          value={mesActual}
+          onChange={(e) => irA(Number(e.target.value), anioActual)}
+          aria-label="Elegir mes"
+          className={estiloSelector}
+        >
+          {NOMBRES_MESES.map((nombre, i) => (
+            <option key={nombre} value={i}>
+              {nombre}
+            </option>
+          ))}
+        </select>
 
-      <select
-        value={mesActual}
-        onChange={(e) => irA(Number(e.target.value), anioActual)}
-        aria-label="Elegir mes"
-        className={estiloSelector}
-      >
-        {NOMBRES_MESES.map((nombre, i) => (
-          <option key={nombre} value={i}>
-            {nombre}
-          </option>
-        ))}
-      </select>
+        <select
+          value={anioActual}
+          onChange={(e) => irA(mesActual, Number(e.target.value))}
+          aria-label="Elegir año"
+          className={estiloSelector}
+        >
+          {anios.map((a) => (
+            <option key={a} value={a}>
+              {a}
+            </option>
+          ))}
+        </select>
+      </div>
 
-      <select
-        value={anioActual}
-        onChange={(e) => irA(mesActual, Number(e.target.value))}
-        aria-label="Elegir año"
-        className={estiloSelector}
-      >
-        {anios.map((a) => (
-          <option key={a} value={a}>
-            {a}
-          </option>
-        ))}
-      </select>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onNavigate('TODAY')}
+          className="text-xs font-medium text-gold-600 border border-gold-400/50 rounded-sm px-3 py-1.5 hover:bg-gold-400/10 transition-colors"
+        >
+          Hoy
+        </button>
 
-      <button
-        type="button"
-        onClick={() => onNavigate('NEXT')}
-        aria-label="Mes siguiente"
-        className={estiloFlecha}
-      >
-        <ChevronRight className="w-4 h-4" />
-      </button>
-
-      {/* "Hoy" va pegado al mismo grupo centrado, no suelto en la otra
-          punta de la barra. */}
-      <button
-        type="button"
-        onClick={() => onNavigate('TODAY')}
-        className="text-[11px] font-medium text-gold-600 border border-gold-400/40 rounded-full px-2.5 py-0.5 hover:bg-gold-400/10 transition-colors shrink-0 ml-1"
-      >
-        Hoy
-      </button>
+        <div className="inline-flex rounded-sm border border-numa-200 overflow-hidden divide-x divide-numa-200 bg-white">
+          <button
+            type="button"
+            onClick={() => onNavigate('PREV')}
+            aria-label="Mes anterior"
+            className={estiloBotonNav}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onNavigate('NEXT')}
+            aria-label="Mes siguiente"
+            className={estiloBotonNav}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -463,26 +461,30 @@ export default function CalendarioAgendaMediador({
 
   return (
     <div>
-      {mediadorNombre && (
-        <p className="text-sm text-numa-500 mb-3">
-          Agenda de <span className="font-semibold text-numa-700">{mediadorNombre}</span>.
-          <span className="inline-flex items-center gap-1 ml-2">
-            <span className="w-2 h-2 rounded-full bg-gold-400 inline-block" /> Pendiente
+      <div className="mb-4">
+        {mediadorNombre && (
+          <h3 className="text-base font-semibold text-numa-800">
+            Agenda de {mediadorNombre}
+          </h3>
+        )}
+        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-xs text-numa-500">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-gold-400 inline-block" /> Pendiente
           </span>
-          <span className="inline-flex items-center gap-1 ml-2">
-            <span className="w-2 h-2 rounded-full bg-orange-600 inline-block" /> Atrasada
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-orange-600 inline-block" /> Atrasada
           </span>
-          <span className="inline-flex items-center gap-1 ml-2">
-            <span className="w-2 h-2 rounded-full bg-green-600 inline-block" /> Realizada
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-green-600 inline-block" /> Realizada
           </span>
-          <span className="inline-flex items-center gap-1 ml-2">
-            <span className="w-2 h-2 rounded-full bg-stone-500 inline-block" /> No asistió
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-stone-500 inline-block" /> No asistió
           </span>
-          <span className="inline-flex items-center gap-1 ml-2">
-            <span className="w-2 h-2 rounded-full bg-red-600 inline-block" /> Cancelada
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-600 inline-block" /> Cancelada
           </span>
-        </p>
-      )}
+        </div>
+      </div>
 
       {loading ? (
         <Spinner />
