@@ -318,3 +318,13 @@ html {
   tr, img { break-inside: avoid; }
   h2, h3 { break-after: avoid; }
 }
+
+
+/* Tamaño de letra elegido por cada persona (menú de usuario).
+   "zoom" agranda letras y espacios por igual; --tz sirve para corregir
+   alturas hechas con "vh" (por ejemplo las ventanas emergentes). */
+html[data-tamano="grande"] { zoom: 1.12; --tz: 1.12; }
+html[data-tamano="extra"]  { zoom: 1.25; --tz: 1.25; }
+@media print {
+  html[data-tamano] { zoom: 1; --tz: 1; }
+}

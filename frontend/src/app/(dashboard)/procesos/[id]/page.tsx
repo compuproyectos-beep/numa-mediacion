@@ -625,8 +625,8 @@ export default function ProcesoDetallePage() {
 
     if (proceso.etapa_acta === 'falta_firmada') {
       return proceso.pago_pendiente
-        ? 'Imprime el acta, haz que la firmen y sube el acta firmada junto con el comprobante del segundo pago para completar el proceso.'
-        : 'Imprime el acta, haz que la firmen las partes y sube el acta firmada en PDF para completar el proceso.';
+        ? 'Haz que firmen el acta y sube el acta firmada junto con el comprobante del segundo pago para completar el proceso.'
+        : 'Haz que firmen el acta las partes y el mediador y sube el acta firmada en PDF para completar el proceso.';
     }
 
     if (proceso.finalizado) {
@@ -1623,7 +1623,7 @@ export default function ProcesoDetallePage() {
         <div className="space-y-4">
           <p className="text-sm text-numa-600">
             Debes subir la documentación y el comprobante de pago juntos. Después
-            podrás imprimir el acta con las firmas y subirla firmada.
+            subirás el acta firmada.
             Mientras este proceso no esté completo, no podrás subir actas de tus
             otros procesos.
           </p>

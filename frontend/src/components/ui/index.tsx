@@ -51,7 +51,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
       <div
         ref={ref}
         className={clsx(
-          'relative bg-white rounded-sm shadow-2xl w-full animate-slide-up flex flex-col max-h-[85vh]',
+          'relative bg-white rounded-sm shadow-2xl w-full animate-slide-up flex flex-col max-h-[calc(85vh/var(--tz,1))]',
           widths[size]
         )}
       >

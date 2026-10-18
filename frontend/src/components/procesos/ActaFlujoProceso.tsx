@@ -39,7 +39,8 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
   // "Imprimir acta para firmar" una vez. Se guarda en el servidor, así que
   // vale desde cualquier computador.
   const [imprimioAhora, setImprimioAhora] = useState(false);
-  const yaImprimio = !!proceso.acta_impresa || imprimioAhora;
+  // Sin el botón de imprimir, ya no se exige haber impreso el acta para poder subirla.
+  const yaImprimio: boolean = true as boolean;
   const marcarImpresa = () => {
     if (yaImprimio) return;
     setImprimioAhora(true);
@@ -259,10 +260,14 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
     }
   };
 
+  // Por ahora los mediadores hacen el acta a mano, con su propio formato.
+  // El acta que genera el sistema queda escondida (la página
+  // /procesos/[id]/acta-imprimir sigue existiendo por si se vuelve a usar).
+  const MOSTRAR_BOTON_IMPRIMIR_ACTA = false;
   const botonImprimir = (
     texto = 'Descargar o imprimir acta para firmar',
     ayuda = 'Genera el acta con los datos del sistema y espacios en blanco para firmar. Puedes imprimirla o guardarla como PDF.'
-  ) => (
+  ) => !MOSTRAR_BOTON_IMPRIMIR_ACTA ? null : (
     <button
       type="button"
       onClick={() => {
@@ -340,8 +345,8 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
           <p className="text-sm text-numa-700 mb-1 font-semibold">Falta el acta firmada</p>
           <p className="text-sm text-numa-600 mb-3">
             {noAcuerdo
-              ? 'Imprime el acta, haz que la firmen el solicitante responsable y el mediador y súbela en PDF (no se aceptan fotos).'
-              : 'Imprime el acta, haz que la firmen las partes y súbela en PDF (no se aceptan fotos).'}
+              ? 'Haz que firmen el acta el solicitante responsable y el mediador y súbela en PDF (no se aceptan fotos).'
+              : 'Haz que firmen el acta las partes y el mediador y súbela en PDF (no se aceptan fotos).'}
             {proceso.pago_pendiente && ' Debes subir también el comprobante del segundo pago.'}
             {/* El bloqueo solo aplica al mediador; el admin no lo tiene. */}
             {!esAdmin && ' Mientras falte, no podrás subir las actas de tus otros procesos.'}
@@ -482,9 +487,9 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
               onChange={(e) => setConfirmoFirmada(e.target.checked)}
               className="mt-1"
             />
-            {noAcuerdo
-              ? 'Confirmo que este documento es el acta firmada por el solicitante y por el mediador.'
-              : 'Confirmo que este documento es el acta firmada por todas las partes y por el mediador.'}
+            {proceso.pago_pendiente
+              ? 'Confirmo que estos documentos son reales y legales, avalados por el mediador.'
+              : 'Confirmo que este documento es real y legal, avalado por el mediador.'}
           </label>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setShowFirmada(false)} className="btn-secondary">

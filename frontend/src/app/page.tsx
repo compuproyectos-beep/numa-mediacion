@@ -52,8 +52,7 @@ const valores = [
 const servicios = [
   'Mediación familiar',
   'Mediación civil',
-  'Mediación de la mujer',
-  'Mediación en niñez y adolescencia',
+  'Mediación de la mujer, niñez y adolescencia',
   'Mediación en inquilinato',
   'Mediación en tránsito',
   'Mediación comercial y empresarial',
@@ -80,6 +79,22 @@ const heroImages = [
   {
     src: '/images/oficina-matriz.jpg',
     alt: 'Oficina matriz del Centro de Mediación NUMA',
+  },
+  {
+    src: '/images/familia-ninez.jpg',
+    alt: 'Mediador conversando con una familia y una niña durante una sesión de mediación',
+  },
+  {
+    src: '/images/obreros-casco.jpg',
+    alt: 'Dos trabajadores con casco conversando en una obra',
+  },
+  {
+    src: '/images/transito-policia.jpg',
+    alt: 'Agente de policía conversando con un ciudadano',
+  },
+  {
+    src: '/images/comunidad-circulo.jpg',
+    alt: 'Personas de la comunidad dialogando sentadas en círculo al aire libre',
   },
 ];
 
