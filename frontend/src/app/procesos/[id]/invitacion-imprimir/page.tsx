@@ -191,8 +191,6 @@ function ImprimirInvitacion() {
     if (typeof doc.asunto === 'string') setAsunto(doc.asunto);
     if (doc.lugar) setLugar(doc.lugar);
     if (doc.pie) setPie(doc.pie);
-    if (doc.telefono) setTelefono(doc.telefono);
-    if (doc.correo) setCorreo(doc.correo);
     if (typeof doc.extras === 'string') setExtras(doc.extras);
   };
 
@@ -231,28 +229,12 @@ function ImprimirInvitacion() {
           );
           setPie(`${dir || ''}\n${d.proceso?.ciudad || ''}, Ecuador`.trim());
         }
-        // Primero el teléfono guardado en el perfil del mediador; si no tiene,
-        // el último que se escribió en este navegador; y si no, el de la sucursal.
-        // Regla nueva: el teléfono y correo del encabezado son los del
-        // administrador responsable de la sucursal (Sucursales). Si esa
-        // sucursal aún no los tiene, se usa lo de antes.
-        let tel = d.proceso?.sucursal_admin_telefono || '';
-        if (!tel) tel = d.proceso?.mediador_telefono || '';
-        if (!tel) {
-          try {
-            tel = window.localStorage.getItem('numa_tel_invitacion') || '';
-          } catch {
-            /* sin almacenamiento: se queda con el valor por defecto */
-          }
-        }
-        if (!tel) tel = d.proceso?.sucursal_telefono || '';
-        setTelefono(tel);
-        // El correo del pie es el del administrador de la sucursal; si no lo
-        // tiene, el del mediador y, si tampoco, el del centro. Solo consta en
-        // el pie de la invitación (ya no hay frase de "confirmar asistencia").
-        setCorreo(
-          d.proceso?.sucursal_admin_email || d.proceso?.mediador_email || CORREO_DEFECTO
-        );
+        // El teléfono y el correo del pie son SIEMPRE los del administrador
+        // responsable de la sucursal (se editan en Sucursales); aquí no se
+        // pueden cambiar. Si la sucursal aún no los tiene, se usa el
+        // teléfono de la sucursal y el correo del centro.
+        setTelefono(d.proceso?.sucursal_admin_telefono || d.proceso?.sucursal_telefono || '');
+        setCorreo(d.proceso?.sucursal_admin_email || CORREO_DEFECTO);
 
         // Si la invitación ya tiene textos guardados, se usan esos. Para una
         // nueva, se parte de los de la última invitación (lugar, asunto, etc.).
@@ -269,15 +251,6 @@ function ImprimirInvitacion() {
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [procesoId, citaParam, esNueva]);
-
-  const guardarTelefono = (v: string) => {
-    setTelefono(v);
-    try {
-      window.localStorage.setItem('numa_tel_invitacion', v);
-    } catch {
-      /* no pasa nada */
-    }
-  };
 
   const documentoActual = () => ({
     modelo,
@@ -784,7 +757,7 @@ function ImprimirInvitacion() {
           />
         </div>
 
-        {/* Textos editables del pie (dirección, celular y correo). */}
+        {/* Pie: dirección editable; celular y correo fijos (los del administrador de la sucursal). */}
         <div className="pie-capa">
           <div style={{ ...estiloPie, top: '278.5mm', left: '7.5mm', width: '95mm' }}>
             <Editable value={pie} onChange={setPie} placeholder="dirección del pie" multi />
@@ -792,9 +765,9 @@ function ImprimirInvitacion() {
           <div
             style={{ ...estiloPie, top: '281mm', right: '4mm', width: '85mm', textAlign: 'right' }}
           >
-            Celular: <Editable value={telefono} onChange={guardarTelefono} placeholder="celular" />
+            Celular: {telefono}
             <br />
-            Correo: <Editable value={correo} onChange={setCorreo} placeholder="correo" />
+            Correo: {correo}
           </div>
         </div>
 
