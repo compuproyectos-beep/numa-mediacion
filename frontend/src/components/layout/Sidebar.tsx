@@ -20,7 +20,6 @@ import {
   CalendarDays,
   BarChart3,
   ClipboardList,
-  Type,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import clsx from 'clsx';
@@ -40,17 +39,6 @@ const navItems = [
   { href: '/auditoria', icon: ClipboardList, label: 'Auditoría', adminOnly: true },
 ];
 
-// Tamaño de letra: cada persona lo elige en su menú de usuario y el
-// navegador lo recuerda. Se aplica solo mientras el panel está abierto
-// (las páginas de impresión no pasan por aquí y no cambian).
-const TAMANOS = [
-  { id: 'normal', label: 'Normal', muestra: 'text-[11px]' },
-  { id: 'grande', label: 'Grande', muestra: 'text-sm' },
-  { id: 'extra', label: 'Extra grande', muestra: 'text-lg' },
-] as const;
-type TamanoLetra = (typeof TAMANOS)[number]['id'];
-const CLAVE_TAMANO = 'numa_tamano_letra';
-
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
@@ -62,32 +50,13 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const [tamano, setTamano] = useState<TamanoLetra>('grande');
 
+  // Tamaño de letra fijo para todos (el valor está en globals.css). Se aplica
+  // solo mientras el panel está abierto; las páginas de impresión no cambian.
   useEffect(() => {
-    try {
-      const guardado = localStorage.getItem(CLAVE_TAMANO);
-      if (guardado === 'normal' || guardado === 'grande' || guardado === 'extra') {
-        setTamano(guardado);
-      }
-    } catch {
-      /* sin almacenamiento: se queda en "grande" */
-    }
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-tamano', tamano);
+    document.documentElement.setAttribute('data-tamano', 'fijo');
     return () => document.documentElement.removeAttribute('data-tamano');
-  }, [tamano]);
-
-  const cambiarTamano = (nuevo: TamanoLetra) => {
-    setTamano(nuevo);
-    try {
-      localStorage.setItem(CLAVE_TAMANO, nuevo);
-    } catch {
-      /* ignorar */
-    }
-  };
+  }, []);
 
   const isAdmin = user?.rol === 'administrador';
 
@@ -172,34 +141,6 @@ export default function Sidebar() {
       <div ref={userMenuRef} data-user-menu className="relative px-3 pb-3 border-t border-numa-800 pt-3 shrink-0">
         {userMenuOpen && (
           <div className="absolute bottom-full left-3 right-3 mb-2 bg-numa-900 border border-numa-800 rounded-sm shadow-xl overflow-hidden">
-            <div className="px-3 py-2.5 border-b border-numa-800">
-              <p className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-white/60 font-sans mb-1.5">
-                <Type className="w-3.5 h-3.5" />
-                Tamaño de letra
-              </p>
-              <div className="flex gap-1">
-                {TAMANOS.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => cambiarTamano(t.id)}
-                    title={t.label}
-                    aria-label={`Tamaño de letra ${t.label}`}
-                    aria-pressed={tamano === t.id}
-                    className={clsx(
-                      'flex-1 rounded-sm border py-1 font-semibold font-sans transition-colors',
-                      t.muestra,
-                      tamano === t.id
-                        ? 'bg-gold-400 text-numa-950 border-gold-400'
-                        : 'text-white border-numa-700 hover:border-gold-400 hover:text-gold-400'
-                    )}
-                  >
-                    A
-                  </button>
-                ))}
-              </div>
-            </div>
-
             <Link
               href="/cambiar-password"
               onClick={() => {
