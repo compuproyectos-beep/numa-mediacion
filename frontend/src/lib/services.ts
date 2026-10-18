@@ -553,11 +553,13 @@ export async function subirActaFinalProceso(
   procesoId: number,
   file: File,
   comprobantePago: File,
-  pago?: PagoActaFinal
+  pago?: PagoActaFinal,
+  numeroActaId?: number
 ): Promise<any> {
   const formData = new FormData();
   formData.append('archivo', file);
   formData.append('comprobante_pago', comprobantePago);
+  if (numeroActaId) formData.append('numero_acta_id', String(numeroActaId));
   formData.append('pago_modo', pago?.modo || 'completo');
   if (pago?.fecha) formData.append('fecha_pago', pago.fecha);
   if (pago?.modo === 'abonos') {

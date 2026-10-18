@@ -27,7 +27,14 @@ const fechaEC = (v: any) => {
 };
 
 export default function NumeroActaPanel({ esAdmin }: { esAdmin: boolean }) {
-  return esAdmin ? <PanelAdmin /> : <PanelMediador />;
+  // El administrador es un mediador más: pide sus números igual que ellos
+  // (sin bloqueos) y además ve y puede anular los de todos.
+  return (
+    <>
+      <PanelMediador />
+      {esAdmin && <PanelAdmin />}
+    </>
+  );
 }
 
 /* ───────────────────────── Mediador ───────────────────────── */
@@ -35,7 +42,7 @@ function PanelMediador() {
   const [estado, setEstado] = useState<any | null>(null);
   const [pidiendo, setPidiendo] = useState(false);
   const [error, setError] = useState('');
-  const [copiado, setCopiado] = useState(false);
+  const [copiado, setCopiado] = useState<number | null>(null);
 
   const cargar = () =>
     getMiNumeroActa().then(setEstado).catch(() => setEstado(null));
@@ -57,11 +64,11 @@ function PanelMediador() {
     }
   };
 
-  const copiar = async (texto: string) => {
+  const copiar = async (id: number, texto: string) => {
     try {
       await navigator.clipboard.writeText(texto);
-      setCopiado(true);
-      setTimeout(() => setCopiado(false), 2000);
+      setCopiado(id);
+      setTimeout(() => setCopiado(null), 2000);
     } catch {
       /* si el navegador no deja copiar, el número sigue visible */
     }
@@ -69,7 +76,7 @@ function PanelMediador() {
 
   if (!estado) return null;
 
-  const reservado = estado.reservado;
+  const reservados: any[] = estado.reservados || [];
 
   return (
     <div className="card px-4 py-3 mb-3">
@@ -79,6 +86,12 @@ function PanelMediador() {
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-numa-900">Número de acta</p>
+          <p className="text-sm text-slate-600 mt-0.5">
+            Pídelo antes de redactar tu acta; es el siguiente número consecutivo de tu sucursal.
+            Puedes pedir uno por cada reunión del día. Tienes 48 horas para completar cada acta;
+            pasado ese plazo, si sigue pendiente no podrás pedir otro número ni subir actas de otros
+            procesos.
+          </p>
 
           {error && (
             <div className="my-2">
@@ -86,56 +99,43 @@ function PanelMediador() {
             </div>
           )}
 
-          {reservado ? (
-            <>
-              <div className="flex flex-wrap items-center gap-2 mt-1">
-                <span className="font-mono text-lg font-bold text-numa-900">
-                  {reservado.codigo}
-                </span>
-                <button
-                  type="button"
-                  className="btn-secondary btn-sm"
-                  onClick={() => copiar(reservado.codigo)}
-                >
-                  {copiado ? <Check size={14} /> : <Copy size={14} />}
-                  {copiado ? 'Copiado' : 'Copiar'}
-                </button>
-              </div>
-              <p className="text-sm text-slate-600 mt-1">
-                Pedido el {fechaEC(reservado.fecha_solicitud)}. Escríbelo tal cual en tu acta: debe
-                coincidir exactamente. Cuando tengas el acta firmada, sube la documentación y el
-                comprobante de pago en el proceso y ese mismo número quedará asignado.
-                Mientras no la completes no puedes pedir otro número ni subir actas de otros
-                procesos. Si no se puede completar, pide al administrador que lo anule.
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-slate-600 mt-0.5">
-                Pídelo antes de redactar tu acta; es el siguiente número consecutivo de tu
-                sucursal.
-              </p>
-              {estado.motivo && (
-                <p className="text-sm text-amber-700 mt-1">{estado.motivo}</p>
-              )}
-              <button
-                type="button"
-                className="btn-primary btn-sm mt-2 disabled:opacity-50"
-                disabled={!estado.puede_pedir || pidiendo}
-                onClick={pedir}
-              >
-                {pidiendo ? 'Pidiendo…' : 'Pedir número de acta'}
-              </button>
-            </>
+          {reservados.length > 0 && (
+            <ul className="mt-2 space-y-1.5">
+              {reservados.map((r) => (
+                <li key={r.id} className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-lg font-bold text-numa-900">{r.codigo}</span>
+                  <button
+                    type="button"
+                    className="btn-secondary btn-sm"
+                    onClick={() => copiar(r.id, r.codigo)}
+                  >
+                    {copiado === r.id ? <Check size={14} /> : <Copy size={14} />}
+                    {copiado === r.id ? 'Copiado' : 'Copiar'}
+                  </button>
+                  <span className={`text-xs ${r.vencido ? 'text-red-600 font-semibold' : 'text-slate-500'}`}>
+                    Pedido el {fechaEC(r.fecha_solicitud)}
+                    {r.vencido ? ' · ya pasaron 48 horas, completa esta acta' : ` · plazo hasta ${fechaEC(r.vence_en)}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
 
-          {estado.recientes?.some((r: any) => r.estado === 'anulado') && (
+          {estado.motivo && <p className="text-sm text-amber-700 mt-2">{estado.motivo}</p>}
+
+          <button
+            type="button"
+            className="btn-primary btn-sm mt-2 disabled:opacity-50"
+            disabled={!estado.puede_pedir || pidiendo}
+            onClick={pedir}
+          >
+            {pidiendo ? 'Pidiendo…' : 'Pedir número de acta'}
+          </button>
+
+          {estado.recientes?.length > 0 && (
             <p className="text-xs text-slate-500 mt-2">
               Números anulados por el administrador:{' '}
-              {estado.recientes
-                .filter((r: any) => r.estado === 'anulado')
-                .map((r: any) => r.codigo)
-                .join(', ')}
+              {estado.recientes.map((r: any) => r.codigo).join(', ')}
             </p>
           )}
         </div>

@@ -37,6 +37,7 @@ import {
   getAvancesProceso,
   crearAvanceProceso,
   subirActaFinalProceso,
+  getMiNumeroActa,
   anularProceso,
   getExpedienteProceso,
   getCitas,
@@ -196,6 +197,10 @@ export default function ProcesoDetallePage() {
   const [montoTotal, setMontoTotal] = useState('');
   const [montoAbono, setMontoAbono] = useState('');
   const [fechaPago, setFechaPago] = useState(hoyEcuador());
+  // Números de acta que el mediador pidió y aún no usó: elige cuál corresponde
+  // a esta acta (debe coincidir con la que redactó).
+  const [numerosPedidos, setNumerosPedidos] = useState<any[]>([]);
+  const [numeroActaId, setNumeroActaId] = useState('');
 
   const cargarProceso = async () => {
     try {
@@ -495,6 +500,11 @@ export default function ProcesoDetallePage() {
       return;
     }
 
+    if (numerosPedidos.length > 1 && !numeroActaId && !esAdminSesion()) {
+      setError('Elige el número de acta que corresponde a esta acta');
+      return;
+    }
+
     if (pagoModo === 'abonos') {
       const total = Number(montoTotal);
       const abono = Number(montoAbono);
@@ -522,7 +532,8 @@ export default function ProcesoDetallePage() {
           fecha: fechaPago || undefined,
           montoTotal: pagoModo === 'abonos' ? Number(montoTotal) : undefined,
           montoAbono: pagoModo === 'abonos' ? Number(montoAbono) : undefined
-        }
+        },
+        numeroActaId ? Number(numeroActaId) : undefined
       );
 
       setShowActaFinal(false);
@@ -1575,6 +1586,17 @@ export default function ProcesoDetallePage() {
                   type="button"
                   onClick={() => {
                     setShowActaFinal(true);
+                    setNumeroActaId('');
+                    getMiNumeroActa()
+                      .then((r: any) => {
+                        // Solo los números de la sucursal de este proceso.
+                        const lista = (r?.reservados || []).filter(
+                          (n: any) => n.sucursal_id === proceso.sucursal_id
+                        );
+                        setNumerosPedidos(lista);
+                        if (lista.length === 1 && !esAdminSesion()) setNumeroActaId(String(lista[0].id));
+                      })
+                      .catch(() => setNumerosPedidos([]));
                     setArchivoActaFinal(null);
                     setPagoModo('completo');
                     setMontoTotal('');
@@ -1631,9 +1653,35 @@ export default function ProcesoDetallePage() {
           <p className="text-sm text-numa-600">
             Debes subir la documentación y el comprobante de pago juntos. Después
             subirás el acta firmada.
-            Mientras este proceso no esté completo, no podrás subir actas de tus
-            otros procesos.
+            Tienes 48 horas desde el acuerdo para completar este proceso sin
+            que bloquee tus otras actas; pasado ese plazo no podrás subir actas
+            de tus otros procesos hasta completarlo.
           </p>
+
+          {numerosPedidos.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-numa-700 mb-1">
+                Número de acta de esta acta
+              </label>
+              <select
+                className="input-field"
+                value={numeroActaId}
+                onChange={(e) => setNumeroActaId(e.target.value)}
+              >
+                {(numerosPedidos.length > 1 || esAdminSesion()) && (
+                  <option value="">{esAdminSesion() ? 'Asignar el siguiente automáticamente' : 'Elige el número…'}</option>
+                )}
+                {numerosPedidos.map((n: any) => (
+                  <option key={n.id} value={n.id}>
+                    {n.codigo}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-numa-500 mt-1">
+                Debe ser el mismo número que escribiste en el acta.
+              </p>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-numa-700 mb-1">
