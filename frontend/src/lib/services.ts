@@ -418,6 +418,7 @@ export async function createProceso(
       tema: payload.tema,
       empresa_solicitante_id: payload.empresa_solicitante_id,
       empresa_invitado_id: payload.empresa_invitado_id,
+      cita_rapida_id: payload.cita_rapida_id,
     },
   });
 
@@ -479,6 +480,33 @@ export async function crearInvitacionProceso(
   return res.data;
 }
 
+
+// ── INVITACIÓN RÁPIDA (desde la Agenda, sin proceso) ─────────────────────────
+export async function crearInvitacionRapida(payload: {
+  fecha: string;
+  hora: string;
+  observaciones: string;
+  tema?: string;
+  usuario_id?: number;
+  solicitantes: any[];
+  invitados: any[];
+}): Promise<any> {
+  const res = await api.post('/citas/rapida', payload);
+  return res.data;
+}
+
+export async function getDatosInvitacionRapida(citaId: number): Promise<any> {
+  const res = await api.get(`/citas/${citaId}/invitacion-datos`);
+  return res.data;
+}
+
+export async function guardarDocumentoInvitacionRapida(
+  citaId: number,
+  documento: Record<string, string>
+): Promise<any> {
+  const res = await api.put(`/citas/${citaId}/documento`, documento);
+  return res.data;
+}
 
 export async function guardarDocumentoInvitacion(
   procesoId: number,

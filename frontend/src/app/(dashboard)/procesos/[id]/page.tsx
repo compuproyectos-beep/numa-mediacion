@@ -1037,9 +1037,27 @@ export default function ProcesoDetallePage() {
                             mediador asignado al proceso: un admin puede
                             crearla en su nombre (ej. el mediador se
                             enfermó), y esto deja ese dato visible. */}
-                        {cita.creado_por && (
+                        {(cita.creado_por || cita.fecha_creacion) && (
                           <p className="text-xs text-numa-400 mt-1">
-                            Invitación creada por: {cita.creado_por}
+                            Invitación creada
+                            {cita.fecha_creacion && (
+                              <>
+                                {' '}el{' '}
+                                {new Date(
+                                  /(Z|[+-]\d\d:?\d\d)$/.test(String(cita.fecha_creacion))
+                                    ? String(cita.fecha_creacion)
+                                    : `${String(cita.fecha_creacion).replace(' ', 'T')}Z`
+                                ).toLocaleString('es-EC', {
+                                  timeZone: 'America/Guayaquil',
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </>
+                            )}
+                            {cita.creado_por && <> por: {cita.creado_por}</>}
                           </p>
                         )}
 

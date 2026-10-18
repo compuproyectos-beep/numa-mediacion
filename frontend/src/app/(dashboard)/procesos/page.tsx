@@ -4,7 +4,7 @@ import { mayusInicial } from '@/lib/texto';
 import { etapaActaBadge } from '@/lib/etapaActa';
 import { conActa } from '@/lib/actaProceso';
 import { estadoLabelProceso, estadoPill, estadoFranja } from '@/lib/estados';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus, Check, ChevronRight } from 'lucide-react';
 import {
@@ -23,11 +23,12 @@ import {
   getProcesos,
   createProceso,
   getClientes,
-  getUsuarios
+  getUsuarios,
+  getCitas
 } from '@/lib/services';
 import { getCiudadesCached, getSucursalesCached } from '@/lib/catalogCache';
 
-import { isAdmin } from '@/lib/auth';
+import { isAdmin, getUser } from '@/lib/auth';
 import { accionProceso, hoyEcuador } from '@/lib/accionProceso';
 
 // Qué le toca hacer a quien mira la lista en este proceso (el botón lo dice
@@ -50,6 +51,10 @@ export default function ProcesosPage() {
   // desde el botón "Crear tu primer proceso" del dashboard cuando un
   // mediador nuevo todavía no tiene ningún proceso.
   const crearDesdeUrl = searchParams?.get('crear') === '1';
+
+  // Llegar con ?cita=ID (desde la Agenda) deja elegida esa invitación rápida.
+  const citaDesdeUrl = searchParams?.get('cita') || '';
+  const citaAplicada = useRef(false);
 
   const [procesos, setProcesos] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
@@ -90,8 +95,13 @@ export default function ProcesosPage() {
     cliente_demandante_id: '',
     cliente_demandado_id: '',
     sucursal_id: '',
-    tema: ''
+    tema: '',
+    cita_rapida_id: ''
   });
+
+  // Invitaciones rápidas de la Agenda que todavía no tienen proceso.
+  const [citasRapidas, setCitasRapidas] = useState<any[]>([]);
+  const [avisoCitaRapida, setAvisoCitaRapida] = useState('');
 
   const visibles = procesos.filter((p) =>
     rapido === 'pendientes'
@@ -134,6 +144,17 @@ export default function ProcesosPage() {
     getCiudadesCached(true).then(setCiudades).catch(() => setCiudades([]));
     if (isAdmin()) getUsuarios().then(setMediadores).catch(() => setMediadores([]));
 
+    const yo = getUser();
+    if (yo) {
+      getCitas({ usuario_id: yo.id })
+        .then((cs) =>
+          setCitasRapidas(
+            cs.filter((c: any) => !c.proceso_id && c.partes_rapidas && c.estado !== 'cancelada')
+          )
+        )
+        .catch(() => setCitasRapidas([]));
+    }
+
     if (crearDesdeUrl) abrirCrear();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -158,12 +179,83 @@ export default function ProcesosPage() {
       cliente_demandante_id: '',
       cliente_demandado_id: '',
       sucursal_id: '',
-      tema: ''
+      tema: '',
+      cita_rapida_id: ''
     });
+    setAvisoCitaRapida('');
     setPaso(1);
     setError('');
     setShowCreate(true);
   };
+
+  // Busca en Clientes a la parte de la invitación rápida (por cédula, o por
+  // RUC / cédula del representante si es empresa).
+  const buscarCliente = (x: any) => {
+    if (x.tipo === 'empresa') {
+      return clientes.find(
+        (c: any) =>
+          c.tipo === 'empresa' &&
+          ((x.ruc && c.ruc === x.ruc) ||
+            (x.representante_cedula && c.representante_cedula === x.representante_cedula))
+      );
+    }
+    return clientes.find((c: any) => c.tipo !== 'empresa' && c.cedula === x.cedula);
+  };
+
+  const nombreParteRapida = (x: any) =>
+    x.tipo === 'empresa'
+      ? `${x.razon_social} (rep. legal ${x.representante_nombre}, C.I. ${x.representante_cedula})`
+      : `${x.nombre} (C.I. ${x.cedula})`;
+
+  // Al elegir una invitación rápida se llenan solos los datos que ya se
+  // escribieron en la Agenda. Las partes que aún no están en Clientes se avisan.
+  const elegirCitaRapida = (id: string) => {
+    if (!id) {
+      setForm((f) => ({ ...f, cita_rapida_id: '' }));
+      setAvisoCitaRapida('');
+      return;
+    }
+    const cita = citasRapidas.find((c: any) => String(c.id) === String(id));
+    if (!cita) return;
+
+    const sol = cita.partes_rapidas?.solicitantes || [];
+    const inv = cita.partes_rapidas?.invitados || [];
+    const cSol = sol.length ? buscarCliente(sol[0]) : undefined;
+    const cInv = inv.length ? buscarCliente(inv[0]) : undefined;
+    const faltan = [...sol, ...inv].filter((x: any) => !buscarCliente(x));
+
+    setForm((f) => ({
+      ...f,
+      cita_rapida_id: String(cita.id),
+      sucursal_id: String(cita.sucursal_id),
+      cliente_demandante_id: cSol ? String(cSol.id) : f.cliente_demandante_id,
+      cliente_demandado_id: cInv ? String(cInv.id) : f.cliente_demandado_id,
+      tema: !f.tema && cita.tema && cita.tema !== 'Invitación rápida' ? cita.tema : f.tema
+    }));
+
+    const avisos: string[] = [];
+    if (faltan.length) {
+      avisos.push(
+        `Aún no están en Clientes: ${faltan.map(nombreParteRapida).join('; ')}. Regístralos en "Clientes" para poder usarlos en el proceso.`
+      );
+    }
+    if (sol.length > 1 || inv.length > 1) {
+      avisos.push(
+        'La invitación tiene varias personas en un lado: elige aquí a la principal y agrega las demás desde la pantalla del proceso.'
+      );
+    }
+    setAvisoCitaRapida(avisos.join(' '));
+  };
+
+  // Llegada desde la Agenda con ?cita=ID: se elige esa invitación en cuanto
+  // cargan las invitaciones y los clientes.
+  useEffect(() => {
+    if (!citaDesdeUrl || citaAplicada.current) return;
+    if (!citasRapidas.length || !clientes.length) return;
+    citaAplicada.current = true;
+    elegirCitaRapida(citaDesdeUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [citasRapidas, clientes, citaDesdeUrl]);
 
   const cerrarCrear = () => {
     setShowCreate(false);
@@ -248,7 +340,8 @@ export default function ProcesosPage() {
         cliente_demandante_id: Number(form.cliente_demandante_id),
         cliente_demandado_id: Number(form.cliente_demandado_id),
         tema: form.tema,
-        ...(isAdmin() ? { sucursal_id: Number(form.sucursal_id) } : {})
+        ...(isAdmin() ? { sucursal_id: Number(form.sucursal_id) } : {}),
+        ...(form.cita_rapida_id ? { cita_rapida_id: Number(form.cita_rapida_id) } : {})
       });
 
       setShowCreate(false);
@@ -258,7 +351,8 @@ export default function ProcesosPage() {
         cliente_demandante_id: '',
         cliente_demandado_id: '',
         sucursal_id: '',
-        tema: ''
+        tema: '',
+        cita_rapida_id: ''
       });
 
       // Se navega directo al proceso recién creado en vez de depender de
@@ -620,6 +714,34 @@ export default function ProcesosPage() {
             <p className="text-xs text-numa-500">
               Paso 1 de {PASOS_CREAR.length}: elige quiénes participan en el proceso.
             </p>
+
+            {citasRapidas.length > 0 && (
+              <div>
+                <SelectField
+                  label="Traer de una invitación rápida (opcional)"
+                  value={form.cita_rapida_id}
+                  onChange={(e) => elegirCitaRapida(e.target.value)}
+                >
+                  <option value="">No, empezar de cero</option>
+                  {citasRapidas.map((c: any) => (
+                    <option key={c.id} value={c.id}>
+                      {String(c.fecha).slice(0, 10).split('-').reverse().join('/')}{' '}
+                      {String(c.hora).slice(0, 5)} · {c.demandante} vs {c.demandado}
+                    </option>
+                  ))}
+                </SelectField>
+                {form.cita_rapida_id && (
+                  <p className="text-xs text-numa-500 mt-1">
+                    El proceso quedará enlazado a esa invitación.
+                  </p>
+                )}
+                {avisoCitaRapida && (
+                  <p className="text-xs mt-2 rounded-sm border border-amber-300 bg-amber-50 text-amber-800 px-2 py-1">
+                    {avisoCitaRapida}
+                  </p>
+                )}
+              </div>
+            )}
 
             {isAdmin() && (
               <SelectField

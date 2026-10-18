@@ -215,4 +215,5 @@ export interface CreateProcesoPayload {
   tema: string;
   empresa_solicitante_id?: number;
   empresa_invitado_id?: number;
+  cita_rapida_id?: number;
 }

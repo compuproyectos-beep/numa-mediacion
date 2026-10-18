@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CalendarPlus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { CalendarPlus, FileText } from 'lucide-react';
 import {
   PageHeader,
   SelectField,
@@ -12,10 +13,13 @@ import {
   SuccessAlert
 } from '@/components/ui';
 import CalendarioAgendaMediador from '@/components/citas/CalendarioAgendaMediador';
+import InvitacionRapidaForm from '@/components/citas/InvitacionRapidaForm';
+import PedirNumeroActaBoton from '@/components/actas/PedirNumeroActaBoton';
 import { getUsuarios, getProcesos, crearInvitacionProceso } from '@/lib/services';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function AgendaPage() {
+  const router = useRouter();
   const { user, isAdmin, isLoading: loadingUser } = useAuth();
 
   const [mediadores, setMediadores] = useState<any[]>([]);
@@ -36,6 +40,8 @@ export default function AgendaPage() {
   const [guardandoInvitacion, setGuardandoInvitacion] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  // Última invitación rápida creada (para ofrecer abrir su documento).
+  const [rapidaCreada, setRapidaCreada] = useState<any | null>(null);
 
   // Cambia cada vez que se crea una invitación, para forzar que el
   // calendario recargue sus propias citas (ver uso en el `key` más abajo).
@@ -117,6 +123,7 @@ export default function AgendaPage() {
     setInvitacionForm({ fecha: '', hora: '', observaciones: '' });
     setError('');
     setSuccessMessage('');
+    setRapidaCreada(null);
 
     if (!usuarioIdAgenda) {
       setProcesos([]);
@@ -187,6 +194,170 @@ export default function AgendaPage() {
     (p) => String(p.id) === procesoSeleccionadoId
   );
 
+  const hayFechaHora = !!(invitacionForm.fecha && invitacionForm.hora);
+  const nombreMediadorAgenda = isAdmin
+    ? mediadorActivo
+      ? `${mediadorActivo.nombre} ${mediadorActivo.apellido}`
+      : undefined
+    : user.username;
+
+  // Todo lo de debajo del selector de mediador es igual para el mediador
+  // y para el admin: lo único que cambia es de quién es la agenda.
+  const contenidoAgenda = usuarioIdAgenda ? (
+    <>
+      {/* Agendar: con un proceso ya creado (como siempre) o, sin elegir
+          proceso, haciendo clic en una hora libre del calendario para crear
+          una invitación rápida (el proceso se crea después). */}
+      <div className="mb-5 pb-5 border-b border-numa-100">
+        <h3 className="text-sm font-semibold text-numa-800 mb-1 flex items-center gap-2">
+          <CalendarPlus className="w-4 h-4 text-gold-600" />
+          Agendar nueva invitación
+        </h3>
+        <p className="text-xs text-numa-500 mb-3">
+          Haz clic en un día del calendario para crear una invitación rápida (sin proceso), o
+          elige primero un proceso ya creado.
+        </p>
+
+        {loadingProcesos ? (
+          <Spinner />
+        ) : procesos.length === 0 ? (
+          <p className="text-xs text-numa-400">
+            {isAdmin
+              ? `${mediadorActivo?.nombre || 'Este mediador'} no tiene`
+              : 'No tienes'}{' '}
+            procesos en negociación disponibles para agendar (o todos ya tienen una invitación
+            pendiente).
+          </p>
+        ) : (
+          <div className="max-w-md">
+            <SelectField
+              label="Proceso (opcional)"
+              value={procesoSeleccionadoId}
+              onChange={(e) => {
+                setProcesoSeleccionadoId(e.target.value);
+                setInvitacionForm({ fecha: '', hora: '', observaciones: '' });
+                setError('');
+                setSuccessMessage('');
+                setRapidaCreada(null);
+              }}
+            >
+              <option value="">Sin proceso (invitación rápida)</option>
+              {procesos.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.codigo_proceso} — {p.demandante} vs {p.demandado}
+                </option>
+              ))}
+            </SelectField>
+          </div>
+        )}
+      </div>
+
+      <CalendarioAgendaMediador
+        key={`${usuarioIdAgenda}-${calendarRefreshKey}`}
+        usuarioId={usuarioIdAgenda}
+        mediadorNombre={nombreMediadorAgenda}
+        permitirCrear
+        onConfirmar={(fecha, hora) => {
+          setInvitacionForm({ ...invitacionForm, fecha, hora });
+          setError('');
+          setSuccessMessage('');
+          setRapidaCreada(null);
+          bajarAObservaciones();
+        }}
+        onCitaActualizada={() => cargarProcesosDisponibles(usuarioIdAgenda)}
+        onVerCitaExistente={() => setInvitacionForm({ ...invitacionForm, fecha: '', hora: '' })}
+      />
+
+      {/* Con proceso elegido: observaciones y crear, igual que antes. */}
+      {procesoSeleccionado && hayFechaHora && (
+        <div ref={observacionesRef} className="mt-5 border-t border-numa-100 pt-5">
+          <p className="text-sm text-numa-700 mb-3">
+            Agendando para{' '}
+            <span className="font-semibold">
+              {procesoSeleccionado.codigo_proceso} — {procesoSeleccionado.demandante} vs{' '}
+              {procesoSeleccionado.demandado}
+            </span>{' '}
+            el <span className="font-semibold">{invitacionForm.fecha}</span> a las{' '}
+            <span className="font-semibold">{invitacionForm.hora}</span>.
+          </p>
+
+          <TextareaField
+            label="Observaciones"
+            rows={3}
+            value={invitacionForm.observaciones}
+            onChange={(e) =>
+              setInvitacionForm({
+                ...invitacionForm,
+                observaciones: e.target.value
+              })
+            }
+            placeholder="Ejemplo: Primera invitación a reunión de mediación..."
+          />
+
+          {error && (
+            <div className="mt-3">
+              <ErrorAlert message={error} />
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={handleCrearInvitacion}
+            disabled={guardandoInvitacion || !invitacionForm.observaciones.trim()}
+            className="btn-primary mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {guardandoInvitacion ? 'Guardando...' : 'Crear invitación'}
+          </button>
+        </div>
+      )}
+
+      {/* Sin proceso elegido: invitación rápida. */}
+      {!procesoSeleccionado && hayFechaHora && (
+        <div ref={observacionesRef}>
+          <InvitacionRapidaForm
+            fecha={invitacionForm.fecha}
+            hora={invitacionForm.hora}
+            usuarioId={usuarioIdAgenda}
+            onCancelar={() => setInvitacionForm({ fecha: '', hora: '', observaciones: '' })}
+            onCreada={(cita) => {
+              setRapidaCreada(cita);
+              setInvitacionForm({ fecha: '', hora: '', observaciones: '' });
+              setCalendarRefreshKey((k) => k + 1);
+            }}
+          />
+        </div>
+      )}
+
+      {rapidaCreada && !hayFechaHora && (
+        <div className="mt-5 border border-green-200 bg-green-50 rounded-sm p-4">
+          <p className="text-sm text-green-800 font-medium mb-3">
+            Invitación rápida creada para el {String(rapidaCreada.fecha).slice(0, 10)} a las{' '}
+            {String(rapidaCreada.hora).slice(0, 5)}.
+          </p>
+          <div className="flex flex-wrap items-start gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                router.push(`/procesos/rapida/invitacion-imprimir?cita=${rapidaCreada.id}`)
+              }
+              className="btn-primary inline-flex items-center gap-2"
+            >
+              <FileText className="w-4 h-4" />
+              Abrir documento de la invitación
+            </button>
+            {rapidaCreada.usuario_id === user.id && <PedirNumeroActaBoton />}
+          </div>
+        </div>
+      )}
+
+      {successMessage && !hayFechaHora && (
+        <div className="mt-5">
+          <SuccessAlert message={successMessage} />
+        </div>
+      )}
+    </>
+  ) : null;
+
   return (
     <>
       <PageHeader
@@ -247,214 +418,10 @@ export default function AgendaPage() {
           ) : !mediadorSeleccionadoId ? (
             <EmptyState message="Selecciona un mediador para ver su agenda." />
           ) : (
-            <>
-              {/* Agendar una invitación nueva: primero se elige a qué
-                  proceso pertenece (no hay forma de saber a quién se
-                  refiere un proceso con solo su número), y recién ahí se
-                  habilita el calendario para escoger fecha y hora. */}
-              <div className="mb-5 pb-5 border-b border-numa-100">
-                <h3 className="text-sm font-semibold text-numa-800 mb-3 flex items-center gap-2">
-                  <CalendarPlus className="w-4 h-4 text-gold-600" />
-                  Agendar nueva invitación
-                </h3>
-
-                {loadingProcesos ? (
-                  <Spinner />
-                ) : procesos.length === 0 ? (
-                  <p className="text-xs text-numa-400">
-                    {mediadorActivo?.nombre || 'Este mediador'} no tiene procesos en negociación
-                    disponibles para agendar (o todos ya tienen una invitación pendiente).
-                  </p>
-                ) : (
-                  <div className="max-w-md">
-                    <SelectField
-                      label="Proceso"
-                      value={procesoSeleccionadoId}
-                      onChange={(e) => {
-                        setProcesoSeleccionadoId(e.target.value);
-                        setInvitacionForm({ fecha: '', hora: '', observaciones: '' });
-                        setError('');
-                        setSuccessMessage('');
-                      }}
-                    >
-                      <option value="">Selecciona un proceso</option>
-                      {procesos.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.codigo_proceso} — {p.demandante} vs {p.demandado}
-                        </option>
-                      ))}
-                    </SelectField>
-                  </div>
-                )}
-              </div>
-
-              <CalendarioAgendaMediador
-                key={`${mediadorSeleccionadoId}-${calendarRefreshKey}`}
-                usuarioId={Number(mediadorSeleccionadoId)}
-                mediadorNombre={
-                  mediadorActivo ? `${mediadorActivo.nombre} ${mediadorActivo.apellido}` : undefined
-                }
-                permitirCrear={!!procesoSeleccionadoId}
-                onConfirmar={(fecha, hora) => {
-                  setInvitacionForm({ ...invitacionForm, fecha, hora });
-                  setError('');
-                  setSuccessMessage('');
-                  bajarAObservaciones();
-                }}
-                onCitaActualizada={() => cargarProcesosDisponibles(Number(mediadorSeleccionadoId))}
-                onVerCitaExistente={() => setInvitacionForm({ ...invitacionForm, fecha: '', hora: '' })}
-              />
-
-              {procesoSeleccionado && invitacionForm.fecha && invitacionForm.hora && (
-                <div ref={observacionesRef} className="mt-5 border-t border-numa-100 pt-5">
-                  <p className="text-sm text-numa-700 mb-3">
-                    Agendando para{' '}
-                    <span className="font-semibold">
-                      {procesoSeleccionado.codigo_proceso} — {procesoSeleccionado.demandante} vs{' '}
-                      {procesoSeleccionado.demandado}
-                    </span>{' '}
-                    el <span className="font-semibold">{invitacionForm.fecha}</span> a las{' '}
-                    <span className="font-semibold">{invitacionForm.hora}</span>.
-                  </p>
-
-                  <TextareaField
-                    label="Observaciones"
-                    rows={3}
-                    value={invitacionForm.observaciones}
-                    onChange={(e) =>
-                      setInvitacionForm({
-                        ...invitacionForm,
-                        observaciones: e.target.value
-                      })
-                    }
-                    placeholder="Ejemplo: Primera invitación a reunión de mediación..."
-                  />
-
-                  {error && (
-                    <div className="mt-3">
-                      <ErrorAlert message={error} />
-                    </div>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={handleCrearInvitacion}
-                    disabled={guardandoInvitacion || !invitacionForm.observaciones.trim()}
-                    className="btn-primary mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {guardandoInvitacion ? 'Guardando...' : 'Crear invitación'}
-                  </button>
-                </div>
-              )}
-
-              {successMessage && !invitacionForm.fecha && (
-                <div className="mt-5">
-                  <SuccessAlert message={successMessage} />
-                </div>
-              )}
-            </>
+            contenidoAgenda
           )
         ) : (
-          <>
-            <div className="mb-5 pb-5 border-b border-numa-100">
-              <h3 className="text-sm font-semibold text-numa-800 mb-3 flex items-center gap-2">
-                <CalendarPlus className="w-4 h-4 text-gold-600" />
-                Agendar nueva invitación
-              </h3>
-
-              {loadingProcesos ? (
-                <Spinner />
-              ) : procesos.length === 0 ? (
-                <p className="text-xs text-numa-400">
-                  No tienes procesos en negociación disponibles para agendar (o todos ya tienen
-                  una invitación pendiente).
-                </p>
-              ) : (
-                <div className="max-w-md">
-                  <SelectField
-                    label="Proceso"
-                    value={procesoSeleccionadoId}
-                    onChange={(e) => {
-                      setProcesoSeleccionadoId(e.target.value);
-                      setInvitacionForm({ fecha: '', hora: '', observaciones: '' });
-                      setError('');
-                      setSuccessMessage('');
-                    }}
-                  >
-                    <option value="">Selecciona un proceso</option>
-                    {procesos.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.codigo_proceso} — {p.demandante} vs {p.demandado}
-                      </option>
-                    ))}
-                  </SelectField>
-                </div>
-              )}
-            </div>
-
-            <CalendarioAgendaMediador
-              key={calendarRefreshKey}
-              usuarioId={user.id}
-              mediadorNombre={user.username}
-              permitirCrear={!!procesoSeleccionadoId}
-              onConfirmar={(fecha, hora) => {
-                setInvitacionForm({ ...invitacionForm, fecha, hora });
-                setError('');
-                setSuccessMessage('');
-                bajarAObservaciones();
-              }}
-              onCitaActualizada={() => user?.id && cargarProcesosDisponibles(user.id)}
-              onVerCitaExistente={() => setInvitacionForm({ ...invitacionForm, fecha: '', hora: '' })}
-            />
-
-            {procesoSeleccionado && invitacionForm.fecha && invitacionForm.hora && (
-              <div ref={observacionesRef} className="mt-5 border-t border-numa-100 pt-5">
-                <p className="text-sm text-numa-700 mb-3">
-                  Agendando para{' '}
-                  <span className="font-semibold">
-                    {procesoSeleccionado.codigo_proceso} — {procesoSeleccionado.demandante} vs{' '}
-                    {procesoSeleccionado.demandado}
-                  </span>{' '}
-                  el <span className="font-semibold">{invitacionForm.fecha}</span> a las{' '}
-                  <span className="font-semibold">{invitacionForm.hora}</span>.
-                </p>
-
-                <TextareaField
-                  label="Observaciones"
-                  rows={3}
-                  value={invitacionForm.observaciones}
-                  onChange={(e) =>
-                    setInvitacionForm({
-                      ...invitacionForm,
-                      observaciones: e.target.value
-                    })
-                  }
-                  placeholder="Ejemplo: Primera invitación a reunión de mediación..."
-                />
-
-                {error && (
-                  <div className="mt-3">
-                    <ErrorAlert message={error} />
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  onClick={handleCrearInvitacion}
-                  disabled={guardandoInvitacion || !invitacionForm.observaciones.trim()}
-                  className="btn-primary mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {guardandoInvitacion ? 'Guardando...' : 'Crear invitación'}
-                </button>
-              </div>
-            )}
-
-            {successMessage && !invitacionForm.fecha && (
-              <div className="mt-5">
-                <SuccessAlert message={successMessage} />
-              </div>
-            )}
-          </>
+          contenidoAgenda
         )}
       </div>
     </>

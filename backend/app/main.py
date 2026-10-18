@@ -157,6 +157,40 @@ def generar_recordatorios_citas():
                     cita["proceso_id"]
                 )
 
+        # Invitaciones rápidas (aún sin proceso): mismo recordatorio, pero
+        # apuntando a la propia invitación.
+        cur.execute("""
+            SELECT ct.id, ct.fecha, ct.hora, ct.usuario_id, ct.partes_rapidas,
+                   s.nombre AS sucursal, ci.nombre AS ciudad
+            FROM citas ct
+            JOIN sucursales s ON ct.sucursal_id = s.id
+            JOIN ciudades ci ON s.ciudad_id = ci.id
+            WHERE ct.proceso_id IS NULL
+              AND ct.partes_rapidas IS NOT NULL
+              AND ct.estado = 'pendiente'
+              AND ct.fecha IN (%s, %s)
+        """, (hoy, manana))
+
+        for ct in cur.fetchall():
+            pr = ct["partes_rapidas"] or {}
+            sol, _ = _resumen_lado_rapido(pr.get("solicitantes"))
+            inv, _ = _resumen_lado_rapido(pr.get("invitados"))
+            titulo = "Invitación para hoy" if str(ct["fecha"]) == str(hoy) else "Invitación para mañana"
+            mensaje = f"{sol} vs {inv} | {ct['ciudad']} - {ct['sucursal']} | {ct['fecha']} {ct['hora']}"
+
+            cur.execute("SELECT id FROM usuarios WHERE rol = 'administrador' AND activo = true")
+            destino = {ct["usuario_id"]} | {a["id"] for a in cur.fetchall()}
+
+            for uid in destino:
+                cur.execute("""
+                    SELECT id FROM notificaciones
+                    WHERE usuario_id = %s AND referencia_tipo = 'cita'
+                      AND referencia_id = %s AND titulo = %s AND mensaje = %s
+                """, (uid, ct["id"], titulo, mensaje))
+                if cur.fetchone():
+                    continue
+                crear_notificacion(cur, uid, titulo, mensaje, "recordatorio", "cita", ct["id"])
+
         conn.commit()
 
     except Exception as e:
@@ -2708,6 +2742,9 @@ def obtener_citas(
                 c.estado,
                 c.motivo_cancelacion,
                 c.fecha_creacion,
+                c.partes_rapidas,
+                cp.nombre || ' ' || cp.apellido AS creado_por,
+                pm.codigo_proceso AS codigo_proceso,
                 a.codigo_acta,
                 s.nombre AS sucursal,
                 ci.nombre AS ciudad,
@@ -2722,8 +2759,10 @@ def obtener_citas(
             JOIN sucursales s ON c.sucursal_id = s.id
             LEFT JOIN ciudades ci ON s.ciudad_id = ci.id
             JOIN usuarios u ON c.usuario_id = u.id
-            JOIN clientes cd ON c.cliente_demandante_id = cd.id
-            JOIN clientes cdd ON c.cliente_demandado_id = cdd.id
+            LEFT JOIN usuarios cp ON cp.id = c.creado_por_id
+            LEFT JOIN procesos_mediacion pm ON pm.id = c.proceso_id
+            LEFT JOIN clientes cd ON c.cliente_demandante_id = cd.id
+            LEFT JOIN clientes cdd ON c.cliente_demandado_id = cdd.id
             WHERE 1=1
         """
 
@@ -2753,7 +2792,17 @@ def obtener_citas(
         query += " ORDER BY c.fecha ASC, c.hora ASC"
 
         cur.execute(query, tuple(params))
-        return cur.fetchall()
+        filas = cur.fetchall()
+
+        # Invitaciones rápidas (aún sin proceso): no tienen clientes
+        # registrados; se muestran con las partes que se escribieron al crearlas.
+        for fila in filas:
+            pr = fila.get("partes_rapidas")
+            if pr and not fila.get("demandante"):
+                fila["demandante"], fila["demandante_cedula"] = _resumen_lado_rapido(pr.get("solicitantes"))
+                fila["demandado"], fila["demandado_cedula"] = _resumen_lado_rapido(pr.get("invitados"))
+
+        return filas
 
     finally:
         cur.close()
@@ -2917,6 +2966,7 @@ def crear_proceso_mediacion(
     sucursal_id: int = None,
     empresa_solicitante_id: int = None,
     empresa_invitado_id: int = None,
+    cita_rapida_id: int = None,
     usuario=Depends(obtener_usuario_actual)
 ):
     conn = get_db()
@@ -2971,6 +3021,31 @@ def crear_proceso_mediacion(
                 detail="Sucursal obligatoria"
             )
 
+        # Si el proceso nace de una invitación rápida de la Agenda, se valida
+        # antes de gastar el número de proceso.
+        if cita_rapida_id:
+            cur.execute(
+                "SELECT id, usuario_id, sucursal_id, proceso_id, estado FROM citas WHERE id = %s FOR UPDATE",
+                (cita_rapida_id,)
+            )
+            cita_rapida = cur.fetchone()
+            if not cita_rapida:
+                raise HTTPException(status_code=404, detail="La invitación rápida no existe")
+            if cita_rapida["proceso_id"]:
+                raise HTTPException(status_code=400, detail="Esa invitación ya está enlazada a un proceso")
+            if cita_rapida["estado"] == "cancelada":
+                raise HTTPException(status_code=400, detail="Esa invitación fue cancelada")
+            if cita_rapida["usuario_id"] != usuario["id"]:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Solo el mediador de esa invitación puede crear el proceso desde ella"
+                )
+            if cita_rapida["sucursal_id"] != sucursal_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="La sucursal del proceso debe ser la misma de la invitación rápida"
+                )
+
         # Contador propio en la base: nunca retrocede ni repite un número,
         # aunque algún proceso se borre o se anule.
         cur.execute("SELECT nextval('procesos_codigo_seq') AS n")
@@ -3011,6 +3086,18 @@ def crear_proceso_mediacion(
             proceso["id"], cliente_demandante_id, empresa_solicitante_id,
             proceso["id"], cliente_demandado_id, empresa_invitado_id
         ))
+
+        # La invitación rápida queda enlazada al proceso: desde aquí aparece
+        # en su línea de tiempo y se puede registrar su resultado.
+        if cita_rapida_id:
+            cur.execute("""
+                UPDATE citas
+                SET proceso_id = %s,
+                    cliente_demandante_id = %s,
+                    cliente_demandado_id = %s,
+                    fecha_modificacion = NOW()
+                WHERE id = %s
+            """, (proceso["id"], cliente_demandante_id, cliente_demandado_id, cita_rapida_id))
 
         conn.commit()
 
@@ -3839,6 +3926,338 @@ def crear_invitacion_proceso(
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+    finally:
+        cur.close()
+        conn.close()
+
+
+
+# =========================
+# INVITACIÓN RÁPIDA (desde la Agenda, sin crear proceso)
+# =========================
+def _limpiar_partes_rapidas(datos, cedula_mediador=None):
+    """Valida y normaliza las partes de una invitación rápida. En cada lado
+    van solo personas naturales (nombre + cédula) o UNA sola empresa con su
+    representante legal (nombre + cédula)."""
+    resultado = {}
+    cedulas_vistas = {}
+    for clave, etiqueta, singular in (
+        ("solicitantes", "solicitantes", "solicitante"),
+        ("invitados", "invitados", "invitado"),
+    ):
+        lista = datos.get(clave)
+        if not isinstance(lista, list) or not lista:
+            raise HTTPException(status_code=400, detail=f"Agrega al menos un {singular}")
+        if len(lista) > 10:
+            raise HTTPException(status_code=400, detail=f"Demasiados {etiqueta} (máximo 10)")
+
+        limpio = []
+        for x in lista:
+            if not isinstance(x, dict):
+                raise HTTPException(status_code=400, detail="Datos de partes inválidos")
+            tipo = (x.get("tipo") or "persona").strip().lower()
+            if tipo == "empresa":
+                if len(lista) > 1:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"En los {etiqueta} va una sola empresa, o solo personas naturales; no se pueden mezclar."
+                    )
+                razon = (x.get("razon_social") or "").strip()[:200]
+                ruc = re.sub(r"\D", "", x.get("ruc") or "")
+                rep_nombre = (x.get("representante_nombre") or "").strip()[:200]
+                rep_cedula = (x.get("representante_cedula") or "").strip()
+                if not razon:
+                    raise HTTPException(status_code=400, detail=f"Falta la razón social de la empresa ({singular})")
+                if ruc and len(ruc) != 13:
+                    raise HTTPException(status_code=400, detail="El RUC debe tener 13 dígitos")
+                if not rep_nombre:
+                    raise HTTPException(status_code=400, detail=f"Falta el nombre del representante legal ({singular})")
+                if not validar_cedula_ecuatoriana(rep_cedula):
+                    raise HTTPException(status_code=400, detail=f"La cédula del representante legal ({singular}) es inválida")
+                cedula_clave = rep_cedula
+                limpio.append({
+                    "tipo": "empresa", "razon_social": razon, "ruc": ruc or None,
+                    "representante_nombre": rep_nombre, "representante_cedula": rep_cedula,
+                })
+            else:
+                nombre = (x.get("nombre") or "").strip()[:200]
+                cedula = (x.get("cedula") or "").strip()
+                if not nombre:
+                    raise HTTPException(status_code=400, detail=f"Falta el nombre de un {singular}")
+                if not validar_cedula_ecuatoriana(cedula):
+                    raise HTTPException(status_code=400, detail=f"La cédula de {nombre} es inválida")
+                cedula_clave = cedula
+                limpio.append({"tipo": "persona", "nombre": nombre, "cedula": cedula})
+
+            if cedula_clave in cedulas_vistas:
+                raise HTTPException(
+                    status_code=400,
+                    detail="La misma cédula no puede repetirse entre solicitantes e invitados"
+                )
+            cedulas_vistas[cedula_clave] = True
+            if cedula_mediador and cedula_clave == cedula_mediador:
+                raise HTTPException(
+                    status_code=400,
+                    detail="El mediador no puede ser parte de la invitación que él mismo llevaría. Pide a otro mediador o al administrador que la cree."
+                )
+        resultado[clave] = limpio
+    return resultado
+
+
+def _resumen_lado_rapido(lista):
+    """Texto corto de un lado de la invitación rápida: nombres y cédulas."""
+    nombres, cedulas = [], []
+    for x in lista or []:
+        if x.get("tipo") == "empresa":
+            nombres.append(x.get("razon_social") or "")
+            cedulas.append(x.get("representante_cedula") or "")
+        else:
+            nombres.append(x.get("nombre") or "")
+            cedulas.append(x.get("cedula") or "")
+    return ", ".join(n for n in nombres if n), ", ".join(c for c in cedulas if c)
+
+
+def _partes_desde_rapidas(pr):
+    """Convierte las partes de una invitación rápida al mismo formato que
+    usa el documento imprimible para las partes de un proceso."""
+    salida = []
+    n = 0
+    for rol, clave in (("solicitante", "solicitantes"), ("invitado", "invitados")):
+        for x in (pr or {}).get(clave) or []:
+            n += 1
+            base = {
+                "id": n, "rol": rol, "es_responsable": n == 1, "cliente_id": None,
+                "empresa_representada_id": None, "empresa_nombre": None,
+                "apellido": "", "razon_social": None, "ruc": None,
+                "representante_nombre": None, "representante_cedula": None,
+                "cedula": None,
+            }
+            if x.get("tipo") == "empresa":
+                base.update({
+                    "tipo": "empresa", "nombre": x.get("razon_social") or "",
+                    "razon_social": x.get("razon_social"), "ruc": x.get("ruc"),
+                    "representante_nombre": x.get("representante_nombre"),
+                    "representante_cedula": x.get("representante_cedula"),
+                })
+            else:
+                base.update({"tipo": "persona", "nombre": x.get("nombre") or "", "cedula": x.get("cedula")})
+            salida.append(base)
+    return salida
+
+
+@app.post("/citas/rapida")
+def crear_invitacion_rapida(datos: dict, usuario=Depends(obtener_usuario_actual)):
+    """Crea una invitación desde la Agenda SIN crear el proceso. Las partes
+    se guardan en la propia invitación; cuando luego se crea el proceso, la
+    invitación se enlaza a él."""
+    fecha = (datos.get("fecha") or "").strip()
+    hora = (datos.get("hora") or "").strip()
+    observaciones = (datos.get("observaciones") or "").strip()
+    tema = (datos.get("tema") or "").strip()[:500]
+
+    if not observaciones:
+        raise HTTPException(status_code=400, detail="Debes ingresar una observación para la invitación")
+
+    try:
+        fecha_hora_cita = datetime.datetime.strptime(f"{fecha} {hora[:5]}", "%Y-%m-%d %H:%M")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Fecha u hora inválida")
+    hora = hora[:5]
+
+    # Hora local de Ecuador (UTC-5) contra el reloj del servidor (UTC).
+    if fecha_hora_cita + datetime.timedelta(hours=5) < datetime.datetime.utcnow():
+        raise HTTPException(
+            status_code=400,
+            detail="No se puede agendar una invitación en una fecha u hora pasada"
+        )
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        # El mediador dueño de la invitación: uno mismo, o (admin) el que se
+        # esté viendo en la Agenda.
+        mediador_id = usuario["id"]
+        if usuario["rol"] == "administrador" and datos.get("usuario_id"):
+            try:
+                mediador_id = int(datos.get("usuario_id"))
+            except (TypeError, ValueError):
+                raise HTTPException(status_code=400, detail="Mediador inválido")
+
+        cur.execute(
+            "SELECT id, sucursal_id, cedula, activo FROM usuarios WHERE id = %s",
+            (mediador_id,)
+        )
+        mediador = cur.fetchone()
+        if not mediador or not mediador["activo"]:
+            raise HTTPException(status_code=404, detail="Mediador no encontrado")
+        if not mediador["sucursal_id"]:
+            raise HTTPException(status_code=400, detail="El mediador no tiene sucursal asignada")
+
+        partes = _limpiar_partes_rapidas(datos, mediador["cedula"])
+
+        cur.execute("""
+            SELECT id FROM citas
+            WHERE usuario_id = %s AND fecha = %s AND hora = %s AND estado = 'pendiente'
+        """, (mediador_id, fecha, hora))
+        if cur.fetchone():
+            raise HTTPException(
+                status_code=400,
+                detail=f"El mediador ya tiene otra invitación pendiente el {fecha} a las {hora}. Elige otra hora."
+            )
+
+        try:
+            cur.execute("""
+                INSERT INTO citas (
+                    proceso_id, cliente_demandante_id, cliente_demandado_id,
+                    sucursal_id, usuario_id, creado_por_id,
+                    fecha, hora, tema, observaciones, estado,
+                    partes_rapidas, fecha_creacion, fecha_modificacion
+                )
+                VALUES (NULL, NULL, NULL, %s, %s, %s, %s, %s, %s, %s, 'pendiente', %s::jsonb, NOW(), NOW())
+                RETURNING *
+            """, (
+                mediador["sucursal_id"], mediador_id, usuario["id"],
+                fecha, hora, tema or "Invitación rápida", observaciones,
+                json.dumps(partes)
+            ))
+        except psycopg2_errors.UniqueViolation:
+            conn.rollback()
+            raise HTTPException(
+                status_code=400,
+                detail=f"El mediador ya tiene otra invitación pendiente el {fecha} a las {hora}. Elige otra hora."
+            )
+        cita = cur.fetchone()
+
+        sol, _ = _resumen_lado_rapido(partes["solicitantes"])
+        inv, _ = _resumen_lado_rapido(partes["invitados"])
+        cur.execute("SELECT id FROM usuarios WHERE rol = 'administrador' AND activo = true")
+        for admin in cur.fetchall():
+            crear_notificacion(
+                cur, admin["id"], "Nueva invitación rápida",
+                f"{sol} vs {inv} | {fecha} {hora}",
+                "cita", "cita", cita["id"]
+            )
+
+        conn.commit()
+        return cita
+
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/citas/{cita_id}/invitacion-datos")
+def datos_invitacion_rapida(cita_id: int, usuario=Depends(obtener_usuario_actual)):
+    """Datos para el documento imprimible de una invitación rápida (misma
+    forma que los de una invitación de proceso)."""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT
+                c.id, c.usuario_id, c.proceso_id, c.tema, c.partes_rapidas,
+                c.fecha, c.hora, c.estado, c.observaciones, c.documento,
+                c.fecha_creacion,
+                cp.nombre || ' ' || cp.apellido AS creado_por,
+                s.nombre AS sucursal, s.direccion AS sucursal_direccion,
+                s.telefono AS sucursal_telefono,
+                s.admin_telefono AS sucursal_admin_telefono,
+                s.admin_email AS sucursal_admin_email,
+                ci.nombre AS ciudad,
+                u.nombre AS mediador_nombre, u.apellido AS mediador_apellido,
+                u.cedula AS mediador_cedula, u.telefono AS mediador_telefono,
+                u.email AS mediador_email
+            FROM citas c
+            JOIN sucursales s ON s.id = c.sucursal_id
+            JOIN ciudades ci ON ci.id = s.ciudad_id
+            JOIN usuarios u ON u.id = c.usuario_id
+            LEFT JOIN usuarios cp ON cp.id = c.creado_por_id
+            WHERE c.id = %s
+        """, (cita_id,))
+        c = cur.fetchone()
+        if not c:
+            raise HTTPException(status_code=404, detail="Invitación no encontrada")
+        if usuario["rol"] != "administrador" and c["usuario_id"] != usuario["id"]:
+            raise HTTPException(status_code=403, detail="No puedes ver esta invitación")
+        if c["proceso_id"]:
+            raise HTTPException(
+                status_code=409,
+                detail=f"proceso:{c['proceso_id']}"
+            )
+
+        proceso = {
+            "id": None, "usuario_id": c["usuario_id"],
+            "tema": "" if c["tema"] == "Invitación rápida" else (c["tema"] or ""),
+            "codigo_proceso": None,
+            "sucursal": c["sucursal"], "sucursal_direccion": c["sucursal_direccion"],
+            "sucursal_telefono": c["sucursal_telefono"],
+            "sucursal_admin_telefono": c["sucursal_admin_telefono"],
+            "sucursal_admin_email": c["sucursal_admin_email"],
+            "ciudad": c["ciudad"],
+            "mediador_nombre": c["mediador_nombre"], "mediador_apellido": c["mediador_apellido"],
+            "mediador_cedula": c["mediador_cedula"], "mediador_telefono": c["mediador_telefono"],
+            "mediador_email": c["mediador_email"],
+        }
+        cita = {
+            "id": c["id"], "fecha": c["fecha"], "hora": c["hora"], "estado": c["estado"],
+            "observaciones": c["observaciones"], "documento": c["documento"],
+            "fecha_creacion": c["fecha_creacion"], "creado_por": c["creado_por"],
+        }
+        return {
+            "proceso": proceso,
+            "partes": _partes_desde_rapidas(c["partes_rapidas"]),
+            "citas": [cita],
+            "rapida": True,
+        }
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.put("/citas/{cita_id}/documento")
+def guardar_documento_invitacion_rapida(
+    cita_id: int,
+    datos: dict,
+    usuario=Depends(obtener_usuario_actual)
+):
+    """Guarda los textos del documento de una invitación rápida."""
+    limpio = _documento_limpio(datos)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("SELECT usuario_id, estado, proceso_id FROM citas WHERE id = %s", (cita_id,))
+        fila = cur.fetchone()
+        if not fila:
+            raise HTTPException(status_code=404, detail="Invitación no encontrada")
+        if fila["proceso_id"]:
+            raise HTTPException(status_code=400, detail="Esta invitación ya pertenece a un proceso")
+        if fila["estado"] != "pendiente":
+            raise HTTPException(
+                status_code=400,
+                detail="Esta invitación ya no está pendiente: solo se puede imprimir, no modificar"
+            )
+        if usuario["rol"] != "administrador" and fila["usuario_id"] != usuario["id"]:
+            raise HTTPException(status_code=403, detail="No puedes modificar esta invitación")
+
+        cur.execute(
+            "UPDATE citas SET documento = %s::jsonb WHERE id = %s",
+            (json.dumps(limpio), cita_id)
+        )
+        conn.commit()
+        return {"ok": True, "documento": limpio}
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         cur.close()
         conn.close()
@@ -5735,8 +6154,11 @@ def datos_invitacion_imprimible(proceso_id: int, usuario=Depends(obtener_usuario
             raise HTTPException(status_code=403, detail="No puedes ver este proceso")
 
         cur.execute("""
-            SELECT id, fecha, hora, estado, observaciones, documento
-            FROM citas WHERE proceso_id = %s ORDER BY id ASC
+            SELECT c.id, c.fecha, c.hora, c.estado, c.observaciones, c.documento,
+                   c.fecha_creacion, cp.nombre || ' ' || cp.apellido AS creado_por
+            FROM citas c
+            LEFT JOIN usuarios cp ON cp.id = c.creado_por_id
+            WHERE c.proceso_id = %s ORDER BY c.id ASC
         """, (proceso_id,))
         citas = cur.fetchall()
 
@@ -5755,15 +6177,7 @@ _CAMPOS_DOCUMENTO = {
 }
 
 
-@app.put("/procesos/{proceso_id}/citas/{cita_id}/documento")
-def guardar_documento_invitacion(
-    proceso_id: int,
-    cita_id: int,
-    datos: dict,
-    usuario=Depends(obtener_usuario_actual)
-):
-    """Guarda los textos con los que se arma el documento de la invitación
-    (lugar, asunto, título, etc.) para poder reimprimirlo igual después."""
+def _documento_limpio(datos):
     limpio = {}
     for campo, maximo in _CAMPOS_DOCUMENTO.items():
         valor = datos.get(campo)
@@ -5775,6 +6189,19 @@ def guardar_documento_invitacion(
 
     if limpio.get("modelo") and limpio["modelo"] not in ("natural", "empresa"):
         raise HTTPException(status_code=400, detail="Modelo inválido")
+    return limpio
+
+
+@app.put("/procesos/{proceso_id}/citas/{cita_id}/documento")
+def guardar_documento_invitacion(
+    proceso_id: int,
+    cita_id: int,
+    datos: dict,
+    usuario=Depends(obtener_usuario_actual)
+):
+    """Guarda los textos con los que se arma el documento de la invitación
+    (lugar, asunto, título, etc.) para poder reimprimirlo igual después."""
+    limpio = _documento_limpio(datos)
 
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -8034,6 +8461,7 @@ def obtener_expediente_proceso(
                 c.estado,
                 c.observaciones,
                 c.motivo_cancelacion,
+                c.fecha_creacion,
                 cp.nombre || ' ' || cp.apellido AS creado_por,
                 av.resultado,
                 av.observacion AS avance_observacion,

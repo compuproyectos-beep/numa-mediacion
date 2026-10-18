@@ -4,11 +4,40 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ChevronLeft, ChevronRight, FileText, FolderPlus } from 'lucide-react';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 import { InputField, TextareaField, Spinner, ErrorAlert, Modal } from '@/components/ui';
 import { getCitas, cambiarEstadoCita } from '@/lib/services';
+import { useAuth } from '@/hooks/useAuth';
+import PedirNumeroActaBoton from '@/components/actas/PedirNumeroActaBoton';
+
+// Las fechas vienen del servidor en UTC: se muestran en hora de Ecuador.
+const fechaCreacionEC = (v: any) => {
+  if (!v) return '';
+  const iso = String(v).replace(' ', 'T');
+  const d = new Date(/(Z|[+-]\d\d:?\d\d)$/.test(iso) ? iso : `${iso}Z`);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleString('es-EC', {
+    timeZone: 'America/Guayaquil',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+// Partes de una invitación rápida, una línea por lado, con cédulas.
+const textoLadoRapido = (lista: any[] | undefined) =>
+  (lista || [])
+    .map((x: any) =>
+      x.tipo === 'empresa'
+        ? `${x.razon_social}${x.ruc ? ` (RUC ${x.ruc})` : ''} — representante legal: ${x.representante_nombre} (C.I. ${x.representante_cedula})`
+        : `${x.nombre} (C.I. ${x.cedula})`
+    )
+    .join('; ');
 
 const locales = { es };
 
@@ -185,6 +214,8 @@ export default function CalendarioAgendaMediador({
   onCitaActualizada,
   onVerCitaExistente,
 }: CalendarioAgendaMediadorProps) {
+  const router = useRouter();
+  const { user: usuarioActual } = useAuth();
   const [citas, setCitas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [calendarDate, setCalendarDate] = useState(new Date());
@@ -567,7 +598,23 @@ export default function CalendarioAgendaMediador({
                 <span className="font-semibold capitalize">
                   {citaActiva.estado === 'no_realizada' ? 'no realizada' : citaActiva.estado}
                 </span>
+                {!citaActiva.proceso_id && citaActiva.partes_rapidas && (
+                  <span className="ml-2 badge bg-numa-100 text-numa-700">
+                    Invitación rápida · sin proceso
+                  </span>
+                )}
               </p>
+              {citaActiva.fecha_creacion && (
+                <p className="text-xs text-numa-500 mt-0.5">
+                  Creada el{' '}
+                  <span className="font-semibold">{fechaCreacionEC(citaActiva.fecha_creacion)}</span>
+                  {citaActiva.creado_por && (
+                    <>
+                      {' '}por <span className="font-semibold">{citaActiva.creado_por}</span>
+                    </>
+                  )}
+                </p>
+              )}
             </div>
 
             <span
@@ -595,7 +642,32 @@ export default function CalendarioAgendaMediador({
               </p>
             )}
 
-            {(citaActiva.demandante || citaActiva.demandado) && (
+            {citaActiva.partes_rapidas && !citaActiva.proceso_id && (
+              <>
+                <p>
+                  <span className="text-numa-500">Solicitante(s):</span>{' '}
+                  <span className="text-numa-800 font-medium">
+                    {textoLadoRapido(citaActiva.partes_rapidas.solicitantes)}
+                  </span>
+                </p>
+                <p>
+                  <span className="text-numa-500">Invitado(s):</span>{' '}
+                  <span className="text-numa-800 font-medium">
+                    {textoLadoRapido(citaActiva.partes_rapidas.invitados)}
+                  </span>
+                </p>
+              </>
+            )}
+
+            {citaActiva.codigo_proceso && (
+              <p>
+                <span className="text-numa-500">Proceso:</span>{' '}
+                <span className="text-numa-800 font-medium">{citaActiva.codigo_proceso}</span>
+              </p>
+            )}
+
+            {(citaActiva.demandante || citaActiva.demandado) &&
+              !(citaActiva.partes_rapidas && !citaActiva.proceso_id) && (
               <p>
                 <span className="text-numa-500">Partes:</span>{' '}
                 <span className="text-numa-800 font-medium">
@@ -640,6 +712,32 @@ export default function CalendarioAgendaMediador({
               </p>
             )}
           </div>
+
+          {citaActiva.partes_rapidas && !citaActiva.proceso_id && citaActiva.estado !== 'cancelada' && (
+            <div className="flex flex-wrap items-start gap-3 mb-4">
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(`/procesos/rapida/invitacion-imprimir?cita=${citaActiva.id}`)
+                }
+                className="btn-secondary inline-flex items-center gap-2"
+              >
+                <FileText className="w-4 h-4" />
+                {citaActiva.estado === 'pendiente' ? 'Documento de la invitación' : 'Ver documento'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => router.push(`/procesos?crear=1&cita=${citaActiva.id}`)}
+                className="btn-secondary inline-flex items-center gap-2"
+              >
+                <FolderPlus className="w-4 h-4" />
+                Crear el proceso
+              </button>
+
+              {usuarioActual?.id === citaActiva.usuario_id && <PedirNumeroActaBoton />}
+            </div>
+          )}
 
           {errorEstado && (
             <div className="mb-3">

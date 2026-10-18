@@ -6,8 +6,10 @@ import Link from 'next/link';
 import { ArrowLeft, Printer, Save } from 'lucide-react';
 import {
   getDatosInvitacion,
+  getDatosInvitacionRapida,
   crearInvitacionProceso,
-  guardarDocumentoInvitacion
+  guardarDocumentoInvitacion,
+  guardarDocumentoInvitacionRapida
 } from '@/lib/services';
 import { hoyEcuador } from '@/lib/accionProceso';
 
@@ -50,6 +52,22 @@ const horaTexto = (h: string) => {
   return `${hh || '00'}H${mm || '00'}`;
 };
 
+// Las fechas vienen del servidor en UTC: se muestran en hora de Ecuador.
+const fechaCreacionEC = (v: any) => {
+  if (!v) return '';
+  const iso = String(v).replace(' ', 'T');
+  const d = new Date(/(Z|[+-]\d\d:?\d\d)$/.test(iso) ? iso : `${iso}Z`);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleString('es-EC', {
+    timeZone: 'America/Guayaquil',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
 const nombreCompleto = (p: any) => `${p.nombre} ${p.apellido || ''}`.trim();
 
 // Cómo se nombra a cada parte en la invitación.
@@ -59,13 +77,17 @@ const nombreParte = (p: any) => {
       fuerte: p.representante_nombre
         ? `${p.representante_nombre}`
         : nombreCompleto(p),
+      cedula: p.representante_nombre ? p.representante_cedula || '' : '',
       resto: p.representante_nombre
-        ? `, representante legal de ${nombreCompleto(p)}`
+        ? `, representante legal de ${nombreCompleto(p)}${p.ruc ? ` (RUC ${p.ruc})` : ''}`
+        : p.ruc
+        ? ` (RUC ${p.ruc})`
         : ''
     };
   }
   return {
     fuerte: nombreCompleto(p),
+    cedula: p.cedula || '',
     resto: p.empresa_nombre ? `, en representación de ${p.empresa_nombre}` : ''
   };
 };
@@ -79,13 +101,16 @@ const unir = (items: any[]) => {
   return out;
 };
 
-const listaNombres = (lista: any[]) =>
+// conCedula: en la primera vez que se nombra a cada parte (encabezado) se
+// agrega su cédula; el representante legal de una empresa lleva la suya.
+const listaNombres = (lista: any[], conCedula = false) =>
   unir(
     lista.map((p) => {
       const n = nombreParte(p);
       return (
         <span key={p.id}>
           <b>{n.fuerte.toUpperCase()}</b>
+          {conCedula && n.cedula ? `, C.I. ${n.cedula}` : ''}
           {n.resto}
         </span>
       );
@@ -156,10 +181,12 @@ function ImprimirInvitacion() {
   const params = useParams();
   const search = useSearchParams();
   const router = useRouter();
-  const procesoId = Number(params.id);
+  // /procesos/rapida/...: invitación creada desde la Agenda, sin proceso.
+  const esRapida = params.id === 'rapida';
+  const procesoId = esRapida ? 0 : Number(params.id);
   const citaParam = Number(search.get('cita') || 0);
   // ?nueva=1: se redacta la invitación sobre el documento y al guardar se crea.
-  const esNueva = search.get('nueva') === '1';
+  const esNueva = !esRapida && search.get('nueva') === '1';
 
   const [data, setData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -195,8 +222,8 @@ function ImprimirInvitacion() {
   };
 
   useEffect(() => {
-    if (!procesoId) return;
-    getDatosInvitacion(procesoId)
+    if (!procesoId && !(esRapida && citaParam)) return;
+    (esRapida ? getDatosInvitacionRapida(citaParam) : getDatosInvitacion(procesoId))
       .then((d) => {
         setData(d);
         const citas = d.citas || [];
@@ -245,9 +272,15 @@ function ImprimirInvitacion() {
           if (previa) aplicarDocumento(previa.documento, false);
         }
       })
-      .catch((e) =>
-        setError(e?.response?.data?.detail || 'No se pudo cargar la invitación.')
-      )
+      .catch((e) => {
+        // La invitación rápida ya se enlazó a un proceso: se abre desde ahí.
+        const detalle = String(e?.response?.data?.detail || '');
+        if (esRapida && detalle.startsWith('proceso:')) {
+          router.replace(`/procesos/${detalle.slice(8)}/invitacion-imprimir?cita=${citaParam}`);
+          return;
+        }
+        setError(detalle || 'No se pudo cargar la invitación.');
+      })
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [procesoId, citaParam, esNueva]);
@@ -294,7 +327,11 @@ function ImprimirInvitacion() {
         }
         router.replace(`/procesos/${procesoId}/invitacion-imprimir?cita=${nueva.id}`);
       } else if (citaId) {
-        await guardarDocumentoInvitacion(procesoId, citaId, documentoActual());
+        if (esRapida) {
+          await guardarDocumentoInvitacionRapida(citaId, documentoActual());
+        } else {
+          await guardarDocumentoInvitacion(procesoId, citaId, documentoActual());
+        }
         setOkGuardar('Cambios del documento guardados.');
       }
     } catch (e: any) {
@@ -443,7 +480,7 @@ function ImprimirInvitacion() {
       <div style={{ display: 'flex', gap: '8mm', ...pDefault }}>
         <div style={{ flex: 1 }}>
           <p style={{ margin: 0 }}>{plural(solicitantes, 'Señor(a):', 'Señores:')}</p>
-          <p style={{ margin: '2mm 0 0' }}>{listaNombres(solicitantes)}</p>
+          <p style={{ margin: '2mm 0 0' }}>{listaNombres(solicitantes, true)}</p>
           <p style={{ margin: '3mm 0 0', fontSize: '10pt' }}>
             {plural(solicitantes, 'Solicitante', 'Solicitantes')} de Mediación.
             <br />
@@ -452,7 +489,7 @@ function ImprimirInvitacion() {
         </div>
         <div style={{ flex: 1 }}>
           <p style={{ margin: 0 }}>{plural(invitados, 'Señor(a):', 'Señores:')}</p>
-          <p style={{ margin: '2mm 0 0' }}>{listaNombres(invitados)}</p>
+          <p style={{ margin: '2mm 0 0' }}>{listaNombres(invitados, true)}</p>
           <p style={{ margin: '3mm 0 0', fontSize: '10pt' }}>
             {plural(invitados, 'Invitado', 'Invitados')} a Mediación.
             <br />
@@ -492,7 +529,7 @@ function ImprimirInvitacion() {
       <p style={pDefault}>
         <b>{plural(invitados, 'SEÑOR(A):', 'SEÑORES:')}</b>
       </p>
-      <p style={pDefault}>{listaNombres(invitados)}.</p>
+      <p style={pDefault}>{listaNombres(invitados, true)}.</p>
       <p style={pDefault} className={extras.trim() ? undefined : 'extras-vacio'}>
         <Editable
           value={extras}
@@ -523,7 +560,7 @@ function ImprimirInvitacion() {
         <b>1.- SOLICITUD DE MEDIACIÓN</b>
       </p>
       <p style={pDefault}>
-        {listaNombres(solicitantes)}, {plural(solicitantes, 'ha solicitado', 'han solicitado')} que
+        {listaNombres(solicitantes, true)}, {plural(solicitantes, 'ha solicitado', 'han solicitado')} que
         invite a {listaNombres(invitados)}, para llevar a cabo una audiencia en el Centro de
         Mediación “NUMA”, con el fin de resolver el conflicto mediante acuerdos voluntarios
         extrajudiciales, referente a:{' '}
@@ -605,17 +642,34 @@ function ImprimirInvitacion() {
       <div className="print:hidden max-w-5xl mx-auto px-4 pt-6 pb-4">
         <div className="bg-white border border-numa-200 rounded-sm p-4">
           <Link
-            href={`/procesos/${procesoId}`}
+            href={esRapida ? '/agenda' : `/procesos/${procesoId}`}
             className="inline-flex items-center gap-1.5 text-sm text-numa-600 hover:text-numa-900 mb-3"
           >
             <ArrowLeft className="w-4 h-4" />
-            {esNueva ? 'Volver al proceso sin guardar' : 'Volver al proceso'}
+            {esRapida
+              ? 'Volver a la Agenda'
+              : esNueva
+              ? 'Volver al proceso sin guardar'
+              : 'Volver al proceso'}
           </Link>
           <div className="flex items-start justify-between gap-3 mb-3">
             <div>
               <h1 className="text-lg font-semibold text-numa-900">
-                {esNueva ? 'Nueva invitación' : 'Invitación'} — {proceso.codigo_proceso}
+                {esNueva ? 'Nueva invitación' : 'Invitación'} —{' '}
+                {esRapida ? 'rápida (sin proceso)' : proceso.codigo_proceso}
               </h1>
+              {cita?.fecha_creacion && (
+                <p className="text-xs text-numa-500 mt-1">
+                  Invitación creada el{' '}
+                  <span className="font-semibold">{fechaCreacionEC(cita.fecha_creacion)}</span>
+                  {cita.creado_por && (
+                    <>
+                      {' '}por <span className="font-semibold">{cita.creado_por}</span>
+                    </>
+                  )}
+                  . Este dato es solo de consulta y no sale impreso.
+                </p>
+              )}
             </div>
             <div className="flex flex-wrap gap-2 justify-end shrink-0">
               {!bloqueada && (
@@ -684,7 +738,7 @@ function ImprimirInvitacion() {
                 </p>
               )}
             </div>
-            {!esNueva && (
+            {!esNueva && !esRapida && (
               <div>
                 <label className={etiqueta}>Invitación</label>
                 <select
