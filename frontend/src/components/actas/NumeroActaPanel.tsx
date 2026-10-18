@@ -93,10 +93,8 @@ function PanelMediador({ version, onCambio }: { version: number; onCambio: () =>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-numa-900">Número de acta</p>
           <p className="text-sm text-slate-600 mt-0.5">
-            Pídelo antes de redactar tu acta; es el siguiente número consecutivo de tu sucursal.
-            Puedes pedir uno por cada reunión del día. Tienes 48 horas para completar cada acta;
-            pasado ese plazo, si sigue pendiente no podrás pedir otro número ni subir actas de otros
-            procesos.
+            Pídelo antes de redactar tu acta. Tienes 48 horas para completarla; pasado ese plazo,
+            no podrás pedir otro número ni subir otras actas.
           </p>
 
           {error && (
