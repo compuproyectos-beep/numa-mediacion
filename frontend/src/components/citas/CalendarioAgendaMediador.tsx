@@ -281,41 +281,6 @@ export default function CalendarioAgendaMediador({
     [permitirCrear]
   );
 
-  // El espacio en blanco de una casilla usa, por defecto, el mecanismo
-  // propio de react-big-calendar para detectar el toque (basado en
-  // "mantener presionado sin mover el dedo"). En un celular real casi
-  // siempre hay un microtemblor del dedo al tocar, y ese mecanismo lo
-  // interpreta como que el usuario está arrastrando para hacer scroll, no
-  // seleccionando — por eso el número del día (que es un botón normal)
-  // respondía siempre, pero el espacio en blanco fallaba casi siempre en
-  // un teléfono de verdad, aunque en una computadora con mouse sí
-  // funcionaba. Envolviendo cada casilla del mes en un div con su propio
-  // onClick (un clic/toque normal del navegador, sin ese mecanismo
-  // especial) se vuelve igual de confiable que tocar el número.
-  const CeldaDiaSeleccionable = useCallback(
-    ({ value, children }: any) => {
-      if (!permitirCrear) return children;
-
-      // "display: flex" en el envoltorio es a propósito: la casilla de
-      // adentro (que pinta el fondo, el resaltado del día elegido, etc.)
-      // depende de que su propio contenedor directo sea flex para
-      // estirarse a toda la altura de la celda (así funcionaba antes,
-      // cuando ella misma era la hija directa de la fila). Si el
-      // envoltorio no fuera flex, esa casilla se quedaría con alto cero y
-      // el color de fondo dejaría de verse.
-      return (
-        <div
-          className="numa-celda-dia-wrapper"
-          onClick={() => seleccionarDiaParaNuevaInvitacion(value)}
-          style={{ flex: '1 0 0%', display: 'flex', cursor: 'pointer' }}
-        >
-          {children}
-        </div>
-      );
-    },
-    [permitirCrear, seleccionarDiaParaNuevaInvitacion]
-  );
-
   // En la vista de mes, por encima de las casillas hay una capa transparente
   // (la de las invitaciones) que recibe los clics del espacio en blanco, así
   // que la casilla de abajo nunca se entera. Aquí se detecta ese clic en la
@@ -494,7 +459,7 @@ export default function CalendarioAgendaMediador({
             localizer={localizer}
             date={calendarDate}
             onNavigate={(date) => setCalendarDate(date)}
-            selectable={permitirCrear}
+            selectable={false}
             longPressThreshold={1}
             defaultView={Views.MONTH}
             views={[Views.MONTH]}
@@ -524,7 +489,7 @@ export default function CalendarioAgendaMediador({
               setHoraSeleccionada(fechaISO === hoyISO() ? '' : '09:00');
               forzarScrollAlPanel();
             }}
-            components={{ toolbar: BarraCalendario, dateCellWrapper: CeldaDiaSeleccionable }}
+            components={{ toolbar: BarraCalendario }}
             messages={{
               next: 'Siguiente',
               previous: 'Anterior',
@@ -573,7 +538,6 @@ export default function CalendarioAgendaMediador({
                 fontWeight: 600,
               },
             })}
-            onSelectSlot={(slotInfo: any) => seleccionarDiaParaNuevaInvitacion(slotInfo.start)}
             onDrillDown={(fecha: Date) => seleccionarDiaParaNuevaInvitacion(fecha)}
             onSelectEvent={(event: any) => {
               setDiaSeleccionado('');
