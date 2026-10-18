@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Hash, Copy, Check, Ban } from 'lucide-react';
-import { ErrorAlert, Modal, TextareaField } from '@/components/ui';
+import { ConfirmDialog, ErrorAlert, Modal, TextareaField } from '@/components/ui';
 import {
   getMiNumeroActa,
   pedirNumeroActa,
@@ -44,6 +44,7 @@ export default function NumeroActaPanel({ esAdmin }: { esAdmin: boolean }) {
 function PanelMediador({ version, onCambio }: { version: number; onCambio: () => void }) {
   const [estado, setEstado] = useState<any | null>(null);
   const [pidiendo, setPidiendo] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
   const [error, setError] = useState('');
   const [copiado, setCopiado] = useState<number | null>(null);
 
@@ -59,8 +60,10 @@ function PanelMediador({ version, onCambio }: { version: number; onCambio: () =>
     setPidiendo(true);
     try {
       await pedirNumeroActa();
+      setConfirmando(false);
       onCambio();
     } catch (e: any) {
+      setConfirmando(false);
       setError(e?.response?.data?.detail || 'No se pudo pedir el número de acta');
     } finally {
       setPidiendo(false);
@@ -130,9 +133,12 @@ function PanelMediador({ version, onCambio }: { version: number; onCambio: () =>
             type="button"
             className="btn-primary btn-sm mt-2 disabled:opacity-50"
             disabled={!estado.puede_pedir || pidiendo}
-            onClick={pedir}
+            onClick={() => {
+              setError('');
+              setConfirmando(true);
+            }}
           >
-            {pidiendo ? 'Pidiendo…' : 'Pedir número de acta'}
+            Pedir número de acta
           </button>
 
           {estado.recientes?.length > 0 && (
@@ -143,6 +149,15 @@ function PanelMediador({ version, onCambio }: { version: number; onCambio: () =>
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmando}
+        onClose={() => setConfirmando(false)}
+        onConfirm={pedir}
+        loading={pidiendo}
+        confirmLabel="Sí, pedir número"
+        message="¿Quieres pedir un número de acta? Se te asignará el siguiente número consecutivo de tu sucursal y tendrás 48 horas para completar esa acta. Una vez pedido, solo el administrador puede anularlo."
+      />
     </div>
   );
 }
