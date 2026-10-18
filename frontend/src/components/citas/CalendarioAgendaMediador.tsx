@@ -318,6 +318,37 @@ export default function CalendarioAgendaMediador({
     [permitirCrear, seleccionarDiaParaNuevaInvitacion]
   );
 
+  // En la vista de mes, por encima de las casillas hay una capa transparente
+  // (la de las invitaciones) que recibe los clics del espacio en blanco, así
+  // que la casilla de abajo nunca se entera. Aquí se detecta ese clic en la
+  // capa, se averigua en qué columna cayó y se toma el número de día de esa
+  // columna (el mes sale de si la casilla es del mes anterior o siguiente).
+  const alHacerClicEnEspacioVacio = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!permitirCrear) return;
+    const t = e.target as HTMLElement;
+    if (t.closest('.rbc-event, .rbc-button-link, .rbc-show-more, .rbc-header, .numa-celda-dia-wrapper')) return;
+
+    const fila = t.closest('.rbc-month-row');
+    if (!fila) return;
+
+    const celdas = Array.from(fila.querySelectorAll('.rbc-day-bg'));
+    const col = celdas.findIndex((c) => {
+      const r = c.getBoundingClientRect();
+      return e.clientX >= r.left && e.clientX < r.right;
+    });
+    if (col < 0) return;
+
+    const celdaNumero = fila.querySelectorAll('.rbc-date-cell')[col] as HTMLElement | undefined;
+    const dia = parseInt(celdaNumero?.textContent || '', 10);
+    if (!celdaNumero || isNaN(dia)) return;
+
+    let mes = calendarDate.getMonth();
+    if (celdaNumero.classList.contains('rbc-off-range')) {
+      mes += dia > 15 ? -1 : 1;
+    }
+    seleccionarDiaParaNuevaInvitacion(new Date(calendarDate.getFullYear(), mes, dia));
+  };
+
   const cargarCitas = useCallback(async () => {
     setLoading(true);
 
@@ -456,7 +487,7 @@ export default function CalendarioAgendaMediador({
       {loading ? (
         <Spinner />
       ) : (
-        <div className="calendario-numa h-[440px]">
+        <div className="calendario-numa h-[440px]" onClick={alHacerClicEnEspacioVacio}>
           <Calendar
             localizer={localizer}
             date={calendarDate}
