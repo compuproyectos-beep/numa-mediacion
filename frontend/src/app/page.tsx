@@ -66,10 +66,6 @@ const servicios = [
 // (igual a lo que pidió el abogado, tipo cme.com.ec).
 const heroImages = [
   {
-    src: '/images/liderazgo-mediador.jpg',
-    alt: 'Partes llegando a un acuerdo durante una sesión de mediación en NUMA',
-  },
-  {
     // Versión en tono azul (igual a la paleta de la marca) de la misma
     // foto que se usa más abajo en la sección de Numa Pompilio — el
     // original es muy café y no dejaba leer bien el texto encima.
@@ -77,8 +73,8 @@ const heroImages = [
     alt: 'Numa Pompilio, segundo rey de Roma, símbolo histórico de la mediación y la paz',
   },
   {
-    src: '/images/oficina-matriz.jpg',
-    alt: 'Oficina matriz del Centro de Mediación NUMA',
+    src: '/images/liderazgo-mediador.jpg',
+    alt: 'Partes llegando a un acuerdo durante una sesión de mediación en NUMA',
   },
   {
     src: '/images/familia-ninez.jpg',
@@ -95,6 +91,10 @@ const heroImages = [
   {
     src: '/images/comunidad-circulo.jpg',
     alt: 'Personas de la comunidad dialogando sentadas en círculo al aire libre',
+  },
+  {
+    src: '/images/oficina-matriz.jpg',
+    alt: 'Oficina matriz del Centro de Mediación NUMA',
   },
 ];
 
