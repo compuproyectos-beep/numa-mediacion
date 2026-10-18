@@ -28,17 +28,20 @@ const fechaEC = (v: any) => {
 
 export default function NumeroActaPanel({ esAdmin }: { esAdmin: boolean }) {
   // El administrador es un mediador más: pide sus números igual que ellos
-  // (sin bloqueos) y además ve y puede anular los de todos.
+  // (sin bloqueos) y además ve y puede anular los de todos. Los dos cuadros
+  // se refrescan juntos cuando cualquiera cambia algo.
+  const [version, setVersion] = useState(0);
+  const refrescar = () => setVersion((v) => v + 1);
   return (
     <>
-      <PanelMediador />
-      {esAdmin && <PanelAdmin />}
+      <PanelMediador version={version} onCambio={refrescar} />
+      {esAdmin && <PanelAdmin version={version} onCambio={refrescar} />}
     </>
   );
 }
 
 /* ───────────────────────── Mediador ───────────────────────── */
-function PanelMediador() {
+function PanelMediador({ version, onCambio }: { version: number; onCambio: () => void }) {
   const [estado, setEstado] = useState<any | null>(null);
   const [pidiendo, setPidiendo] = useState(false);
   const [error, setError] = useState('');
@@ -49,14 +52,14 @@ function PanelMediador() {
 
   useEffect(() => {
     cargar();
-  }, []);
+  }, [version]);
 
   const pedir = async () => {
     setError('');
     setPidiendo(true);
     try {
       await pedirNumeroActa();
-      await cargar();
+      onCambio();
     } catch (e: any) {
       setError(e?.response?.data?.detail || 'No se pudo pedir el número de acta');
     } finally {
@@ -145,7 +148,7 @@ function PanelMediador() {
 }
 
 /* ───────────────────────── Administrador ───────────────────────── */
-function PanelAdmin() {
+function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => void }) {
   const [datos, setDatos] = useState<{ pendientes: any[]; anulados: any[] } | null>(null);
   const [anular, setAnular] = useState<any | null>(null);
   const [motivo, setMotivo] = useState('');
@@ -158,7 +161,7 @@ function PanelAdmin() {
 
   useEffect(() => {
     cargar();
-  }, []);
+  }, [version]);
 
   const confirmar = async () => {
     if (!anular) return;
@@ -172,7 +175,7 @@ function PanelAdmin() {
       await anularNumeroActa(anular.id, motivo.trim());
       setAnular(null);
       setMotivo('');
-      await cargar();
+      onCambio();
     } catch (e: any) {
       setError(e?.response?.data?.detail || 'No se pudo anular el número');
     } finally {
