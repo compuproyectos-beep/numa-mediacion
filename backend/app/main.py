@@ -2848,11 +2848,14 @@ def crear_proceso_mediacion(
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
     try:
-        for _eid in (empresa_solicitante_id, empresa_invitado_id):
-            if _eid:
-                cur.execute("SELECT id FROM clientes WHERE id = %s AND tipo = 'empresa'", (_eid,))
-                if not cur.fetchone():
-                    raise HTTPException(status_code=400, detail="La empresa elegida no existe")
+        # Regla: la empresa se registra como la parte principal de su lado
+        # (con su representante legal); ya no se crea una persona "en
+        # representación de" una empresa.
+        if empresa_solicitante_id or empresa_invitado_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Para una empresa, elígela directamente como solicitante o invitado."
+            )
 
         if cliente_demandante_id == cliente_demandado_id:
             raise HTTPException(
@@ -3276,6 +3279,38 @@ def _sincronizar_responsables(cur, proceso_id):
     """, (proceso_id,))
 
 
+def _empresa_del_lado(cur, proceso_id, rol, cliente):
+    """Regla de cada lado (solicitantes / invitados): o solo personas
+    naturales, o UNA sola empresa con todas las demás personas como sus
+    miembros. Nunca mezcladas ni dos empresas. Devuelve el id de la empresa
+    a la que pertenece la nueva parte (o None si va a título personal)."""
+    cur.execute("""
+        SELECT pp.cliente_id, c.tipo
+        FROM proceso_partes pp
+        JOIN clientes c ON c.id = pp.cliente_id
+        WHERE pp.proceso_id = %s AND pp.rol = %s
+    """, (proceso_id, rol))
+    lado = cur.fetchall()
+    empresa = next((x for x in lado if x["tipo"] == "empresa"), None)
+    personas = [x for x in lado if x["tipo"] != "empresa"]
+    nombre_lado = "solicitantes" if rol == "solicitante" else "invitados"
+
+    if cliente["tipo"] == "empresa":
+        if empresa:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Los {nombre_lado} ya tienen una empresa. Solo puede haber una empresa por lado."
+            )
+        if personas:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Los {nombre_lado} ya tienen personas naturales. En un lado van solo personas naturales o una sola empresa con sus miembros; no se pueden mezclar."
+            )
+        return None
+
+    return empresa["cliente_id"] if empresa else None
+
+
 @app.get("/procesos/{proceso_id}/partes")
 def obtener_partes_proceso(proceso_id: int, usuario=Depends(obtener_usuario_actual)):
     conn = get_db()
@@ -3314,12 +3349,9 @@ def agregar_parte_proceso(
         if not cliente:
             raise HTTPException(status_code=404, detail="Cliente no encontrado")
 
-        if empresa_representada_id:
-            if cliente["tipo"] == "empresa":
-                raise HTTPException(status_code=400, detail="Una empresa no representa a otra empresa")
-            cur.execute("SELECT id FROM clientes WHERE id = %s AND tipo = 'empresa'", (empresa_representada_id,))
-            if not cur.fetchone():
-                raise HTTPException(status_code=400, detail="La empresa elegida no existe")
+        # La pertenencia a la empresa se decide sola según el lado
+        # (ya no se elige a mano).
+        empresa_representada_id = _empresa_del_lado(cur, proceso_id, rol, cliente)
 
         # Una misma persona no puede estar dos veces en el proceso (ni de
         # los dos lados a la vez).
@@ -3378,12 +3410,25 @@ def cambiar_responsable_parte(
         _proceso_para_editar_partes(cur, proceso_id, usuario)
 
         cur.execute(
-            "SELECT id, rol FROM proceso_partes WHERE id = %s AND proceso_id = %s",
+            "SELECT pp.id, pp.rol, c.tipo FROM proceso_partes pp JOIN clientes c ON c.id = pp.cliente_id "
+            "WHERE pp.id = %s AND pp.proceso_id = %s",
             (parte_id, proceso_id)
         )
         parte = cur.fetchone()
         if not parte:
             raise HTTPException(status_code=404, detail="Parte no encontrada")
+
+        if parte["tipo"] != "empresa":
+            cur.execute(
+                "SELECT 1 FROM proceso_partes pp JOIN clientes c ON c.id = pp.cliente_id "
+                "WHERE pp.proceso_id = %s AND pp.rol = %s AND c.tipo = 'empresa'",
+                (proceso_id, parte["rol"])
+            )
+            if cur.fetchone():
+                raise HTTPException(
+                    status_code=400,
+                    detail="Cuando el lado tiene una empresa, la empresa es la parte principal (su representante legal sale en la invitación y el acta)."
+                )
 
         cur.execute(
             "UPDATE proceso_partes SET es_responsable = false WHERE proceso_id = %s AND rol = %s",

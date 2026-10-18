@@ -37,7 +37,6 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
 
   const [rolAgregar, setRolAgregar] = useState<Rol | null>(null);
   const [clienteId, setClienteId] = useState('');
-  const [empresaId, setEmpresaId] = useState('');
   // Qué se agrega: una persona o una empresa/institución. Así la lista no mezcla
   // los dos tipos y no se elige una empresa por error.
   const [tipoParte, setTipoParte] = useState<'persona' | 'empresa'>('persona');
@@ -108,7 +107,6 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
       // El cliente nuevo queda en la lista y ya elegido.
       setClientes((prev) => [...prev, c]);
       setClienteId(String(c.id));
-      setEmpresaId('');
       setCreando(false);
       setNuevo(VACIO);
       setProvinciaId('');
@@ -144,7 +142,6 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
   const abrirAgregar = (rol: Rol) => {
     setRolAgregar(rol);
     setClienteId('');
-    setEmpresaId('');
     setTipoParte('persona');
     setCreando(false);
     setNuevo(VACIO);
@@ -163,21 +160,13 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
   const disponibles = clientes.filter(
     (c) => !yaEnProceso.has(c.id) && (tipoParte === 'empresa' ? c.tipo === 'empresa' : c.tipo !== 'empresa')
   );
-  // Una persona solo puede representar a una empresa que YA es parte del
-  // mismo lado del proceso (la empresa se agrega primero). Así no hay forma de
-  // elegir una empresa que no tiene nada que ver con el proceso.
-  const empresas = clientes.filter(
-    (c) =>
-      c.tipo === 'empresa' &&
-      partes.some((p) => p.cliente_id === c.id && p.rol === rolAgregar)
-  );
-  const elegido = clientes.find((c) => String(c.id) === clienteId);
-  const empresaElegida = empresas.find((c) => String(c.id) === empresaId);
-  const noEsRepresentante =
-    !!empresaElegida &&
-    !!elegido &&
-    !!empresaElegida.representante_cedula &&
-    String(empresaElegida.representante_cedula).trim() !== String(elegido.cedula || '').trim();
+
+  // Regla de cada lado: o solo personas naturales, o UNA sola empresa con
+  // todas las demás personas como sus miembros. Como todo proceso ya tiene
+  // a alguien en cada lado, aquí solo se agregan personas (miembros de la
+  // empresa o personas a título personal). El servidor vuelve a comprobarlo.
+  const ladoActual = partes.filter((p) => p.rol === rolAgregar);
+  const empresaDelLado = ladoActual.find((p) => p.tipo === 'empresa');
 
   const guardar = async () => {
     if (!rolAgregar || !clienteId) {
@@ -191,8 +180,7 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
     try {
       const nuevas = await agregarParteProceso(procesoId, {
         rol: rolAgregar,
-        cliente_id: Number(clienteId),
-        ...(empresaId ? { empresa_representada_id: Number(empresaId) } : {})
+        cliente_id: Number(clienteId)
       });
       setPartes(nuevas);
       setRolAgregar(null);
@@ -281,10 +269,15 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
 
                   {p.empresa_nombre && (
                     <p className="text-xs text-numa-500">
-                      En representación de <strong>{p.empresa_nombre}</strong>
+                      Miembro de <strong>{p.empresa_nombre}</strong>
                       {p.empresa_ruc ? ` (RUC ${p.empresa_ruc})` : ''}
                     </p>
                   )}
+
+                  {/* Solo informativo en pantalla: no se imprime. */}
+                  <p className="text-[11px] italic text-numa-400">
+                    {esEmpresa || p.empresa_nombre ? 'A título jurídico' : 'A título personal'}
+                  </p>
                 </div>
 
                 {editable && (
@@ -356,6 +349,7 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
         )}
 
         <div className="space-y-4">
+          {ladoActual.length === 0 && (
           <div className="inline-flex rounded-md border border-numa-200 bg-white p-0.5 text-xs font-semibold">
             {(
               [
@@ -369,8 +363,7 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
                 onClick={() => {
                   setTipoParte(clave);
                   setClienteId('');
-                  setEmpresaId('');
-                  setCreando(false);
+                              setCreando(false);
                   setNuevo(VACIO);
                 }}
                 className={`px-3 py-1 rounded ${
@@ -381,16 +374,31 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
               </button>
             ))}
           </div>
+          )}
+
+          {ladoActual.length > 0 && (
+            <p className="text-xs rounded-md border border-numa-200 bg-numa-50 text-numa-600 px-3 py-2">
+              {empresaDelLado ? (
+                <>
+                  Este lado tiene una empresa (<strong>{empresaDelLado.nombre}</strong>): la persona
+                  que agregues será <strong>miembro de la empresa</strong>. No se puede agregar otra
+                  empresa ni personas a título personal.
+                </>
+              ) : (
+                <>
+                  Este lado tiene personas naturales: solo se pueden agregar más personas naturales.
+                  No se puede mezclar con una empresa.
+                </>
+              )}
+            </p>
+          )}
 
           {!creando && (
             <>
           <SelectField
             label={tipoParte === 'empresa' ? 'Empresa o institución' : 'Persona'}
             value={clienteId}
-            onChange={(e) => {
-              setClienteId(e.target.value);
-              setEmpresaId('');
-            }}
+            onChange={(e) => setClienteId(e.target.value)}
           >
             <option value="">Seleccione</option>
             {disponibles.map((c) => (
@@ -406,8 +414,7 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
                 onClick={() => {
                   setCreando(true);
                   setClienteId('');
-                  setEmpresaId('');
-                  setError('');
+                              setError('');
                 }}
                 className="text-xs font-semibold text-gold-600 hover:text-gold-700 -mt-2"
               >
@@ -516,29 +523,6 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
                 </button>
               </div>
             </div>
-          )}
-
-          {elegido && elegido.tipo !== 'empresa' && empresas.length > 0 && (
-            <SelectField
-              label="En representación de (opcional)"
-              value={empresaId}
-              onChange={(e) => setEmpresaId(e.target.value)}
-            >
-              <option value="">Actúa a título personal</option>
-              {empresas.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </SelectField>
-          )}
-
-          {noEsRepresentante && (
-            <p className="text-xs rounded-md border border-amber-300 bg-amber-50 text-amber-800 px-3 py-2">
-              Esta persona no figura como representante legal de{' '}
-              <strong>{empresaElegida?.nombre}</strong>. Continúa solo si actúa con poder o
-              autorización de la empresa.
-            </p>
           )}
 
           <p className="text-xs text-numa-400">

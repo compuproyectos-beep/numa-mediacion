@@ -89,8 +89,6 @@ export default function ProcesosPage() {
   const [form, setForm] = useState({
     cliente_demandante_id: '',
     cliente_demandado_id: '',
-    empresa_solicitante_id: '',
-    empresa_invitado_id: '',
     sucursal_id: '',
     tema: ''
   });
@@ -159,8 +157,6 @@ export default function ProcesosPage() {
     setForm({
       cliente_demandante_id: '',
       cliente_demandado_id: '',
-      empresa_solicitante_id: '',
-      empresa_invitado_id: '',
       sucursal_id: '',
       tema: ''
     });
@@ -223,11 +219,6 @@ export default function ProcesosPage() {
       ? `${c.nombre} (empresa · RUC ${c.ruc || '—'})`
       : `${c.nombre} ${c.apellido}`;
 
-  const empresas = clientes.filter((c: any) => c.tipo === 'empresa');
-
-  const esPersona = (id: string) =>
-    !!id && clientes.find((c: any) => String(c.id) === String(id))?.tipo !== 'empresa';
-
   const nombreCliente = (id: string) =>
     clientes.find((c: any) => String(c.id) === String(id));
 
@@ -257,12 +248,6 @@ export default function ProcesosPage() {
         cliente_demandante_id: Number(form.cliente_demandante_id),
         cliente_demandado_id: Number(form.cliente_demandado_id),
         tema: form.tema,
-        ...(form.empresa_solicitante_id
-          ? { empresa_solicitante_id: Number(form.empresa_solicitante_id) }
-          : {}),
-        ...(form.empresa_invitado_id
-          ? { empresa_invitado_id: Number(form.empresa_invitado_id) }
-          : {}),
         ...(isAdmin() ? { sucursal_id: Number(form.sucursal_id) } : {})
       });
 
@@ -272,8 +257,6 @@ export default function ProcesosPage() {
       setForm({
         cliente_demandante_id: '',
         cliente_demandado_id: '',
-        empresa_solicitante_id: '',
-        empresa_invitado_id: '',
         sucursal_id: '',
         tema: ''
       });
@@ -670,23 +653,6 @@ export default function ProcesosPage() {
               ))}
             </SelectField>
 
-            {esPersona(form.cliente_demandante_id) && empresas.length > 0 && (
-              <SelectField
-                label="Solicitante: en representación de (opcional)"
-                value={form.empresa_solicitante_id}
-                onChange={(e) =>
-                  setForm({ ...form, empresa_solicitante_id: e.target.value })
-                }
-              >
-                <option value="">Actúa a título personal</option>
-                {empresas.map((c: any) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre}
-                  </option>
-                ))}
-              </SelectField>
-            )}
-
             <SelectField
               label="Invitado"
               value={form.cliente_demandado_id}
@@ -702,23 +668,6 @@ export default function ProcesosPage() {
                 </option>
               ))}
             </SelectField>
-
-            {esPersona(form.cliente_demandado_id) && empresas.length > 0 && (
-              <SelectField
-                label="Invitado: en representación de (opcional)"
-                value={form.empresa_invitado_id}
-                onChange={(e) =>
-                  setForm({ ...form, empresa_invitado_id: e.target.value })
-                }
-              >
-                <option value="">Actúa a título personal</option>
-                {empresas.map((c: any) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre}
-                  </option>
-                ))}
-              </SelectField>
-            )}
 
             {clientes.length === 0 && (
               <p className="text-xs text-numa-400">
@@ -766,8 +715,6 @@ export default function ProcesosPage() {
                 <span className="font-medium text-numa-800">
                   {nombreCliente(form.cliente_demandante_id)?.nombre}{' '}
                   {nombreCliente(form.cliente_demandante_id)?.apellido}
-                  {form.empresa_solicitante_id &&
-                    ` — en representación de ${nombreCliente(form.empresa_solicitante_id)?.nombre}`}
                 </span>
               </div>
 
@@ -776,8 +723,6 @@ export default function ProcesosPage() {
                 <span className="font-medium text-numa-800">
                   {nombreCliente(form.cliente_demandado_id)?.nombre}{' '}
                   {nombreCliente(form.cliente_demandado_id)?.apellido}
-                  {form.empresa_invitado_id &&
-                    ` — en representación de ${nombreCliente(form.empresa_invitado_id)?.nombre}`}
                 </span>
               </div>
 
