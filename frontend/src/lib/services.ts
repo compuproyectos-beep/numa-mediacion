@@ -906,3 +906,28 @@ export async function guardarFacturacionProceso(
   });
   return res.data;
 }
+
+// ── NÚMERO DE ACTA ───────────────────────────────────────────────────────────
+export async function getMiNumeroActa(): Promise<any> {
+  const res = await api.get('/numeros-acta/mio');
+  return res.data;
+}
+
+export async function pedirNumeroActa(): Promise<any> {
+  const res = await api.post('/numeros-acta');
+  return res.data;
+}
+
+export async function getNumerosActaAdmin(): Promise<{ pendientes: any[]; anulados: any[] }> {
+  const res = await api.get('/numeros-acta');
+  return res.data;
+}
+
+export async function anularNumeroActa(id: number, motivo: string): Promise<any> {
+  const formData = new FormData();
+  formData.append('motivo', motivo);
+  const res = await api.post(`/numeros-acta/${id}/anular`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data;
+}

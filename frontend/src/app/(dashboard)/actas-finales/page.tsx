@@ -24,6 +24,7 @@ import {
   getUsuarios
 } from '@/lib/services';
 import { getCiudadesCached, getSucursalesCached } from '@/lib/catalogCache';
+import NumeroActaPanel from '@/components/actas/NumeroActaPanel';
 
 // Convierte bytes a un texto legible (KB o MB), para mostrar cuánto pesa
 // cada acta/comprobante ya comprimido en Supabase Storage.
@@ -313,6 +314,8 @@ const handleExportarZip = async () => {
           <ErrorAlert message={error} />
         </div>
       )}
+
+      <NumeroActaPanel esAdmin={isAdmin} />
 
       <div className="card px-3 py-2.5 mb-3">
         <form

@@ -596,6 +596,26 @@ def iniciar_scheduler():
             coalesce=True,
         )
 
+    try:
+        _scheduler.add_job(
+            avisar_numeros_pendientes,
+            "cron",
+            hour=8,
+            minute=20,
+            timezone="America/Guayaquil",
+            misfire_grace_time=4 * 3600,
+            coalesce=True,
+        )
+    except Exception:
+        _scheduler.add_job(
+            avisar_numeros_pendientes,
+            "cron",
+            hour=8,
+            minute=20,
+            misfire_grace_time=4 * 3600,
+            coalesce=True,
+        )
+
     _scheduler.start()
 
     try:
@@ -4345,18 +4365,25 @@ async def subir_acta_final_proceso(
                     )
                 )
 
-        # Generar código de acta final
-        prefijo_codigo = f"{proceso['prefijo_ciudad']}-{proceso['codigo_corto']}"
-
-        cur.execute("""
-            SELECT COUNT(*) AS total
-            FROM actas_proceso ap
-            JOIN procesos_mediacion p ON ap.proceso_id = p.id
-            WHERE p.sucursal_id = %s
-        """, (proceso["sucursal_id"],))
-
-        secuencial = cur.fetchone()["total"] + 1
-        codigo_acta = f"{prefijo_codigo}-{str(secuencial).zfill(5)}"
+        # Si el mediador ya pidió su número de acta, se usa ese mismo (debe
+        # coincidir con el acta que redactó). Si no pidió ninguno (o sube el
+        # administrador), se asigna el siguiente de la sucursal.
+        numero_reservado = None
+        if usuario["rol"] != "administrador":
+            cur.execute(
+                "SELECT id, sucursal_id, codigo FROM numeros_acta "
+                "WHERE usuario_id = %s AND estado = 'reservado' FOR UPDATE",
+                (usuario["id"],)
+            )
+            numero_reservado = cur.fetchone()
+            if numero_reservado and numero_reservado["sucursal_id"] != proceso["sucursal_id"]:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Tienes pedido el número {numero_reservado['codigo']}, que es de otra sucursal. "
+                        f"Pide al administrador que lo anule antes de subir esta acta."
+                    )
+                )
 
         contenido_acta = await archivo.read()
         contenido_comprobante = await comprobante_pago.read()
@@ -4383,6 +4410,19 @@ async def subir_acta_final_proceso(
             "image/jpg": "jpg",
             "image/png": "png",
         }[content_type_comprobante]
+
+        # El número se define aquí (después de leer y comprimir los archivos)
+        # para mantener bloqueada la numeración de la sucursal el menor
+        # tiempo posible.
+        if numero_reservado:
+            codigo_acta = numero_reservado["codigo"]
+            numero_id = numero_reservado["id"]
+        else:
+            nuevo_numero = _reservar_numero_acta(
+                cur, proceso["sucursal_id"], usuario["id"], proceso_id=proceso_id, estado="usado"
+            )
+            codigo_acta = nuevo_numero["codigo"]
+            numero_id = nuevo_numero["id"]
 
         nombre_unico_acta = f"{uuid.uuid4()}.pdf"
         ruta_storage = f"actas-finales/{codigo_acta}/{nombre_unico_acta}"
@@ -4464,6 +4504,11 @@ async def subir_acta_final_proceso(
         ))
 
         acta_final = cur.fetchone()
+
+        cur.execute(
+            "UPDATE numeros_acta SET estado = 'usado', proceso_id = %s, fecha_uso = NOW() WHERE id = %s",
+            (proceso_id, numero_id)
+        )
 
         cur.execute("""
             UPDATE procesos_mediacion
@@ -5004,6 +5049,233 @@ def avisar_facturas_pendientes():
     except Exception as e:
         conn.rollback()
         print("No se pudo revisar las facturas pendientes:", e)
+    finally:
+        cur.close()
+        conn.close()
+
+
+# =========================
+# NÚMERO DE ACTA (consecutivo por sucursal)
+# =========================
+def _reservar_numero_acta(cur, sucursal_id, usuario_id, proceso_id=None, estado="reservado"):
+    """Entrega el siguiente número de acta de la sucursal. El bloqueo por
+    sucursal (vale hasta el commit) hace que dos mediadores que lo pidan a
+    la vez nunca reciban el mismo; además la base lo impide con un índice
+    único. Un número anulado no se vuelve a entregar."""
+    cur.execute("SELECT pg_advisory_xact_lock(%s)", (7300000 + int(sucursal_id),))
+    cur.execute("""
+        SELECT c.prefijo AS prefijo_ciudad, s.codigo_corto
+        FROM sucursales s JOIN ciudades c ON c.id = s.ciudad_id
+        WHERE s.id = %s
+    """, (sucursal_id,))
+    suc = cur.fetchone()
+    if not suc:
+        raise HTTPException(status_code=400, detail="La sucursal no existe")
+    cur.execute(
+        "SELECT COALESCE(MAX(secuencial), 0) + 1 AS n FROM numeros_acta WHERE sucursal_id = %s",
+        (sucursal_id,)
+    )
+    n = cur.fetchone()["n"]
+    codigo = f"{suc['prefijo_ciudad']}-{suc['codigo_corto']}-{str(n).zfill(5)}"
+    cur.execute("""
+        INSERT INTO numeros_acta (sucursal_id, secuencial, codigo, estado, usuario_id, proceso_id, fecha_uso)
+        VALUES (%s, %s, %s, %s, %s, %s, CASE WHEN %s = 'usado' THEN NOW() ELSE NULL END)
+        RETURNING id, codigo, secuencial
+    """, (sucursal_id, n, codigo, estado, usuario_id, proceso_id, estado))
+    return cur.fetchone()
+
+
+def _numero_pendiente_de(cur, usuario_id):
+    cur.execute("""
+        SELECT n.id, n.codigo, n.fecha_solicitud,
+               EXTRACT(DAY FROM NOW() - n.fecha_solicitud)::int AS dias
+        FROM numeros_acta n
+        WHERE n.usuario_id = %s AND n.estado = 'reservado'
+    """, (usuario_id,))
+    return cur.fetchone()
+
+
+def _motivo_no_puede_pedir_numero(cur, usuario):
+    pendiente = _numero_pendiente_de(cur, usuario["id"])
+    if pendiente:
+        return (
+            f"Ya pediste el número {pendiente['codigo']} y todavía no se completa esa acta. "
+            f"Sube sus documentos en el proceso correspondiente; si no se puede completar, "
+            f"pide al administrador que lo anule."
+        )
+    cur.execute(
+        "SELECT p.codigo_proceso FROM procesos_mediacion p "
+        "WHERE p.usuario_id = %s AND " + _sql_acta_pendiente("p") +
+        " ORDER BY " + _sql_fecha_cola("p") + " ASC NULLS LAST, p.id ASC LIMIT 1",
+        (usuario["id"],)
+    )
+    bloqueante = cur.fetchone()
+    if bloqueante:
+        return (
+            f"Primero debes completar el proceso {bloqueante['codigo_proceso']} "
+            f"(documentos del acta, comprobante de pago y acta firmada). "
+            f"Hasta entonces no puedes pedir otro número de acta."
+        )
+    return None
+
+
+@app.get("/numeros-acta/mio")
+def mi_numero_acta(usuario=Depends(obtener_usuario_actual)):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        if usuario["rol"] == "administrador":
+            return {"es_admin": True, "reservado": None, "puede_pedir": False, "motivo": None, "recientes": []}
+        reservado = _numero_pendiente_de(cur, usuario["id"])
+        motivo = _motivo_no_puede_pedir_numero(cur, usuario)
+        cur.execute("""
+            SELECT codigo, estado, fecha_solicitud, motivo_anulacion
+            FROM numeros_acta WHERE usuario_id = %s
+            ORDER BY fecha_solicitud DESC, id DESC LIMIT 5
+        """, (usuario["id"],))
+        return {
+            "es_admin": False,
+            "reservado": reservado,
+            "puede_pedir": motivo is None,
+            "motivo": motivo,
+            "recientes": cur.fetchall(),
+        }
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/numeros-acta")
+def pedir_numero_acta(usuario=Depends(obtener_usuario_actual)):
+    if usuario["rol"] == "administrador":
+        raise HTTPException(status_code=403, detail="Solo los mediadores piden número de acta")
+    if not usuario.get("sucursal_id"):
+        raise HTTPException(status_code=400, detail="Tu usuario no tiene sucursal asignada")
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        motivo = _motivo_no_puede_pedir_numero(cur, usuario)
+        if motivo:
+            raise HTTPException(status_code=400, detail=motivo)
+        try:
+            n = _reservar_numero_acta(cur, usuario["sucursal_id"], usuario["id"])
+        except psycopg2_errors.UniqueViolation:
+            conn.rollback()
+            raise HTTPException(status_code=409, detail="Ya tienes un número de acta pedido")
+        registrar_auditoria(cur, usuario, "pedir_numero_acta", "numero_acta", n["id"], f"Número {n['codigo']}")
+        conn.commit()
+        return {"id": n["id"], "codigo": n["codigo"]}
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudo pedir el número de acta: {e}")
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/numeros-acta")
+def listar_numeros_acta(sucursal_id: int = None, usuario=Depends(obtener_usuario_actual)):
+    if usuario["rol"] != "administrador":
+        raise HTTPException(status_code=403, detail="Solo el administrador puede ver esta lista")
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        filtro = " AND n.sucursal_id = %(s)s" if sucursal_id else ""
+        base = """
+            SELECT n.id, n.codigo, n.estado, n.fecha_solicitud, n.fecha_anulacion, n.motivo_anulacion,
+                   EXTRACT(DAY FROM NOW() - n.fecha_solicitud)::int AS dias,
+                   u.nombre || ' ' || u.apellido AS mediador,
+                   s.nombre AS sucursal, c.nombre AS ciudad
+            FROM numeros_acta n
+            LEFT JOIN usuarios u ON u.id = n.usuario_id
+            JOIN sucursales s ON s.id = n.sucursal_id
+            JOIN ciudades c ON c.id = s.ciudad_id
+            WHERE """
+        cur.execute(base + "n.estado = 'reservado'" + filtro + " ORDER BY n.fecha_solicitud ASC", {"s": sucursal_id})
+        pendientes = cur.fetchall()
+        cur.execute(base + "n.estado = 'anulado'" + filtro + " ORDER BY n.fecha_anulacion DESC LIMIT 30", {"s": sucursal_id})
+        anulados = cur.fetchall()
+        return {"pendientes": pendientes, "anulados": anulados}
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/numeros-acta/{numero_id}/anular")
+def anular_numero_acta(numero_id: int, motivo: str = Form(...), usuario=Depends(obtener_usuario_actual)):
+    if usuario["rol"] != "administrador":
+        raise HTTPException(status_code=403, detail="Solo el administrador puede anular un número de acta")
+    motivo = (motivo or "").strip()
+    if len(motivo) < 5:
+        raise HTTPException(status_code=400, detail="Escribe el motivo de la anulación")
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("SELECT id, codigo, estado, usuario_id FROM numeros_acta WHERE id = %s FOR UPDATE", (numero_id,))
+        n = cur.fetchone()
+        if not n:
+            raise HTTPException(status_code=404, detail="Número de acta no encontrado")
+        if n["estado"] != "reservado":
+            raise HTTPException(status_code=400, detail="Solo se puede anular un número pedido que aún no se usó")
+        cur.execute("""
+            UPDATE numeros_acta
+            SET estado = 'anulado', anulado_por = %s, motivo_anulacion = %s, fecha_anulacion = NOW()
+            WHERE id = %s
+        """, (usuario["id"], motivo, numero_id))
+        registrar_auditoria(cur, usuario, "anular_numero_acta", "numero_acta", numero_id,
+                            f"Número {n['codigo']} anulado. Motivo: {motivo}")
+        if n["usuario_id"]:
+            crear_notificacion(
+                cur, n["usuario_id"], "Número de acta anulado",
+                f"El administrador anuló el número {n['codigo']}. Motivo: {motivo}. Ya puedes pedir otro.",
+                "acta", "numero_acta", numero_id
+            )
+        conn.commit()
+        return {"mensaje": "Número anulado", "codigo": n["codigo"]}
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudo anular el número: {e}")
+    finally:
+        cur.close()
+        conn.close()
+
+
+def avisar_numeros_pendientes():
+    """Una vez por número: si un mediador lleva más de 5 días con un número de
+    acta pedido sin completar, se avisa a los administradores."""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT n.id, n.codigo, u.nombre || ' ' || u.apellido AS mediador
+            FROM numeros_acta n JOIN usuarios u ON u.id = n.usuario_id
+            WHERE n.estado = 'reservado' AND n.aviso_fecha IS NULL
+              AND n.fecha_solicitud < NOW() - INTERVAL '5 days'
+        """)
+        pendientes = cur.fetchall()
+        if not pendientes:
+            return
+        cur.execute("SELECT id FROM usuarios WHERE rol = 'administrador' AND activo = true")
+        admins = cur.fetchall()
+        for r in pendientes:
+            for a in admins:
+                crear_notificacion(
+                    cur, a["id"], "Número de acta sin completar",
+                    f"El mediador {r['mediador']} pidió el número {r['codigo']} hace más de 5 días y no ha completado el acta. "
+                    f"Puedes anularlo en Actas Finales.",
+                    "acta", "numero_acta", r["id"]
+                )
+            cur.execute("UPDATE numeros_acta SET aviso_fecha = NOW() WHERE id = %s", (r["id"],))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print("No se pudo revisar los números de acta pendientes:", e)
     finally:
         cur.close()
         conn.close()
