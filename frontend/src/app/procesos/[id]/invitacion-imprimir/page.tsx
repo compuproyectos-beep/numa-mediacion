@@ -247,8 +247,9 @@ function ImprimirInvitacion() {
         }
         if (!tel) tel = d.proceso?.sucursal_telefono || '';
         setTelefono(tel);
-        // El correo de contacto es el del mediador (las partes le responden a él);
-        // si no tuviera, el del centro.
+        // El correo del pie es el del administrador de la sucursal; si no lo
+        // tiene, el del mediador y, si tampoco, el del centro. Solo consta en
+        // el pie de la invitación (ya no hay frase de "confirmar asistencia").
         setCorreo(
           d.proceso?.sucursal_admin_email || d.proceso?.mediador_email || CORREO_DEFECTO
         );
@@ -464,20 +465,6 @@ function ImprimirInvitacion() {
     </div>
   );
 
-  const contacto = (
-    <>
-      Agradeceré confirmar su asistencia con el suscrito al teléfono{' '}
-      <b>
-        <Editable value={telefono} onChange={guardarTelefono} placeholder="teléfono" />
-      </b>
-      {modelo === 'empresa' ? ' o al correo electrónico ' : ', email '}
-      <b>
-        <Editable value={correo} onChange={setCorreo} placeholder="correo" />
-      </b>
-      {modelo === 'empresa' ? '.' : ''}
-    </>
-  );
-
   const cuerpoNatural = (
     <>
       <div style={{ display: 'flex', gap: '8mm', ...pDefault }}>
@@ -522,7 +509,6 @@ function ImprimirInvitacion() {
         <Editable value={lugar} onChange={setLugar} placeholder="lugar de la audiencia" multi />.
       </p>
 
-      <p style={pDefault}>{contacto}</p>
       <p style={pDefault}>Atentamente,</p>
       {firma}
     </>
@@ -610,7 +596,6 @@ function ImprimirInvitacion() {
         de mediación.
       </p>
 
-      <p style={pDefault}>{contacto}</p>
       <p style={pDefault}>Atentamente,</p>
       {firma}
     </>
