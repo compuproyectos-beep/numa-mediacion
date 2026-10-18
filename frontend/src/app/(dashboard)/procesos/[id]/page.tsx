@@ -238,7 +238,11 @@ export default function ProcesoDetallePage() {
 
   // silencioso: recarga sin mostrar los círculos de carga (se usa al volver
   // a la pestaña, para que la pantalla no parpadee).
-  const cargarSeguimiento = async (p: any, silencioso = false) => {
+  const cargarSeguimiento = async (
+    p: any,
+    silencioso = false,
+    citasAdelantadas?: Promise<any[] | null>
+  ) => {
     if (p?.finalizado || p?.estado === 'archivado') {
       if (!silencioso) setLoadingExpediente(true);
 
@@ -264,7 +268,7 @@ export default function ProcesoDetallePage() {
     if (!silencioso) setLoadingCitas(true);
 
     try {
-      let citas = await getCitasProceso(p.id);
+      let citas = (citasAdelantadas ? await citasAdelantadas : null) ?? (await getCitasProceso(p.id));
       // Recién creado el proceso (por ejemplo desde una invitación rápida) la
       // lista puede llegar vacía un instante: se vuelve a pedir una vez antes
       // de dar por hecho que no hay invitaciones.
@@ -295,11 +299,16 @@ export default function ProcesoDetallePage() {
     (async () => {
       setLoadingProceso(true);
 
+      // Las invitaciones se piden al mismo tiempo que el proceso (en vez de
+      // esperar a que termine de cargar la lista de procesos): la pantalla
+      // queda lista varios segundos antes.
+      const citasAdelantadas = getCitasProceso(procesoId).catch(() => null);
+
       const p = await cargarProceso();
 
       setLoadingProceso(false);
 
-      if (p) await cargarSeguimiento(p);
+      if (p) await cargarSeguimiento(p, false, citasAdelantadas);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [procesoId]);
@@ -1265,6 +1274,7 @@ export default function ProcesoDetallePage() {
 
         {!proceso.finalizado &&
           proceso.estado === 'en_negociacion' &&
+          !loadingCitas &&
           !citaPendiente && (
           <div className="card p-4">
             <div className="flex items-center justify-between mb-3">
