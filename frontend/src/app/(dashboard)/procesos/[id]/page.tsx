@@ -100,7 +100,9 @@ export default function ProcesoDetallePage() {
   const [successMessage, setSuccessMessage] = useState('');
 
   const [citasProceso, setCitasProceso] = useState<any[]>([]);
-  const [loadingCitas, setLoadingCitas] = useState(false);
+  // Empieza en true: así, mientras llega la línea de tiempo se ve el círculo
+  // de carga y no un instante de "sin invitaciones" (parecía vacía).
+  const [loadingCitas, setLoadingCitas] = useState(true);
 
   const [avancesProceso, setAvancesProceso] = useState<any[]>([]);
   const [loadingAvances, setLoadingAvances] = useState(false);
@@ -253,6 +255,7 @@ export default function ProcesoDetallePage() {
         );
       } finally {
         setLoadingExpediente(false);
+        setLoadingCitas(false);
       }
 
       return;
@@ -261,7 +264,14 @@ export default function ProcesoDetallePage() {
     if (!silencioso) setLoadingCitas(true);
 
     try {
-      const citas = await getCitasProceso(p.id);
+      let citas = await getCitasProceso(p.id);
+      // Recién creado el proceso (por ejemplo desde una invitación rápida) la
+      // lista puede llegar vacía un instante: se vuelve a pedir una vez antes
+      // de dar por hecho que no hay invitaciones.
+      if (citas.length === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        citas = await getCitasProceso(p.id);
+      }
       setCitasProceso(citas);
     } catch {
       setCitasProceso([]);
