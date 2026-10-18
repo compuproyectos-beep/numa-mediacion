@@ -82,6 +82,8 @@ export interface Sucursal {
   nombre: string;
   direccion: string;
   telefono: string;
+  admin_telefono?: string | null;
+  admin_email?: string | null;
   ciudad_id: number;
   ciudad_nombre?: string;
   activa: boolean;
@@ -91,6 +93,8 @@ export interface CreateSucursalPayload {
   nombre: string;
   direccion: string;
   telefono: string;
+  admin_telefono?: string;
+  admin_email?: string;
   ciudad_id: number;
    codigo?: string;
   prefijo?: string;
@@ -194,6 +198,10 @@ export interface ProcesoMediacion {
   requiere_acta_firmada?: boolean;
   tiene_acta_firmada?: boolean;
   acta_firmada_fecha?: string | null;
+  // Facturas del acta (no bloquean nada; solo se marca si faltan).
+  requiere_facturas?: boolean;
+  tiene_factura_cliente?: boolean;
+  tiene_factura_mediador?: boolean;
   // 'falta_acta' | 'falta_firmada' | 'completa' | 'suspendido' | null
   etapa_acta?: string | null;
   // Id del proceso del mismo mediador que va primero en la fila (si no es este).

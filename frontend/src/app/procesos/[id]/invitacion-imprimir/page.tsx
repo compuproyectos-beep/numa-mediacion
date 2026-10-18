@@ -233,7 +233,11 @@ function ImprimirInvitacion() {
         }
         // Primero el teléfono guardado en el perfil del mediador; si no tiene,
         // el último que se escribió en este navegador; y si no, el de la sucursal.
-        let tel = d.proceso?.mediador_telefono || '';
+        // Regla nueva: el teléfono y correo del encabezado son los del
+        // administrador responsable de la sucursal (Sucursales). Si esa
+        // sucursal aún no los tiene, se usa lo de antes.
+        let tel = d.proceso?.sucursal_admin_telefono || '';
+        if (!tel) tel = d.proceso?.mediador_telefono || '';
         if (!tel) {
           try {
             tel = window.localStorage.getItem('numa_tel_invitacion') || '';
@@ -245,7 +249,9 @@ function ImprimirInvitacion() {
         setTelefono(tel);
         // El correo de contacto es el del mediador (las partes le responden a él);
         // si no tuviera, el del centro.
-        setCorreo(d.proceso?.mediador_email || CORREO_DEFECTO);
+        setCorreo(
+          d.proceso?.sucursal_admin_email || d.proceso?.mediador_email || CORREO_DEFECTO
+        );
 
         // Si la invitación ya tiene textos guardados, se usan esos. Para una
         // nueva, se parte de los de la última invitación (lugar, asunto, etc.).

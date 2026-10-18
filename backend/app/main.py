@@ -576,7 +576,32 @@ def iniciar_scheduler():
             minute=0,
         )
 
+    try:
+        _scheduler.add_job(
+            avisar_facturas_pendientes,
+            "cron",
+            hour=8,
+            minute=10,
+            timezone="America/Guayaquil",
+            misfire_grace_time=4 * 3600,
+            coalesce=True,
+        )
+    except Exception:
+        _scheduler.add_job(
+            avisar_facturas_pendientes,
+            "cron",
+            hour=8,
+            minute=10,
+            misfire_grace_time=4 * 3600,
+            coalesce=True,
+        )
+
     _scheduler.start()
+
+    try:
+        _scheduler.add_job(avisar_facturas_pendientes)
+    except Exception as e:
+        print("No se pudo programar el aviso de facturas:", e)
 
     # Al arrancar también se revisan los recordatorios una vez: si el
     # servidor se reinició después de las 8am, no se pierde el aviso del día.
@@ -1348,6 +1373,8 @@ def obtener_sucursales(
                 s.prefijo,
                 s.direccion,
                 s.telefono,
+                s.admin_telefono,
+                s.admin_email,
                 s.codigo_corto,
                 s.activo,
                 s.fecha_creacion,
@@ -1690,6 +1717,18 @@ def delete_ciudad(
         cur.close()
         conn.close()
 
+def _contacto_admin_sucursal(admin_telefono, admin_email):
+    """Teléfono y correo del responsable (administrador) de la sucursal: salen
+    en el encabezado de las invitaciones."""
+    tel = (admin_telefono or "").strip() or None
+    mail = (admin_email or "").strip() or None
+    if mail and not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]{2,}$", mail):
+        raise HTTPException(status_code=400, detail="El correo del administrador de la sucursal no es válido")
+    if tel and not re.match(r"^[0-9+()\-\s]{7,30}$", tel):
+        raise HTTPException(status_code=400, detail="El teléfono del administrador de la sucursal no es válido")
+    return tel, mail
+
+
 # =========================
 # CREAR SUCURSAL
 # =========================
@@ -1701,6 +1740,8 @@ def crear_sucursal(
     prefijo: str = None,
     direccion: str = None,
     telefono: str = None,
+    admin_telefono: str = None,
+    admin_email: str = None,
     usuario=Depends(obtener_usuario_actual)
 ):
     conn = get_db()
@@ -1769,6 +1810,8 @@ def crear_sucursal(
         # SLUG: ciudad + sucursal
         slug = generar_slug(f"{ciudad['nombre']} {nombre}")
 
+        admin_telefono, admin_email = _contacto_admin_sucursal(admin_telefono, admin_email)
+
         cur.execute("""
             INSERT INTO sucursales (
                 ciudad_id,
@@ -1777,13 +1820,15 @@ def crear_sucursal(
                 prefijo,
                 direccion,
                 telefono,
+                admin_telefono,
+                admin_email,
                 slug,
                 codigo_corto,
                 activo,
                 fecha_creacion,
                 fecha_modificacion
               )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, true, NOW(), NOW())
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, true, NOW(), NOW())
             RETURNING
                 id,
                 ciudad_id,
@@ -1792,6 +1837,8 @@ def crear_sucursal(
                 prefijo,
                 direccion,
                 telefono,
+                admin_telefono,
+                admin_email,
                 slug,
                 codigo_corto,
                 activo,
@@ -1804,6 +1851,8 @@ def crear_sucursal(
             prefijo,
             direccion,
             telefono,
+            admin_telefono,
+            admin_email,
             slug,
             codigo_corto
         ))
@@ -1841,6 +1890,8 @@ def editar_sucursal(
     nombre: str,
     direccion: str = None,
     telefono: str = None,
+    admin_telefono: str = None,
+    admin_email: str = None,
     usuario=Depends(obtener_usuario_actual)
 ):
     if usuario["rol"] != "administrador":
@@ -1880,15 +1931,19 @@ def editar_sucursal(
         # que corregir el nombre/dirección de una sucursal afecte esa numeración.
         slug = generar_slug(f"{ciudad['nombre']} {nombre}")
 
+        admin_telefono, admin_email = _contacto_admin_sucursal(admin_telefono, admin_email)
+
         cur.execute("""
             UPDATE sucursales
             SET ciudad_id = %s, nombre = %s, direccion = %s, telefono = %s,
+                admin_telefono = %s, admin_email = %s,
                 slug = %s, fecha_modificacion = NOW()
             WHERE id = %s
             RETURNING
                 id, ciudad_id, nombre, codigo, prefijo, direccion, telefono,
+                admin_telefono, admin_email,
                 slug, codigo_corto, activo, fecha_creacion, fecha_modificacion
-        """, (ciudad_id, nombre, direccion, telefono, slug, id))
+        """, (ciudad_id, nombre, direccion, telefono, admin_telefono, admin_email, slug, id))
 
         sucursal = cur.fetchone()
 
@@ -3015,6 +3070,11 @@ def obtener_procesos_mediacion(
                 af.tipo AS tipo_acta,
                 (p.acta_firmada_ruta IS NOT NULL) AS tiene_acta_firmada,
                 p.acta_firmada_fecha,
+                p.requiere_facturas,
+                EXISTS (SELECT 1 FROM proceso_facturas f
+                         WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'cliente') AS tiene_factura_cliente,
+                EXISTS (SELECT 1 FROM proceso_facturas f
+                         WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'mediador') AS tiene_factura_mediador,
                 (p.acta_impresa_fecha IS NOT NULL) AS acta_impresa,
                 -- Si ya tiene una invitación pendiente, no se puede agendar
                 -- otra hasta que esa se resuelva (realizada/cancelada) —
@@ -4656,6 +4716,7 @@ async def subir_acta_firmada(
                 acta_firmada_tamano = %s,
                 acta_firmada_fecha = NOW(),
                 acta_firmada_usuario_id = %s,
+                requiere_facturas = true,
                 pago_pendiente = false,
                 fecha_modificacion = NOW()
             WHERE id = %s
@@ -4718,6 +4779,231 @@ def ver_acta_firmada(proceso_id: int, usuario=Depends(obtener_usuario_actual)):
             media_type="application/pdf",
             headers={"Content-Disposition": f'inline; filename="acta-firmada-{p["codigo_proceso"]}.pdf"'}
         )
+    finally:
+        cur.close()
+        conn.close()
+
+
+# =========================
+# FACTURAS DEL ACTA (dos PDF por acta culminada)
+# =========================
+# "cliente": factura que NUMA emite al cliente (el administrador se la da al
+# mediador). "mediador": factura que el mediador, como trabajador
+# independiente, emite a NUMA. Las sube el mediador del proceso después del
+# acta firmada. Son obligatorias para el expediente pero NUNCA bloquean nada.
+TIPOS_FACTURA = {
+    "cliente": "Factura de NUMA al cliente",
+    "mediador": "Factura del mediador a NUMA",
+}
+
+
+def _facturas_del_proceso(cur, proceso_id):
+    cur.execute("""
+        SELECT f.id, f.tipo, f.nombre, f.tamano_bytes, f.fecha_subida, f.vigente,
+               f.reemplazada_en, u.nombre || ' ' || u.apellido AS subida_por
+        FROM proceso_facturas f
+        LEFT JOIN usuarios u ON u.id = f.usuario_id
+        WHERE f.proceso_id = %s
+        ORDER BY f.tipo, f.id DESC
+    """, (proceso_id,))
+    return cur.fetchall()
+
+
+@app.get("/procesos/{proceso_id}/facturas")
+def listar_facturas_proceso(proceso_id: int, usuario=Depends(obtener_usuario_actual)):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute(
+            "SELECT usuario_id, requiere_facturas FROM procesos_mediacion WHERE id = %s",
+            (proceso_id,)
+        )
+        p = cur.fetchone()
+        if not p:
+            raise HTTPException(status_code=404, detail="Proceso no encontrado")
+        if usuario["rol"] != "administrador" and p["usuario_id"] != usuario["id"]:
+            raise HTTPException(status_code=403, detail="No tienes permiso para ver estas facturas")
+        return {
+            "requiere_facturas": bool(p["requiere_facturas"]),
+            "facturas": _facturas_del_proceso(cur, proceso_id),
+        }
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/procesos/{proceso_id}/facturas")
+async def subir_factura_proceso(
+    proceso_id: int,
+    tipo: str = Form(...),
+    archivo: UploadFile = File(...),
+    usuario=Depends(obtener_usuario_actual)
+):
+    if tipo not in TIPOS_FACTURA:
+        raise HTTPException(status_code=400, detail="Tipo de factura inválido")
+    if archivo.content_type != "application/pdf":
+        raise HTTPException(status_code=400, detail="La factura se sube solo en PDF")
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT p.id, p.codigo_proceso, p.usuario_id, p.acta_firmada_ruta,
+                   p.requiere_facturas, ap.codigo_acta
+            FROM procesos_mediacion p
+            LEFT JOIN actas_proceso ap ON ap.id = p.acta_final_id
+            WHERE p.id = %s
+            FOR UPDATE OF p
+        """, (proceso_id,))
+        p = cur.fetchone()
+        if not p:
+            raise HTTPException(status_code=404, detail="Proceso no encontrado")
+        if usuario["rol"] != "administrador" and p["usuario_id"] != usuario["id"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Solo el mediador asignado a este proceso puede subir las facturas"
+            )
+        if not p["acta_firmada_ruta"] or not p["requiere_facturas"]:
+            raise HTTPException(
+                status_code=400,
+                detail="Las facturas se suben después de subir el acta firmada"
+            )
+
+        contenido = comprimir_pdf(await archivo.read())
+
+        base_url, key, bucket = _supabase_config()
+        ruta = f"facturas/{p['codigo_acta'] or p['codigo_proceso']}/{tipo}-{uuid.uuid4()}.pdf"
+        resp = requests.post(
+            f"{base_url}/storage/v1/object/{bucket}/{quote(ruta, safe='/')}",
+            headers={
+                "Authorization": f"Bearer {key}",
+                "apikey": key,
+                "Content-Type": "application/pdf",
+                "x-upsert": "true",
+            },
+            data=contenido
+        )
+        if resp.status_code not in [200, 201]:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error subiendo la factura a Supabase: {resp.text}"
+            )
+
+        # Si ya había una vigente de este tipo, queda en el historial.
+        cur.execute("""
+            UPDATE proceso_facturas
+            SET vigente = false, reemplazada_en = NOW()
+            WHERE proceso_id = %s AND tipo = %s AND vigente
+        """, (proceso_id, tipo))
+        reemplazo = cur.rowcount > 0
+
+        cur.execute("""
+            INSERT INTO proceso_facturas (proceso_id, tipo, ruta, nombre, tamano_bytes, usuario_id)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (proceso_id, tipo, ruta, archivo.filename, len(contenido), usuario["id"]))
+
+        registrar_auditoria(
+            cur, usuario, "factura_reemplazada" if reemplazo else "factura_subida",
+            "procesos", proceso_id,
+            f"{'Reemplazó' if reemplazo else 'Subió'} la {TIPOS_FACTURA[tipo].lower()} del proceso {p['codigo_proceso']}"
+        )
+        conn.commit()
+        return {
+            "requiere_facturas": True,
+            "facturas": _facturas_del_proceso(cur, proceso_id),
+        }
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/procesos/{proceso_id}/facturas/{factura_id}/archivo")
+def ver_factura_proceso(proceso_id: int, factura_id: int, usuario=Depends(obtener_usuario_actual)):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT f.ruta, f.tipo, p.codigo_proceso, p.usuario_id
+            FROM proceso_facturas f
+            JOIN procesos_mediacion p ON p.id = f.proceso_id
+            WHERE f.id = %s AND f.proceso_id = %s
+        """, (factura_id, proceso_id))
+        f = cur.fetchone()
+        if not f:
+            raise HTTPException(status_code=404, detail="Factura no encontrada")
+        if usuario["rol"] != "administrador" and f["usuario_id"] != usuario["id"]:
+            raise HTTPException(status_code=403, detail="No tienes permiso para ver esta factura")
+
+        base_url, key, bucket = _supabase_config()
+        resp = requests.get(
+            f"{base_url}/storage/v1/object/{bucket}/{quote(f['ruta'], safe='/')}",
+            headers={"Authorization": f"Bearer {key}", "apikey": key}
+        )
+        if resp.status_code != 200:
+            raise HTTPException(status_code=404, detail="PDF no encontrado en Storage")
+        return Response(
+            content=resp.content,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'inline; filename="factura-{f["tipo"]}-{f["codigo_proceso"]}.pdf"'}
+        )
+    finally:
+        cur.close()
+        conn.close()
+
+
+def avisar_facturas_pendientes():
+    """Una vez por proceso: si pasaron 5 días desde el acta firmada y todavía
+    faltan la factura del cliente o la del mediador, se avisa a los
+    administradores. No bloquea nada."""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT p.id, p.codigo_proceso, u.nombre || ' ' || u.apellido AS mediador,
+                   NOT EXISTS (SELECT 1 FROM proceso_facturas f
+                                WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'cliente') AS falta_cliente,
+                   NOT EXISTS (SELECT 1 FROM proceso_facturas f
+                                WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'mediador') AS falta_mediador
+            FROM procesos_mediacion p
+            JOIN usuarios u ON u.id = p.usuario_id
+            WHERE p.requiere_facturas = true
+              AND p.acta_firmada_ruta IS NOT NULL
+              AND p.facturas_aviso_fecha IS NULL
+              AND p.acta_firmada_fecha < NOW() - INTERVAL '5 days'
+        """)
+        pendientes = [r for r in cur.fetchall() if r["falta_cliente"] or r["falta_mediador"]]
+        if not pendientes:
+            return
+
+        cur.execute("SELECT id FROM usuarios WHERE rol = 'administrador' AND activo = true")
+        admins = cur.fetchall()
+        for r in pendientes:
+            faltan = []
+            if r["falta_cliente"]:
+                faltan.append("la factura de NUMA al cliente")
+            if r["falta_mediador"]:
+                faltan.append("la factura del mediador a NUMA")
+            for a in admins:
+                crear_notificacion(
+                    cur, a["id"], "Faltan facturas",
+                    f"Hace más de 5 días se subió el acta firmada del proceso {r['codigo_proceso']} "
+                    f"(mediador {r['mediador']}) y todavía falta {' y '.join(faltan)}.",
+                    "acta", "proceso_mediacion", r["id"]
+                )
+            cur.execute(
+                "UPDATE procesos_mediacion SET facturas_aviso_fecha = NOW() WHERE id = %s",
+                (r["id"],)
+            )
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print("No se pudo revisar las facturas pendientes:", e)
     finally:
         cur.close()
         conn.close()
@@ -5032,6 +5318,8 @@ def datos_acta_imprimible(proceso_id: int, usuario=Depends(obtener_usuario_actua
                 ap.codigo_acta, ap.tipo AS tipo_acta, ap.fecha_subida AS fecha_acta,
                 s.nombre AS sucursal, s.direccion AS sucursal_direccion,
                 s.telefono AS sucursal_telefono,
+                s.admin_telefono AS sucursal_admin_telefono,
+                s.admin_email AS sucursal_admin_email,
                 ci.nombre AS ciudad,
                 u.nombre AS mediador_nombre, u.apellido AS mediador_apellido,
                 u.cedula AS mediador_cedula, u.telefono AS mediador_telefono,
@@ -5088,6 +5376,8 @@ def datos_invitacion_imprimible(proceso_id: int, usuario=Depends(obtener_usuario
                 p.id, p.usuario_id, p.tema, p.codigo_proceso,
                 s.nombre AS sucursal, s.direccion AS sucursal_direccion,
                 s.telefono AS sucursal_telefono,
+                s.admin_telefono AS sucursal_admin_telefono,
+                s.admin_email AS sucursal_admin_email,
                 ci.nombre AS ciudad,
                 u.nombre AS mediador_nombre, u.apellido AS mediador_apellido,
                 u.cedula AS mediador_cedula, u.telefono AS mediador_telefono,
@@ -6941,6 +7231,54 @@ def reporte_operativo_actas_pendientes(
         conn.close()
 
 
+@app.get("/reportes/operativos/facturas-pendientes")
+def reporte_operativo_facturas_pendientes(
+    ciudad_id: int = None,
+    sucursal_id: int = None,
+    usuario_id: int = None,
+    usuario=Depends(obtener_usuario_actual)
+):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        query = """
+            SELECT
+                p.id, p.codigo_proceso, p.tema, p.acta_firmada_fecha,
+                cd.nombre || ' ' || cd.apellido AS demandante,
+                cdd.nombre || ' ' || cdd.apellido AS demandado,
+                u.nombre || ' ' || u.apellido AS mediador,
+                s.nombre AS sucursal,
+                ci.nombre AS ciudad,
+                FLOOR(EXTRACT(EPOCH FROM (NOW() - p.acta_firmada_fecha)) / 86400)::int AS dias_transcurridos,
+                NOT EXISTS (SELECT 1 FROM proceso_facturas f
+                             WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'cliente') AS falta_cliente,
+                NOT EXISTS (SELECT 1 FROM proceso_facturas f
+                             WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'mediador') AS falta_mediador
+            FROM procesos_mediacion p
+            JOIN clientes cd ON p.cliente_demandante_id = cd.id
+            JOIN clientes cdd ON p.cliente_demandado_id = cdd.id
+            JOIN usuarios u ON p.usuario_id = u.id
+            JOIN sucursales s ON p.sucursal_id = s.id
+            JOIN ciudades ci ON s.ciudad_id = ci.id
+            WHERE p.requiere_facturas = true
+              AND p.acta_firmada_ruta IS NOT NULL
+              AND (
+                    NOT EXISTS (SELECT 1 FROM proceso_facturas f
+                                 WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'cliente')
+                 OR NOT EXISTS (SELECT 1 FROM proceso_facturas f
+                                 WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'mediador')
+                  )
+        """
+        params = []
+        query = _filtros_operativos(query, params, usuario, usuario_id, sucursal_id, ciudad_id)
+        query += " ORDER BY p.acta_firmada_fecha ASC"
+        cur.execute(query, tuple(params))
+        return cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
+
+
 ETIQUETAS_ESTADO_REPORTE = {
     "en_negociacion": "En negociación",
     "cerrado_con_acuerdo": "Cerrado con acuerdo",
@@ -7032,7 +7370,7 @@ def exportar_reporte_excel(
     usuario=Depends(obtener_usuario_actual)
 ):
     if tipo not in ["procesos", "productividad", "actas", "sucursales", "clientes",
-                    "agenda", "sin-avance", "actas-pendientes"]:
+                    "agenda", "sin-avance", "actas-pendientes", "facturas-pendientes"]:
         raise HTTPException(status_code=400, detail="Tipo de reporte inválido")
 
     # Se reutilizan las mismas funciones que alimentan la pantalla (llamadas
@@ -7225,6 +7563,25 @@ def exportar_reporte_excel(
         ]
         nombre_archivo = "reporte_actas_pendientes_numa.xlsx"
 
+    elif tipo == "facturas-pendientes":
+        filas = reporte_operativo_facturas_pendientes(
+            ciudad_id=ciudad_id, sucursal_id=sucursal_id,
+            usuario_id=usuario_id, usuario=usuario
+        )
+        encabezados = ["Proceso", "Solicitante", "Invitado", "Mediador", "Sucursal", "Ciudad",
+                       "Acta firmada el", "Días sin facturas",
+                       "Falta factura de NUMA al cliente", "Falta factura del mediador a NUMA"]
+        filas_excel = [
+            [f.get("codigo_proceso"), f.get("demandante"), f.get("demandado"),
+             f.get("mediador"), f.get("sucursal"), f.get("ciudad"),
+             _fecha_excel_ec(f.get("acta_firmada_fecha")),
+             f.get("dias_transcurridos"),
+             "Sí" if f.get("falta_cliente") else "No",
+             "Sí" if f.get("falta_mediador") else "No"]
+            for f in filas
+        ]
+        nombre_archivo = "reporte_facturas_pendientes_numa.xlsx"
+
     else:
         filas = obtener_actas_finales(
             q=None, ciudad_id=ciudad_id, sucursal_id=sucursal_id, usuario_id=usuario_id,
@@ -7269,6 +7626,7 @@ def exportar_reporte_excel(
         "agenda": "Agenda de reuniones",
         "sin-avance": "Procesos sin avance",
         "actas-pendientes": "Actas pendientes de subir",
+        "facturas-pendientes": "Facturas pendientes",
     }
     wb = _excel_con_formato(titulos_excel.get(tipo, "Reporte"), encabezados, filas_excel)
 

@@ -176,6 +176,8 @@ export async function createSucursal(payload: CreateSucursalPayload): Promise<Su
       prefijo: payload.prefijo,
       direccion: payload.direccion,
       telefono: payload.telefono,
+      admin_telefono: payload.admin_telefono || undefined,
+      admin_email: payload.admin_email || undefined,
     },
   });
 
@@ -189,6 +191,8 @@ export async function updateSucursal(id: number, payload: CreateSucursalPayload)
       nombre: payload.nombre,
       direccion: payload.direccion,
       telefono: payload.telefono,
+      admin_telefono: payload.admin_telefono || undefined,
+      admin_email: payload.admin_email || undefined,
     },
   });
   return res.data;
@@ -655,7 +659,7 @@ export async function getReporteClientes(
 // clientes) como archivo .xlsx, generado en el backend con los mismos
 // filtros que se ven en pantalla.
 export async function getReporteOperativo(
-  tipo: 'agenda' | 'sin-avance' | 'actas-pendientes',
+  tipo: 'agenda' | 'sin-avance' | 'actas-pendientes' | 'facturas-pendientes',
   filters?: FiltrosReporte
 ): Promise<any[]> {
   const res = await api.get(`/reportes/operativos/${tipo}`, { params: filters });
@@ -672,7 +676,8 @@ export async function descargarReporteExcel(
     | 'clientes'
     | 'agenda'
     | 'sin-avance'
-    | 'actas-pendientes',
+    | 'actas-pendientes'
+    | 'facturas-pendientes',
   filters?: FiltrosReporte
 ): Promise<Blob> {
   const res = await api.get('/reportes/exportar-excel', {
@@ -780,6 +785,33 @@ export async function subirActaFirmada(
 
 export async function descargarActaFirmada(procesoId: number): Promise<Blob> {
   const res = await api.get(`/procesos/${procesoId}/acta-firmada`, { responseType: 'blob' });
+  return res.data;
+}
+
+// ── FACTURAS DEL ACTA ────────────────────────────────────────────────────────
+export async function getFacturasProceso(procesoId: number): Promise<any> {
+  const res = await api.get(`/procesos/${procesoId}/facturas`);
+  return res.data;
+}
+
+export async function subirFacturaProceso(
+  procesoId: number,
+  tipo: 'cliente' | 'mediador',
+  file: File
+): Promise<any> {
+  const formData = new FormData();
+  formData.append('tipo', tipo);
+  formData.append('archivo', file);
+  const res = await api.post(`/procesos/${procesoId}/facturas`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data;
+}
+
+export async function verFacturaProceso(procesoId: number, facturaId: number): Promise<Blob> {
+  const res = await api.get(`/procesos/${procesoId}/facturas/${facturaId}/archivo`, {
+    responseType: 'blob',
+  });
   return res.data;
 }
 

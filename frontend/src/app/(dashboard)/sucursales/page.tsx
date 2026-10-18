@@ -23,6 +23,8 @@ const empty: CreateSucursalPayload = {
   nombre: '',
   direccion: '',
   telefono: '',
+  admin_telefono: '',
+  admin_email: '',
   ciudad_id: 0
 };
 
@@ -91,6 +93,8 @@ const [changingEstado, setChangingEstado] = useState(false);
       nombre: s.nombre || '',
       direccion: s.direccion || '',
       telefono: s.telefono || '',
+      admin_telefono: s.admin_telefono || '',
+      admin_email: s.admin_email || '',
       ciudad_id: s.ciudad_id || 0
     });
 
@@ -114,6 +118,16 @@ const [changingEstado, setChangingEstado] = useState(false);
 
   if (form.telefono && form.telefono.length !== 10) {
     setError('El teléfono debe tener 10 dígitos');
+    return;
+  }
+
+  if (form.admin_telefono && form.admin_telefono.length !== 10) {
+    setError('El teléfono del administrador debe tener 10 dígitos');
+    return;
+  }
+
+  if (form.admin_email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(form.admin_email)) {
+    setError('Ingresa un correo válido para el administrador');
     return;
   }
 
@@ -401,6 +415,30 @@ const handleCambiarEstado = async () => {
             }}
             placeholder="0981790092"
           />
+
+          <div className="pt-2 border-t border-numa-100">
+            <p className="text-xs text-numa-500 mb-3">
+              Administrador responsable de la sucursal: su teléfono y correo salen en
+              el encabezado de las invitaciones.
+            </p>
+            <div className="space-y-4">
+              <InputField
+                label="Teléfono del administrador"
+                value={form.admin_telefono || ''}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  setForm({ ...form, admin_telefono: value });
+                }}
+                placeholder="0981790092"
+              />
+              <InputField
+                label="Correo del administrador"
+                value={form.admin_email || ''}
+                onChange={(e) => setForm({ ...form, admin_email: e.target.value })}
+                placeholder="administrador@correo.com"
+              />
+            </div>
+          </div>
         </div>
 
         <div className="flex justify-end gap-3 mt-6">

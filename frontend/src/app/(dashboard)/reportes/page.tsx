@@ -38,9 +38,10 @@ type TipoReporte =
   | 'clientes'
   | 'agenda'
   | 'sin-avance'
-  | 'actas-pendientes';
+  | 'actas-pendientes'
+  | 'facturas-pendientes';
 
-const TIPOS_OPERATIVOS: TipoReporte[] = ['agenda', 'sin-avance', 'actas-pendientes'];
+const TIPOS_OPERATIVOS: TipoReporte[] = ['agenda', 'sin-avance', 'actas-pendientes', 'facturas-pendientes'];
 
 const ETIQUETAS_CITA: Record<string, string> = {
   pendiente: 'Pendiente',
@@ -73,6 +74,7 @@ const TIPOS: { valor: TipoReporte; titulo: string; adminOnly?: boolean }[] = [
   { valor: 'agenda', titulo: 'Agenda de reuniones' },
   { valor: 'sin-avance', titulo: 'Procesos sin avance' },
   { valor: 'actas-pendientes', titulo: 'Actas pendientes de subir' },
+  { valor: 'facturas-pendientes', titulo: 'Facturas pendientes' },
   { valor: 'productividad', titulo: 'Equipo de mediadores', adminOnly: true },
   { valor: 'sucursales', titulo: 'Sucursales', adminOnly: true },
   { valor: 'clientes', titulo: 'Clientes' }
@@ -97,7 +99,9 @@ const DESCRIPCIONES: Record<TipoReporte, string> = {
   'sin-avance':
     'Procesos que siguen en negociación y llevan al menos esos días sin que se registre ningún avance. Sirve para saber cuáles se están quedando olvidados. Los días se cuentan desde el último avance (o desde que se creó el proceso, si nunca tuvo uno).',
   'actas-pendientes':
-    'Procesos cerrados con acuerdo que aún no están completos: les falta subir la documentación y el comprobante, o el acta firmada (o están suspendidos). Se muestra cuántos días llevan pendientes desde la fecha del acuerdo.'
+    'Procesos cerrados con acuerdo que aún no están completos: les falta subir la documentación y el comprobante, o el acta firmada (o están suspendidos). Se muestra cuántos días llevan pendientes desde la fecha del acuerdo.',
+  'facturas-pendientes':
+    'Procesos con el acta firmada ya subida a los que todavía les falta la factura de NUMA al cliente o la factura del mediador a NUMA (solo cuentan las actas firmadas desde que existe esta regla). No bloquea el proceso; sirve para saber a quién cobrarle las facturas. Se muestran los días desde que se subió el acta firmada.'
 };
 
 // Un acta cuenta como lista solo cuando ya está subida el acta firmada (si la requiere).
@@ -225,7 +229,7 @@ export default function ReportesPage() {
   const filtrosOperativo =
     tipo === 'sin-avance'
       ? { ...filtrosActivos, fecha_desde: undefined, fecha_hasta: undefined, dias_minimo: diasMinimo || '7' }
-      : tipo === 'actas-pendientes'
+      : tipo === 'actas-pendientes' || tipo === 'facturas-pendientes'
       ? { ...filtrosActivos, fecha_desde: undefined, fecha_hasta: undefined }
       : filtrosActivos;
 
@@ -249,7 +253,7 @@ export default function ReportesPage() {
       } else if (tipo === 'clientes') {
         data = await getReporteClientes(filtrosActivos);
       } else if (esOperativo) {
-        data = await getReporteOperativo(tipo as 'agenda' | 'sin-avance' | 'actas-pendientes', filtrosOperativo);
+        data = await getReporteOperativo(tipo as 'agenda' | 'sin-avance' | 'actas-pendientes' | 'facturas-pendientes', filtrosOperativo);
       } else {
         // Solo cuentan como emitidas las actas con el acta firmada ya subida
         // (no basta con los documentos del acta).
@@ -525,7 +529,7 @@ export default function ReportesPage() {
           }}
         >
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-2">
-          {tipo !== 'sin-avance' && tipo !== 'actas-pendientes' && (
+          {tipo !== 'sin-avance' && tipo !== 'actas-pendientes' && tipo !== 'facturas-pendientes' && (
             <>
               <InputField
                 label="Fecha desde"
@@ -623,10 +627,12 @@ export default function ReportesPage() {
                 {exportando ? 'Descargando...' : 'Descargar Excel'}
               </button>
 
-              <button type="button" onClick={handleImprimir} className="btn-secondary">
-                <Printer className="w-4 h-4" />
-                Imprimir / PDF
-              </button>
+              {tipo !== 'facturas-pendientes' && (
+                <button type="button" onClick={handleImprimir} className="btn-secondary">
+                  <Printer className="w-4 h-4" />
+                  Imprimir / PDF
+                </button>
+              )}
             </>
           )}
         </div>
@@ -889,6 +895,19 @@ export default function ReportesPage() {
                         <th className="table-header">Días pendientes</th>
                       </>
                     )}
+
+                    {tipo === 'facturas-pendientes' && (
+                      <>
+                        <th className="table-header">Proceso</th>
+                        <th className="table-header">Solicitante</th>
+                        <th className="table-header">Invitado</th>
+                        {admin && <th className="table-header">Mediador</th>}
+                        <th className="table-header">Sucursal</th>
+                        <th className="table-header">Acta firmada</th>
+                        <th className="table-header">Falta</th>
+                        <th className="table-header">Días</th>
+                      </>
+                    )}
                   </tr>
                 </thead>
 
@@ -964,6 +983,35 @@ export default function ReportesPage() {
                           {p.horas_transcurridas == null
                             ? '—'
                             : `${Math.floor(p.horas_transcurridas / 24)} ${Math.floor(p.horas_transcurridas / 24) === 1 ? 'día' : 'días'}`}
+                        </td>
+                      </tr>
+                    ))}
+
+                  {tipo === 'facturas-pendientes' &&
+                    datos.map((p: any) => (
+                      <tr
+                        key={p.id}
+                        onClick={() => abrirProceso(p.id)}
+                        className="table-row cursor-pointer hover:bg-gold-400/[0.06]"
+                      >
+                        <td className="table-cell code-text">{p.codigo_proceso}</td>
+                        <td className="table-cell">{p.demandante}</td>
+                        <td className="table-cell">{p.demandado}</td>
+                        {admin && <td className="table-cell">{p.mediador}</td>}
+                        <td className="table-cell">{labelSucursal(p)}</td>
+                        <td className="table-cell">{fechaAcuerdoEC(p.acta_firmada_fecha)}</td>
+                        <td className="table-cell">
+                          {[
+                            p.falta_cliente ? 'Factura al cliente' : null,
+                            p.falta_mediador ? 'Factura del mediador' : null
+                          ]
+                            .filter(Boolean)
+                            .join(' y ')}
+                        </td>
+                        <td className="table-cell">
+                          {p.dias_transcurridos == null
+                            ? '—'
+                            : `${p.dias_transcurridos} ${p.dias_transcurridos === 1 ? 'día' : 'días'}`}
                         </td>
                       </tr>
                     ))}

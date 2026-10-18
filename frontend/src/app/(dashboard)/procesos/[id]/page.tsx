@@ -9,6 +9,7 @@ import { isAdmin as esAdminSesion } from '@/lib/auth';
 import PartesProceso from '@/components/procesos/PartesProceso';
 import FacturacionProceso from '@/components/procesos/FacturacionProceso';
 import ActaFlujoProceso from '@/components/procesos/ActaFlujoProceso';
+import FacturasProceso from '@/components/procesos/FacturasProceso';
 import DocFila from '@/components/procesos/DocFila';
 import CalendarioAgendaMediador from '@/components/citas/CalendarioAgendaMediador';
 import {
@@ -1600,6 +1601,12 @@ export default function ProcesoDetallePage() {
               setExpedienteProceso(await getExpedienteProceso(proceso.id));
             } catch {}
           }}
+        />
+
+        <FacturasProceso
+          proceso={proceso}
+          esAdmin={esAdminSesion()}
+          onCambio={cargarProceso}
         />
       </div>
 
