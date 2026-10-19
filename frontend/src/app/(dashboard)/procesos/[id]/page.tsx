@@ -244,7 +244,8 @@ export default function ProcesoDetallePage() {
   const cargarSeguimiento = async (
     p: any,
     silencioso = false,
-    citasAdelantadas?: Promise<any[] | null>
+    citasAdelantadas?: Promise<any[] | null>,
+    avancesAdelantados?: Promise<any[] | null>
   ) => {
     if (p?.finalizado || p?.estado === 'archivado') {
       if (!silencioso) setLoadingExpediente(true);
@@ -289,7 +290,8 @@ export default function ProcesoDetallePage() {
     if (!silencioso) setLoadingAvances(true);
 
     try {
-      const avances = await getAvancesProceso(p.id);
+      const avances =
+        (avancesAdelantados ? await avancesAdelantados : null) ?? (await getAvancesProceso(p.id));
       setAvancesProceso(avances);
     } catch {
       setAvancesProceso([]);
@@ -306,12 +308,13 @@ export default function ProcesoDetallePage() {
       // esperar a que termine de cargar la lista de procesos): la pantalla
       // queda lista varios segundos antes.
       const citasAdelantadas = getCitasProceso(procesoId).catch(() => null);
+      const avancesAdelantados = getAvancesProceso(procesoId).catch(() => null);
 
       const p = await cargarProceso();
 
       setLoadingProceso(false);
 
-      if (p) await cargarSeguimiento(p, false, citasAdelantadas);
+      if (p) await cargarSeguimiento(p, false, citasAdelantadas, avancesAdelantados);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [procesoId]);
