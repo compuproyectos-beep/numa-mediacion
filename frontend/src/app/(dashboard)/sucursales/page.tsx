@@ -111,8 +111,14 @@ const [changingEstado, setChangingEstado] = useState(false);
  const handleSave = async () => {
   setError('');
 
-  if (!form.nombre.trim() || !provinciaId || !form.ciudad_id) {
-    setError('Completa provincia, ciudad y nombre de sucursal');
+  const faltantes = [
+    !provinciaId && 'Provincia',
+    !form.ciudad_id && 'Ciudad',
+    !form.nombre.trim() && 'Nombre de la sucursal'
+  ].filter(Boolean);
+
+  if (faltantes.length > 0) {
+    setError(`No se puede guardar: falta completar ${faltantes.join(', ')}.`);
     return;
   }
 

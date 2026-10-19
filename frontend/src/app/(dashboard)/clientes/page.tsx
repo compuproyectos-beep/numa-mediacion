@@ -205,8 +205,13 @@ export default function ClientesPage() {
     const esEmpresa = form.tipo === 'empresa';
 
     if (esEmpresa) {
-      if (!form.razon_social?.trim() || !form.representante_nombre?.trim()) {
-        setError('Completa la razón social y el nombre del representante legal');
+      const faltantesEmpresa = [
+        !form.razon_social?.trim() && 'Razón social',
+        !form.representante_nombre?.trim() && 'Nombre del representante legal'
+      ].filter(Boolean);
+
+      if (faltantesEmpresa.length > 0) {
+        setError(`No se puede guardar: falta completar ${faltantesEmpresa.join(', ')}.`);
         return;
       }
       if (!/^\d{13}$/.test(form.ruc || '')) {
@@ -218,8 +223,14 @@ export default function ClientesPage() {
         return;
       }
     } else {
-      if (!form.nombre.trim() || !form.apellido.trim() || !form.cedula.trim()) {
-        setError('Completa nombre, apellido y cédula');
+      const faltantes = [
+        !form.nombre.trim() && 'Nombre',
+        !form.apellido.trim() && 'Apellido',
+        !form.cedula.trim() && 'Cédula'
+      ].filter(Boolean);
+
+      if (faltantes.length > 0) {
+        setError(`No se puede guardar: falta completar ${faltantes.join(', ')}.`);
         return;
       }
 

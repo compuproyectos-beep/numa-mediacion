@@ -121,8 +121,14 @@ export default function CiudadesPage() {
   const handleSave = async () => {
     setError('');
 
-    if (!form.nombre.trim() || !form.provincia_id || !form.prefijo.trim()) {
-      setError('Completa todos los campos');
+    const faltantes = [
+      !form.nombre.trim() && 'Nombre',
+      !form.provincia_id && 'Provincia',
+      !form.prefijo.trim() && 'Prefijo'
+    ].filter(Boolean);
+
+    if (faltantes.length > 0) {
+      setError(`No se puede guardar: falta completar ${faltantes.join(', ')}.`);
       return;
     }
 
