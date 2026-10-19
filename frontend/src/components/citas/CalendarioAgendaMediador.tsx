@@ -792,14 +792,114 @@ export default function CalendarioAgendaMediador({
             )}
           </div>
 
-          {citaActiva.falta_tema && (
-            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-sm p-3 mb-4">
-              Esta invitación se agendó sin tema. Abre el documento de la invitación y escribe el
-              asunto antes de imprimirla.
-            </p>
-          )}
+          {/* Línea de pasos de una invitación rápida pendiente: solo está activo
+              lo que corresponde en cada momento. */}
+          {citaActiva.partes_rapidas && !citaActiva.proceso_id && citaActiva.estado === 'pendiente' && (() => {
+            const horaLlego =
+              new Date(
+                `${String(citaActiva.fecha).slice(0, 10)}T${String(citaActiva.hora).slice(0, 5)}:00-05:00`
+              ).getTime() <= Date.now();
+            const temaOk = !citaActiva.falta_tema;
+            const verDocumento = () =>
+              router.push(`/procesos/rapida/invitacion-imprimir?cita=${citaActiva.id}`);
+            const Paso = ({ n, hecho, titulo, children }: any) => (
+              <li className="flex gap-3">
+                <span
+                  className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                    hecho ? 'bg-green-600 text-white' : 'bg-numa-200 text-numa-700'
+                  }`}
+                >
+                  {hecho ? '✓' : n}
+                </span>
+                <div className="min-w-0 flex-1 pb-3">
+                  <p className="text-sm font-semibold text-numa-900">{titulo}</p>
+                  <div className="text-xs text-numa-600 mt-0.5">{children}</div>
+                </div>
+              </li>
+            );
+            return (
+              <ol className="mb-4 border border-numa-200 rounded-sm p-4 bg-white">
+                <Paso n={1} hecho titulo="Invitación agendada">
+                  {citaActiva.creado_por ? `Por ${citaActiva.creado_por}` : 'Agendada'}
+                  {citaActiva.fecha_creacion ? ` · ${fechaCreacionEC(citaActiva.fecha_creacion)}` : ''}
+                </Paso>
+                <Paso n={2} hecho={temaOk} titulo="Tema de la invitación">
+                  {temaOk ? (
+                    'Tema completo.'
+                  ) : (
+                    <>
+                      <p className="mb-2 text-amber-800">
+                        Falta el asunto. Escríbelo en el documento de la invitación.
+                      </p>
+                      <button type="button" onClick={verDocumento} className="btn-secondary inline-flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Completar el tema en el documento
+                      </button>
+                    </>
+                  )}
+                </Paso>
+                <Paso n={3} hecho={false} titulo="Imprimir la invitación">
+                  {temaOk ? (
+                    <>
+                      <p className="mb-2">Revisa el documento y descárgalo o imprímelo.</p>
+                      <button type="button" onClick={verDocumento} className="btn-secondary inline-flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Documento de la invitación
+                      </button>
+                    </>
+                  ) : (
+                    'Bloqueado: se habilita cuando el tema esté completo.'
+                  )}
+                </Paso>
+                <Paso n={4} hecho={horaLlego} titulo="Reunión">
+                  {etiquetaFecha(citaActiva.fecha)} — {citaActiva.hora?.slice(0, 5)}.{' '}
+                  {horaLlego ? 'Ya es la hora de la reunión.' : 'Esperando la reunión.'}
+                </Paso>
+                <Paso n={5} hecho={false} titulo="Resultado">
+                  {esSecretariaActual ? (
+                    'El resultado lo define el mediador.'
+                  ) : (
+                    <>
+                      <p className="mb-2">
+                        Si la reunión continúa, crea el proceso (puedes hacerlo antes de la hora). Si
+                        no, ciérrala sin proceso una vez realizada.
+                      </p>
+                      <div className="flex flex-wrap gap-3 items-center">
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/procesos?crear=1&cita=${citaActiva.id}`)}
+                          className="btn-secondary inline-flex items-center gap-2"
+                        >
+                          <FolderPlus className="w-4 h-4" />
+                          Crear el proceso
+                        </button>
+                        {permitirGestionarEstado && (
+                          <button
+                            type="button"
+                            disabled={!horaLlego || cambiandoEstado}
+                            onClick={() => handleCambiarEstado('realizada')}
+                            className="btn-primary disabled:opacity-50"
+                          >
+                            Cerrar sin proceso
+                          </button>
+                        )}
+                        {permitirGestionarEstado && !horaLlego && (
+                          <span>Se habilita cuando llegue la hora de la reunión.</span>
+                        )}
+                      </div>
+                      {usuarioActual?.id === citaActiva.usuario_id && (
+                        <div className="mt-3">
+                          <PedirNumeroActaBoton />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </Paso>
+              </ol>
+            );
+          })()}
 
-          {citaActiva.partes_rapidas && !citaActiva.proceso_id && citaActiva.estado !== 'cancelada' && (
+          {citaActiva.partes_rapidas && !citaActiva.proceso_id && citaActiva.estado !== 'pendiente' && citaActiva.estado !== 'cancelada' && (
             <div className="flex flex-wrap items-start gap-3 mb-4">
               <button
                 type="button"
@@ -809,21 +909,8 @@ export default function CalendarioAgendaMediador({
                 className="btn-secondary inline-flex items-center gap-2"
               >
                 <FileText className="w-4 h-4" />
-                {citaActiva.estado === 'pendiente' ? 'Documento de la invitación' : 'Ver documento'}
+                Ver documento
               </button>
-
-              {!esSecretariaActual && (
-                <button
-                  type="button"
-                  onClick={() => router.push(`/procesos?crear=1&cita=${citaActiva.id}`)}
-                  className="btn-secondary inline-flex items-center gap-2"
-                >
-                  <FolderPlus className="w-4 h-4" />
-                  Crear el proceso
-                </button>
-              )}
-
-              {usuarioActual?.id === citaActiva.usuario_id && <PedirNumeroActaBoton />}
             </div>
           )}
 
@@ -841,16 +928,6 @@ export default function CalendarioAgendaMediador({
                   El resultado de esta invitación se registra dentro del proceso (en "Registrar
                   avance"), no desde aquí.
                 </p>
-              )}
-              {permitirGestionarEstado && !citaActiva.proceso_id && (
-                <button
-                  type="button"
-                  disabled={cambiandoEstado}
-                  onClick={() => handleCambiarEstado('realizada')}
-                  className="btn-primary disabled:opacity-50"
-                >
-                  Marcar como realizada
-                </button>
               )}
 
               <button

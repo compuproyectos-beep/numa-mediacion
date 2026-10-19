@@ -3163,7 +3163,7 @@ def cambiar_estado_cita(
 
     try:
         cur.execute("""
-            SELECT id, sucursal_id, usuario_id, proceso_id
+            SELECT id, sucursal_id, usuario_id, proceso_id, fecha, hora
             FROM citas
             WHERE id = %s
         """, (cita_id,))
@@ -3172,6 +3172,15 @@ def cambiar_estado_cita(
 
         if not cita_actual:
             raise HTTPException(status_code=404, detail="Invitación no encontrada")
+
+        if estado == "realizada":
+            ahora_ec = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-5))).replace(tzinfo=None)
+            momento = datetime.datetime.combine(cita_actual["fecha"], cita_actual["hora"])
+            if momento > ahora_ec:
+                raise HTTPException(
+                    status_code=400,
+                    detail="La reunión todavía no ha llegado: se podrá cerrar cuando sea la hora agendada"
+                )
 
         if estado == "realizada" and cita_actual["proceso_id"]:
             raise HTTPException(
@@ -4635,16 +4644,24 @@ def guardar_documento_invitacion_rapida(
 ):
     """Guarda los textos del documento de una invitación rápida."""
     limpio = _documento_limpio(datos)
+    limpio["editor_rol"] = usuario["rol"]
 
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
-        cur.execute("SELECT usuario_id, sucursal_id, estado, proceso_id FROM citas WHERE id = %s", (cita_id,))
+        cur.execute("SELECT usuario_id, sucursal_id, estado, proceso_id, documento FROM citas WHERE id = %s", (cita_id,))
         fila = cur.fetchone()
         if not fila:
             raise HTTPException(status_code=404, detail="Invitación no encontrada")
         if fila["proceso_id"]:
             raise HTTPException(status_code=400, detail="Esta invitación ya pertenece a un proceso")
+        # La secretaria puede redactar su propio documento, pero no volver a
+        # modificar uno que ya editó el mediador o el administrador.
+        if usuario["rol"] == "secretaria" and (fila["documento"] or {}).get("editor_rol") in ("mediador", "administrador"):
+            raise HTTPException(
+                status_code=403,
+                detail="El mediador ya editó esta invitación: solo puedes verla e imprimirla"
+            )
         if fila["estado"] != "pendiente":
             raise HTTPException(
                 status_code=400,

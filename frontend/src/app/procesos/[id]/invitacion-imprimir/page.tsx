@@ -12,6 +12,7 @@ import {
   guardarDocumentoInvitacionRapida
 } from '@/lib/services';
 import { hoyEcuador } from '@/lib/accionProceso';
+import { useAuth } from '@/hooks/useAuth';
 
 type Modelo = 'natural' | 'empresa';
 
@@ -349,7 +350,17 @@ function ImprimirInvitacion() {
   );
 
   // Una invitación ya realizada, cancelada o reagendada no se puede modificar.
-  const bloqueada = !esNueva && !!cita && cita.estado !== 'pendiente';
+  const { user: usuarioActual } = useAuth();
+  // La secretaria no puede volver a modificar un documento que ya editó el
+  // mediador o el administrador: solo verlo e imprimirlo.
+  const soloLecturaSecretaria =
+    esRapida &&
+    usuarioActual?.rol === 'secretaria' &&
+    ['mediador', 'administrador'].includes(cita?.documento?.editor_rol);
+  const bloqueada =
+    (!esNueva && !!cita && cita.estado !== 'pendiente') || soloLecturaSecretaria;
+  // Una invitación rápida no se imprime sin tema (asunto).
+  const sinTema = esRapida && !asunto.trim();
 
   if (loading) {
     return (
@@ -684,8 +695,10 @@ function ImprimirInvitacion() {
               )}
               {!esNueva && (
                 <button
+                  disabled={sinTema}
+                  title={sinTema ? 'Escribe el asunto para poder imprimir' : undefined}
                   onClick={() => window.print()}
-                  className="inline-flex items-center gap-2 px-4 py-2 border border-numa-300 text-numa-800 bg-white rounded-sm text-sm font-medium hover:bg-numa-50 transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 border border-numa-300 text-numa-800 bg-white rounded-sm text-sm font-medium hover:bg-numa-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Printer className="w-4 h-4" />
                   Descargar o imprimir
@@ -705,7 +718,20 @@ function ImprimirInvitacion() {
             </p>
           )}
 
-          {bloqueada && (
+          {sinTema && !bloqueada && (
+            <p className="mb-3 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-sm px-3 py-2">
+              Falta el tema: escribe el asunto sobre el documento y guarda los cambios para poder
+              imprimirla.
+            </p>
+          )}
+
+          {soloLecturaSecretaria && (
+            <p className="mb-3 text-sm text-numa-700 bg-numa-50 border border-numa-200 rounded-sm px-3 py-2">
+              El mediador ya editó esta invitación: solo puedes verla e imprimirla.
+            </p>
+          )}
+
+          {bloqueada && !soloLecturaSecretaria && (
             <p className="mb-3 text-sm text-numa-700 bg-numa-50 border border-numa-200 rounded-sm px-3 py-2">
               Esta invitación ya no está pendiente ({cita?.estado === 'realizada' ? 'ya se realizó' : cita?.estado === 'cancelada' ? 'fue cancelada' : 'cambió de estado'}),
               por eso solo se puede imprimir o guardar como PDF. No se puede modificar.
