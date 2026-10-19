@@ -3059,6 +3059,12 @@ def obtener_citas(
                 c.motivo_cancelacion,
                 c.fecha_creacion,
                 c.partes_rapidas,
+                -- Invitación rápida pendiente cuyo tema nadie ha escrito aún (la
+                -- secretaria puede dejarlo en blanco; el mediador lo completa
+                -- en el documento).
+                (c.proceso_id IS NULL AND c.estado = 'pendiente'
+                 AND c.tema = 'Invitación rápida'
+                 AND COALESCE(btrim(c.documento->>'asunto'), '') = '') AS falta_tema,
                 cp.nombre || ' ' || cp.apellido AS creado_por,
                 pm.codigo_proceso AS codigo_proceso,
                 a.codigo_acta,
@@ -4409,6 +4415,11 @@ def crear_invitacion_rapida(datos: dict, usuario=Depends(obtener_usuario_actual)
     observaciones = (datos.get("observaciones") or "").strip()
     tema = (datos.get("tema") or "").strip()[:500]
 
+    # El tema se cobra con la invitación: solo la secretaria puede dejarlo en
+    # blanco (el mediador lo completa después en el documento).
+    if not tema and usuario["rol"] != "secretaria":
+        raise HTTPException(status_code=400, detail="Escribe el tema a tratar en la reunión")
+
     if not observaciones:
         raise HTTPException(status_code=400, detail="Debes ingresar una observación para la invitación")
 
@@ -4513,7 +4524,8 @@ def crear_invitacion_rapida(datos: dict, usuario=Depends(obtener_usuario_actual)
             crear_notificacion(
                 cur, mediador_id, "Nueva invitación asignada",
                 f"{usuario['nombre']} {usuario['apellido']} te asignó una invitación: "
-                f"{sol} vs {inv} | {fecha} {hora}",
+                f"{sol} vs {inv} | {fecha} {hora}"
+                + ("" if tema else " — falta completar el tema"),
                 "cita", "cita", cita["id"]
             )
 

@@ -379,7 +379,7 @@ export default function CalendarioAgendaMediador({
 
       return {
         id: cita.id,
-        title: `${cita.hora?.slice(0, 5) ?? ''} ${partes || cita.tema || ''}`.trim(),
+        title: `${cita.falta_tema ? '⚠ ' : ''}${cita.hora?.slice(0, 5) ?? ''} ${partes || cita.tema || ''}`.trim(),
         start: inicio,
         end: fin,
         resource: cita,
@@ -677,6 +677,11 @@ export default function CalendarioAgendaMediador({
                     Invitación rápida · sin proceso
                   </span>
                 )}
+                {citaActiva.falta_tema && (
+                  <span className="ml-2 badge bg-amber-100 text-amber-800">
+                    Falta el tema
+                  </span>
+                )}
               </p>
               {citaActiva.fecha_creacion && (
                 <p className="text-xs text-numa-500 mt-0.5">
@@ -786,6 +791,13 @@ export default function CalendarioAgendaMediador({
               </p>
             )}
           </div>
+
+          {citaActiva.falta_tema && (
+            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-sm p-3 mb-4">
+              Esta invitación se agendó sin tema. Abre el documento de la invitación y escribe el
+              asunto antes de imprimirla: la invitación se cobra con ese tema.
+            </p>
+          )}
 
           {citaActiva.partes_rapidas && !citaActiva.proceso_id && citaActiva.estado !== 'cancelada' && (
             <div className="flex flex-wrap items-start gap-3 mb-4">

@@ -202,12 +202,17 @@ export default function InvitacionRapidaForm({
   fecha,
   hora,
   usuarioId,
+  temaObligatorio = true,
   onCreada,
   onCancelar
 }: {
   fecha: string;
   hora: string;
   usuarioId?: number;
+  // El tema se cobra con la invitación: los mediadores y el administrador
+  // deben escribirlo; la secretaria puede dejarlo en blanco y el mediador
+  // lo completa después en el documento.
+  temaObligatorio?: boolean;
   onCreada: (cita: any) => void;
   onCancelar: () => void;
 }) {
@@ -223,6 +228,10 @@ export default function InvitacionRapidaForm({
       revisarLado(solicitantes, 'solicitante') || revisarLado(invitados, 'invitado');
     if (problema) {
       setError(problema);
+      return;
+    }
+    if (temaObligatorio && !tema.trim()) {
+      setError('Escribe el tema a tratar en la reunión.');
       return;
     }
     if (!observaciones.trim()) {
@@ -277,7 +286,7 @@ export default function InvitacionRapidaForm({
         <LadoEditor titulo="Invitado(s)" lado={invitados} onChange={setInvitados} />
 
         <InputField
-          label="Tema (opcional)"
+          label={temaObligatorio ? 'Tema a tratar' : 'Tema (opcional, el mediador puede completarlo)'}
           value={tema}
           onChange={(e) => setTema(e.target.value)}
           placeholder="Ejemplo: Deuda por préstamo..."

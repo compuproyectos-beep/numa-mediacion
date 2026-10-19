@@ -346,6 +346,7 @@ export default function AgendaPage() {
             fecha={invitacionForm.fecha}
             hora={invitacionForm.hora}
             usuarioId={usuarioIdAgenda}
+            temaObligatorio={!esSecretaria}
             onCancelar={() => setInvitacionForm({ fecha: '', hora: '', observaciones: '' })}
             onCreada={(cita) => {
               setRapidaCreada(cita);
