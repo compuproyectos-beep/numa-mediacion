@@ -594,9 +594,13 @@ export default function UsuariosPage() {
               label="Rol"
               value={form.rol}
               onChange={(e) => setForm({ ...form, rol: e.target.value })}
-              disabled={!editing}
             >
               <option value="mediador">Mediador</option>
+              {/* Una sola secretaria activa por sucursal: si ya hay una, el
+                  sistema avisa y pide suspenderla primero. */}
+              {!(editing && editing.rol === 'administrador') && (
+                <option value="secretaria">Secretaria</option>
+              )}
               {/* El centro solo tiene un administrador (el actual). Al crear
                   un usuario nuevo no se puede elegir "Administrador"; esta
                   opción solo aparece al editar al administrador existente,

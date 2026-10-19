@@ -59,6 +59,9 @@ export default function Sidebar() {
   }, []);
 
   const isAdmin = user?.rol === 'administrador';
+  // La secretaria solo trabaja con la Agenda y los Clientes.
+  const esSecretaria = user?.rol === 'secretaria';
+  const inicio = esSecretaria ? '/agenda' : '/dashboard';
 
   useEffect(() => {
     if (!userMenuOpen) return;
@@ -79,6 +82,7 @@ export default function Sidebar() {
   }, [userMenuOpen]);
 
   const visibleNavItems = navItems.filter((item) => {
+    if (esSecretaria) return item.href === '/agenda' || item.href === '/clientes';
     if (item.adminOnly && !isAdmin) return false;
     return true;
   });
@@ -86,7 +90,7 @@ export default function Sidebar() {
   const SidebarContent = () => (
     <>
       <Link
-        href="/dashboard"
+        href={inicio}
         onClick={() => setMobileOpen(false)}
         className="flex items-center justify-center px-3 py-3 border-b border-numa-800 shrink-0"
       >
@@ -223,7 +227,7 @@ export default function Sidebar() {
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
 
-        <Link href="/dashboard" className="flex items-center">
+        <Link href={inicio} className="flex items-center">
           <img
             src="/logo-numa.png"
             alt="NUMA"

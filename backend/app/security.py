@@ -1,8 +1,9 @@
 import os
+import re
 from datetime import datetime, timedelta
 from jose import jwt
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer
 from psycopg2.extras import RealDictCursor
 from app.database import get_db
@@ -37,8 +38,35 @@ def crear_token(data: dict):
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
+# La secretaria solo puede usar la Agenda y los Clientes. Aquí se listan,
+# una por una, las únicas rutas a las que puede llamar; todo lo demás
+# (procesos, actas, reportes, usuarios...) se le niega aunque conozca la URL.
+_RUTAS_SECRETARIA = [
+    ("GET", r"^/me$"),
+    ("GET", r"^/notificaciones$"),
+    ("PUT", r"^/notificaciones/(\d+/leer|leer-todas)$"),
+    ("PUT", r"^/usuarios/cambiar-password$"),
+    ("GET", r"^/citas$"),
+    ("PUT", r"^/citas/\d+/estado$"),
+    ("POST", r"^/citas/rapida$"),
+    ("GET", r"^/citas/\d+/invitacion-datos$"),
+    ("PUT", r"^/citas/\d+/documento$"),
+    ("GET", r"^/clientes$"),
+    ("POST", r"^/clientes$"),
+    ("GET", r"^/provincias$"),
+    ("GET", r"^/ciudades$"),
+    ("GET", r"^/sucursal/mediadores$"),
+    ("GET", r"^/reuniones$"),
+]
+
+
+def _ruta_permitida_secretaria(metodo: str, ruta: str) -> bool:
+    ruta = ruta.rstrip("/") or "/"
+    return any(m == metodo and re.match(p, ruta) for m, p in _RUTAS_SECRETARIA)
+
+
 # 🔥 USUARIO REAL DESDE BD
-def obtener_usuario_actual(token: str = Depends(oauth2_scheme)):
+def obtener_usuario_actual(request: Request, token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("user_id")
@@ -50,7 +78,7 @@ def obtener_usuario_actual(token: str = Depends(oauth2_scheme)):
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
         cur.execute("""
-            SELECT id, sucursal_id, nombre, apellido, email, rol
+            SELECT id, sucursal_id, nombre, apellido, email, rol, activo
             FROM usuarios
             WHERE id = %s
         """, (user_id,))
@@ -63,7 +91,20 @@ def obtener_usuario_actual(token: str = Depends(oauth2_scheme)):
         if usuario is None:
             raise HTTPException(status_code=401, detail="Usuario no encontrado")
 
-        return usuario
-
     except:
         raise HTTPException(status_code=401, detail="Token inválido")
+
+    # Un usuario suspendido deja de poder usar el sistema de inmediato, aunque
+    # su sesión (token) todavía no haya vencido.
+    if not usuario["activo"]:
+        raise HTTPException(status_code=401, detail="Usuario suspendido")
+
+    if usuario["rol"] == "secretaria" and not _ruta_permitida_secretaria(
+        request.method, request.url.path
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Tu usuario solo puede usar la Agenda y los Clientes"
+        )
+
+    return usuario

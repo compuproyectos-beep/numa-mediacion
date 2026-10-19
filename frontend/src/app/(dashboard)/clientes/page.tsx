@@ -13,6 +13,7 @@ import {
   getProvincias
 } from '@/lib/services';
 import { getCiudadesCached } from '@/lib/catalogCache';
+import { getUser } from '@/lib/auth';
 import { Cliente, CreateClientePayload } from '@/types';
 
 // Para que la lista de clientes no se sienta tan plana/gris, cada avatar
@@ -383,12 +384,14 @@ export default function ClientesPage() {
 
                     <td className="table-cell">
                       <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => openEdit(c)}
-                          className="btn-ghost btn-sm"
-                        >
-                          <Pencil className="w-3 h-3" /> Editar
-                        </button>
+                        {getUser()?.rol !== 'secretaria' && (
+                          <button
+                            onClick={() => openEdit(c)}
+                            className="btn-ghost btn-sm"
+                          >
+                            <Pencil className="w-3 h-3" /> Editar
+                          </button>
+                        )}
 
                       </div>
                     </td>

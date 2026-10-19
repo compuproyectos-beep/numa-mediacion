@@ -366,6 +366,53 @@ export async function cambiarEstadoCita(
   return res.data;
 }
 
+// ── REUNIONES DE MEDIADORES Y SECRETARIA ─────────────────────────────────────
+export async function getMediadoresSucursal(): Promise<any[]> {
+  const res = await api.get('/sucursal/mediadores');
+  return res.data;
+}
+
+export async function getReuniones(filters?: {
+  fecha_desde?: string;
+  fecha_hasta?: string;
+  sucursal_id?: number;
+}): Promise<any[]> {
+  const res = await api.get('/reuniones', { params: filters });
+  return res.data;
+}
+
+export async function crearReunion(payload: {
+  fecha: string;
+  hora_inicio: string;
+  hora_fin: string;
+  titulo?: string;
+  detalle?: string;
+}): Promise<{ reunion: any; conflictos: any[] }> {
+  const res = await api.post('/reuniones', payload);
+  return res.data;
+}
+
+export async function editarReunion(
+  id: number,
+  payload: {
+    fecha: string;
+    hora_inicio: string;
+    hora_fin: string;
+    titulo?: string;
+    detalle?: string;
+  }
+): Promise<{ reunion: any; conflictos: any[] }> {
+  const res = await api.put(`/reuniones/${id}`, payload);
+  return res.data;
+}
+
+export async function cancelarReunion(id: number, motivo?: string): Promise<any> {
+  const res = await api.put(`/reuniones/${id}/cancelar`, null, {
+    params: { motivo: motivo || undefined },
+  });
+  return res.data;
+}
+
 // ── NOTIFICACIONES ───────────────────────────
 
 export async function getNotificaciones(): Promise<any[]> {

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CalendarPlus, FileText } from 'lucide-react';
+import { CalendarPlus, FileText, Users } from 'lucide-react';
 import {
   PageHeader,
   SelectField,
@@ -15,15 +15,27 @@ import {
 import CalendarioAgendaMediador from '@/components/citas/CalendarioAgendaMediador';
 import InvitacionRapidaForm from '@/components/citas/InvitacionRapidaForm';
 import PedirNumeroActaBoton from '@/components/actas/PedirNumeroActaBoton';
-import { getUsuarios, getProcesos, crearInvitacionProceso } from '@/lib/services';
+import ReunionModal from '@/components/citas/ReunionModal';
+import {
+  getUsuarios,
+  getMediadoresSucursal,
+  getProcesos,
+  crearInvitacionProceso
+} from '@/lib/services';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function AgendaPage() {
   const router = useRouter();
   const { user, isAdmin, isLoading: loadingUser } = useAuth();
+  // La secretaria agenda para los mediadores de su sucursal (llama a uno,
+  // ve cuál está libre y le abre la invitación); no ve procesos.
+  const esSecretaria = user?.rol === 'secretaria';
+  const puedeElegirMediador = isAdmin || esSecretaria;
 
   const [mediadores, setMediadores] = useState<any[]>([]);
   const [loadingMediadores, setLoadingMediadores] = useState(isAdmin);
+  const [reunionNueva, setReunionNueva] = useState(false);
+  const [avisoReunionNueva, setAvisoReunionNueva] = useState<any[] | null>(null);
   const [mediadorSeleccionadoId, setMediadorSeleccionadoId] = useState('');
 
   // Procesos que se pueden elegir para agendarles una invitación nueva:
@@ -63,12 +75,17 @@ export default function AgendaPage() {
   };
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!puedeElegirMediador) return;
 
     (async () => {
       setLoadingMediadores(true);
 
       try {
+        if (esSecretaria) {
+          setMediadores(await getMediadoresSucursal());
+          return;
+        }
+
         const data = await getUsuarios();
         // El administrador también puede mediar sus propios procesos (no
         // solo crearlos), así que si tiene sucursal asignada debe poder
@@ -86,11 +103,11 @@ export default function AgendaPage() {
         setLoadingMediadores(false);
       }
     })();
-  }, [isAdmin]);
+  }, [isAdmin, esSecretaria, puedeElegirMediador]);
 
   // El mediador cuya agenda se está viendo: el seleccionado (admin) o uno
   // mismo. Es también a quién se le puede agendar una invitación nueva.
-  const usuarioIdAgenda = isAdmin
+  const usuarioIdAgenda = puedeElegirMediador
     ? (mediadorSeleccionadoId ? Number(mediadorSeleccionadoId) : null)
     : user?.id ?? null;
 
@@ -125,13 +142,13 @@ export default function AgendaPage() {
     setSuccessMessage('');
     setRapidaCreada(null);
 
-    if (!usuarioIdAgenda) {
+    if (!usuarioIdAgenda || esSecretaria) {
       setProcesos([]);
       return;
     }
 
     cargarProcesosDisponibles(usuarioIdAgenda);
-  }, [usuarioIdAgenda, cargarProcesosDisponibles]);
+  }, [usuarioIdAgenda, cargarProcesosDisponibles, esSecretaria]);
 
   const handleCrearInvitacion = async () => {
     if (!procesoSeleccionadoId || !invitacionForm.fecha || !invitacionForm.hora) return;
@@ -173,7 +190,7 @@ export default function AgendaPage() {
     return <Spinner />;
   }
 
-  const mediadorActivo = isAdmin
+  const mediadorActivo = puedeElegirMediador
     ? mediadores.find((m) => String(m.id) === mediadorSeleccionadoId)
     : null;
 
@@ -195,11 +212,11 @@ export default function AgendaPage() {
   );
 
   const hayFechaHora = !!(invitacionForm.fecha && invitacionForm.hora);
-  const nombreMediadorAgenda = isAdmin
+  const nombreMediadorAgenda = puedeElegirMediador
     ? mediadorActivo
       ? `${mediadorActivo.nombre} ${mediadorActivo.apellido}`
       : undefined
-    : user.username;
+    : `${user.nombre || ''} ${user.apellido || ''}`.trim() || user.username;
 
   // Todo lo de debajo del selector de mediador es igual para el mediador
   // y para el admin: lo único que cambia es de quién es la agenda.
@@ -214,15 +231,16 @@ export default function AgendaPage() {
           Agendar nueva invitación
         </h3>
         <p className="text-xs text-numa-500 mb-3">
-          Haz clic en un día del calendario para crear una invitación rápida (sin proceso), o
-          elige primero un proceso ya creado.
+          {esSecretaria
+            ? 'Haz clic en un día del calendario, elige la hora libre y llena los datos: la invitación queda asignada al mediador que seleccionaste arriba y él recibe un aviso.'
+            : 'Haz clic en un día del calendario para crear una invitación rápida (sin proceso), o elige primero un proceso ya creado.'}
         </p>
 
-        {loadingProcesos ? (
+        {esSecretaria ? null : loadingProcesos ? (
           <Spinner />
         ) : procesos.length === 0 ? (
           <p className="text-xs text-numa-400">
-            {isAdmin
+            {puedeElegirMediador
               ? `${mediadorActivo?.nombre || 'Este mediador'} no tiene`
               : 'No tienes'}{' '}
             procesos en negociación disponibles para agendar (o todos ya tienen una invitación
@@ -264,7 +282,17 @@ export default function AgendaPage() {
           setRapidaCreada(null);
           bajarAObservaciones();
         }}
-        onCitaActualizada={() => cargarProcesosDisponibles(usuarioIdAgenda)}
+        onCitaActualizada={() => {
+          if (!esSecretaria) cargarProcesosDisponibles(usuarioIdAgenda);
+        }}
+        permitirGestionarEstado={!esSecretaria}
+        permitirCancelar={esSecretaria}
+        sucursalId={isAdmin ? mediadorActivo?.sucursal_id : undefined}
+        ignorarReuniones={
+          mediadorActivo
+            ? mediadorActivo.rol === 'administrador'
+            : user?.rol === 'administrador'
+        }
         onVerCitaExistente={() => setInvitacionForm({ ...invitacionForm, fecha: '', hora: '' })}
       />
 
@@ -365,11 +393,67 @@ export default function AgendaPage() {
         subtitle={
           isAdmin
             ? 'Consulta y gestiona el estado de las invitaciones de cualquier mediador'
+            : esSecretaria
+            ? 'Agenda las invitaciones de quienes llegan a la oficina y asígnalas a un mediador'
             : 'Consulta y gestiona el estado de tus invitaciones asignadas'
         }
       />
 
       {isAdmin && (
+        <div className="mb-4">
+          <button
+            type="button"
+            onClick={() => {
+              setAvisoReunionNueva(null);
+              setReunionNueva(true);
+            }}
+            className="btn-secondary inline-flex items-center gap-2"
+          >
+            <Users className="w-4 h-4" />
+            Nueva reunión de mediadores
+          </button>
+
+          {avisoReunionNueva && (
+            <div
+              className={`mt-3 max-w-2xl rounded-sm p-3 text-sm border ${
+                avisoReunionNueva.length > 0
+                  ? 'border-amber-300 bg-amber-50 text-amber-900'
+                  : 'border-green-200 bg-green-50 text-green-800'
+              }`}
+            >
+              {avisoReunionNueva.length > 0 ? (
+                <>
+                  <p className="font-semibold mb-1">
+                    Reunión creada y avisada a los mediadores. Atención: estos mediadores ya tienen
+                    una invitación pendiente en ese horario (no se cancelaron):
+                  </p>
+                  <ul className="list-disc ml-5">
+                    {avisoReunionNueva.map((a: any) => (
+                      <li key={a.id}>
+                        {a.mediador} — {String(a.hora).slice(0, 5)}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <p>Reunión creada. Todos los mediadores de tu sucursal recibieron la notificación.</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      <ReunionModal
+        open={reunionNueva}
+        onClose={() => setReunionNueva(false)}
+        onGuardada={(res) => {
+          setReunionNueva(false);
+          setAvisoReunionNueva(res.conflictos || []);
+          setCalendarRefreshKey((k) => k + 1);
+        }}
+      />
+
+      {puedeElegirMediador && (
         <div className="card p-4 mb-6 max-w-sm">
           <SelectField
             label="Mediador"
@@ -378,7 +462,15 @@ export default function AgendaPage() {
           >
             <option value="">Selecciona un mediador</option>
 
-            {nombresSucursales.map((sucursal) => (
+            {esSecretaria &&
+              mediadores.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.nombre} {m.apellido}
+                  {m.rol === 'administrador' ? ' (administrador)' : ''}
+                </option>
+              ))}
+
+            {!esSecretaria && nombresSucursales.map((sucursal) => (
               <optgroup
                 key={sucursal}
                 label={`${sucursal}${
@@ -412,7 +504,7 @@ export default function AgendaPage() {
       )}
 
       <div className="card p-5">
-        {isAdmin ? (
+        {puedeElegirMediador ? (
           loadingMediadores ? (
             <Spinner />
           ) : !mediadorSeleccionadoId ? (

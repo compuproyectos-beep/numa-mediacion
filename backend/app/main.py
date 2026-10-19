@@ -2068,6 +2068,11 @@ def crear_usuario(
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
     try:
+        if rol not in ("mediador", "secretaria"):
+            raise HTTPException(status_code=400, detail="Rol inválido")
+        if rol == "secretaria":
+            _verificar_una_secretaria(cur, sucursal_id)
+
         # VALIDAR CÉDULA
         if not validar_cedula_ecuatoriana(cedula):
             raise HTTPException(
@@ -2298,14 +2303,23 @@ def editar_usuario(
         if not validar_email(email):
             raise HTTPException(status_code=400, detail="Email inválido")
 
-        if rol not in ("administrador", "mediador"):
+        if rol not in ("administrador", "mediador", "secretaria"):
             raise HTTPException(status_code=400, detail="Rol inválido")
 
-        cur.execute("SELECT id, rol FROM usuarios WHERE id = %s", (id,))
+        cur.execute("SELECT id, rol, activo FROM usuarios WHERE id = %s", (id,))
         usuario_existente = cur.fetchone()
 
         if not usuario_existente:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+        if usuario_existente["rol"] == "administrador" and rol != "administrador":
+            raise HTTPException(
+                status_code=400,
+                detail="El rol del administrador no se puede cambiar"
+            )
+
+        if rol == "secretaria" and usuario_existente["activo"]:
+            _verificar_una_secretaria(cur, sucursal_id, excluir_id=id)
 
         # El centro solo debe tener un administrador (el actual). Se puede
         # editar al administrador existente sin problema, pero no se puede
@@ -2677,6 +2691,13 @@ def cambiar_estado_usuario(
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
     try:
+        if activo:
+            # Reactivar a una secretaria solo si la sucursal no tiene ya otra activa.
+            cur.execute("SELECT rol, sucursal_id FROM usuarios WHERE id = %s", (id,))
+            destino = cur.fetchone()
+            if destino and destino["rol"] == "secretaria":
+                _verificar_una_secretaria(cur, destino["sucursal_id"], excluir_id=id)
+
         cur.execute("""
             UPDATE usuarios
             SET activo = %s,
@@ -2706,6 +2727,288 @@ def cambiar_estado_usuario(
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+    finally:
+        cur.close()
+        conn.close()
+
+
+# =========================
+# SECRETARIA Y REUNIONES DE MEDIADORES
+# =========================
+def _verificar_una_secretaria(cur, sucursal_id, excluir_id=None):
+    """Cada sucursal tiene UNA sola secretaria activa."""
+    cur.execute("""
+        SELECT nombre, apellido FROM usuarios
+        WHERE rol = 'secretaria' AND activo = true AND sucursal_id = %s
+          AND id <> COALESCE(%s, -1)
+        LIMIT 1
+    """, (sucursal_id, excluir_id))
+    ya = cur.fetchone()
+    if ya:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Esta sucursal ya tiene una secretaria activa ({ya['nombre']} {ya['apellido']}). "
+                "Suspéndela primero para poder registrar o activar a otra."
+            )
+        )
+
+
+def _verificar_sin_reunion(cur, mediador_id, fecha, hora):
+    """Una hora dentro de una reunión de mediadores no admite invitaciones
+    para los mediadores de esa sucursal."""
+    cur.execute("SELECT rol, sucursal_id FROM usuarios WHERE id = %s", (mediador_id,))
+    m = cur.fetchone()
+    if not m or m["rol"] != "mediador":
+        return
+    cur.execute("""
+        SELECT titulo, hora_inicio, hora_fin
+        FROM reuniones_mediadores
+        WHERE sucursal_id = %s AND fecha = %s AND estado = 'activa'
+          AND %s::time >= hora_inicio AND %s::time < hora_fin
+        LIMIT 1
+    """, (m["sucursal_id"], fecha, str(hora)[:5], str(hora)[:5]))
+    r = cur.fetchone()
+    if r:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Esa hora está ocupada: el {fecha} de {str(r['hora_inicio'])[:5]} a "
+                f"{str(r['hora_fin'])[:5]} hay una reunión de mediadores ({r['titulo']}). Elige otra hora."
+            )
+        )
+
+
+_DIAS_ES = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+
+
+def _validar_reunion(datos):
+    fecha = (datos.get("fecha") or "").strip()
+    hora_inicio = (datos.get("hora_inicio") or "").strip()[:5]
+    hora_fin = (datos.get("hora_fin") or "").strip()[:5]
+    titulo = (datos.get("titulo") or "").strip()[:200] or "Reunión de mediadores"
+    detalle = (datos.get("detalle") or "").strip()[:1000] or None
+    try:
+        ini = datetime.datetime.strptime(f"{fecha} {hora_inicio}", "%Y-%m-%d %H:%M")
+        fin = datetime.datetime.strptime(f"{fecha} {hora_fin}", "%Y-%m-%d %H:%M")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Fecha u hora inválida")
+    if fin <= ini:
+        raise HTTPException(status_code=400, detail="La hora de fin debe ser posterior a la de inicio")
+    # Hora local de Ecuador (UTC-5) contra el reloj del servidor (UTC).
+    if ini + datetime.timedelta(hours=5) < datetime.datetime.utcnow():
+        raise HTTPException(status_code=400, detail="No se puede crear una reunión en una fecha u hora pasada")
+    return fecha, hora_inicio, hora_fin, titulo, detalle, ini
+
+
+def _citas_en_conflicto(cur, sucursal_id, fecha, hora_inicio, hora_fin):
+    """Invitaciones pendientes de los mediadores de la sucursal que caen
+    dentro del horario de la reunión (solo se advierte, no se cancelan)."""
+    cur.execute("""
+        SELECT c.id, c.hora, u.nombre || ' ' || u.apellido AS mediador
+        FROM citas c
+        JOIN usuarios u ON u.id = c.usuario_id
+        WHERE c.sucursal_id = %s AND c.fecha = %s AND c.estado = 'pendiente'
+          AND u.rol = 'mediador'
+          AND c.hora >= %s::time AND c.hora < %s::time
+        ORDER BY c.hora
+    """, (sucursal_id, fecha, hora_inicio, hora_fin))
+    return cur.fetchall()
+
+
+def _notificar_reunion(cur, sucursal_id, titulo, mensaje, reunion_id, excluir_id=None):
+    cur.execute("""
+        SELECT id FROM usuarios
+        WHERE sucursal_id = %s AND activo = true AND rol IN ('mediador', 'secretaria')
+          AND id <> COALESCE(%s, -1)
+    """, (sucursal_id, excluir_id))
+    for u in cur.fetchall():
+        crear_notificacion(cur, u["id"], titulo, mensaje, "reunion", "reunion", reunion_id)
+
+
+def _texto_reunion(ini, hora_fin, titulo):
+    dia = _DIAS_ES[ini.weekday()]
+    return f"{titulo} — {dia} {ini.strftime('%Y-%m-%d')}, de {ini.strftime('%H:%M')} a {hora_fin}"
+
+
+@app.get("/sucursal/mediadores")
+def mediadores_de_mi_sucursal(usuario=Depends(obtener_usuario_actual)):
+    """Mediadores activos de la sucursal de la secretaria (o del administrador)."""
+    if usuario["rol"] not in ("secretaria", "administrador"):
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver esta información")
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT id, nombre, apellido, rol, telefono
+            FROM usuarios
+            WHERE sucursal_id = %s AND activo = true AND rol IN ('mediador', 'administrador')
+            ORDER BY nombre, apellido
+        """, (usuario["sucursal_id"],))
+        return cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/reuniones")
+def listar_reuniones(
+    fecha_desde: str = None,
+    fecha_hasta: str = None,
+    sucursal_id: int = None,
+    usuario=Depends(obtener_usuario_actual)
+):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        # Cada quien ve las reuniones de su sucursal; el administrador puede
+        # consultar la de cualquier sucursal (la del mediador que está viendo).
+        suc = usuario["sucursal_id"]
+        if usuario["rol"] == "administrador" and sucursal_id:
+            suc = sucursal_id
+        query = """
+            SELECT r.id, r.sucursal_id, r.titulo, r.detalle, r.fecha,
+                   r.hora_inicio, r.hora_fin, r.estado, r.fecha_creacion,
+                   cp.nombre || ' ' || cp.apellido AS creado_por
+            FROM reuniones_mediadores r
+            LEFT JOIN usuarios cp ON cp.id = r.creado_por_id
+            WHERE r.sucursal_id = %s AND r.estado = 'activa'
+        """
+        params = [suc]
+        if fecha_desde:
+            query += " AND r.fecha >= %s"
+            params.append(fecha_desde)
+        if fecha_hasta:
+            query += " AND r.fecha <= %s"
+            params.append(fecha_hasta)
+        query += " ORDER BY r.fecha, r.hora_inicio"
+        cur.execute(query, tuple(params))
+        return cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/reuniones")
+def crear_reunion(datos: dict, usuario=Depends(obtener_usuario_actual)):
+    """El administrador crea una reunión para TODOS los mediadores de su sucursal."""
+    if usuario["rol"] != "administrador":
+        raise HTTPException(status_code=403, detail="Solo el administrador puede crear reuniones")
+    if not usuario["sucursal_id"]:
+        raise HTTPException(status_code=400, detail="Tu usuario no tiene sucursal asignada")
+
+    fecha, hora_inicio, hora_fin, titulo, detalle, ini = _validar_reunion(datos)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            INSERT INTO reuniones_mediadores
+                (sucursal_id, creado_por_id, titulo, detalle, fecha, hora_inicio, hora_fin)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            RETURNING *
+        """, (usuario["sucursal_id"], usuario["id"], titulo, detalle, fecha, hora_inicio, hora_fin))
+        reunion = cur.fetchone()
+
+        conflictos = _citas_en_conflicto(cur, usuario["sucursal_id"], fecha, hora_inicio, hora_fin)
+
+        _notificar_reunion(
+            cur, usuario["sucursal_id"], "Reunión de mediadores",
+            _texto_reunion(ini, hora_fin, titulo), reunion["id"], excluir_id=usuario["id"]
+        )
+        conn.commit()
+        return {"reunion": reunion, "conflictos": conflictos}
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.put("/reuniones/{reunion_id}")
+def editar_reunion(reunion_id: int, datos: dict, usuario=Depends(obtener_usuario_actual)):
+    if usuario["rol"] != "administrador":
+        raise HTTPException(status_code=403, detail="Solo el administrador puede modificar reuniones")
+
+    fecha, hora_inicio, hora_fin, titulo, detalle, ini = _validar_reunion(datos)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("SELECT id, sucursal_id, estado FROM reuniones_mediadores WHERE id = %s", (reunion_id,))
+        actual = cur.fetchone()
+        if not actual:
+            raise HTTPException(status_code=404, detail="Reunión no encontrada")
+        if actual["estado"] != "activa":
+            raise HTTPException(status_code=400, detail="Esta reunión ya fue cancelada")
+
+        cur.execute("""
+            UPDATE reuniones_mediadores
+            SET titulo = %s, detalle = %s, fecha = %s, hora_inicio = %s, hora_fin = %s,
+                fecha_modificacion = NOW()
+            WHERE id = %s
+            RETURNING *
+        """, (titulo, detalle, fecha, hora_inicio, hora_fin, reunion_id))
+        reunion = cur.fetchone()
+
+        conflictos = _citas_en_conflicto(cur, actual["sucursal_id"], fecha, hora_inicio, hora_fin)
+
+        _notificar_reunion(
+            cur, actual["sucursal_id"], "Reunión de mediadores modificada",
+            "Nuevo horario: " + _texto_reunion(ini, hora_fin, titulo), reunion_id,
+            excluir_id=usuario["id"]
+        )
+        conn.commit()
+        return {"reunion": reunion, "conflictos": conflictos}
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.put("/reuniones/{reunion_id}/cancelar")
+def cancelar_reunion(reunion_id: int, motivo: str = None, usuario=Depends(obtener_usuario_actual)):
+    if usuario["rol"] != "administrador":
+        raise HTTPException(status_code=403, detail="Solo el administrador puede cancelar reuniones")
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            UPDATE reuniones_mediadores
+            SET estado = 'cancelada', motivo_cancelacion = %s, fecha_modificacion = NOW()
+            WHERE id = %s AND estado = 'activa'
+            RETURNING *
+        """, ((motivo or "").strip() or None, reunion_id))
+        reunion = cur.fetchone()
+        if not reunion:
+            raise HTTPException(status_code=404, detail="Reunión no encontrada o ya cancelada")
+
+        ini = datetime.datetime.strptime(
+            f"{reunion['fecha']} {str(reunion['hora_inicio'])[:5]}", "%Y-%m-%d %H:%M"
+        )
+        _notificar_reunion(
+            cur, reunion["sucursal_id"], "Reunión de mediadores cancelada",
+            "Cancelada: " + _texto_reunion(ini, str(reunion["hora_fin"])[:5], reunion["titulo"]),
+            reunion_id, excluir_id=usuario["id"]
+        )
+        conn.commit()
+        return reunion
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         cur.close()
         conn.close()
@@ -2770,7 +3073,14 @@ def obtener_citas(
 
         # Cada mediador solo ve sus propias citas/agenda. El admin ve todo
         # y puede filtrar por un mediador específico con usuario_id.
-        if usuario["rol"] != "administrador":
+        if usuario["rol"] == "secretaria":
+            # La secretaria ve la agenda de los mediadores de SU sucursal.
+            query += " AND c.sucursal_id = %s"
+            params.append(usuario["sucursal_id"])
+            if usuario_id:
+                query += " AND c.usuario_id = %s"
+                params.append(usuario_id)
+        elif usuario["rol"] != "administrador":
             query += " AND c.usuario_id = %s"
             params.append(usuario["id"])
         elif usuario_id:
@@ -2844,7 +3154,13 @@ def cambiar_estado_cita(
         if not cita_actual:
             raise HTTPException(status_code=404, detail="Invitación no encontrada")
 
-        if usuario["rol"] != "administrador":
+        if usuario["rol"] == "secretaria":
+            if cita_actual["sucursal_id"] != usuario["sucursal_id"]:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Solo puedes modificar invitaciones de tu sucursal"
+                )
+        elif usuario["rol"] != "administrador":
             if usuario["id"] != cita_actual["usuario_id"]:
                 raise HTTPException(
                     status_code=403,
@@ -2861,6 +3177,17 @@ def cambiar_estado_cita(
         """, (estado, estado, motivo.strip() if motivo else None, cita_id))
 
         cita = cur.fetchone()
+
+        # Si la cancela otra persona (secretaria o administrador), el mediador
+        # dueño de la invitación debe enterarse.
+        if estado == "cancelada" and cita["usuario_id"] != usuario["id"]:
+            crear_notificacion(
+                cur, cita["usuario_id"], "Invitación cancelada",
+                f"{usuario['nombre']} {usuario['apellido']} canceló tu invitación del "
+                f"{str(cita['fecha'])[:10]} a las {str(cita['hora'])[:5]}. Motivo: {motivo.strip()}",
+                "cita", "cita", cita["id"]
+            )
+
         conn.commit()
 
         return cita
@@ -3843,6 +4170,8 @@ def crear_invitacion_proceso(
                 detail=f"El mediador ya tiene otra invitación pendiente el {fecha} a las {hora}. Elige otra hora."
             )
 
+        _verificar_sin_reunion(cur, proceso["usuario_id"], fecha, hora)
+
         try:
             cur.execute("""
                 INSERT INTO citas (
@@ -4083,14 +4412,19 @@ def crear_invitacion_rapida(datos: dict, usuario=Depends(obtener_usuario_actual)
         # El mediador dueño de la invitación: uno mismo, o (admin) el que se
         # esté viendo en la Agenda.
         mediador_id = usuario["id"]
-        if usuario["rol"] == "administrador" and datos.get("usuario_id"):
+        if usuario["rol"] == "secretaria" and not datos.get("usuario_id"):
+            raise HTTPException(
+                status_code=400,
+                detail="Elige el mediador al que se le asigna la invitación"
+            )
+        if usuario["rol"] in ("administrador", "secretaria") and datos.get("usuario_id"):
             try:
                 mediador_id = int(datos.get("usuario_id"))
             except (TypeError, ValueError):
                 raise HTTPException(status_code=400, detail="Mediador inválido")
 
         cur.execute(
-            "SELECT id, sucursal_id, cedula, activo FROM usuarios WHERE id = %s",
+            "SELECT id, sucursal_id, cedula, activo, rol FROM usuarios WHERE id = %s",
             (mediador_id,)
         )
         mediador = cur.fetchone()
@@ -4098,6 +4432,16 @@ def crear_invitacion_rapida(datos: dict, usuario=Depends(obtener_usuario_actual)
             raise HTTPException(status_code=404, detail="Mediador no encontrado")
         if not mediador["sucursal_id"]:
             raise HTTPException(status_code=400, detail="El mediador no tiene sucursal asignada")
+        if usuario["rol"] == "secretaria" and (
+            mediador["sucursal_id"] != usuario["sucursal_id"]
+            or mediador["rol"] not in ("mediador", "administrador")
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="Solo puedes asignar invitaciones a mediadores de tu sucursal"
+            )
+
+        _verificar_sin_reunion(cur, mediador_id, fecha, hora)
 
         partes = _limpiar_partes_rapidas(datos, mediador["cedula"])
 
@@ -4144,6 +4488,16 @@ def crear_invitacion_rapida(datos: dict, usuario=Depends(obtener_usuario_actual)
                 "cita", "cita", cita["id"]
             )
 
+        # Si la creó otra persona (la secretaria), el mediador asignado recibe
+        # el aviso. Si el dueño es el administrador, ya recibió el de arriba.
+        if mediador_id != usuario["id"] and mediador["rol"] != "administrador":
+            crear_notificacion(
+                cur, mediador_id, "Nueva invitación asignada",
+                f"{usuario['nombre']} {usuario['apellido']} te asignó una invitación: "
+                f"{sol} vs {inv} | {fecha} {hora}",
+                "cita", "cita", cita["id"]
+            )
+
         conn.commit()
         return cita
 
@@ -4167,7 +4521,7 @@ def datos_invitacion_rapida(cita_id: int, usuario=Depends(obtener_usuario_actual
     try:
         cur.execute("""
             SELECT
-                c.id, c.usuario_id, c.proceso_id, c.tema, c.partes_rapidas,
+                c.id, c.usuario_id, c.sucursal_id, c.proceso_id, c.tema, c.partes_rapidas,
                 c.fecha, c.hora, c.estado, c.observaciones, c.documento,
                 c.fecha_creacion,
                 cp.nombre || ' ' || cp.apellido AS creado_por,
@@ -4189,7 +4543,10 @@ def datos_invitacion_rapida(cita_id: int, usuario=Depends(obtener_usuario_actual
         c = cur.fetchone()
         if not c:
             raise HTTPException(status_code=404, detail="Invitación no encontrada")
-        if usuario["rol"] != "administrador" and c["usuario_id"] != usuario["id"]:
+        if usuario["rol"] == "secretaria":
+            if c["sucursal_id"] != usuario["sucursal_id"]:
+                raise HTTPException(status_code=403, detail="No puedes ver esta invitación")
+        elif usuario["rol"] != "administrador" and c["usuario_id"] != usuario["id"]:
             raise HTTPException(status_code=403, detail="No puedes ver esta invitación")
         if c["proceso_id"]:
             raise HTTPException(
@@ -4238,7 +4595,7 @@ def guardar_documento_invitacion_rapida(
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
-        cur.execute("SELECT usuario_id, estado, proceso_id FROM citas WHERE id = %s", (cita_id,))
+        cur.execute("SELECT usuario_id, sucursal_id, estado, proceso_id FROM citas WHERE id = %s", (cita_id,))
         fila = cur.fetchone()
         if not fila:
             raise HTTPException(status_code=404, detail="Invitación no encontrada")
@@ -4249,7 +4606,10 @@ def guardar_documento_invitacion_rapida(
                 status_code=400,
                 detail="Esta invitación ya no está pendiente: solo se puede imprimir, no modificar"
             )
-        if usuario["rol"] != "administrador" and fila["usuario_id"] != usuario["id"]:
+        if usuario["rol"] == "secretaria":
+            if fila["sucursal_id"] != usuario["sucursal_id"]:
+                raise HTTPException(status_code=403, detail="No puedes modificar esta invitación")
+        elif usuario["rol"] != "administrador" and fila["usuario_id"] != usuario["id"]:
             raise HTTPException(status_code=403, detail="No puedes modificar esta invitación")
 
         cur.execute(
@@ -4450,6 +4810,8 @@ def crear_avance_proceso(
                     status_code=400,
                     detail=f"Ya tienes otra invitación pendiente el {proxima_fecha} a las {proxima_hora}. Elige otra hora."
                 )
+
+            _verificar_sin_reunion(cur, usuario["id"], proxima_fecha, proxima_hora)
 
             try:
                 cur.execute("""

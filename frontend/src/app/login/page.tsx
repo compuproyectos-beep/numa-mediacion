@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Scale, Eye, EyeOff, ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { getUser } from '@/lib/auth';
 
 export default function LoginPage() {
   return (
@@ -32,7 +33,7 @@ function LoginForm() {
 
     try {
       await login(username, password);
-      router.push('/dashboard');
+      router.push(getUser()?.rol === 'secretaria' ? '/agenda' : '/dashboard');
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { detail?: string }; status?: number } };
       if (axiosErr?.response?.status === 401) {

@@ -36,6 +36,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       if (usuarioActual?.debe_cambiar_password && pathname !== '/cambiar-password') {
         router.replace('/cambiar-password');
+      } else if (
+        usuarioActual?.rol === 'secretaria' &&
+        !['/agenda', '/clientes', '/cambiar-password'].some(
+          (r) => pathname === r || pathname.startsWith(r + '/')
+        )
+      ) {
+        // La secretaria solo usa la Agenda y los Clientes.
+        router.replace('/agenda');
       }
     }
 
@@ -49,6 +57,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return { Icon: Calendar, className: 'bg-amber-100 text-amber-700' };
       case 'cita':
         return { Icon: Calendar, className: 'bg-blue-50 text-blue-600' };
+      case 'reunion':
+        return { Icon: Calendar, className: 'bg-purple-50 text-purple-700' };
       case 'acta':
         return { Icon: FileText, className: 'bg-green-50 text-green-600' };
       case 'proceso':

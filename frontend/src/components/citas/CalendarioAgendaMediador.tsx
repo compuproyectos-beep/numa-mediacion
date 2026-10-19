@@ -5,11 +5,12 @@ import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, FileText, FolderPlus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, FolderPlus, Users } from 'lucide-react';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 import { InputField, TextareaField, Spinner, ErrorAlert, Modal } from '@/components/ui';
-import { getCitas, cambiarEstadoCita } from '@/lib/services';
+import { getCitas, cambiarEstadoCita, getReuniones, cancelarReunion } from '@/lib/services';
+import ReunionModal from '@/components/citas/ReunionModal';
 import { useAuth } from '@/hooks/useAuth';
 import PedirNumeroActaBoton from '@/components/actas/PedirNumeroActaBoton';
 
@@ -55,6 +56,7 @@ const colorPorEstado: Record<string, string> = {
   no_realizada: '#78716C',
   cancelada: '#DC2626',
   reagendada: '#4A6789',
+  reunion: '#7C3AED',
 };
 
 const NOMBRES_MESES = [
@@ -200,6 +202,12 @@ interface CalendarioAgendaMediadorProps {
   // para..."), y ese dato queda viejo/confuso si después el mediador solo
   // abre una cita distinta para verla — este aviso le permite limpiarlo.
   onVerCitaExistente?: () => void;
+  // Sucursal de la que se muestran las reuniones de mediadores (solo la usa
+  // el administrador: cada quien ve las de su propia sucursal).
+  sucursalId?: number;
+  // No bloquear las horas con reunión (cuando la agenda es la del
+  // administrador, que no se bloquea por las reuniones).
+  ignorarReuniones?: boolean;
 }
 
 export default function CalendarioAgendaMediador({
@@ -211,11 +219,22 @@ export default function CalendarioAgendaMediador({
   permitirCancelar = false,
   onCitaActualizada,
   onVerCitaExistente,
+  sucursalId,
+  ignorarReuniones = false,
 }: CalendarioAgendaMediadorProps) {
   const router = useRouter();
   const { user: usuarioActual } = useAuth();
   const [citas, setCitas] = useState<any[]>([]);
+  const [reuniones, setReuniones] = useState<any[]>([]);
+  const [reunionActiva, setReunionActiva] = useState<any | null>(null);
+  const [editandoReunion, setEditandoReunion] = useState(false);
+  const [cancelandoReunion, setCancelandoReunion] = useState(false);
+  const [motivoReunion, setMotivoReunion] = useState('');
+  const [errorReunion, setErrorReunion] = useState('');
+  const [avisoReunion, setAvisoReunion] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const esAdminActual = usuarioActual?.rol === 'administrador';
+  const esSecretariaActual = usuarioActual?.rol === 'secretaria';
   const [calendarDate, setCalendarDate] = useState(new Date());
 
   // Día vacío elegido para agendar una cita NUEVA
@@ -273,6 +292,7 @@ export default function CalendarioAgendaMediador({
       if (fechaISO < hoyISO()) return;
 
       setCitaActiva(null);
+      setReunionActiva(null);
       setErrorEstado('');
       setDiaSeleccionado(fechaISO);
       setHoraSeleccionada(fechaISO === hoyISO() ? '' : '09:00');
@@ -316,22 +336,41 @@ export default function CalendarioAgendaMediador({
     setLoading(true);
 
     try {
-      const data = await getCitas({ usuario_id: usuarioId });
+      const [data, reu] = await Promise.all([
+        getCitas({ usuario_id: usuarioId }),
+        getReuniones(sucursalId ? { sucursal_id: sucursalId } : undefined).catch(() => []),
+      ]);
       setCitas(data);
+      setReuniones(reu);
     } catch (err) {
       console.error(err);
       setCitas([]);
+      setReuniones([]);
     } finally {
       setLoading(false);
     }
-  }, [usuarioId]);
+  }, [usuarioId, sucursalId]);
 
   useEffect(() => {
     cargarCitas();
   }, [cargarCitas]);
 
+  const horaCorta = (h: any) => String(h ?? '').slice(0, 5);
+
   const eventos = useMemo(() => {
-    return citas.map((cita) => {
+    const deReuniones = reuniones.map((r) => {
+      const inicio = new Date(`${String(r.fecha).slice(0, 10)}T${horaCorta(r.hora_inicio)}`);
+      const fin = new Date(`${String(r.fecha).slice(0, 10)}T${horaCorta(r.hora_fin)}`);
+      return {
+        id: `reunion-${r.id}`,
+        title: `${horaCorta(r.hora_inicio)}-${horaCorta(r.hora_fin)} ${r.titulo}`,
+        start: inicio,
+        end: fin,
+        resource: { ...r, esReunion: true, estado: 'reunion' },
+      };
+    });
+
+    const deCitas = citas.map((cita) => {
       const inicio = new Date(`${cita.fecha}T${cita.hora}`);
       const fin = new Date(inicio);
       fin.setHours(fin.getHours() + 1);
@@ -346,10 +385,21 @@ export default function CalendarioAgendaMediador({
         resource: cita,
       };
     });
-  }, [citas]);
+
+    return [...deReuniones, ...deCitas];
+  }, [citas, reuniones]);
 
   const tooltipEvento = (event: any) => {
     const c = event.resource;
+    if (c.esReunion) {
+      return [
+        `${horaCorta(c.hora_inicio)} a ${horaCorta(c.hora_fin)} · Reunión de mediadores`,
+        c.titulo,
+        c.detalle,
+      ]
+        .filter(Boolean)
+        .join('\n');
+    }
     const partes = [c.demandante, c.demandado].filter(Boolean).join(' vs ');
     const ubicacion = [c.sucursal, c.ciudad].filter(Boolean).join(' — ');
     return [
@@ -375,8 +425,22 @@ export default function CalendarioAgendaMediador({
     ? citas.filter((c) => c.fecha === diaSeleccionado)
     : [];
 
+  const reunionesDelDia = diaSeleccionado
+    ? reuniones.filter((r) => String(r.fecha).slice(0, 10) === diaSeleccionado)
+    : [];
+
+  // Una hora dentro de una reunión de mediadores no admite invitaciones.
+  const reunionEnLaHora = ignorarReuniones
+    ? undefined
+    : reunionesDelDia.find(
+        (r) =>
+          horaSeleccionada >= horaCorta(r.hora_inicio) &&
+          horaSeleccionada < horaCorta(r.hora_fin)
+      );
+
   const esHoy = diaSeleccionado === hoyISO();
-  const horaYaOcupada = horasOcupadasDelDia.includes(horaSeleccionada);
+  const horaYaOcupada =
+    horasOcupadasDelDia.includes(horaSeleccionada) || !!reunionEnLaHora;
   const horaYaPaso = esHoy && horaSeleccionada < horaActual();
 
   const etiquetaFecha = (fecha: string) =>
@@ -448,6 +512,9 @@ export default function CalendarioAgendaMediador({
           <span className="inline-flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-red-600 inline-block" /> Cancelada
           </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-violet-600 inline-block" /> Reunión de mediadores
+          </span>
         </div>
       </div>
 
@@ -484,6 +551,7 @@ export default function CalendarioAgendaMediador({
               // seleccionarDiaParaNuevaInvitacion.
               const fechaISO = fechaISOLocal(new Date(fecha));
               setCitaActiva(null);
+              setReunionActiva(null);
               setErrorEstado('');
               setDiaSeleccionado(fechaISO);
               setHoraSeleccionada(fechaISO === hoyISO() ? '' : '09:00');
@@ -506,7 +574,9 @@ export default function CalendarioAgendaMediador({
               // existente ese día), para que quede clara la relación con
               // el panel que aparece debajo.
               const esSeleccionado =
-                fechaISO === diaSeleccionado || fechaISO === citaActiva?.fecha;
+                fechaISO === diaSeleccionado ||
+                fechaISO === citaActiva?.fecha ||
+                fechaISO === String(reunionActiva?.fecha ?? '').slice(0, 10);
 
               if (esSeleccionado) {
                 return {
@@ -542,7 +612,14 @@ export default function CalendarioAgendaMediador({
             onSelectEvent={(event: any) => {
               setDiaSeleccionado('');
               setErrorEstado('');
-              setCitaActiva(event.resource);
+              setErrorReunion('');
+              if (event.resource.esReunion) {
+                setCitaActiva(null);
+                setReunionActiva(event.resource);
+              } else {
+                setReunionActiva(null);
+                setCitaActiva(event.resource);
+              }
               onVerCitaExistente?.();
               forzarScrollAlPanel();
             }}
@@ -723,14 +800,16 @@ export default function CalendarioAgendaMediador({
                 {citaActiva.estado === 'pendiente' ? 'Documento de la invitación' : 'Ver documento'}
               </button>
 
-              <button
-                type="button"
-                onClick={() => router.push(`/procesos?crear=1&cita=${citaActiva.id}`)}
-                className="btn-secondary inline-flex items-center gap-2"
-              >
-                <FolderPlus className="w-4 h-4" />
-                Crear el proceso
-              </button>
+              {!esSecretariaActual && (
+                <button
+                  type="button"
+                  onClick={() => router.push(`/procesos?crear=1&cita=${citaActiva.id}`)}
+                  className="btn-secondary inline-flex items-center gap-2"
+                >
+                  <FolderPlus className="w-4 h-4" />
+                  Crear el proceso
+                </button>
+              )}
 
               {usuarioActual?.id === citaActiva.usuario_id && <PedirNumeroActaBoton />}
             </div>
@@ -771,6 +850,81 @@ export default function CalendarioAgendaMediador({
             <p className="text-xs text-numa-400">
               Esta invitación ya no está pendiente, por lo que no ocupa esa hora para una nueva invitación.
             </p>
+          )}
+        </div>
+      )}
+
+      {/* Detalle de una reunión de mediadores */}
+      {reunionActiva && !citaActiva && !diaSeleccionado && (
+        <div ref={panelRef} className="mt-5 border-t border-numa-100 pt-5">
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <p className="text-sm font-semibold text-numa-800 capitalize flex items-center gap-2">
+                <Users className="w-4 h-4 text-violet-600" />
+                {reunionActiva.titulo}
+              </p>
+              <p className="text-xs text-numa-500 mt-0.5 capitalize">
+                {etiquetaFecha(String(reunionActiva.fecha).slice(0, 10))} · de{' '}
+                {horaCorta(reunionActiva.hora_inicio)} a {horaCorta(reunionActiva.hora_fin)}
+              </p>
+            </div>
+            <span className="badge bg-violet-50 text-violet-700">Reunión de mediadores</span>
+          </div>
+
+          {reunionActiva.detalle && (
+            <p className="text-sm text-numa-700 bg-numa-50 border border-numa-100 rounded-sm p-3 mb-3">
+              {reunionActiva.detalle}
+            </p>
+          )}
+
+          <p className="text-xs text-numa-500 mb-3">
+            Todos los mediadores de la sucursal están convocados. En este horario no se pueden
+            agendar invitaciones.
+            {reunionActiva.creado_por && <> Creada por {reunionActiva.creado_por}.</>}
+          </p>
+
+          {errorReunion && (
+            <div className="mb-3">
+              <ErrorAlert message={errorReunion} />
+            </div>
+          )}
+
+          {avisoReunion.length > 0 && (
+            <div className="mb-3 border border-amber-300 bg-amber-50 rounded-sm p-3 text-xs text-amber-900">
+              <p className="font-semibold mb-1">
+                Atención: estos mediadores ya tienen una invitación pendiente en ese horario.
+              </p>
+              <ul className="list-disc ml-5">
+                {avisoReunion.map((a: any) => (
+                  <li key={a.id}>
+                    {a.mediador} — {horaCorta(a.hora)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {esAdminActual && (
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => setEditandoReunion(true)}
+                className="btn-secondary"
+              >
+                Cambiar horario o datos
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMotivoReunion('');
+                  setErrorReunion('');
+                  setCancelandoReunion(true);
+                }}
+                className="btn-secondary text-red-600 hover:bg-red-50"
+              >
+                Cancelar reunión
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -820,6 +974,24 @@ export default function CalendarioAgendaMediador({
             </p>
           )}
 
+          {reunionesDelDia.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {reunionesDelDia.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => {
+                    setDiaSeleccionado('');
+                    setReunionActiva(r);
+                  }}
+                  className="badge bg-violet-50 text-violet-700 hover:bg-violet-100"
+                >
+                  {horaCorta(r.hora_inicio)}-{horaCorta(r.hora_fin)} · {r.titulo}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Elegir fecha/hora para una cita NUEVA — solo si se permite crear */}
           {permitirCrear && (
             <div className="flex flex-wrap items-end gap-4">
@@ -830,7 +1002,11 @@ export default function CalendarioAgendaMediador({
                 min={esHoy ? horaActual() : undefined}
                 onChange={(e) => setHoraSeleccionada(e.target.value)}
                 error={
-                  horaYaOcupada
+                  reunionEnLaHora
+                    ? `Esa hora está ocupada: reunión de mediadores de ${horaCorta(
+                        reunionEnLaHora.hora_inicio
+                      )} a ${horaCorta(reunionEnLaHora.hora_fin)}`
+                    : horaYaOcupada
                     ? 'Esa hora ya está ocupada ese día'
                     : horaYaPaso
                     ? 'Esa hora ya pasó, elige una hora más adelante'
@@ -850,6 +1026,58 @@ export default function CalendarioAgendaMediador({
           )}
         </div>
       )}
+
+      <ReunionModal
+        open={editandoReunion}
+        reunion={reunionActiva}
+        onClose={() => setEditandoReunion(false)}
+        onGuardada={(res: any) => {
+          setEditandoReunion(false);
+          setReunionActiva(res.reunion);
+          setAvisoReunion(res.conflictos || []);
+          cargarCitas();
+        }}
+      />
+
+      <Modal
+        open={cancelandoReunion}
+        onClose={() => setCancelandoReunion(false)}
+        title="Cancelar reunión de mediadores"
+        size="sm"
+      >
+        <p className="text-sm text-numa-700 mb-4">
+          Se avisará a los mediadores y a la secretaria que la reunión se canceló, y esa hora
+          volverá a quedar libre.
+        </p>
+        <TextareaField
+          label="Motivo (opcional)"
+          rows={2}
+          value={motivoReunion}
+          onChange={(e) => setMotivoReunion(e.target.value)}
+        />
+        <div className="flex gap-3 justify-end mt-6">
+          <button onClick={() => setCancelandoReunion(false)} className="btn-secondary text-sm">
+            Volver
+          </button>
+          <button
+            className="btn-danger text-sm"
+            onClick={async () => {
+              try {
+                await cancelarReunion(reunionActiva.id, motivoReunion.trim() || undefined);
+                setCancelandoReunion(false);
+                setReunionActiva(null);
+                setAvisoReunion([]);
+                await cargarCitas();
+              } catch (err: any) {
+                setCancelandoReunion(false);
+                setErrorReunion(err?.response?.data?.detail || 'No se pudo cancelar la reunión');
+              }
+            }}
+          >
+            Sí, cancelar reunión
+          </button>
+        </div>
+      </Modal>
 
       <Modal
         open={mostrarConfirmarCancelar}

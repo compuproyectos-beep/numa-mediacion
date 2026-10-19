@@ -15,7 +15,7 @@ export interface User {
   nombre?: string;
   apellido?: string;
   email: string;
-  rol: 'administrador' | 'usuario';
+  rol: 'administrador' | 'mediador' | 'secretaria' | 'usuario';
   activo: boolean;
   debe_cambiar_password?: boolean;
 
