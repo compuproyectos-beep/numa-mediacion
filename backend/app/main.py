@@ -3129,6 +3129,7 @@ def obtener_procesos_mediacion(
     fecha_desde: str = None,
     fecha_hasta: str = None,
     suspendido: bool = None,
+    proceso_id: int = None,
     usuario=Depends(obtener_usuario_actual)
 ):
     conn = get_db()
@@ -3232,6 +3233,11 @@ def obtener_procesos_mediacion(
         if usuario["rol"] != "administrador":
             query += " AND p.usuario_id = %s"
             params.append(usuario["id"])
+
+        # Un solo proceso (la pantalla de detalle no necesita traer todos).
+        if proceso_id:
+            query += " AND p.id = %s"
+            params.append(proceso_id)
 
         if sucursal_id and usuario["rol"] == "administrador":
             query += " AND p.sucursal_id = %s"

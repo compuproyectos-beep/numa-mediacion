@@ -206,14 +206,16 @@ export default function ProcesoDetallePage() {
 
   const cargarProceso = async () => {
     try {
-      let procesos = await getProcesos();
+      // Se pide solo este proceso (antes se traían todos y se buscaba el
+      // que tocaba: era lo que hacía lenta la apertura).
+      let procesos = await getProcesos({ proceso_id: procesoId });
       let encontrado = procesos.find((p: any) => p.id === procesoId) || null;
 
       // Si se acaba de crear el proceso y por alguna razón no aparece en el
       // primer intento, se reintenta una vez antes de mostrar "no encontrado".
       if (!encontrado) {
         await new Promise((resolve) => setTimeout(resolve, 600));
-        procesos = await getProcesos();
+        procesos = await getProcesos({ proceso_id: procesoId });
         encontrado = procesos.find((p: any) => p.id === procesoId) || null;
       }
 
@@ -223,7 +225,8 @@ export default function ProcesoDetallePage() {
       // primero en la fila, se busca cuál es para nombrarlo en el aviso. El
       // administrador no está sujeto a la fila.
       if (encontrado && encontrado.bloqueante_id && !esAdminSesion()) {
-        const primero = procesos.find((p: any) => p.id === encontrado.bloqueante_id);
+        const delante = await getProcesos({ proceso_id: encontrado.bloqueante_id });
+        const primero = delante.find((p: any) => p.id === encontrado.bloqueante_id);
         setProcesoPrimeroEnFila(primero || null);
       } else {
         setProcesoPrimeroEnFila(null);

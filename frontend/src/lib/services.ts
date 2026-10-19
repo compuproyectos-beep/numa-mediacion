@@ -399,6 +399,7 @@ export async function getProcesos(filters?: {
   fecha_desde?: string;
   fecha_hasta?: string;
   suspendido?: boolean;
+  proceso_id?: number;
 }): Promise<ProcesoMediacion[]> {
   const res = await api.get('/procesos', {
     params: filters,
