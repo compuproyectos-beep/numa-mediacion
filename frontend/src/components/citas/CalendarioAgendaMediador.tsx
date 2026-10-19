@@ -795,7 +795,7 @@ export default function CalendarioAgendaMediador({
           {citaActiva.falta_tema && (
             <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-sm p-3 mb-4">
               Esta invitación se agendó sin tema. Abre el documento de la invitación y escribe el
-              asunto antes de imprimirla: la invitación se cobra con ese tema.
+              asunto antes de imprimirla.
             </p>
           )}
 
