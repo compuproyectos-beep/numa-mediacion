@@ -3066,6 +3066,7 @@ def obtener_citas(
                  AND c.tema = 'Invitación rápida'
                  AND COALESCE(btrim(c.documento->>'asunto'), '') = '') AS falta_tema,
                 c.documento->>'editor_rol' AS documento_editor_rol,
+                NULLIF(btrim(c.documento->>'asunto'), '') AS documento_asunto,
                 cp.nombre || ' ' || cp.apellido AS creado_por,
                 pm.codigo_proceso AS codigo_proceso,
                 a.codigo_acta,
@@ -4822,7 +4823,7 @@ def crear_avance_proceso(
 
         # Buscar la última invitación pendiente del proceso
         cur.execute("""
-            SELECT id
+            SELECT id, fecha, hora
             FROM citas
             WHERE proceso_id = %s
               AND estado = 'pendiente'
@@ -4831,6 +4832,15 @@ def crear_avance_proceso(
         """, (proceso_id,))
 
         cita_pendiente = cur.fetchone()
+
+        # El resultado de una reunión se registra cuando ya llegó su hora.
+        if cita_pendiente:
+            ahora_ec = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-5))).replace(tzinfo=None)
+            if datetime.datetime.combine(cita_pendiente["fecha"], cita_pendiente["hora"]) > ahora_ec:
+                raise HTTPException(
+                    status_code=400,
+                    detail="La reunión todavía no ha llegado: el resultado se registra cuando sea la hora agendada"
+                )
 
         if not cita_pendiente:
             raise HTTPException(

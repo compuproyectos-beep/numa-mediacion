@@ -650,6 +650,12 @@ export default function ProcesoDetallePage() {
   };
 
   const citaPendiente = citasProceso.find((c: any) => c.estado === 'pendiente');
+  // El resultado de la reunión solo se registra cuando ya llegó su hora (hora de Ecuador).
+  const reunionYaLlego = citaPendiente
+    ? new Date(
+        `${String(citaPendiente.fecha || '').slice(0, 10)}T${String(citaPendiente.hora || '00:00').slice(0, 5)}:00-05:00`
+      ).getTime() <= Date.now()
+    : false;
 
   // "Siguiente paso": una línea que le dice al mediador qué le toca hacer
   // ahora en este proceso, según su estado y sus invitaciones.
@@ -1467,7 +1473,25 @@ export default function ProcesoDetallePage() {
 
         {!proceso.finalizado &&
           proceso.estado === 'en_negociacion' &&
-          citaPendiente && (
+          citaPendiente &&
+          !reunionYaLlego && (
+            <div className="card p-4">
+              <h3 className="text-sm font-semibold text-numa-800 mb-1">
+                Registrar resultado de la invitación pendiente
+              </h3>
+              <p className="text-xs text-numa-500">
+                Se habilita cuando llegue la hora de la reunión (
+                {String(citaPendiente.fecha || '').slice(0, 10)} a las{' '}
+                {String(citaPendiente.hora || '').slice(0, 5)}). Mientras tanto puedes cancelarla
+                desde el calendario.
+              </p>
+            </div>
+          )}
+
+        {!proceso.finalizado &&
+          proceso.estado === 'en_negociacion' &&
+          citaPendiente &&
+          reunionYaLlego && (
             <div className="card p-4">
               <h3 className="text-sm font-semibold text-numa-800 mb-3">
                 Registrar resultado de la invitación pendiente

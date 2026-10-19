@@ -230,7 +230,11 @@ export default function ProcesosPage() {
       sucursal_id: String(cita.sucursal_id),
       cliente_demandante_id: cSol ? String(cSol.id) : f.cliente_demandante_id,
       cliente_demandado_id: cInv ? String(cInv.id) : f.cliente_demandado_id,
-      tema: !f.tema && cita.tema && cita.tema !== 'Invitación rápida' ? cita.tema : f.tema
+      // El tema se sugiere con el asunto escrito en el documento de la invitación
+      // (o el tema con que se agendó); se puede corregir.
+      tema: !f.tema
+        ? cita.documento_asunto || (cita.tema && cita.tema !== 'Invitación rápida' ? cita.tema : '')
+        : f.tema
     }));
 
     const avisos: string[] = [];
