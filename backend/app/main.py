@@ -2826,6 +2826,19 @@ def _notificar_reunion(cur, sucursal_id, titulo, mensaje, reunion_id, excluir_id
         crear_notificacion(cur, u["id"], titulo, mensaje, "reunion", "reunion", reunion_id)
 
 
+def _notificar_secretaria(cur, sucursal_id, titulo, mensaje, cita_id, excluir_id=None):
+    """Avisa a la secretaria de la sucursal de las invitaciones que otros
+    agendan, para que pueda avisar a los mediadores que no estén mirando el
+    sistema."""
+    cur.execute("""
+        SELECT id FROM usuarios
+        WHERE sucursal_id = %s AND rol = 'secretaria' AND activo = true
+          AND id <> COALESCE(%s, -1)
+    """, (sucursal_id, excluir_id))
+    for u in cur.fetchall():
+        crear_notificacion(cur, u["id"], titulo, mensaje, "cita", "cita", cita_id)
+
+
 def _texto_reunion(ini, hora_fin, titulo):
     dia = _DIAS_ES[ini.weekday()]
     return f"{titulo} — {dia} {ini.strftime('%Y-%m-%d')}, de {ini.strftime('%H:%M')} a {hora_fin}"
@@ -4240,6 +4253,12 @@ def crear_invitacion_proceso(
                 proceso_id
             )
 
+        _notificar_secretaria(
+            cur, proceso["sucursal_id"], "Nueva invitación en la agenda",
+            f"{proceso['demandante']} vs {proceso['demandado']} | {fecha} {hora}",
+            cita["id"], excluir_id=usuario["id"]
+        )
+
         conn.commit()
 
         # Si la invitación es para hoy o mañana, se avisa de inmediato al
@@ -4424,7 +4443,7 @@ def crear_invitacion_rapida(datos: dict, usuario=Depends(obtener_usuario_actual)
                 raise HTTPException(status_code=400, detail="Mediador inválido")
 
         cur.execute(
-            "SELECT id, sucursal_id, cedula, activo, rol FROM usuarios WHERE id = %s",
+            "SELECT id, sucursal_id, cedula, activo, rol, nombre, apellido FROM usuarios WHERE id = %s",
             (mediador_id,)
         )
         mediador = cur.fetchone()
@@ -4497,6 +4516,13 @@ def crear_invitacion_rapida(datos: dict, usuario=Depends(obtener_usuario_actual)
                 f"{sol} vs {inv} | {fecha} {hora}",
                 "cita", "cita", cita["id"]
             )
+
+        nombre_mediador = " ".join(filter(None, [mediador.get("nombre"), mediador.get("apellido")]))
+        _notificar_secretaria(
+            cur, mediador["sucursal_id"], "Nueva invitación en la agenda",
+            f"{nombre_mediador}: {sol} vs {inv} | {fecha} {hora}",
+            cita["id"], excluir_id=usuario["id"]
+        )
 
         conn.commit()
         return cita
