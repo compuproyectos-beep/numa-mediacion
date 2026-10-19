@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, Trash2, Zap } from 'lucide-react';
 import { InputField, TextareaField, ErrorAlert } from '@/components/ui';
-import { crearInvitacionRapida } from '@/lib/services';
+import { crearInvitacionRapida, getClientes } from '@/lib/services';
 
 // Cédula ecuatoriana (mismo cálculo que en Clientes).
 const cedulaValida = (cedula: string) => {
@@ -21,12 +21,14 @@ const cedulaValida = (cedula: string) => {
   return (10 - (suma % 10)) % 10 === parseInt(cedula[9], 10);
 };
 
-type Persona = { nombre: string; cedula: string };
+// registrado = los datos salieron de un cliente que ya existe en el sistema.
+type Persona = { nombre: string; cedula: string; registrado?: boolean };
 type Empresa = {
   razon_social: string;
   ruc: string;
   representante_nombre: string;
   representante_cedula: string;
+  registrado?: boolean;
 };
 type Lado = { modo: 'personas' | 'empresa'; personas: Persona[]; empresa: Empresa };
 
@@ -38,13 +40,17 @@ const ladoVacio = (): Lado => ({
 
 const soloDigitos = (v: string, max: number) => v.replace(/\D/g, '').slice(0, max);
 
+const nombreCompleto = (c: any) => `${c.nombre || ''} ${c.apellido || ''}`.trim();
+
 function LadoEditor({
   titulo,
   lado,
+  clientes,
   onChange
 }: {
   titulo: string;
   lado: Lado;
+  clientes: any[];
   onChange: (l: Lado) => void;
 }) {
   const setPersona = (i: number, campo: keyof Persona, valor: string) =>
@@ -52,8 +58,69 @@ function LadoEditor({
       ...lado,
       personas: lado.personas.map((p, idx) => (idx === i ? { ...p, [campo]: valor } : p))
     });
-  const setEmpresa = (campo: keyof Empresa, valor: string) =>
-    onChange({ ...lado, empresa: { ...lado.empresa, [campo]: valor } });
+
+  // Al completar la cédula se busca si la persona ya está en el sistema: si
+  // está, se llena sola (así no se vuelve a crear con un nombre mal escrito).
+  const cambiarCedulaPersona = (i: number, valor: string) =>
+    onChange({
+      ...lado,
+      personas: lado.personas.map((p, idx) => {
+        if (idx !== i) return p;
+        const enc =
+          valor.length === 10
+            ? clientes.find((c) => c.tipo !== 'empresa' && c.cedula === valor)
+            : null;
+        if (enc) return { nombre: nombreCompleto(enc), cedula: valor, registrado: true };
+        return { nombre: p.registrado ? '' : p.nombre, cedula: valor, registrado: false };
+      })
+    });
+
+  // Igual con la empresa, por su RUC.
+  const cambiarRuc = (valor: string) => {
+    const enc =
+      valor.length === 13
+        ? clientes.find((c) => c.tipo === 'empresa' && c.ruc === valor)
+        : null;
+    if (enc) {
+      onChange({
+        ...lado,
+        empresa: {
+          razon_social: enc.razon_social || '',
+          ruc: valor,
+          representante_nombre: enc.representante_nombre || '',
+          representante_cedula: enc.representante_cedula || '',
+          registrado: true
+        }
+      });
+    } else if (lado.empresa.registrado) {
+      onChange({
+        ...lado,
+        empresa: {
+          razon_social: '',
+          ruc: valor,
+          representante_nombre: '',
+          representante_cedula: '',
+          registrado: false
+        }
+      });
+    } else {
+      onChange({ ...lado, empresa: { ...lado.empresa, ruc: valor } });
+    }
+  };
+
+  const setEmpresa = (campo: keyof Empresa, valor: string) => {
+    const empresa = { ...lado.empresa, [campo]: valor };
+    // Si la cédula del representante ya es de un cliente registrado, se
+    // sugiere su nombre.
+    if (campo === 'representante_cedula' && valor.length === 10 && !empresa.representante_nombre.trim()) {
+      const enc = clientes.find((c) => c.tipo !== 'empresa' && c.cedula === valor);
+      if (enc) empresa.representante_nombre = nombreCompleto(enc);
+    }
+    onChange({ ...lado, empresa });
+  };
+
+  const ultima = lado.personas[lado.personas.length - 1];
+  const puedeAgregar = !!ultima && !!ultima.nombre.trim() && cedulaValida(ultima.cedula);
 
   return (
     <div className="border border-numa-100 rounded-sm p-4">
@@ -90,12 +157,13 @@ function LadoEditor({
                 value={p.nombre}
                 onChange={(e) => setPersona(i, 'nombre', e.target.value)}
                 placeholder="Nombre completo"
+                disabled={!!p.registrado}
               />
               <InputField
                 label="Cédula"
                 inputMode="numeric"
                 value={p.cedula}
-                onChange={(e) => setPersona(i, 'cedula', soloDigitos(e.target.value, 10))}
+                onChange={(e) => cambiarCedulaPersona(i, soloDigitos(e.target.value, 10))}
                 placeholder="10 dígitos"
                 error={
                   p.cedula.length === 10 && !cedulaValida(p.cedula) ? 'Cédula inválida' : undefined
@@ -115,18 +183,31 @@ function LadoEditor({
               ) : (
                 <span />
               )}
+              {p.registrado && (
+                <p className="sm:col-span-3 -mt-1 text-xs text-green-700">
+                  ✔ Ya está registrada en el sistema: se usaron sus datos. Si la cédula no es la
+                  correcta, corrígela.
+                </p>
+              )}
             </div>
           ))}
           <button
             type="button"
+            disabled={!puedeAgregar}
             onClick={() =>
               onChange({ ...lado, personas: [...lado.personas, { nombre: '', cedula: '' }] })
             }
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-gold-600 hover:text-gold-700"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-gold-600 hover:text-gold-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gold-600"
           >
             <Plus className="w-3.5 h-3.5" />
             Agregar otra persona
           </button>
+          {!puedeAgregar && (
+            <p className="text-xs text-numa-400">
+              Para agregar otra persona, completa primero el nombre y una cédula válida de la
+              anterior.
+            </p>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -134,12 +215,13 @@ function LadoEditor({
             label="Razón social"
             value={lado.empresa.razon_social}
             onChange={(e) => setEmpresa('razon_social', e.target.value)}
+            disabled={!!lado.empresa.registrado}
           />
           <InputField
             label="RUC (opcional)"
             inputMode="numeric"
             value={lado.empresa.ruc}
-            onChange={(e) => setEmpresa('ruc', soloDigitos(e.target.value, 13))}
+            onChange={(e) => cambiarRuc(soloDigitos(e.target.value, 13))}
             placeholder="13 dígitos"
           />
           <InputField
@@ -147,12 +229,14 @@ function LadoEditor({
             value={lado.empresa.representante_nombre}
             onChange={(e) => setEmpresa('representante_nombre', e.target.value)}
             placeholder="Nombres y apellidos"
+            disabled={!!lado.empresa.registrado}
           />
           <InputField
             label="Cédula del representante legal"
             inputMode="numeric"
             value={lado.empresa.representante_cedula}
             onChange={(e) => setEmpresa('representante_cedula', soloDigitos(e.target.value, 10))}
+            disabled={!!lado.empresa.registrado}
             error={
               lado.empresa.representante_cedula.length === 10 &&
               !cedulaValida(lado.empresa.representante_cedula)
@@ -160,6 +244,12 @@ function LadoEditor({
                 : undefined
             }
           />
+          {lado.empresa.registrado && (
+            <p className="sm:col-span-2 text-xs text-green-700">
+              ✔ Esta empresa ya está registrada en el sistema: se usaron sus datos. Si el RUC no
+              es el correcto, corrígelo.
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -216,6 +306,15 @@ export default function InvitacionRapidaForm({
   onCreada: (cita: any) => void;
   onCancelar: () => void;
 }) {
+  const [clientes, setClientes] = useState<any[]>([]);
+
+  // Clientes ya registrados, para reconocerlos por la cédula o el RUC.
+  useEffect(() => {
+    getClientes()
+      .then((c) => setClientes(c as any[]))
+      .catch(() => setClientes([]));
+  }, []);
+
   const [solicitantes, setSolicitantes] = useState<Lado>(ladoVacio());
   const [invitados, setInvitados] = useState<Lado>(ladoVacio());
   const [tema, setTema] = useState('');
@@ -228,6 +327,14 @@ export default function InvitacionRapidaForm({
       revisarLado(solicitantes, 'solicitante') || revisarLado(invitados, 'invitado');
     if (problema) {
       setError(problema);
+      return;
+    }
+    const cedulas = [solicitantes, invitados].flatMap((l) =>
+      l.modo === 'empresa' ? [l.empresa.representante_cedula] : l.personas.map((p) => p.cedula)
+    );
+    const repetida = cedulas.find((c, i) => c && cedulas.indexOf(c) !== i);
+    if (repetida) {
+      setError(`La cédula ${repetida} está repetida: una misma persona no puede aparecer dos veces.`);
       return;
     }
     if (temaObligatorio && !tema.trim()) {
@@ -282,8 +389,18 @@ export default function InvitacionRapidaForm({
       </p>
 
       <div className="space-y-4">
-        <LadoEditor titulo="Solicitante(s)" lado={solicitantes} onChange={setSolicitantes} />
-        <LadoEditor titulo="Invitado(s)" lado={invitados} onChange={setInvitados} />
+        <LadoEditor
+          titulo="Solicitante(s)"
+          lado={solicitantes}
+          clientes={clientes}
+          onChange={setSolicitantes}
+        />
+        <LadoEditor
+          titulo="Invitado(s)"
+          lado={invitados}
+          clientes={clientes}
+          onChange={setInvitados}
+        />
 
         <InputField
           label={temaObligatorio ? 'Tema a tratar' : 'Tema (opcional, el mediador puede completarlo)'}
