@@ -548,7 +548,7 @@ export default function UsuariosPage() {
           </div>
 
           <InputField
-            label="Teléfono (opcional, sale en las invitaciones)"
+            label="Teléfono (opcional)"
             value={form.telefono}
             onChange={(e) =>
               setForm({ ...form, telefono: e.target.value.replace(/\D/g, '').slice(0, 10) })
