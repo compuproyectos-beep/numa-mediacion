@@ -3163,7 +3163,7 @@ def cambiar_estado_cita(
 
     try:
         cur.execute("""
-            SELECT id, sucursal_id, usuario_id
+            SELECT id, sucursal_id, usuario_id, proceso_id
             FROM citas
             WHERE id = %s
         """, (cita_id,))
@@ -3172,6 +3172,12 @@ def cambiar_estado_cita(
 
         if not cita_actual:
             raise HTTPException(status_code=404, detail="Invitación no encontrada")
+
+        if estado == "realizada" and cita_actual["proceso_id"]:
+            raise HTTPException(
+                status_code=400,
+                detail="Esta invitación pertenece a un proceso: su resultado se registra dentro del proceso, en Registrar avance"
+            )
 
         if usuario["rol"] == "secretaria":
             if cita_actual["sucursal_id"] != usuario["sucursal_id"]:

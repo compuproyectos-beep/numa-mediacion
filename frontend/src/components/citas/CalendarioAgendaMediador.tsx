@@ -835,8 +835,14 @@ export default function CalendarioAgendaMediador({
 
           {citaActiva.estado === 'pendiente' &&
           (permitirGestionarEstado || permitirCancelar) ? (
-            <div className="flex flex-wrap gap-3">
-              {permitirGestionarEstado && (
+            <div className="flex flex-wrap items-center gap-3">
+              {permitirGestionarEstado && !!citaActiva.proceso_id && (
+                <p className="text-xs text-numa-500 w-full">
+                  El resultado de esta invitación se registra dentro del proceso (en "Registrar
+                  avance"), no desde aquí.
+                </p>
+              )}
+              {permitirGestionarEstado && !citaActiva.proceso_id && (
                 <button
                   type="button"
                   disabled={cambiandoEstado}
