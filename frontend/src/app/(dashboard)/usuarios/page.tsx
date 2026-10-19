@@ -179,15 +179,17 @@ export default function UsuariosPage() {
     setEmailError('');
     setPasswordError('');
 
-    if (
-      !form.nombre.trim() ||
-      !form.apellido.trim() ||
-      !form.cedula.trim() ||
-      !form.email.trim() ||
-      !form.rol ||
-      !form.sucursal_id
-    ) {
-      setError('Completa todos los campos');
+    const faltantes = [
+      !form.nombre.trim() && 'Nombre',
+      !form.apellido.trim() && 'Apellido',
+      !form.cedula.trim() && 'Cédula',
+      !form.email.trim() && 'Email',
+      !form.rol && 'Rol',
+      !form.sucursal_id && 'Sucursal'
+    ].filter(Boolean);
+
+    if (faltantes.length > 0) {
+      setError(`No se puede guardar: falta completar ${faltantes.join(', ')}.`);
       return;
     }
 
@@ -229,9 +231,10 @@ export default function UsuariosPage() {
           sucursal_id: Number(form.sucursal_id)
         });
 
-        setUsuarios((prev) =>
-          prev.map((u) => (u.id === actualizado.id ? { ...u, ...actualizado } : u))
-        );
+        // Se recarga la lista para que muestre de inmediato la sucursal y
+        // los demás datos nuevos (la respuesta del guardado no trae el
+        // nombre de la sucursal).
+        load();
       } else {
         const creado = await createUsuario({
           nombre: form.nombre,
@@ -333,7 +336,7 @@ export default function UsuariosPage() {
         }
       />
 
-      {error && (
+      {error && !showForm && (
         <div className="mb-4">
           <ErrorAlert message={error} />
         </div>
@@ -624,6 +627,14 @@ export default function UsuariosPage() {
             </SelectField>
           </div>
         </div>
+
+        {/* El aviso va dentro del formulario: arriba de la página quedaba
+            tapado por la ventana y no se veía por qué no se guardaba. */}
+        {error && showForm && (
+          <div className="mt-4">
+            <ErrorAlert message={error} />
+          </div>
+        )}
 
         <div className="flex justify-end gap-3 mt-6">
           <button onClick={() => setShowForm(false)} className="btn-secondary">
