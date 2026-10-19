@@ -3065,6 +3065,7 @@ def obtener_citas(
                 (c.proceso_id IS NULL AND c.estado = 'pendiente'
                  AND c.tema = 'Invitación rápida'
                  AND COALESCE(btrim(c.documento->>'asunto'), '') = '') AS falta_tema,
+                c.documento->>'editor_rol' AS documento_editor_rol,
                 cp.nombre || ' ' || cp.apellido AS creado_por,
                 pm.codigo_proceso AS codigo_proceso,
                 a.codigo_acta,

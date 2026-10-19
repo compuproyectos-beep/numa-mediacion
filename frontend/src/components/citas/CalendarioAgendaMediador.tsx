@@ -800,6 +800,9 @@ export default function CalendarioAgendaMediador({
                 `${String(citaActiva.fecha).slice(0, 10)}T${String(citaActiva.hora).slice(0, 5)}:00-05:00`
               ).getTime() <= Date.now();
             const temaOk = !citaActiva.falta_tema;
+            const docBloqueadoSecretaria =
+              esSecretariaActual &&
+              ['mediador', 'administrador'].includes(citaActiva.documento_editor_rol);
             const verDocumento = () =>
               router.push(`/procesos/rapida/invitacion-imprimir?cita=${citaActiva.id}`);
             const Paso = ({ n, hecho, titulo, children }: any) => (
@@ -841,7 +844,11 @@ export default function CalendarioAgendaMediador({
                 <Paso n={3} hecho={false} titulo="Imprimir la invitación">
                   {temaOk ? (
                     <>
-                      <p className="mb-2">Revisa el documento y descárgalo o imprímelo.</p>
+                      <p className="mb-2">
+                        {docBloqueadoSecretaria
+                          ? 'El mediador ya editó el documento: solo puedes verlo e imprimirlo.'
+                          : 'Revisa el documento y descárgalo o imprímelo.'}
+                      </p>
                       <button type="button" onClick={verDocumento} className="btn-secondary inline-flex items-center gap-2">
                         <FileText className="w-4 h-4" />
                         Documento de la invitación
