@@ -298,7 +298,7 @@ export default function AgendaPage() {
 
       {/* Con proceso elegido: observaciones y crear, igual que antes. */}
       {procesoSeleccionado && hayFechaHora && (
-        <div ref={observacionesRef} className="mt-5 border-t border-numa-100 pt-5 scroll-mt-4">
+        <div ref={observacionesRef} className="mt-5 border-t border-numa-100 pt-5 scroll-mt-24">
           <p className="text-sm text-numa-700 mb-3">
             Agendando para{' '}
             <span className="font-semibold">
@@ -341,7 +341,7 @@ export default function AgendaPage() {
 
       {/* Sin proceso elegido: invitación rápida. */}
       {!procesoSeleccionado && hayFechaHora && (
-        <div ref={observacionesRef} className="scroll-mt-4">
+        <div ref={observacionesRef} className="scroll-mt-24">
           <InvitacionRapidaForm
             fecha={invitacionForm.fecha}
             hora={invitacionForm.hora}
