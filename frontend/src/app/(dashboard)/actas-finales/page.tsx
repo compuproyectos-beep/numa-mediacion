@@ -394,7 +394,7 @@ const handleExportarZip = async () => {
                 }
               >
                 <option value="">Todos</option>
-                {mediadores.map((m: any) => (
+                {mediadores.filter((m: any) => m.rol !== 'secretaria').map((m: any) => (
                   <option key={m.id} value={m.id}>
                     {m.nombre} {m.apellido}{m.rol === 'administrador' ? ' (administrador)' : ''}
                   </option>
