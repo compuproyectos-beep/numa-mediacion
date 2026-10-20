@@ -732,7 +732,7 @@ export default function ProcesosPage() {
               >
                 <option value="">Todos</option>
                 {mediadores
-                  .filter((m: any) => m.activo !== false)
+                  .filter((m: any) => m.activo !== false && m.rol !== 'secretaria')
                   .map((m: any) => (
                     <option key={m.id} value={m.id}>
                       {m.nombre} {m.apellido}

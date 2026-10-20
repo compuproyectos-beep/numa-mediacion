@@ -3443,6 +3443,14 @@ def crear_proceso_mediacion(
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
     try:
+        # La secretaria prepara invitaciones, pero no lleva procesos ni
+        # firma: no puede crear un proceso como si fuera mediadora.
+        if usuario["rol"] == "secretaria":
+            raise HTTPException(
+                status_code=403,
+                detail="La secretaria no puede crear procesos de mediación"
+            )
+
         # Regla: la empresa se registra como la parte principal de su lado
         # (con su representante legal); ya no se crea una persona "en
         # representación de" una empresa.
