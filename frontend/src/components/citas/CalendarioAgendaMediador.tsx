@@ -734,7 +734,7 @@ export default function CalendarioAgendaMediador({
             </span>
           </div>
 
-          <div className="bg-white border border-numa-300 border-l-4 border-l-gold-500 rounded-md shadow-sm p-5 mb-4 space-y-2.5 text-[15px] leading-relaxed">
+          <div className="bg-white border border-numa-300 border-l-4 border-l-gold-500 rounded-md shadow-sm px-4 py-3 mb-4 space-y-1 text-sm leading-snug">
             {citaActiva.tema && (
               <p>
                 <span className="text-numa-700 font-semibold">Tema:</span>{' '}
