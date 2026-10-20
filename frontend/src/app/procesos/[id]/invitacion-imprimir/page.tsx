@@ -33,7 +33,8 @@ const PIE_MATRIZ =
 const CORREO_DEFECTO = 'numacentromediacion@gmail.com';
 
 // Medidas de la hoja (mm): el membrete ocupa la parte de arriba y el pie de abajo.
-const ESPACIO_SUP = 50; // altura del membrete (logo y líneas doradas)
+const ESPACIO_SUP = 50; // altura del membrete (logo y líneas doradas), solo en la primera hoja
+const ESPACIO_SUP_SIGUIENTES = 15; // margen superior de las hojas siguientes (en blanco)
 const ESPACIO_INF = 38; // altura del pie con la dirección y contactos
 const MARGEN_LAT = 20;
 
@@ -639,7 +640,8 @@ function ImprimirInvitacion() {
         @page { size: A4; margin: 0; }
         /* En pantalla la hoja crece con el texto: el membrete (arriba) se queda
            arriba y el pie se pega al final de la hoja, así nunca se encima
-           con el texto. Al imprimir cada hoja A4 lleva el membrete completo. */
+           con el texto. Al imprimir, el membrete y el pie van solo en la primera hoja; las
+           siguientes quedan en blanco. */
         .membrete { position: absolute; top: 0; left: 0; width: 210mm; height: 297mm; z-index: 0; clip-path: inset(0 0 42mm 0); }
         .membrete-pie { position: absolute; left: 0; bottom: 0; width: 210mm; height: 297mm; z-index: 0; clip-path: inset(255mm 0 0 0); pointer-events: none; }
         .campo-edit { background: #fff7cc; border-bottom: 1px dashed #c9a400; outline: none; padding: 0 1px; cursor: text; border-radius: 2px; }
@@ -651,10 +653,10 @@ function ImprimirInvitacion() {
           .campo-edit { background: none !important; border: 0 !important; padding: 0 !important; }
           .campo-edit:empty::before { content: '' !important; }
           .extras-vacio { display: none !important; }
-          .pie-capa { position: fixed; top: 0; bottom: auto; }
+          .pie-capa { position: absolute; top: 0; bottom: auto; }
           html, body { background: #fff !important; }
           .hoja { box-shadow: none !important; margin: 0 !important; min-height: 0 !important; }
-          .membrete { position: fixed; clip-path: none; }
+          .membrete { position: absolute; clip-path: none; }
           .membrete-pie { display: none; }
         }
       `}</style>
@@ -869,7 +871,7 @@ function ImprimirInvitacion() {
           <thead>
             <tr>
               <td style={{ padding: 0 }}>
-                <div style={{ height: `${ESPACIO_SUP}mm` }} />
+                <div style={{ height: `${ESPACIO_SUP_SIGUIENTES}mm` }} />
               </td>
             </tr>
           </thead>
@@ -883,6 +885,7 @@ function ImprimirInvitacion() {
           <tbody>
             <tr>
               <td style={{ padding: `0 ${MARGEN_LAT}mm`, verticalAlign: 'top' }}>
+                <div style={{ height: `${ESPACIO_SUP - ESPACIO_SUP_SIGUIENTES}mm` }} />
                 <div style={{ textAlign: 'center', marginBottom: '6mm' }}>
                   <p style={{ margin: 0, fontSize: '13pt' }}>CENTRO DE MEDIACIÓN “NUMA”</p>
                   <p style={{ margin: 0 }}>REGISTRO No.231</p>
