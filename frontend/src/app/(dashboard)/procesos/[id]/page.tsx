@@ -4,7 +4,7 @@ import { mayusInicial } from '@/lib/texto';
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import PasosProceso from '@/components/procesos/PasosProceso';
-import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon, Eye, Download, Receipt, FileText, PlayCircle } from 'lucide-react';
+import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon, Eye, Download, Receipt, FileText, PlayCircle, CheckCircle2 } from 'lucide-react';
 import { isAdmin as esAdminSesion } from '@/lib/auth';
 import PartesProceso from '@/components/procesos/PartesProceso';
 import FacturacionProceso from '@/components/procesos/FacturacionProceso';
@@ -1204,14 +1204,18 @@ export default function ProcesoDetallePage() {
         </div>
 
         {proceso.finalizado && proceso.etapa_acta !== 'falta_firmada' && (
-          <div className="p-4 bg-green-50 border border-green-200 rounded-sm text-sm text-green-900">
-            Este proceso ya fue finalizado. Solo se permite consultar el historial.
+          <div className="flex items-start gap-3 px-4 py-3 bg-white border border-numa-100 border-l-4 border-l-green-600 rounded-sm text-sm">
+            <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" aria-hidden="true" />
+            <p className="text-numa-700">
+              <span className="font-semibold text-numa-900">Proceso finalizado.</span>{' '}
+              Solo se puede consultar el historial.
+            </p>
           </div>
         )}
 
         {expedienteProceso?.acta_final && (
-          <div className="card p-4 bg-green-50 border-green-200">
-            <h3 className="text-sm font-semibold text-green-900 mb-3">
+          <div className="card p-4 border-l-4 border-l-green-600">
+            <h3 className="text-sm font-semibold text-numa-900 mb-3">
               Documentos del acta y comprobante de pago
             </h3>
 
@@ -1219,9 +1223,9 @@ export default function ProcesoDetallePage() {
                 y los botones quedan centrados en el espacio restante de la
                 fila, sin pegarse al borde derecho de la tarjeta. */}
             <div className="flex items-center gap-3 flex-wrap">
-              <p className="text-sm text-green-900 shrink-0">
+              <p className="text-sm text-numa-600 shrink-0">
                 Código acta:{' '}
-                <span className="font-semibold code-text">
+                <span className="font-semibold text-numa-900 code-text">
                   {expedienteProceso.acta_final.codigo_acta}
                 </span>
               </p>
@@ -1266,12 +1270,15 @@ export default function ProcesoDetallePage() {
               </div>
             )}
 
-            <p className="text-sm text-green-900 mt-1">
-              Subido por: {expedienteProceso.acta_final.subido_por || '—'}
+            <div className="mt-3 pt-3 border-t border-numa-100 text-xs text-numa-500 space-y-0.5">
+            <p>
+              Subido por{' '}
+              <span className="text-numa-800">{expedienteProceso.acta_final.subido_por || '—'}</span>
             </p>
 
-            <p className="text-sm text-green-900 mt-1">
-              Fecha oficial:{' '}
+            <p>
+              Fecha oficial{' '}
+              <span className="text-numa-800">
               {expedienteProceso.acta_final.fecha_subida
                 ? new Date(
                     expedienteProceso.acta_final.fecha_subida
@@ -1280,7 +1287,9 @@ export default function ProcesoDetallePage() {
                     hour: 'numeric', minute: '2-digit'
                   })
                 : '—'}
+              </span>
             </p>
+            </div>
           </div>
         )}
 

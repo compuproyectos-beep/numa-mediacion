@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Printer, Upload, Eye, Download, PauseCircle, Pencil, FileX } from 'lucide-react';
+import { Printer, Upload, Eye, Download, PauseCircle, Pencil, FileX, CheckCircle2 } from 'lucide-react';
 import { Modal, ErrorAlert, TextareaField } from '@/components/ui';
 import {
   subirActaFirmada,
@@ -108,8 +108,9 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
           </div>
         )}
         {ok && (
-          <div className="text-sm px-4 py-3 mb-3 rounded-sm border border-green-200 bg-green-50 text-green-900">
-            {ok}
+          <div className="flex items-start gap-3 text-sm px-4 py-3 mb-3 rounded-sm bg-white border border-numa-100 border-l-4 border-l-green-600 text-numa-800">
+            <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" aria-hidden="true" />
+            <span>{ok}</span>
           </div>
         )}
         {!confirmandoNA ? (
@@ -285,8 +286,9 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
     <div className="space-y-4">
       {error && !showFirmada && !showCorregir && !showSuspender && <ErrorAlert message={error} />}
       {ok && (
-        <div className="text-sm px-4 py-3 rounded-sm border border-green-200 bg-green-50 text-green-900">
-          {ok}
+        <div className="flex items-start gap-3 text-sm px-4 py-3 rounded-sm bg-white border border-numa-100 border-l-4 border-l-green-600 text-numa-800">
+          <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" aria-hidden="true" />
+          <span>{ok}</span>
         </div>
       )}
 
@@ -309,7 +311,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
       {proceso.pago_en_abonos && (
         <div
           className={`card p-4 ${
-            proceso.pago_pendiente ? 'border-amber-200 bg-amber-50' : 'bg-green-50 border-green-200'
+            proceso.pago_pendiente ? 'border-amber-200 bg-amber-50' : 'border-l-4 border-l-green-600'
           }`}
         >
           <p className="text-sm font-semibold text-numa-800 mb-1">Pago en abonos</p>
@@ -323,7 +325,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
             </p>
           ) : (
             <>
-              <p className="text-sm text-green-900 mt-1">
+              <p className="text-sm text-numa-800 mt-1">
                 Saldo pagado: <strong>{dinero(saldo)}</strong> el {fechaDia(proceso.pago_final_fecha)}. Pago
                 completo (valor total {dinero(proceso.monto_total)}).
               </p>
@@ -384,9 +386,12 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
 
       {/* Completa */}
       {etapa === 'completa' && (
-        <div className="card p-4 bg-green-50 border-green-200">
-          <p className="text-sm text-green-900 font-semibold mb-1">Proceso completo</p>
-          <p className="text-sm text-green-900 mb-3">
+        <div className="card p-4 border-l-4 border-l-green-600">
+          <p className="flex items-center gap-2 text-sm text-numa-900 font-semibold mb-1">
+            <CheckCircle2 className="w-5 h-5 text-green-600" aria-hidden="true" />
+            Proceso completo
+          </p>
+          <p className="text-sm text-numa-600 mb-3">
             {proceso.tiene_acta_firmada
               ? `El acta firmada se subió el ${fmt(proceso.acta_firmada_fecha)}.`
               : 'Proceso anterior a la regla del acta firmada.'}
