@@ -209,19 +209,21 @@ export default function MiDia({
                     </span>
 
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-medium text-numa-900 truncate">
+                      <span className="block text-sm font-medium text-numa-900 break-words leading-snug">
                         {c.demandante} <span className="text-numa-600 font-normal">vs</span>{' '}
                         {c.demandado}
+                      </span>
+                      <span className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5 text-xs text-numa-700">
                         {!c.proceso_id && (
-                          <span className="ml-2 align-middle text-[11px] font-bold uppercase tracking-wide text-gold-700 bg-gold-100 border border-gold-300 rounded px-1.5 py-0.5">
+                          <span className="shrink-0 font-bold text-gold-800 bg-gold-100 border border-gold-300 rounded px-1.5 py-0.5">
                             Invitación rápida
                           </span>
                         )}
-                      </span>
-                      <span className="block text-xs text-numa-700 truncate">
-                        {verOtros ? `${c.mediador} · ${c.ciudad || '—'} · ` : ''}
-                        {c.sucursal || '—'}
-                        {paso ? ' · ya pasó la hora' : ''}
+                        <span className="break-words">
+                          {verOtros ? `${c.mediador} · ${c.ciudad || '—'} · ` : ''}
+                          {c.sucursal || '—'}
+                          {paso ? ' · ya pasó la hora' : ''}
+                        </span>
                       </span>
                     </span>
 
