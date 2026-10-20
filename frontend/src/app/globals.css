@@ -320,10 +320,11 @@ html {
 }
 
 
-/* Tamaño de letra fijo para todo el panel (+13 %).
+/* Tamaño de letra del panel: tamaño estándar (100 %). Si se quiere más
+   grande, subir los dos valores (por ejemplo 1.06 = +6 %).
    "zoom" agranda letras y espacios por igual; --tz sirve para corregir
    alturas hechas con "vh" (por ejemplo las ventanas emergentes). */
-html[data-tamano="fijo"] { zoom: 1.13; --tz: 1.13; }
+html[data-tamano="fijo"] { zoom: 1; --tz: 1; }
 @media print {
   html[data-tamano] { zoom: 1; --tz: 1; }
 }
