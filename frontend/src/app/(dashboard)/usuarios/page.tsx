@@ -592,8 +592,7 @@ export default function UsuariosPage() {
 
           {editing && (
             <p className="text-xs text-numa-400">
-              La contraseña no se edita aquí — el usuario puede cambiarla desde
-              "Cambiar contraseña", o usar "¿Olvidaste tu contraseña?" en el login.
+              La contraseña no se edita aquí; el usuario la cambia desde su cuenta.
             </p>
           )}
 
