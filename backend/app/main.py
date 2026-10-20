@@ -7299,6 +7299,11 @@ def obtener_actas_finales(
                 p.requiere_acta_firmada,
                 p.pago_en_abonos,
                 p.pago_pendiente,
+                COALESCE(p.requiere_facturas, false) AS requiere_facturas,
+                NOT EXISTS (SELECT 1 FROM proceso_facturas f
+                             WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'cliente') AS falta_factura_cliente,
+                NOT EXISTS (SELECT 1 FROM proceso_facturas f
+                             WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'mediador') AS falta_factura_mediador,
                 (SELECT cx.id FROM comprobantes_pago_extra cx
                   WHERE cx.proceso_id = p.id ORDER BY cx.id DESC LIMIT 1) AS comprobante_final_id,
                 fac.nombre AS fact_nombre,

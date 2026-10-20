@@ -507,6 +507,21 @@ const handleExportarZip = async () => {
                   {!a.ruta_comprobante_pago && (
                     <Badge label="Sin comprobante" variant="rechazado" />
                   )}
+
+                  {a.requiere_facturas && (
+                    a.falta_factura_cliente || a.falta_factura_mediador ? (
+                      <Badge
+                        label={
+                          a.falta_factura_cliente && a.falta_factura_mediador
+                            ? 'Faltan 2 facturas'
+                            : 'Falta 1 factura'
+                        }
+                        variant="enviado"
+                      />
+                    ) : (
+                      <Badge label="Facturas completas" variant="aprobado" />
+                    )
+                  )}
                 </div>
 
                 <p className="text-[13px] text-numa-800">
