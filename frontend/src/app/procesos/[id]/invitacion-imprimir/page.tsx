@@ -530,6 +530,11 @@ function ImprimirInvitacion() {
         <Editable value={lugar} onChange={setLugar} placeholder="lugar de la audiencia" multi />.
       </p>
 
+      <p style={pDefault}>
+        Agradeceré confirmar su asistencia con el suscrito al teléfono {telefono} o al correo
+        electrónico {correo}.
+      </p>
+
       <p style={pDefault}>Atentamente,</p>
       {firma}
     </>
@@ -615,6 +620,11 @@ function ImprimirInvitacion() {
         Con los antecedentes antes expuestos y, de acuerdo al Art. 51 de la Ley de Arbitraje y
         Mediación, a la que fuere convocada, el mediador expedirá la constancia de imposibilidad
         de mediación.
+      </p>
+
+      <p style={pDefault}>
+        Agradeceré confirmar su asistencia con el suscrito al teléfono {telefono} o al correo
+        electrónico {correo}.
       </p>
 
       <p style={pDefault}>Atentamente,</p>
