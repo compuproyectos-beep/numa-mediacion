@@ -1204,14 +1204,14 @@ export default function ProcesoDetallePage() {
         </div>
 
         {proceso.finalizado && proceso.etapa_acta !== 'falta_firmada' && (
-          <div className="p-4 bg-green-50 border border-green-100 rounded-sm text-sm text-green-700">
+          <div className="p-4 bg-green-50 border border-green-100 rounded-sm text-sm text-numa-700">
             Este proceso ya fue finalizado. Solo se permite consultar el historial.
           </div>
         )}
 
         {expedienteProceso?.acta_final && (
           <div className="card p-4 bg-green-50/40 border-green-100">
-            <h3 className="text-sm font-semibold text-green-800 mb-3">
+            <h3 className="text-sm font-semibold text-numa-900 mb-3">
               Documentos del acta y comprobante de pago
             </h3>
 
@@ -1219,7 +1219,7 @@ export default function ProcesoDetallePage() {
                 y los botones quedan centrados en el espacio restante de la
                 fila, sin pegarse al borde derecho de la tarjeta. */}
             <div className="flex items-center gap-3 flex-wrap">
-              <p className="text-sm text-green-700 shrink-0">
+              <p className="text-sm text-numa-700 shrink-0">
                 Código acta:{' '}
                 <span className="font-semibold code-text">
                   {expedienteProceso.acta_final.codigo_acta}
@@ -1266,11 +1266,11 @@ export default function ProcesoDetallePage() {
               </div>
             )}
 
-            <p className="text-sm text-green-700 mt-1">
+            <p className="text-sm text-numa-700 mt-1">
               Subido por: {expedienteProceso.acta_final.subido_por || '—'}
             </p>
 
-            <p className="text-sm text-green-700 mt-1">
+            <p className="text-sm text-numa-700 mt-1">
               Fecha oficial:{' '}
               {expedienteProceso.acta_final.fecha_subida
                 ? new Date(
