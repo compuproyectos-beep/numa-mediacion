@@ -207,7 +207,7 @@ function LadoEditor({
             Agregar otra persona
           </button>
           {!puedeAgregar && (
-            <p className="text-xs text-numa-400">
+            <p className="text-[13px] font-semibold text-numa-700">
               Para agregar otra persona, completa primero el nombre y una cédula válida de la
               anterior.
             </p>

@@ -110,7 +110,7 @@
   /* Más chica y en mayúsculas, para distinguirse claramente del texto que
      va dentro del campo (antes usaban casi el mismo tono y tamaño). */
   .label {
-    @apply block text-[11px] font-semibold text-numa-500 uppercase tracking-wider mb-1.5;
+    @apply block text-xs font-bold text-numa-700 uppercase tracking-wider mb-1.5;
   }
 
   .badge {
