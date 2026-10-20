@@ -208,6 +208,9 @@ interface CalendarioAgendaMediadorProps {
   // No bloquear las horas con reunión (cuando la agenda es la del
   // administrador, que no se bloquea por las reuniones).
   ignorarReuniones?: boolean;
+  // Abre directamente esta invitación al cargar el calendario (llegada desde
+  // el Panel General o desde una notificación).
+  citaInicialId?: number;
 }
 
 export default function CalendarioAgendaMediador({
@@ -221,6 +224,7 @@ export default function CalendarioAgendaMediador({
   onVerCitaExistente,
   sucursalId,
   ignorarReuniones = false,
+  citaInicialId,
 }: CalendarioAgendaMediadorProps) {
   const router = useRouter();
   const { user: usuarioActual } = useAuth();
@@ -355,6 +359,23 @@ export default function CalendarioAgendaMediador({
     cargarCitas();
   }, [cargarCitas]);
 
+  // Si se llegó con una invitación indicada, se abre sola en cuanto cargan las
+  // citas (una sola vez): se muestra el mes de esa invitación y se baja hasta su
+  // detalle, sin tener que volver a darle clic.
+  const citaInicialAplicada = useRef(false);
+  useEffect(() => {
+    if (!citaInicialId || citaInicialAplicada.current || loading) return;
+    const c = citas.find((x) => Number(x.id) === Number(citaInicialId));
+    if (!c) return;
+    citaInicialAplicada.current = true;
+    setCalendarDate(new Date(`${String(c.fecha).slice(0, 10)}T12:00:00`));
+    setDiaSeleccionado('');
+    setReunionActiva(null);
+    setCitaActiva(c);
+    forzarScrollAlPanel();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [citas, loading, citaInicialId]);
+
   const horaCorta = (h: any) => String(h ?? '').slice(0, 5);
 
   const eventos = useMemo(() => {
@@ -379,7 +400,7 @@ export default function CalendarioAgendaMediador({
 
       return {
         id: cita.id,
-        title: `${cita.falta_tema ? '⚠ ' : ''}${cita.hora?.slice(0, 5) ?? ''} ${partes || cita.tema || ''}`.trim(),
+        title: `${cita.falta_tema ? '⚠ ' : ''}${!cita.proceso_id && cita.partes_rapidas ? '⚡ ' : ''}${cita.hora?.slice(0, 5) ?? ''} ${partes || cita.tema || ''}`.trim(),
         start: inicio,
         end: fin,
         resource: cita,

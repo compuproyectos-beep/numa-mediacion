@@ -99,7 +99,14 @@ def generar_recordatorios_citas():
             else:
                 titulo = "Invitación para mañana"
 
+            # Sin ciudad/sucursal: crear_notificacion se las agrega solo
+            # al administrador. Se acepta también el formato anterior para
+            # no duplicar recordatorios ya generados.
             mensaje = (
+                f"{cita['demandante']} vs {cita['demandado']} | "
+                f"{cita['fecha']} {cita['hora']}"
+            )
+            mensaje_antiguo = (
                 f"{cita['demandante']} vs {cita['demandado']} | "
                 f"{cita['ciudad']} - {cita['sucursal']} | "
                 f"{cita['fecha']} {cita['hora']}"
@@ -131,11 +138,14 @@ def generar_recordatorios_citas():
                       AND referencia_tipo = 'proceso_mediacion'
                       AND referencia_id = %s
                       AND titulo = %s
-                      AND mensaje = %s
+                      AND (mensaje = %s OR mensaje = %s OR LEFT(mensaje, %s) = %s)
                 """, (
                     usuario_id,
                     cita["proceso_id"],
                     titulo,
+                    mensaje,
+                    mensaje_antiguo,
+                    len(mensaje),
                     mensaje
                 ))
 
@@ -176,7 +186,8 @@ def generar_recordatorios_citas():
             sol, _ = _resumen_lado_rapido(pr.get("solicitantes"))
             inv, _ = _resumen_lado_rapido(pr.get("invitados"))
             titulo = "Invitación para hoy" if str(ct["fecha"]) == str(hoy) else "Invitación para mañana"
-            mensaje = f"{sol} vs {inv} | {ct['ciudad']} - {ct['sucursal']} | {ct['fecha']} {ct['hora']}"
+            mensaje = f"{sol} vs {inv} | {ct['fecha']} {ct['hora']}"
+            mensaje_antiguo = f"{sol} vs {inv} | {ct['ciudad']} - {ct['sucursal']} | {ct['fecha']} {ct['hora']}"
 
             cur.execute("SELECT id FROM usuarios WHERE rol = 'administrador' AND activo = true")
             destino = {ct["usuario_id"]} | {a["id"] for a in cur.fetchall()}
@@ -185,8 +196,9 @@ def generar_recordatorios_citas():
                 cur.execute("""
                     SELECT id FROM notificaciones
                     WHERE usuario_id = %s AND referencia_tipo = 'cita'
-                      AND referencia_id = %s AND titulo = %s AND mensaje = %s
-                """, (uid, ct["id"], titulo, mensaje))
+                      AND referencia_id = %s AND titulo = %s
+                      AND (mensaje = %s OR mensaje = %s OR LEFT(mensaje, %s) = %s)
+                """, (uid, ct["id"], titulo, mensaje, mensaje_antiguo, len(mensaje), mensaje))
                 if cur.fetchone():
                     continue
                 crear_notificacion(cur, uid, titulo, mensaje, "recordatorio", "cita", ct["id"])

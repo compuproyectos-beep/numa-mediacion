@@ -117,6 +117,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (n.referencia_tipo === 'proceso_mediacion' && n.referencia_id) {
       setOpen(false);
       router.push(`/procesos/${n.referencia_id}`);
+    } else if (n.referencia_tipo === 'cita' && n.referencia_id) {
+      // Invitación rápida (sin proceso): abre su detalle en la Agenda.
+      setOpen(false);
+      router.push(`/agenda?cita=${n.referencia_id}`);
     }
   };
 

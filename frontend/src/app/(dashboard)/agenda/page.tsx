@@ -38,6 +38,22 @@ export default function AgendaPage() {
   const [avisoReunionNueva, setAvisoReunionNueva] = useState<any[] | null>(null);
   const [mediadorSeleccionadoId, setMediadorSeleccionadoId] = useState('');
 
+  // Llegada desde el Panel General o una notificación: /agenda?cita=ID
+  // (y &mediador=ID para el administrador y la secretaria). Se lee de la URL
+  // al abrir la pantalla.
+  const [citaInicialId, setCitaInicialId] = useState<number | undefined>(undefined);
+  const mediadorInicial = useRef<string>('');
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search);
+      const c = Number(q.get('cita'));
+      if (c) setCitaInicialId(c);
+      mediadorInicial.current = q.get('mediador') || '';
+    } catch {
+      /* sin parámetros */
+    }
+  }, []);
+
   // Procesos que se pueden elegir para agendarles una invitación nueva:
   // en negociación y sin otra invitación ya pendiente.
   const [procesos, setProcesos] = useState<any[]>([]);
@@ -108,6 +124,16 @@ export default function AgendaPage() {
       }
     })();
   }, [isAdmin, esSecretaria, puedeElegirMediador]);
+
+  // Con ?mediador=ID, el administrador/la secretaria entran ya viendo la agenda de ese mediador.
+  useEffect(() => {
+    const id = mediadorInicial.current;
+    if (!id || !mediadores.length) return;
+    if (mediadores.some((m) => String(m.id) === id)) {
+      setMediadorSeleccionadoId(id);
+      mediadorInicial.current = '';
+    }
+  }, [mediadores]);
 
   // El mediador cuya agenda se está viendo: el seleccionado (admin) o uno
   // mismo. Es también a quién se le puede agendar una invitación nueva.
@@ -278,6 +304,7 @@ export default function AgendaPage() {
         key={`${usuarioIdAgenda}-${calendarRefreshKey}`}
         usuarioId={usuarioIdAgenda}
         mediadorNombre={nombreMediadorAgenda}
+        citaInicialId={citaInicialId}
         permitirCrear
         onConfirmar={(fecha, hora) => {
           setInvitacionForm({ ...invitacionForm, fecha, hora });

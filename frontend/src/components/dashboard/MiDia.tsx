@@ -193,7 +193,10 @@ export default function MiDia({
           <ul className="space-y-1.5">
             {citasVisibles.map((c) => {
               const paso = citaYaPaso(c.fecha, c.hora);
-              const destino = c.proceso_id ? `/procesos/${c.proceso_id}` : '/agenda';
+              // Una invitación rápida (sin proceso) abre directo su detalle en la Agenda.
+              const destino = c.proceso_id
+                ? `/procesos/${c.proceso_id}`
+                : `/agenda?cita=${c.id}${c.usuario_id ? `&mediador=${c.usuario_id}` : ''}`;
 
               return (
                 <li key={c.id}>
@@ -209,6 +212,11 @@ export default function MiDia({
                       <span className="block text-sm font-medium text-numa-900 truncate">
                         {c.demandante} <span className="text-numa-400 font-normal">vs</span>{' '}
                         {c.demandado}
+                        {!c.proceso_id && (
+                          <span className="ml-2 align-middle text-[11px] font-bold uppercase tracking-wide text-gold-700 bg-gold-100 border border-gold-300 rounded px-1.5 py-0.5">
+                            Invitación rápida
+                          </span>
+                        )}
                       </span>
                       <span className="block text-xs text-numa-500 truncate">
                         {verOtros ? `${c.mediador} · ${c.ciudad || '—'} · ` : ''}
