@@ -151,7 +151,7 @@ function LadoEditor({
       {lado.modo === 'personas' ? (
         <div className="space-y-3">
           {lado.personas.map((p, i) => (
-            <div key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_190px_auto] gap-3 items-end">
+            <div key={i} className="grid grid-cols-1 sm:grid-cols-[minmax(0,380px)_190px_auto] gap-3 items-end">
               <InputField
                 label={i === 0 ? 'Nombres y apellidos' : `Nombres y apellidos (${i + 1})`}
                 value={p.nombre}
