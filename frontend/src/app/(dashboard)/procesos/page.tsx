@@ -61,7 +61,7 @@ function NuevoClienteBox({
   return (
     <div className="rounded-sm border border-amber-300 bg-amber-50 p-3 space-y-2">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-xs font-bold uppercase tracking-wider text-amber-900">
+        <p className="text-[13px] font-bold uppercase tracking-wider text-amber-900">
           {etiqueta} · cliente nuevo
         </p>
         <button type="button" onClick={onQuitar} className="text-xs underline text-numa-700">
@@ -87,10 +87,10 @@ function NuevoClienteBox({
               onChange={(e) => onChange({ ...n, apellido: e.target.value })}
             />
           </div>
-          <p className="text-xs text-numa-600">Cédula {n.cedula} (no se puede cambiar aquí).</p>
+          <p className="text-[13px] font-medium text-numa-800">Cédula {n.cedula} (no se puede cambiar aquí).</p>
         </>
       )}
-      <p className="text-xs text-numa-600">
+      <p className="text-[13px] text-numa-700">
         Se registra en Clientes al crear el proceso. El teléfono y el correo se completan después.
       </p>
     </div>
@@ -183,6 +183,8 @@ export default function ProcesosPage() {
     sol: [],
     inv: []
   });
+  // Nombres de los clientes recién registrados (mientras la lista de Clientes se recarga).
+  const [nombresRegistrados, setNombresRegistrados] = useState<Record<string, string>>({});
   const [nuevos, setNuevos] = useState<{ sol: NuevoCliente | null; inv: NuevoCliente | null }>({
     sol: null,
     inv: null
@@ -471,6 +473,14 @@ export default function ProcesosPage() {
   const nombreCliente = (id: string) =>
     clientes.find((c: any) => String(c.id) === String(id));
 
+  // Nombre para mostrar de una persona del proceso: el cliente ya registrado,
+  // el que se acaba de registrar o, si no hay nada, un guion (nunca "undefined").
+  const nombreMostrar = (id: string) => {
+    const c = nombreCliente(id);
+    if (c) return `${c.nombre} ${c.apellido || ''}`.trim();
+    return nombresRegistrados[id] || '—';
+  };
+
   const nombreSucursal = (id: string) =>
     sucursales.find((s: any) => String(s.id) === String(id));
 
@@ -510,6 +520,11 @@ export default function ProcesosPage() {
               }
             : { tipo: 'persona', cedula: n.cedula, nombre: n.nombre.trim(), apellido: n.apellido.trim() }) as any
         );
+        setNombresRegistrados((m) => ({
+          ...m,
+          [String(c.id)]:
+            n.tipo === 'empresa' ? n.razon_social || '' : `${n.nombre} ${n.apellido}`.trim()
+        }));
         return String(c.id);
       };
       if (nuevos.sol) {
@@ -893,16 +908,16 @@ export default function ProcesosPage() {
                     paso === p.numero
                       ? 'bg-gold-500 text-numa-950'
                       : paso > p.numero
-                      ? 'bg-green-50 text-green-700'
-                      : 'bg-numa-100 text-numa-400'
+                      ? 'bg-green-700 text-white'
+                      : 'bg-numa-200 text-numa-700'
                   }`}
                 >
                   {paso > p.numero ? <Check className="w-3.5 h-3.5" /> : p.numero}
                 </div>
 
                 <span
-                  className={`text-xs font-medium hidden sm:inline ${
-                    paso === p.numero ? 'text-numa-800' : 'text-numa-400'
+                  className={`text-[13px] font-medium hidden sm:inline ${
+                    paso === p.numero ? 'text-numa-900 font-bold' : 'text-numa-600'
                   }`}
                 >
                   {p.titulo}
@@ -912,7 +927,7 @@ export default function ProcesosPage() {
               {idx < PASOS_CREAR.length - 1 && (
                 <div
                   className={`flex-1 h-px mx-3 ${
-                    paso > p.numero ? 'bg-green-200' : 'bg-numa-100'
+                    paso > p.numero ? 'bg-green-600' : 'bg-numa-200'
                   }`}
                 />
               )}
@@ -928,7 +943,7 @@ export default function ProcesosPage() {
 
         {paso === 1 && (
           <div className="space-y-4 animate-fade-in">
-            <p className="text-xs text-numa-500">
+            <p className="text-sm font-semibold text-numa-800">
               Paso 1 de {PASOS_CREAR.length}: elige quiénes participan en el proceso.
             </p>
 
@@ -948,12 +963,12 @@ export default function ProcesosPage() {
                   ))}
                 </SelectField>
                 {form.cita_rapida_id && (
-                  <p className="text-xs text-numa-500 mt-1">
+                  <p className="text-[13px] font-medium text-numa-700 mt-1">
                     El proceso quedará enlazado a esa invitación.
                   </p>
                 )}
                 {avisoCitaRapida && (
-                  <p className="text-xs mt-2 rounded-sm border border-amber-300 bg-amber-50 text-amber-800 px-2 py-1">
+                  <p className="text-[13px] font-medium mt-2 rounded-sm border border-amber-400 bg-amber-50 text-amber-900 px-3 py-2">
                     {avisoCitaRapida}
                   </p>
                 )}
@@ -1004,7 +1019,7 @@ export default function ProcesosPage() {
 
             {extras.sol.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs text-numa-600">
+                <p className="text-[13px] font-semibold text-numa-800">
                   Además se agregarán al proceso como solicitante:
                 </p>
                 {extras.sol.map((e, i) =>
@@ -1060,7 +1075,7 @@ export default function ProcesosPage() {
 
             {extras.inv.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs text-numa-600">
+                <p className="text-[13px] font-semibold text-numa-800">
                   Además se agregarán al proceso como invitado:
                 </p>
                 {extras.inv.map((e, i) =>
@@ -1089,7 +1104,7 @@ export default function ProcesosPage() {
             )}
 
             {clientes.length === 0 && (
-              <p className="text-xs text-numa-400">
+              <p className="text-[13px] font-medium text-numa-700">
                 Todavía no hay clientes registrados. Ve a &quot;Clientes&quot; para
                 registrar al solicitante y al invitado antes de continuar.
               </p>
@@ -1099,7 +1114,7 @@ export default function ProcesosPage() {
 
         {paso === 2 && (
           <div className="space-y-4 animate-fade-in">
-            <p className="text-xs text-numa-500">
+            <p className="text-sm font-semibold text-numa-800">
               Paso 2 de {PASOS_CREAR.length}: describe el motivo del proceso.
             </p>
 
@@ -1115,61 +1130,76 @@ export default function ProcesosPage() {
 
         {paso === 3 && (
           <div className="space-y-4 animate-fade-in">
-            <p className="text-xs text-numa-500">
+            <p className="text-sm font-semibold text-numa-800">
               Paso 3 de {PASOS_CREAR.length}: revisa los datos antes de crear el proceso.
             </p>
 
-            <div className="card bg-numa-50 p-4 space-y-2 text-sm">
+            <div className="bg-white border border-numa-200 border-l-4 border-l-gold-500 rounded-md p-4 shadow-sm space-y-3">
               {isAdmin() && (
                 <div>
-                  <span className="text-numa-400">Sucursal: </span>
-                  <span className="font-medium text-numa-800">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-numa-600">Sucursal</p>
+                  <p className="text-sm font-semibold text-numa-900">
                     {nombreSucursal(form.sucursal_id)?.nombre || '—'}
-                  </span>
+                  </p>
                 </div>
               )}
 
               <div>
-                <span className="text-numa-400">Solicitante: </span>
-                <span className="font-medium text-numa-800">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-numa-600">Solicitante</p>
+                <p className="text-sm font-semibold text-numa-900">
                   {nuevos.sol
-                    ? `${nuevos.sol.nombre} ${nuevos.sol.apellido}`.trim() + ' (se registrará como cliente nuevo)'
-                    : `${nombreCliente(form.cliente_demandante_id)?.nombre} ${nombreCliente(form.cliente_demandante_id)?.apellido}`}
-                </span>
+                    ? `${nuevos.sol.nombre} ${nuevos.sol.apellido}`.trim()
+                    : nombreMostrar(form.cliente_demandante_id)}
+                  {nuevos.sol && (
+                    <span className="ml-2 text-xs font-medium text-amber-800">se registrará como cliente nuevo</span>
+                  )}
+                </p>
               </div>
 
               <div>
-                <span className="text-numa-400">Invitado: </span>
-                <span className="font-medium text-numa-800">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-numa-600">Invitado</p>
+                <p className="text-sm font-semibold text-numa-900">
                   {nuevos.inv
-                    ? `${nuevos.inv.nombre} ${nuevos.inv.apellido}`.trim() + ' (se registrará como cliente nuevo)'
-                    : `${nombreCliente(form.cliente_demandado_id)?.nombre} ${nombreCliente(form.cliente_demandado_id)?.apellido}`}
-                </span>
+                    ? `${nuevos.inv.nombre} ${nuevos.inv.apellido}`.trim()
+                    : nombreMostrar(form.cliente_demandado_id)}
+                  {nuevos.inv && (
+                    <span className="ml-2 text-xs font-medium text-amber-800">se registrará como cliente nuevo</span>
+                  )}
+                </p>
               </div>
 
               {(extras.sol.length > 0 || extras.inv.length > 0) && (
                 <div>
-                  <span className="text-numa-400">Además: </span>
-                  <span className="text-numa-700">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-numa-600">Además</p>
+                  <ul className="text-sm text-numa-900 space-y-0.5">
                     {[
-                      ...extras.sol.map((e) => `${e.nuevo ? `${e.nuevo.nombre} ${e.nuevo.apellido}`.trim() : e.etiqueta} (solicitante)`),
-                      ...extras.inv.map((e) => `${e.nuevo ? `${e.nuevo.nombre} ${e.nuevo.apellido}`.trim() : e.etiqueta} (invitado)`)
-                    ].join('; ')}
-                  </span>
+                      ...extras.sol.map((e) => ({ e, rol: 'solicitante' })),
+                      ...extras.inv.map((e) => ({ e, rol: 'invitado' }))
+                    ].map(({ e, rol }, k) => (
+                      <li key={k}>
+                        <span className="font-semibold">
+                          {e.nuevo ? `${e.nuevo.nombre} ${e.nuevo.apellido}`.trim() : e.etiqueta}
+                        </span>{' '}
+                        <span className="text-numa-700">({rol})</span>
+                        {e.nuevo && (
+                          <span className="ml-2 text-xs font-medium text-amber-800">se registrará como cliente nuevo</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
 
               <div>
-                <span className="text-numa-400">Tema: </span>
-                <span className="text-numa-700">{form.tema}</span>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-numa-600">Tema</p>
+                <p className="text-sm text-numa-900">{form.tema}</p>
               </div>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-sm p-3">
-              <p className="text-xs text-blue-700">
-                Al crear el proceso irás directo a su pantalla, donde podrás
-                agendar invitaciones, registrar avances y, cuando se cierre,
-                subir los documentos del acta.
+            <div className="bg-numa-900 rounded-md p-3.5">
+              <p className="text-[13px] leading-snug text-numa-50">
+                Al crear el proceso irás directo a su pantalla, donde podrás agendar invitaciones,
+                registrar avances y, cuando se cierre, subir los documentos del acta.
               </p>
             </div>
           </div>
