@@ -22,6 +22,7 @@ import {
 import {
   getProcesos,
   createProceso,
+  agregarParteProceso,
   getClientes,
   createCliente,
   getUsuarios,
@@ -175,6 +176,13 @@ export default function ProcesosPage() {
     representante_nombre?: string;
     representante_cedula?: string;
   };
+  // Las demás personas de cada lado (la primera es la principal): se agregan
+  // al proceso al crearlo. Cada una ya es cliente (id) o se registra (nuevo).
+  type ExtraParte = { id?: string; etiqueta: string; nuevo?: NuevoCliente };
+  const [extras, setExtras] = useState<{ sol: ExtraParte[]; inv: ExtraParte[] }>({
+    sol: [],
+    inv: []
+  });
   const [nuevos, setNuevos] = useState<{ sol: NuevoCliente | null; inv: NuevoCliente | null }>({
     sol: null,
     inv: null
@@ -253,6 +261,7 @@ export default function ProcesosPage() {
 
   const abrirCrear = () => {
     setNuevos({ sol: null, inv: null });
+    setExtras({ sol: [], inv: [] });
     setForm({
       cliente_demandante_id: '',
       cliente_demandado_id: '',
@@ -319,6 +328,7 @@ export default function ProcesosPage() {
       setForm((f) => ({ ...f, cita_rapida_id: '' }));
       setAvisoCitaRapida('');
       setNuevos({ sol: null, inv: null });
+      setExtras({ sol: [], inv: [] });
       return;
     }
     const cita = citasRapidas.find((c: any) => String(c.id) === String(id));
@@ -331,12 +341,20 @@ export default function ProcesosPage() {
     const nuevoSol = sol.length && !cSol ? nuevoDesdeParte(sol[0]) : null;
     const nuevoInv = inv.length && !cInv ? nuevoDesdeParte(inv[0]) : null;
     setNuevos({ sol: nuevoSol, inv: nuevoInv });
-    // Solo se avisa de lo que NO se registrará solo: las demás personas de
-    // cada lado y las empresas sin RUC.
-    const faltan = [
-      ...sol.slice(nuevoSol || cSol ? 1 : 0),
-      ...inv.slice(nuevoInv || cInv ? 1 : 0)
-    ].filter((x: any) => !buscarCliente(x));
+    // Las demás personas de cada lado se agregan al proceso al crearlo.
+    const aExtra = (x: any): ExtraParte | null => {
+      const c = buscarCliente(x);
+      if (c) return { id: String(c.id), etiqueta: nombreParteRapida(x) };
+      const n = nuevoDesdeParte(x);
+      return n ? { etiqueta: nombreParteRapida(x), nuevo: n } : null;
+    };
+    const extrasSol = sol.slice(1).map(aExtra).filter(Boolean) as ExtraParte[];
+    const extrasInv = inv.slice(1).map(aExtra).filter(Boolean) as ExtraParte[];
+    setExtras({ sol: extrasSol, inv: extrasInv });
+    // Solo se avisa de lo que NO se registrará solo (empresas sin RUC).
+    const faltan = [...sol, ...inv].filter(
+      (x: any) => x.tipo === 'empresa' && !x.ruc && !buscarCliente(x)
+    );
 
     setForm((f) => ({
       ...f,
@@ -354,17 +372,12 @@ export default function ProcesosPage() {
     const avisos: string[] = [];
     if (faltan.length) {
       avisos.push(
-        `Aún no están en Clientes y no se registran solos: ${faltan.map(nombreParteRapida).join('; ')}. Regístralos en "Clientes" (las empresas necesitan el RUC) para poder usarlos en el proceso.`
+        `Aún no están en Clientes y no se registran solas: ${faltan.map(nombreParteRapida).join('; ')}. Regístralas en "Clientes" (las empresas necesitan el RUC) para poder usarlas en el proceso.`
       );
     }
-    if (nuevoSol || nuevoInv) {
+    if (nuevoSol || nuevoInv || extrasSol.some((e) => e.nuevo) || extrasInv.some((e) => e.nuevo)) {
       avisos.push(
         'Lo que aún no está en Clientes se registrará solo al crear el proceso; revisa los nombres abajo. El teléfono y el correo se completan después en Clientes.'
-      );
-    }
-    if (sol.length > 1 || inv.length > 1) {
-      avisos.push(
-        'La invitación tiene varias personas en un lado: elige aquí a la principal y agrega las demás desde la pantalla del proceso.'
       );
     }
     setAvisoCitaRapida(avisos.join(' '));
@@ -397,7 +410,12 @@ export default function ProcesosPage() {
       return false;
     }
 
-    for (const n of [nuevos.sol, nuevos.inv]) {
+    for (const n of [
+      nuevos.sol,
+      nuevos.inv,
+      ...extras.sol.map((e) => e.nuevo || null),
+      ...extras.inv.map((e) => e.nuevo || null)
+    ]) {
       if (n && n.tipo === 'persona' && (!n.nombre.trim() || !n.apellido.trim())) {
         setError('Escribe los nombres y los apellidos de la persona que se va a registrar');
         return false;
@@ -504,7 +522,25 @@ export default function ProcesosPage() {
         setNuevos((a) => ({ ...a, inv: null }));
         setForm((f) => ({ ...f, cliente_demandado_id: idInv }));
       }
-      if (nuevos.sol || nuevos.inv) getClientes().then(setClientes).catch(() => {});
+      // Las demás personas: se registran las que faltan antes de crear el
+      // proceso, para que cualquier error (cédula repetida, etc.) salga ahora.
+      const idsExtra: { rol: 'solicitante' | 'invitado'; id: string }[] = [];
+      const nuevasSol: ExtraParte[] = [];
+      const nuevasInv: ExtraParte[] = [];
+      for (const [rol, lista, destino] of [
+        ['solicitante', extras.sol, nuevasSol],
+        ['invitado', extras.inv, nuevasInv]
+      ] as const) {
+        for (const e of lista) {
+          const id = e.id || (e.nuevo ? await registrar(e.nuevo) : '');
+          if (id) {
+            idsExtra.push({ rol, id });
+            destino.push({ id, etiqueta: e.etiqueta });
+          }
+        }
+      }
+      if (idsExtra.length) setExtras({ sol: nuevasSol, inv: nuevasInv });
+      if (nuevos.sol || nuevos.inv || idsExtra.length) getClientes().then(setClientes).catch(() => {});
 
       const nuevoProceso = await createProceso({
         cliente_demandante_id: Number(idSol),
@@ -513,6 +549,17 @@ export default function ProcesosPage() {
         ...(isAdmin() ? { sucursal_id: Number(form.sucursal_id) } : {}),
         ...(form.cita_rapida_id ? { cita_rapida_id: Number(form.cita_rapida_id) } : {})
       });
+
+      // Se agregan al proceso las demás personas de cada lado.
+      if (nuevoProceso?.id) {
+        for (const x of idsExtra) {
+          try {
+            await agregarParteProceso(nuevoProceso.id, { rol: x.rol, cliente_id: Number(x.id) });
+          } catch {
+            /* se puede agregar luego desde la pantalla del proceso */
+          }
+        }
+      }
 
       setShowCreate(false);
       setPaso(1);
@@ -955,6 +1002,36 @@ export default function ProcesosPage() {
             </SelectField>
             )}
 
+            {extras.sol.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-numa-600">
+                  Además se agregarán al proceso como solicitante:
+                </p>
+                {extras.sol.map((e, i) =>
+                  e.nuevo ? (
+                    <NuevoClienteBox
+                      key={i}
+                      etiqueta="Solicitante adicional"
+                      n={e.nuevo}
+                      onChange={(n) =>
+                        setExtras((a) => ({
+                          ...a,
+                          sol: a.sol.map((x, idx) => (idx === i ? { ...x, nuevo: n } : x))
+                        }))
+                      }
+                      onQuitar={() =>
+                        setExtras((a) => ({ ...a, sol: a.sol.filter((_, idx) => idx !== i) }))
+                      }
+                    />
+                  ) : (
+                    <p key={i} className="text-sm text-numa-800 border border-numa-200 rounded-sm px-3 py-1.5">
+                      {e.etiqueta} · ya registrado
+                    </p>
+                  )
+                )}
+              </div>
+            )}
+
             {nuevos.inv && (
               <NuevoClienteBox
                 etiqueta="Invitado"
@@ -979,6 +1056,36 @@ export default function ProcesosPage() {
                 </option>
               ))}
             </SelectField>
+            )}
+
+            {extras.inv.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-numa-600">
+                  Además se agregarán al proceso como invitado:
+                </p>
+                {extras.inv.map((e, i) =>
+                  e.nuevo ? (
+                    <NuevoClienteBox
+                      key={i}
+                      etiqueta="Invitado adicional"
+                      n={e.nuevo}
+                      onChange={(n) =>
+                        setExtras((a) => ({
+                          ...a,
+                          inv: a.inv.map((x, idx) => (idx === i ? { ...x, nuevo: n } : x))
+                        }))
+                      }
+                      onQuitar={() =>
+                        setExtras((a) => ({ ...a, inv: a.inv.filter((_, idx) => idx !== i) }))
+                      }
+                    />
+                  ) : (
+                    <p key={i} className="text-sm text-numa-800 border border-numa-200 rounded-sm px-3 py-1.5">
+                      {e.etiqueta} · ya registrado
+                    </p>
+                  )
+                )}
+              </div>
             )}
 
             {clientes.length === 0 && (
@@ -1039,6 +1146,18 @@ export default function ProcesosPage() {
                     : `${nombreCliente(form.cliente_demandado_id)?.nombre} ${nombreCliente(form.cliente_demandado_id)?.apellido}`}
                 </span>
               </div>
+
+              {(extras.sol.length > 0 || extras.inv.length > 0) && (
+                <div>
+                  <span className="text-numa-400">Además: </span>
+                  <span className="text-numa-700">
+                    {[
+                      ...extras.sol.map((e) => `${e.nuevo ? `${e.nuevo.nombre} ${e.nuevo.apellido}`.trim() : e.etiqueta} (solicitante)`),
+                      ...extras.inv.map((e) => `${e.nuevo ? `${e.nuevo.nombre} ${e.nuevo.apellido}`.trim() : e.etiqueta} (invitado)`)
+                    ].join('; ')}
+                  </span>
+                </div>
+              )}
 
               <div>
                 <span className="text-numa-400">Tema: </span>
