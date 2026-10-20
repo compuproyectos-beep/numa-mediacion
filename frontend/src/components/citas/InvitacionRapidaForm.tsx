@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Trash2, Zap } from 'lucide-react';
+import { Plus, Trash2, Zap, CheckCircle2 } from 'lucide-react';
 import { InputField, TextareaField, ErrorAlert } from '@/components/ui';
 import { crearInvitacionRapida, getClientes } from '@/lib/services';
 
@@ -46,12 +46,15 @@ function LadoEditor({
   titulo,
   lado,
   clientes,
-  onChange
+  onChange,
+  acento = 'border-l-gold-500'
 }: {
   titulo: string;
   lado: Lado;
   clientes: any[];
   onChange: (l: Lado) => void;
+  // Color de la franja izquierda: distingue de un vistazo quién es quién.
+  acento?: string;
 }) {
   const setPersona = (i: number, campo: keyof Persona, valor: string) =>
     onChange({
@@ -123,9 +126,9 @@ function LadoEditor({
   const puedeAgregar = !!ultima && !!ultima.nombre.trim() && cedulaValida(ultima.cedula);
 
   return (
-    <div className="border border-numa-100 rounded-sm p-4">
+    <div className={`bg-white border border-numa-200 border-l-4 ${acento} rounded-md p-4 shadow-sm`}>
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-        <h4 className="text-sm font-semibold text-numa-800">{titulo}</h4>
+        <h4 className="text-sm font-semibold text-numa-900">{titulo}</h4>
         <div className="inline-flex rounded-sm border border-numa-200 overflow-hidden text-xs">
           <button
             type="button"
@@ -184,8 +187,9 @@ function LadoEditor({
                 <span />
               )}
               {p.registrado && (
-                <p className="sm:col-span-3 -mt-1 text-xs text-green-700">
-                  ✔ Ya está registrada en el sistema: se usaron sus datos. Si la cédula no es la
+                <p className="sm:col-span-3 -mt-1 text-xs text-green-800 flex items-start gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 mt-px shrink-0 text-green-600" aria-hidden="true" />
+                  Ya está registrada en el sistema: se usaron sus datos. Si la cédula no es la
                   correcta, corrígela.
                 </p>
               )}
@@ -245,8 +249,9 @@ function LadoEditor({
             }
           />
           {lado.empresa.registrado && (
-            <p className="sm:col-span-2 text-xs text-green-700">
-              ✔ Esta empresa ya está registrada en el sistema: se usaron sus datos. Si el RUC no
+            <p className="sm:col-span-2 text-xs text-green-800 flex items-start gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 mt-px shrink-0 text-green-600" aria-hidden="true" />
+              Esta empresa ya está registrada en el sistema: se usaron sus datos. Si el RUC no
               es el correcto, corrígelo.
             </p>
           )}
@@ -374,20 +379,25 @@ export default function InvitacionRapidaForm({
   });
 
   return (
-    <div className="mt-5 border-t border-numa-100 pt-5">
-      <h3 className="text-sm font-semibold text-numa-800 mb-1 flex items-center gap-2">
-        <Zap className="w-4 h-4 text-gold-600" />
-        Invitación rápida
-      </h3>
-      <p className="text-sm text-numa-700 mb-1">
-        <span className="font-semibold capitalize">{fechaTexto}</span> a las{' '}
-        <span className="font-semibold">{hora}</span>.
-      </p>
-      <p className="text-xs text-numa-500 mb-4">
-        No crea el proceso: la reunión queda en la Agenda. El proceso se crea después y se enlaza a
-        esta invitación.
-      </p>
+    <div className="mt-5 rounded-md border border-numa-200 overflow-hidden bg-numa-50 shadow-sm">
+      <div className="bg-numa-900 text-white px-5 py-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+        <div>
+          <h3 className="text-base font-semibold flex items-center gap-2">
+            <Zap className="w-4 h-4 text-gold-400" aria-hidden="true" />
+            Invitación rápida
+          </h3>
+          <p className="text-xs text-white/70 mt-1 max-w-md">
+            No crea el proceso: la reunión queda en la Agenda. El proceso se crea después y se
+            enlaza a esta invitación.
+          </p>
+        </div>
+        <p className="text-sm text-white/80 sm:text-right">
+          <span className="block capitalize">{fechaTexto}</span>
+          <span className="block text-2xl font-semibold text-gold-400 leading-tight">{hora}</span>
+        </p>
+      </div>
 
+      <div className="p-5">
       <div className="space-y-4">
         <LadoEditor
           titulo="Solicitante(s)"
@@ -397,25 +407,28 @@ export default function InvitacionRapidaForm({
         />
         <LadoEditor
           titulo="Invitado(s)"
+          acento="border-l-numa-600"
           lado={invitados}
           clientes={clientes}
           onChange={setInvitados}
         />
 
-        <InputField
-          label={temaObligatorio ? 'Tema a tratar' : 'Tema (opcional, el mediador puede completarlo)'}
-          value={tema}
-          onChange={(e) => setTema(e.target.value)}
-          placeholder="Ejemplo: Deuda por préstamo..."
-        />
+        <div className="bg-white border border-numa-200 rounded-md p-4 shadow-sm space-y-4">
+          <InputField
+            label={temaObligatorio ? 'Tema a tratar' : 'Tema (opcional, el mediador puede completarlo)'}
+            value={tema}
+            onChange={(e) => setTema(e.target.value)}
+            placeholder="Ejemplo: Deuda por préstamo..."
+          />
 
-        <TextareaField
-          label="Observaciones"
-          rows={3}
-          value={observaciones}
-          onChange={(e) => setObservaciones(e.target.value)}
-          placeholder="Ejemplo: Primera invitación a reunión de mediación..."
-        />
+          <TextareaField
+            label="Observaciones"
+            rows={3}
+            value={observaciones}
+            onChange={(e) => setObservaciones(e.target.value)}
+            placeholder="Ejemplo: Primera invitación a reunión de mediación..."
+          />
+        </div>
       </div>
 
       {error && (
@@ -424,7 +437,7 @@ export default function InvitacionRapidaForm({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-3 mt-4">
+      <div className="flex flex-wrap gap-3 mt-5">
         <button
           type="button"
           onClick={crear}
@@ -436,6 +449,7 @@ export default function InvitacionRapidaForm({
         <button type="button" onClick={onCancelar} className="btn-secondary">
           Cancelar
         </button>
+      </div>
       </div>
     </div>
   );
