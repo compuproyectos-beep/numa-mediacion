@@ -713,7 +713,12 @@ function ImprimirInvitacion() {
                 <button
                   disabled={sinTema}
                   title={sinTema ? 'Escribe el asunto para poder imprimir' : undefined}
-                  onClick={() => window.print()}
+                  onClick={async () => {
+                    // Al imprimir también se guarda el documento: así queda
+                    // registrado que la invitación ya se preparó (paso 3 en verde).
+                    if (!esNueva && citaId && !bloqueada) await guardar();
+                    window.print();
+                  }}
                   className="inline-flex items-center gap-2 px-4 py-2 border border-numa-300 text-numa-800 bg-white rounded-sm text-sm font-medium hover:bg-numa-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Printer className="w-4 h-4" />

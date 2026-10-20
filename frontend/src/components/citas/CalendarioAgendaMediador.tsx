@@ -862,7 +862,7 @@ export default function CalendarioAgendaMediador({
                     </>
                   )}
                 </Paso>
-                <Paso n={3} hecho={false} titulo="Imprimir la invitación">
+                <Paso n={3} hecho={!!citaActiva.documento_editor_rol} titulo="Imprimir la invitación">
                   {temaOk ? (
                     <>
                       <p className="mb-2">
