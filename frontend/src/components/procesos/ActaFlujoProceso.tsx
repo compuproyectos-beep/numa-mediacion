@@ -377,7 +377,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
             </button>
           </div>
           {!esAdmin && !yaImprimio && (
-            <p className="text-xs text-numa-500 mt-2">
+            <p className="text-xs text-numa-700 mt-2">
               Primero imprime el acta para firmar; luego se habilita &quot;Subir acta firmada&quot;.
             </p>
           )}
@@ -543,7 +543,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
 
           {historial && historial.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-numa-500 uppercase tracking-wide mb-2">
+              <p className="text-xs font-semibold text-numa-700 uppercase tracking-wide mb-2">
                 Correcciones anteriores
               </p>
               <ul className="space-y-2 max-h-40 overflow-y-auto">

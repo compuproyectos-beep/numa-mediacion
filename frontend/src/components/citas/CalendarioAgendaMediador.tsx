@@ -682,19 +682,19 @@ export default function CalendarioAgendaMediador({
 
       {/* Detalle y gestión de una cita existente */}
       {citaActiva && (
-        <div ref={panelRef} className="mt-5 border-t border-numa-100 pt-5 scroll-mt-24">
+        <div ref={panelRef} className="mt-5 border-t-2 border-numa-300 pt-5 scroll-mt-24">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <p className="text-sm font-semibold text-numa-800 capitalize">
+              <p className="text-lg font-bold text-numa-900 capitalize">
                 {etiquetaFecha(citaActiva.fecha)} — {citaActiva.hora?.slice(0, 5)}
               </p>
-              <p className="text-xs text-numa-500 mt-0.5">
+              <p className="text-sm text-numa-700 mt-1">
                 Estado:{' '}
-                <span className="font-semibold capitalize">
+                <span className="font-bold text-numa-900 capitalize">
                   {citaActiva.estado === 'no_realizada' ? 'no realizada' : citaActiva.estado}
                 </span>
                 {!citaActiva.proceso_id && citaActiva.partes_rapidas && (
-                  <span className="ml-2 badge bg-numa-100 text-numa-700">
+                  <span className="ml-2 badge bg-numa-100 text-numa-800 font-semibold">
                     Invitación rápida · sin proceso
                   </span>
                 )}
@@ -705,12 +705,12 @@ export default function CalendarioAgendaMediador({
                 )}
               </p>
               {citaActiva.fecha_creacion && (
-                <p className="text-xs text-numa-500 mt-0.5">
+                <p className="text-sm text-numa-700 mt-1">
                   Creada el{' '}
-                  <span className="font-semibold">{fechaCreacionEC(citaActiva.fecha_creacion)}</span>
+                  <span className="font-bold text-numa-900">{fechaCreacionEC(citaActiva.fecha_creacion)}</span>
                   {citaActiva.creado_por && (
                     <>
-                      {' '}por <span className="font-semibold">{citaActiva.creado_por}</span>
+                      {' '}por <span className="font-bold text-numa-900">{citaActiva.creado_por}</span>
                     </>
                   )}
                 </p>
@@ -720,39 +720,39 @@ export default function CalendarioAgendaMediador({
             <span
               className={
                 citaActiva.estado === 'pendiente'
-                  ? 'badge bg-gold-400/10 text-gold-600'
+                  ? 'badge bg-gold-100 text-gold-800 border border-gold-300 font-bold'
                   : citaActiva.estado === 'realizada'
                   ? 'badge bg-green-50 text-green-700'
                   : citaActiva.estado === 'no_realizada'
                   ? 'badge bg-stone-100 text-stone-700'
                   : citaActiva.estado === 'cancelada'
                   ? 'badge bg-red-50 text-red-700'
-                  : 'badge bg-numa-100 text-numa-700'
+                  : 'badge bg-numa-100 text-numa-800 font-semibold'
               }
             >
               {citaActiva.estado === 'no_realizada' ? 'no realizada' : citaActiva.estado}
             </span>
           </div>
 
-          <div className="bg-numa-50 border border-numa-100 rounded-sm p-4 mb-4 space-y-2 text-sm">
+          <div className="bg-white border border-numa-300 border-l-4 border-l-gold-500 rounded-md shadow-sm p-5 mb-4 space-y-2.5 text-[15px] leading-relaxed">
             {citaActiva.tema && (
               <p>
-                <span className="text-numa-500">Tema:</span>{' '}
-                <span className="text-numa-800 font-medium">{citaActiva.tema}</span>
+                <span className="text-numa-700 font-semibold">Tema:</span>{' '}
+                <span className="text-numa-900 font-semibold">{citaActiva.tema}</span>
               </p>
             )}
 
             {citaActiva.partes_rapidas && !citaActiva.proceso_id && (
               <>
                 <p>
-                  <span className="text-numa-500">Solicitante(s):</span>{' '}
-                  <span className="text-numa-800 font-medium">
+                  <span className="text-numa-700 font-semibold">Solicitante(s):</span>{' '}
+                  <span className="text-numa-900 font-semibold">
                     {textoLadoRapido(citaActiva.partes_rapidas.solicitantes)}
                   </span>
                 </p>
                 <p>
-                  <span className="text-numa-500">Invitado(s):</span>{' '}
-                  <span className="text-numa-800 font-medium">
+                  <span className="text-numa-700 font-semibold">Invitado(s):</span>{' '}
+                  <span className="text-numa-900 font-semibold">
                     {textoLadoRapido(citaActiva.partes_rapidas.invitados)}
                   </span>
                 </p>
@@ -761,16 +761,16 @@ export default function CalendarioAgendaMediador({
 
             {citaActiva.codigo_proceso && (
               <p>
-                <span className="text-numa-500">Proceso:</span>{' '}
-                <span className="text-numa-800 font-medium">{citaActiva.codigo_proceso}</span>
+                <span className="text-numa-700 font-semibold">Proceso:</span>{' '}
+                <span className="text-numa-900 font-semibold">{citaActiva.codigo_proceso}</span>
               </p>
             )}
 
             {(citaActiva.demandante || citaActiva.demandado) &&
               !(citaActiva.partes_rapidas && !citaActiva.proceso_id) && (
               <p>
-                <span className="text-numa-500">Partes:</span>{' '}
-                <span className="text-numa-800 font-medium">
+                <span className="text-numa-700 font-semibold">Partes:</span>{' '}
+                <span className="text-numa-900 font-semibold">
                   {citaActiva.demandante}
                   {citaActiva.demandante_cedula && ` (${citaActiva.demandante_cedula})`}
                   {' vs '}
@@ -782,8 +782,8 @@ export default function CalendarioAgendaMediador({
 
             {citaActiva.sucursal && (
               <p>
-                <span className="text-numa-500">Sucursal:</span>{' '}
-                <span className="text-numa-800 font-medium">
+                <span className="text-numa-700 font-semibold">Sucursal:</span>{' '}
+                <span className="text-numa-900 font-semibold">
                   {citaActiva.sucursal}
                   {citaActiva.ciudad && ` — ${citaActiva.ciudad}`}
                   {citaActiva.provincia && `, ${citaActiva.provincia}`}
@@ -793,22 +793,22 @@ export default function CalendarioAgendaMediador({
 
             {citaActiva.codigo_acta && (
               <p>
-                <span className="text-numa-500">Acta vinculada:</span>{' '}
-                <span className="text-numa-800 font-medium">{citaActiva.codigo_acta}</span>
+                <span className="text-numa-700 font-semibold">Acta vinculada:</span>{' '}
+                <span className="text-numa-900 font-semibold">{citaActiva.codigo_acta}</span>
               </p>
             )}
 
             {citaActiva.observaciones && (
               <p>
-                <span className="text-numa-500">Observaciones:</span>{' '}
-                <span className="text-numa-800">{citaActiva.observaciones}</span>
+                <span className="text-numa-700 font-semibold">Observaciones:</span>{' '}
+                <span className="text-numa-900">{citaActiva.observaciones}</span>
               </p>
             )}
 
             {citaActiva.estado === 'cancelada' && citaActiva.motivo_cancelacion && (
               <p>
-                <span className="text-numa-500">Motivo de cancelación:</span>{' '}
-                <span className="text-numa-800">{citaActiva.motivo_cancelacion}</span>
+                <span className="text-numa-700 font-semibold">Motivo de cancelación:</span>{' '}
+                <span className="text-numa-900">{citaActiva.motivo_cancelacion}</span>
               </p>
             )}
           </div>
@@ -952,7 +952,7 @@ export default function CalendarioAgendaMediador({
           (permitirGestionarEstado || permitirCancelar) ? (
             <div className="flex flex-wrap items-center gap-3">
               {permitirGestionarEstado && !!citaActiva.proceso_id && (
-                <p className="text-xs text-numa-500 w-full">
+                <p className="text-sm text-numa-700 w-full">
                   El resultado de esta invitación se registra dentro del proceso (en "Registrar
                   avance"), no desde aquí.
                 </p>
@@ -968,9 +968,9 @@ export default function CalendarioAgendaMediador({
               </button>
             </div>
           ) : citaActiva.estado === 'pendiente' ? (
-            <p className="text-xs text-numa-400">Esta invitación está pendiente.</p>
+            <p className="text-sm text-numa-700">Esta invitación está pendiente.</p>
           ) : (
-            <p className="text-xs text-numa-400">
+            <p className="text-sm text-numa-700">
               Esta invitación ya no está pendiente, por lo que no ocupa esa hora para una nueva invitación.
             </p>
           )}
@@ -986,7 +986,7 @@ export default function CalendarioAgendaMediador({
                 <Users className="w-4 h-4 text-violet-600" />
                 {reunionActiva.titulo}
               </p>
-              <p className="text-xs text-numa-500 mt-0.5 capitalize">
+              <p className="text-sm text-numa-700 mt-0.5 capitalize">
                 {etiquetaFecha(String(reunionActiva.fecha).slice(0, 10))} · de{' '}
                 {horaCorta(reunionActiva.hora_inicio)} a {horaCorta(reunionActiva.hora_fin)}
               </p>

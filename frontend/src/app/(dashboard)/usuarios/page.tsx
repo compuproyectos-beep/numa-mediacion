@@ -348,7 +348,7 @@ export default function UsuariosPage() {
       )}
 
       <div className="mb-4 relative max-w-sm">
-        <Search className="w-4 h-4 text-numa-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <Search className="w-4 h-4 text-numa-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
 
         <input
           type="text"
@@ -421,11 +421,11 @@ export default function UsuariosPage() {
                       </div>
                     </td>
 
-                    <td className="table-cell text-numa-500">
+                    <td className="table-cell text-numa-700">
                       {u.cedula || '—'}
                     </td>
 
-                    <td className="table-cell text-numa-500">
+                    <td className="table-cell text-numa-700">
                       {u.email}
                     </td>
 
@@ -458,7 +458,7 @@ export default function UsuariosPage() {
                       </span>
                     </td>
 
-                    <td className="table-cell text-numa-500">
+                    <td className="table-cell text-numa-700">
                       {u.fecha_creacion
                         ? new Date(u.fecha_creacion).toLocaleDateString('es-EC')
                         : '—'}
@@ -581,7 +581,7 @@ export default function UsuariosPage() {
                 }}
               />
 
-              <p className="text-xs text-numa-400 -mt-3">
+              <p className="text-xs text-numa-600 -mt-3">
                 Si escribes una contraseña, la persona puede iniciar sesión de una
                 vez con ella (recomendado por ahora, mientras el correo no tiene
                 un dominio propio verificado). Si lo dejas en blanco, se le enviará
@@ -591,7 +591,7 @@ export default function UsuariosPage() {
           )}
 
           {editing && (
-            <p className="text-xs text-numa-400">
+            <p className="text-xs text-numa-600">
               La contraseña no se edita aquí; el usuario la cambia desde su cuenta.
             </p>
           )}
@@ -641,7 +641,7 @@ export default function UsuariosPage() {
               />
               <span>
                 Es coordinador de la sucursal
-                <span className="block text-xs text-numa-400">
+                <span className="block text-xs text-numa-600">
                   Sigue siendo un mediador normal, sin permisos adicionales. Solo
                   puede haber un coordinador por sucursal; su teléfono sale en la
                   página pública de la sede.

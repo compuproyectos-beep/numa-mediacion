@@ -45,7 +45,7 @@ export function GuiaBienvenida({ open, onClose }: GuiaBienvenidaProps) {
       <button
         type="button"
         onClick={onClose}
-        className="absolute top-3 right-3 text-numa-400 hover:text-numa-700"
+        className="absolute top-3 right-3 text-numa-600 hover:text-numa-700"
         aria-label="Cerrar guía"
       >
         <X className="w-4 h-4" />
@@ -66,7 +66,7 @@ export function GuiaBienvenida({ open, onClose }: GuiaBienvenidaProps) {
 
             <div>
               <p className="text-sm font-semibold text-numa-800">{p.titulo}</p>
-              <p className="text-xs text-numa-500 mt-0.5 leading-snug">{p.texto}</p>
+              <p className="text-xs text-numa-700 mt-0.5 leading-snug">{p.texto}</p>
             </div>
           </div>
         ))}

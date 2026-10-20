@@ -174,7 +174,7 @@ export default function FacturacionProceso({ procesoId, editable, onEstado, fina
     <div className="card p-4 mb-4">
       <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
         <h3 className="text-sm font-semibold text-numa-800 inline-flex items-center gap-2">
-          <Receipt className="w-4 h-4 text-numa-500" /> Datos de facturación
+          <Receipt className="w-4 h-4 text-numa-700" /> Datos de facturación
         </h3>
         {editable && (
           <button type="button" onClick={abrir} className="btn-secondary btn-sm">
@@ -186,37 +186,37 @@ export default function FacturacionProceso({ procesoId, editable, onEstado, fina
       {datos ? (
         <div className="text-sm text-numa-700 grid sm:grid-cols-2 gap-x-6 gap-y-1">
           <p>
-            <span className="text-numa-500">Facturar a: </span>
+            <span className="text-numa-700">Facturar a: </span>
             <strong>{datos.nombre}</strong>
             {datos.origen === 'tercero' && (
-              <span className="text-xs text-numa-400"> (no es parte del proceso)</span>
+              <span className="text-xs text-numa-600"> (no es parte del proceso)</span>
             )}
           </p>
           <p>
-            <span className="text-numa-500">{TIPOS[datos.tipo_identificacion]}: </span>
+            <span className="text-numa-700">{TIPOS[datos.tipo_identificacion]}: </span>
             {datos.identificacion}
           </p>
           <p>
-            <span className="text-numa-500">Dirección: </span>
+            <span className="text-numa-700">Dirección: </span>
             {datos.direccion}
           </p>
           <p>
-            <span className="text-numa-500">Correo: </span>
+            <span className="text-numa-700">Correo: </span>
             {datos.email}
           </p>
           {datos.telefono && (
             <p>
-              <span className="text-numa-500">Teléfono: </span>
+              <span className="text-numa-700">Teléfono: </span>
               {datos.telefono}
             </p>
           )}
         </div>
       ) : finalizado ? (
-        <p className="text-sm text-numa-500">
+        <p className="text-sm text-numa-700">
           No se registraron datos de facturación para este proceso.
         </p>
       ) : estado !== 'cerrado_con_acuerdo' ? (
-        <p className="text-sm text-numa-500">
+        <p className="text-sm text-numa-700">
           Aún no se indica a nombre de quién va la factura. Puedes completarlo ahora o más
           adelante; es obligatorio antes de subir la documentación.
         </p>
@@ -288,7 +288,7 @@ export default function FacturacionProceso({ procesoId, editable, onEstado, fina
                 />
               </div>
               {form.origen === 'parte' && (
-                <p className="text-xs text-numa-500">
+                <p className="text-xs text-numa-700">
                   Los datos se copian de la ficha del cliente. Si los cambias aquí, solo cambian
                   para esta factura, no en la ficha del cliente.
                 </p>

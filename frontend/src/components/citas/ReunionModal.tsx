@@ -96,7 +96,7 @@ export default function ReunionModal({
       title={reunion ? 'Cambiar reunión de mediadores' : 'Nueva reunión de mediadores'}
       size="md"
     >
-      <p className="text-xs text-numa-500 mb-4">
+      <p className="text-xs text-numa-700 mb-4">
         La reunión es para todos los mediadores de tu sucursal: cada uno recibe una notificación y
         verá la reunión en su agenda. En ese horario no se podrán agendar invitaciones.
       </p>

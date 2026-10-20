@@ -303,7 +303,7 @@ export default function ClientesPage() {
       )}
 
       <div className="mb-3 relative max-w-sm">
-        <Search className="w-4 h-4 text-numa-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <Search className="w-4 h-4 text-numa-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
 
         <input
           type="text"
@@ -378,16 +378,16 @@ export default function ClientesPage() {
                       </div>
                     </td>
 
-                    <td className="table-cell text-numa-500 code-text">
+                    <td className="table-cell text-numa-700 code-text">
                       {c.tipo === 'empresa' ? `RUC ${c.ruc || '—'}` : c.cedula}
                     </td>
-                    <td className="table-cell text-numa-500">{c.email || '—'}</td>
-                    <td className="table-cell text-numa-500">{c.telefono || '—'}</td>
-                    <td className="table-cell text-numa-500">
+                    <td className="table-cell text-numa-700">{c.email || '—'}</td>
+                    <td className="table-cell text-numa-700">{c.telefono || '—'}</td>
+                    <td className="table-cell text-numa-700">
                       {c.ciudad || '—'}
                     </td>
                     <td
-                      className="table-cell text-numa-500 max-w-xs truncate"
+                      className="table-cell text-numa-700 max-w-xs truncate"
                       title={c.direccion || undefined}
                     >
                       {c.direccion || '—'}

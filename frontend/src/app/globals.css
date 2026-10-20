@@ -53,7 +53,7 @@
   }
 
   .btn-secondary {
-    @apply btn-base px-5 py-2.5 border border-numa-300 bg-white text-numa-800 hover:bg-numa-50 hover:border-numa-400 disabled:hover:bg-white;
+    @apply btn-base px-5 py-2.5 border border-numa-400 bg-white text-numa-900 hover:bg-numa-50 hover:border-numa-500 disabled:hover:bg-white;
   }
 
   .btn-gold {
@@ -69,7 +69,7 @@
   }
 
   .btn-ghost {
-    @apply btn-base px-4 py-2 text-numa-600 hover:bg-numa-100 hover:text-numa-900;
+    @apply btn-base px-4 py-2 text-numa-700 hover:bg-numa-100 hover:text-numa-900;
   }
 
   .btn-sm {
@@ -77,7 +77,7 @@
   }
 
   .btn-icon {
-    @apply btn-base p-1.5 text-numa-500 hover:bg-numa-100 hover:text-numa-900;
+    @apply btn-base p-1.5 text-numa-700 hover:bg-numa-100 hover:text-numa-900;
   }
 
   /* Enlace de acción peligrosa poco frecuente (ej. "Anular este proceso"). */
@@ -96,7 +96,7 @@
   }
 
   .card {
-    @apply bg-white border border-numa-200/80 rounded-md;
+    @apply bg-white border border-numa-300/70 rounded-md;
     box-shadow: 0 1px 2px rgba(14, 35, 56, 0.05), 0 4px 12px -6px rgba(14, 35, 56, 0.10);
   }
 
@@ -104,7 +104,7 @@
      enfocar (anillo dorado más visible), para que no se vean tan grandes
      y vacíos. */
   .input-field {
-    @apply w-full px-3 py-1.5 border border-numa-200 rounded-md text-xs text-numa-900 bg-white placeholder-numa-400 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200;
+    @apply w-full px-3 py-2 border border-numa-300 rounded-md text-[13px] text-numa-900 bg-white placeholder-numa-500 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200;
   }
 
   /* Más chica y en mayúsculas, para distinguirse claramente del texto que
@@ -118,11 +118,11 @@
   }
 
   .table-header {
-    @apply text-left text-[11px] font-semibold text-numa-500 uppercase tracking-wider py-2 px-3;
+    @apply text-left text-xs font-bold text-numa-700 uppercase tracking-wider py-2.5 px-3;
   }
 
   .table-cell {
-    @apply py-2 px-3 text-[13px] text-numa-800 whitespace-nowrap;
+    @apply py-2.5 px-3 text-sm text-numa-900 whitespace-nowrap;
   }
 
   .table-row {
@@ -154,7 +154,7 @@
   /* Versión compacta para tablas muy anchas (Reportes): letra y espaciado
      más pequeños para que se haga menos scroll horizontal. */
   .tabla-compacta .table-header {
-    @apply text-[10px] py-2 px-2.5 tracking-wide;
+    @apply text-[11px] py-2 px-2.5 tracking-wide;
   }
 
   .tabla-compacta .table-cell {

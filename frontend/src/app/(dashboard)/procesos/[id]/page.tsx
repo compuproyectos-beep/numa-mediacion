@@ -820,14 +820,14 @@ export default function ProcesoDetallePage() {
           <p className="text-numa-700 mt-1">
             {proceso.demandante}
             {proceso.total_solicitantes > 1 && (
-              <span className="text-numa-400"> y {proceso.total_solicitantes - 1} más</span>
+              <span className="text-numa-600"> y {proceso.total_solicitantes - 1} más</span>
             )}{' '}
             vs {proceso.demandado}
             {proceso.total_invitados > 1 && (
-              <span className="text-numa-400"> y {proceso.total_invitados - 1} más</span>
+              <span className="text-numa-600"> y {proceso.total_invitados - 1} más</span>
             )}
           </p>
-          <p className="text-xs text-numa-400 mt-1">
+          <p className="text-xs text-numa-600 mt-1">
             {proceso.demandante_cedula || '—'} · {proceso.demandado_cedula || '—'}
           </p>
         </div>
@@ -935,24 +935,24 @@ export default function ProcesoDetallePage() {
 
       <div className="card p-5 mb-4 grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
         <div>
-          <p className="text-numa-400 text-xs mb-1">Ciudad · Sucursal</p>
+          <p className="text-numa-600 text-xs mb-1">Ciudad · Sucursal</p>
           <p className="text-numa-800 font-medium">
             {proceso.ciudad || '—'} · {proceso.sucursal || '—'}
           </p>
         </div>
 
         <div>
-          <p className="text-numa-400 text-xs mb-1">Mediador</p>
+          <p className="text-numa-600 text-xs mb-1">Mediador</p>
           <p className="text-numa-800 font-medium">{proceso.usuario || '—'}</p>
         </div>
 
         <div>
-          <p className="text-numa-400 text-xs mb-1">Tema</p>
+          <p className="text-numa-600 text-xs mb-1">Tema</p>
           <p className="text-numa-800 font-medium">{mayusInicial(proceso.tema)}</p>
         </div>
 
         <div>
-          <p className="text-numa-400 text-xs mb-1">Fecha de apertura</p>
+          <p className="text-numa-600 text-xs mb-1">Fecha de apertura</p>
           <p className="text-numa-800 font-medium">
             {proceso.fecha_creacion
               ? new Date(proceso.fecha_creacion).toLocaleDateString('es-EC')
@@ -1060,7 +1060,7 @@ export default function ProcesoDetallePage() {
                           Invitación #{index + 1}
                         </p>
 
-                        <p className="text-sm text-numa-500 mt-1">
+                        <p className="text-sm text-numa-700 mt-1">
                           {cita.fecha ? cita.fecha.slice(0, 10).split('-').reverse().join('/') : '—'} · {cita.hora?.slice(0, 5)}
                         </p>
 
@@ -1069,7 +1069,7 @@ export default function ProcesoDetallePage() {
                             crearla en su nombre (ej. el mediador se
                             enfermó), y esto deja ese dato visible. */}
                         {(cita.creado_por || cita.fecha_creacion) && (
-                          <p className="text-xs text-numa-400 mt-1">
+                          <p className="text-xs text-numa-600 mt-1">
                             Invitación creada
                             {cita.fecha_creacion && (
                               <>
@@ -1126,7 +1126,7 @@ export default function ProcesoDetallePage() {
 
                     {cita.observaciones && (
                       <div className="mt-3">
-                        <p className="text-xs font-semibold text-numa-500">
+                        <p className="text-xs font-semibold text-numa-700">
                           Observación de invitación:
                         </p>
 
@@ -1150,7 +1150,7 @@ export default function ProcesoDetallePage() {
 
                     {avance?.resultado ? (
                       <div className="mt-4 border-t border-numa-100 pt-3">
-                        <p className="text-xs font-semibold text-numa-500">
+                        <p className="text-xs font-semibold text-numa-700">
                           Resultado:
                         </p>
 
@@ -1158,7 +1158,7 @@ export default function ProcesoDetallePage() {
                           {estadoLabelProceso(avance.resultado, proceso.requiere_acta_no_acuerdo)}
                         </p>
 
-                        <p className="text-xs font-semibold text-numa-500 mt-3">
+                        <p className="text-xs font-semibold text-numa-700 mt-3">
                           Registro / observación:
                         </p>
 
@@ -1167,7 +1167,7 @@ export default function ProcesoDetallePage() {
                         </p>
 
                         {avance.usuario_avance && (
-                          <p className="text-xs text-numa-400 mt-2">
+                          <p className="text-xs text-numa-600 mt-2">
                             Registrado por: {avance.usuario_avance}
                           </p>
                         )}
@@ -1186,11 +1186,11 @@ export default function ProcesoDetallePage() {
                             Esta invitación ya pasó y no tiene resultado. Registra cómo terminó la reunión.
                           </p>
                         ) : cita.estado === 'cancelada' ? (
-                          <p className="text-sm text-numa-400">
+                          <p className="text-sm text-numa-600">
                             Invitación cancelada: no necesita resultado.
                           </p>
                         ) : (
-                          <p className="text-sm text-numa-400">
+                          <p className="text-sm text-numa-600">
                             Pendiente de registrar resultado.
                           </p>
                         )}
@@ -1270,7 +1270,7 @@ export default function ProcesoDetallePage() {
               </div>
             )}
 
-            <div className="mt-3 pt-3 border-t border-numa-100 text-xs text-numa-500 space-y-0.5">
+            <div className="mt-3 pt-3 border-t border-numa-100 text-xs text-numa-700 space-y-0.5">
             <p>
               Subido por{' '}
               <span className="text-numa-800">{expedienteProceso.acta_final.subido_por || '—'}</span>
@@ -1345,7 +1345,7 @@ export default function ProcesoDetallePage() {
                   <FileText className="w-3.5 h-3.5" />
                   Redactar sobre el documento
                 </button>
-                <p className="text-xs text-numa-500">
+                <p className="text-xs text-numa-700">
                   Sube el Word o el PDF hecho en computadora (no una foto, un escaneo ni un
                   documento escrito a mano). El sistema lee la fecha y la hora y llena el
                   formulario de abajo; tú lo revisas y creas la invitación. El archivo no se guarda.
@@ -1359,7 +1359,7 @@ export default function ProcesoDetallePage() {
                     {lecturaInvitacion.partes.map((pt: any, i: number) => (
                       <li key={i} className={pt.encontrado ? 'text-green-700' : 'text-amber-700'}>
                         {pt.encontrado ? '✓' : '⚠'} {pt.nombre}{' '}
-                        <span className="text-xs text-numa-400">
+                        <span className="text-xs text-numa-600">
                           ({pt.rol === 'solicitante' ? 'solicitante' : 'invitado'})
                         </span>
                       </li>
@@ -1370,7 +1370,7 @@ export default function ProcesoDetallePage() {
                       ⚠ {a}
                     </p>
                   ))}
-                  <p className="text-xs text-numa-500">
+                  <p className="text-xs text-numa-700">
                     Revisa la fecha, la hora y las observaciones abajo; puedes corregir lo que haga falta.
                   </p>
                 </div>
@@ -1488,7 +1488,7 @@ export default function ProcesoDetallePage() {
               <h3 className="text-sm font-semibold text-numa-800 mb-1">
                 Registrar resultado de la invitación pendiente
               </h3>
-              <p className="text-xs text-numa-500">
+              <p className="text-xs text-numa-700">
                 Se habilita cuando llegue la hora de la reunión (
                 {String(citaPendiente.fecha || '').slice(0, 10)} a las{' '}
                 {String(citaPendiente.hora || '').slice(0, 5)}). Mientras tanto puedes cancelarla
@@ -1754,7 +1754,7 @@ export default function ProcesoDetallePage() {
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-numa-500 mt-1">
+              <p className="text-xs text-numa-700 mt-1">
                 Debe ser el mismo número que escribiste en el acta.
               </p>
             </div>

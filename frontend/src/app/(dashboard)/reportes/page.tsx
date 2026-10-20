@@ -654,11 +654,11 @@ export default function ReportesPage() {
           {tipo === 'procesos' && resumenProcesos && (
             <div className="card px-4 py-3 grid gap-4 md:grid-cols-[1.4fr_1fr] md:divide-x md:divide-numa-100">
               <div>
-                <p className="text-xs font-semibold text-numa-500 uppercase tracking-wide mb-2">Procesos</p>
+                <p className="text-xs font-semibold text-numa-700 uppercase tracking-wide mb-2">Procesos</p>
                 <div className="flex items-end gap-6 flex-wrap">
                   <div>
                     <p className="text-2xl font-bold text-numa-900 leading-none tabular-nums">{datos.length}</p>
-                    <p className="text-xs text-numa-500 mt-1">en total</p>
+                    <p className="text-xs text-numa-700 mt-1">en total</p>
                   </div>
                   <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-numa-700">
                     {Object.entries(resumenProcesos).map(([estado, cantidad]) => (
@@ -677,26 +677,26 @@ export default function ReportesPage() {
               </div>
 
               <div className="md:pl-5">
-                <p className="text-xs font-semibold text-numa-500 uppercase tracking-wide mb-2">Indicadores</p>
+                <p className="text-xs font-semibold text-numa-700 uppercase tracking-wide mb-2">Indicadores</p>
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
                   {resumenIndicadores && resumenIndicadores.tasa_acuerdo !== null && (
                     <div
                       title={`De ${resumenIndicadores.total_resueltos} procesos resueltos (con o sin acuerdo), ${resumenIndicadores.cerrados_con_acuerdo} terminaron con acuerdo.`}
                     >
-                      <dt className="text-xs text-numa-500">Tasa de acuerdo</dt>
+                      <dt className="text-xs text-numa-700">Tasa de acuerdo</dt>
                       <dd className="text-base font-bold text-emerald-700 tabular-nums">{resumenIndicadores.tasa_acuerdo}%</dd>
                     </div>
                   )}
                   {resumenIndicadores && resumenIndicadores.promedio_dias_resolucion !== null && (
                     <div>
-                      <dt className="text-xs text-numa-500">Tiempo promedio de resolución</dt>
+                      <dt className="text-xs text-numa-700">Tiempo promedio de resolución</dt>
                       <dd className="text-base font-bold text-numa-900 tabular-nums">
                         {resumenIndicadores.promedio_dias_resolucion} días
                       </dd>
                     </div>
                   )}
                   <div>
-                    <dt className="text-xs text-numa-500">Con acuerdo sin acta firmada firmada</dt>
+                    <dt className="text-xs text-numa-700">Con acuerdo sin acta firmada firmada</dt>
                     <dd
                       className={`text-base font-bold tabular-nums ${
                         actasPendientesProcesos > 0 ? 'text-amber-700' : 'text-numa-900'
@@ -711,7 +711,7 @@ export default function ReportesPage() {
           )}
 
           {tipo !== 'procesos' && (
-            <div className="text-[13px] text-numa-500">
+            <div className="text-[13px] text-numa-700">
               Mostrando <span className="font-semibold text-numa-800">{datos.length}</span>{' '}
               {tipo === 'productividad' &&
                 (datos.length === 1 ? 'mediador' : 'mediadores')}
@@ -738,7 +738,7 @@ export default function ReportesPage() {
           <div className="grid gap-3 md:grid-cols-2 items-start">
 {barrasActas && barrasActas.length > 0 && (
             <div className="card px-3 py-2.5">
-              <p className="text-xs font-semibold text-numa-500 mb-2 uppercase tracking-wide">
+              <p className="text-xs font-semibold text-numa-700 mb-2 uppercase tracking-wide">
                 {tipo === 'procesos'
                   ? 'Actas'
                   : 'Actas firmadas por ' + (tipo === 'productividad' ? 'mediador' : 'sucursal')}
@@ -749,7 +749,7 @@ export default function ReportesPage() {
 
           {barrasResumen && barrasResumen.length > 0 && (
             <div className="card px-3 py-2.5">
-              <p className="text-xs font-semibold text-numa-500 mb-2 uppercase tracking-wide">
+              <p className="text-xs font-semibold text-numa-700 mb-2 uppercase tracking-wide">
                 {tipo === 'procesos' ? 'Por estado' : 'Procesos por ' + (tipo === 'productividad' ? 'mediador' : 'sucursal')}
               </p>
               <BarrasResumen items={barrasResumen} />
@@ -1043,7 +1043,7 @@ export default function ReportesPage() {
                               Firmada
                             </span>
                           ) : (
-                            <span className="text-numa-300">—</span>
+                            <span className="text-numa-500">—</span>
                           )}
                         </td>
                         <td className="table-cell max-w-[170px] truncate" title={p.demandante}>{p.demandante}</td>
@@ -1072,9 +1072,9 @@ export default function ReportesPage() {
                         >
                           <td className="table-cell w-6">
                             {mediadorExpandidoId === m.usuario_id ? (
-                              <ChevronDown className="w-4 h-4 text-numa-400" />
+                              <ChevronDown className="w-4 h-4 text-numa-600" />
                             ) : (
-                              <ChevronRight className="w-4 h-4 text-numa-400" />
+                              <ChevronRight className="w-4 h-4 text-numa-600" />
                             )}
                           </td>
                           <td className="table-cell font-medium">{m.mediador}</td>
@@ -1124,13 +1124,13 @@ export default function ReportesPage() {
                               {cargandoDetalleId === m.usuario_id ? (
                                 <Spinner />
                               ) : !detalleProcesos[m.usuario_id]?.length ? (
-                                <p className="text-xs text-numa-400 py-2">
+                                <p className="text-xs text-numa-600 py-2">
                                   Este mediador no tiene procesos en este rango de fechas.
                                 </p>
                               ) : (
                                 <div className="space-y-2">
                                   <div className="flex items-center justify-between flex-wrap gap-2">
-                                    <p className="text-xs text-numa-500 font-medium">
+                                    <p className="text-xs text-numa-700 font-medium">
                                       {soloPendientesDetalle
                                         ? `Procesos de ${m.mediador} con acta pendiente:`
                                         : `Procesos de ${m.mediador} en este periodo:`}
@@ -1142,7 +1142,7 @@ export default function ReportesPage() {
                                           e.stopPropagation();
                                           setSoloPendientesDetalle(false);
                                         }}
-                                        className="text-xs text-numa-500 underline hover:text-numa-800"
+                                        className="text-xs text-numa-700 underline hover:text-numa-800"
                                       >
                                         Ver todos
                                       </button>
@@ -1167,7 +1167,7 @@ export default function ReportesPage() {
                                         </span>
                                       </div>
 
-                                      <span className="text-xs text-numa-500">
+                                      <span className="text-xs text-numa-700">
                                         {getEstadoLabel(p.suspendido ? 'suspendido' : p.estado)} ·{' '}
                                         {p.fecha_creacion
                                           ? new Date(p.fecha_creacion).toLocaleDateString('es-EC')
@@ -1213,9 +1213,9 @@ export default function ReportesPage() {
                         >
                           <td className="table-cell w-6">
                             {sucursalExpandidoId === s.sucursal_id ? (
-                              <ChevronDown className="w-4 h-4 text-numa-400" />
+                              <ChevronDown className="w-4 h-4 text-numa-600" />
                             ) : (
-                              <ChevronRight className="w-4 h-4 text-numa-400" />
+                              <ChevronRight className="w-4 h-4 text-numa-600" />
                             )}
                           </td>
                           <td className="table-cell font-medium">{s.sucursal}</td>
@@ -1256,13 +1256,13 @@ export default function ReportesPage() {
                               {cargandoDetalleSucursalId === s.sucursal_id ? (
                                 <Spinner />
                               ) : !detalleSucursal[s.sucursal_id]?.length ? (
-                                <p className="text-xs text-numa-400 py-2">
+                                <p className="text-xs text-numa-600 py-2">
                                   Esta sucursal no tiene procesos en este rango de fechas.
                                 </p>
                               ) : (
                                 <div className="space-y-2">
                                   <div className="flex items-center justify-between flex-wrap gap-2">
-                                    <p className="text-xs text-numa-500 font-medium">
+                                    <p className="text-xs text-numa-700 font-medium">
                                       {soloPendientesDetalle
                                         ? `Procesos de ${s.sucursal} con acta pendiente:`
                                         : `Procesos de ${s.sucursal} en este periodo:`}
@@ -1274,7 +1274,7 @@ export default function ReportesPage() {
                                           e.stopPropagation();
                                           setSoloPendientesDetalle(false);
                                         }}
-                                        className="text-xs text-numa-500 underline hover:text-numa-800"
+                                        className="text-xs text-numa-700 underline hover:text-numa-800"
                                       >
                                         Ver todos
                                       </button>
@@ -1299,7 +1299,7 @@ export default function ReportesPage() {
                                         </span>
                                       </div>
 
-                                      <span className="text-xs text-numa-500">
+                                      <span className="text-xs text-numa-700">
                                         {getEstadoLabel(p.suspendido ? 'suspendido' : p.estado)} ·{' '}
                                         {p.fecha_creacion
                                           ? new Date(p.fecha_creacion).toLocaleDateString('es-EC')
@@ -1324,9 +1324,9 @@ export default function ReportesPage() {
                         >
                           <td className="table-cell w-6">
                             {clienteExpandidoId === c.cliente_id ? (
-                              <ChevronDown className="w-4 h-4 text-numa-400" />
+                              <ChevronDown className="w-4 h-4 text-numa-600" />
                             ) : (
-                              <ChevronRight className="w-4 h-4 text-numa-400" />
+                              <ChevronRight className="w-4 h-4 text-numa-600" />
                             )}
                           </td>
                           <td className="table-cell font-medium">{c.cliente}</td>
@@ -1370,13 +1370,13 @@ export default function ReportesPage() {
                               {cargandoDetalleClienteId === c.cliente_id ? (
                                 <Spinner />
                               ) : !detalleCliente[c.cliente_id]?.length ? (
-                                <p className="text-xs text-numa-400 py-2">
+                                <p className="text-xs text-numa-600 py-2">
                                   Este cliente no tiene procesos en este rango de fechas.
                                 </p>
                               ) : (
                                 <div className="space-y-2">
                                   <div className="flex items-center justify-between flex-wrap gap-2">
-                                    <p className="text-xs text-numa-500 font-medium">
+                                    <p className="text-xs text-numa-700 font-medium">
                                       {soloPendientesDetalle
                                         ? `Procesos de ${c.cliente} con acta pendiente:`
                                         : `Procesos de ${c.cliente} en este periodo:`}
@@ -1388,7 +1388,7 @@ export default function ReportesPage() {
                                           e.stopPropagation();
                                           setSoloPendientesDetalle(false);
                                         }}
-                                        className="text-xs text-numa-500 underline hover:text-numa-800"
+                                        className="text-xs text-numa-700 underline hover:text-numa-800"
                                       >
                                         Ver todos
                                       </button>
@@ -1413,7 +1413,7 @@ export default function ReportesPage() {
                                         </span>
                                       </div>
 
-                                      <span className="text-xs text-numa-500">
+                                      <span className="text-xs text-numa-700">
                                         {getEstadoLabel(p.suspendido ? 'suspendido' : p.estado)} ·{' '}
                                         {p.fecha_creacion
                                           ? new Date(p.fecha_creacion).toLocaleDateString('es-EC')

@@ -180,7 +180,7 @@ const ciudadesFiltradas = ciudades.filter((c: any) => {
     />
     
     <div className="mb-3 relative max-w-sm">
-      <Search className="w-4 h-4 text-numa-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+      <Search className="w-4 h-4 text-numa-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
 
       <input
         type="text"
@@ -214,7 +214,7 @@ const ciudadesFiltradas = ciudades.filter((c: any) => {
                 {ciudadesFiltradas.map((c: any) => {
                   return (
                     <tr key={c.id} className="table-row">
-                      <td className="table-cell text-numa-400 code-text">{c.id}</td>
+                      <td className="table-cell text-numa-600 code-text">{c.id}</td>
                       <td className="table-cell table-cell-sticky font-medium max-w-[140px] sm:max-w-[220px]">
                         <span
                           onClick={() =>

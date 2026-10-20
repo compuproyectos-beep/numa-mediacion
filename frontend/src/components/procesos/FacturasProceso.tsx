@@ -111,7 +111,7 @@ export default function FacturasProceso({ proceso, esAdmin, onCambio }: Props) {
   return (
     <div className="card p-4">
       <div className="flex flex-wrap items-center gap-2 mb-1">
-        <FileText className="w-4 h-4 text-numa-500" />
+        <FileText className="w-4 h-4 text-numa-700" />
         <h2 className="text-sm font-semibold text-numa-800">Facturas del acta</h2>
         {!cargando && faltan.length > 0 && (
           <span className="pill bg-amber-50 text-amber-800">
@@ -120,7 +120,7 @@ export default function FacturasProceso({ proceso, esAdmin, onCambio }: Props) {
           </span>
         )}
       </div>
-      <p className="text-xs text-numa-500 mb-3">
+      <p className="text-xs text-numa-700 mb-3">
         Se suben en PDF después del acta firmada. Son obligatorias para el expediente, pero no
         bloquean nada del proceso. Si te equivocas puedes reemplazarlas; la anterior queda en el
         historial.
@@ -140,7 +140,7 @@ export default function FacturasProceso({ proceso, esAdmin, onCambio }: Props) {
           return (
             <div key={t.tipo} className="border border-numa-100 rounded-sm p-3 bg-white">
               <p className="text-sm font-semibold text-numa-800">{t.titulo}</p>
-              <p className="text-xs text-numa-400 mb-2">{t.ayuda}</p>
+              <p className="text-xs text-numa-600 mb-2">{t.ayuda}</p>
 
               {cargando ? null : vigente ? (
                 <p className="text-xs text-green-700 mb-2">
@@ -183,12 +183,12 @@ export default function FacturasProceso({ proceso, esAdmin, onCambio }: Props) {
 
               {historial.length > 0 && (
                 <details className="mt-2">
-                  <summary className="text-xs text-numa-500 cursor-pointer">
+                  <summary className="text-xs text-numa-700 cursor-pointer">
                     Historial ({historial.length})
                   </summary>
                   <ul className="mt-1 space-y-1">
                     {historial.map((h) => (
-                      <li key={h.id} className="text-xs text-numa-500 flex items-center gap-2">
+                      <li key={h.id} className="text-xs text-numa-700 flex items-center gap-2">
                         <span>
                           {fechaEC(h.fecha_subida)}
                           {h.subida_por ? ` · ${h.subida_por}` : ''}
@@ -210,7 +210,7 @@ export default function FacturasProceso({ proceso, esAdmin, onCambio }: Props) {
         })}
       </div>
       {esAdmin && (
-        <p className="text-[11px] text-numa-400 mt-2">
+        <p className="text-[11px] text-numa-600 mt-2">
           Como administrador puedes ver y reemplazar ambas facturas.
         </p>
       )}

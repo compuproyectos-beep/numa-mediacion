@@ -462,7 +462,7 @@ export default function DashboardPage() {
                             <Pill {...etapaActaBadge(item)!} />
                           )}
                         </div>
-                        <span className="text-xs text-numa-400 shrink-0">
+                        <span className="text-xs text-numa-600 shrink-0">
                           {(item.fecha_creacion || item.fecha_subida)
                             ? new Date(
                                 item.fecha_creacion || item.fecha_subida
@@ -472,10 +472,10 @@ export default function DashboardPage() {
                       </div>
 
                       <p className="text-sm font-medium text-numa-800 mt-0.5 line-clamp-1">
-                        {item.demandante} <span className="font-normal text-numa-400">vs</span> {item.demandado}
+                        {item.demandante} <span className="font-normal text-numa-600">vs</span> {item.demandado}
                       </p>
 
-                      <p className="text-xs text-numa-500 mt-0.5 flex flex-wrap gap-x-3">
+                      <p className="text-xs text-numa-700 mt-0.5 flex flex-wrap gap-x-3">
                         {esCategoriaActas(categoriaAbierta) && <span>Proceso: {item.codigo_proceso}</span>}
                         <span>{item.ciudad || '—'} · {item.sucursal || '—'}</span>
                         {isAdmin && <span>Mediador: {item.usuario || '—'}</span>}
@@ -489,7 +489,7 @@ export default function DashboardPage() {
                   ))}
 
                   {listaCategoria.length > 10 && (
-                    <p className="text-xs text-numa-400 text-center pt-1 md:col-span-2">
+                    <p className="text-xs text-numa-600 text-center pt-1 md:col-span-2">
                       Mostrando 10 de {listaCategoria.length}. Usa &quot;Mostrar todo&quot;
                       para ver la lista completa.
                     </p>
@@ -529,11 +529,11 @@ export default function DashboardPage() {
                             {a.demandante} vs {a.demandado}
                           </p>
 
-                          <p className="text-xs text-numa-400 mt-0.5">
+                          <p className="text-xs text-numa-600 mt-0.5">
                             Proceso: {a.codigo_proceso} · {a.ciudad || '—'} · {a.sucursal || '—'}
                           </p>
 
-                          <p className="text-xs text-numa-400 mt-0.5">
+                          <p className="text-xs text-numa-600 mt-0.5">
                             Subida por: {a.subida_por || '—'}
                             {isAdmin && a.usuario && a.usuario !== a.subida_por
                               ? ` · Mediador del proceso: ${a.usuario}`
@@ -544,7 +544,7 @@ export default function DashboardPage() {
                         <div className="text-right">
                           <Badge label="Finalizada" variant="aprobado" />
 
-                          <p className="text-xs text-numa-400 mt-2">
+                          <p className="text-xs text-numa-600 mt-2">
                             {a.fecha_subida
                               ? new Date(a.fecha_subida).toLocaleDateString('es-EC')
                               : '—'}
@@ -566,7 +566,7 @@ export default function DashboardPage() {
             <div className="card p-6">
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-sm font-semibold text-numa-700 uppercase tracking-wider flex items-center gap-2">
-                  <HardDrive className="w-4 h-4 text-numa-400" />
+                  <HardDrive className="w-4 h-4 text-numa-600" />
                   Almacenamiento de archivos
                 </h2>
               </div>
@@ -574,7 +574,7 @@ export default function DashboardPage() {
               {loadingAlmacenamiento ? (
                 <Spinner />
               ) : !almacenamiento ? (
-                <p className="text-sm text-numa-400">
+                <p className="text-sm text-numa-600">
                   No se pudo consultar el uso de almacenamiento en este momento.
                 </p>
               ) : (
@@ -582,7 +582,7 @@ export default function DashboardPage() {
                   <div className="flex items-end justify-between mb-2">
                     <p className="text-2xl font-bold text-numa-900">
                       {almacenamiento.total_mb} MB
-                      <span className="text-sm font-normal text-numa-400 ml-1">
+                      <span className="text-sm font-normal text-numa-600 ml-1">
                         de {almacenamiento.limite_gb} GB
                       </span>
                     </p>
@@ -593,7 +593,7 @@ export default function DashboardPage() {
                           ? 'text-red-600'
                           : almacenamiento.porcentaje_usado >= 70
                           ? 'text-amber-600'
-                          : 'text-numa-500'
+                          : 'text-numa-700'
                       }`}
                     >
                       {almacenamiento.porcentaje_usado}% usado
@@ -613,7 +613,7 @@ export default function DashboardPage() {
                     />
                   </div>
 
-                  <p className="text-xs text-numa-400 mb-4">
+                  <p className="text-xs text-numa-600 mb-4">
                     {almacenamiento.total_archivos} archivo(s) en total
                   </p>
 
@@ -639,12 +639,12 @@ export default function DashboardPage() {
             <div className="card p-6">
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-sm font-semibold text-numa-700 uppercase tracking-wider flex items-center gap-2">
-                  <DatabaseBackup className="w-4 h-4 text-numa-400" />
+                  <DatabaseBackup className="w-4 h-4 text-numa-600" />
                   Respaldo de la base de datos
                 </h2>
               </div>
 
-              <p className="text-sm text-numa-500 mb-4">
+              <p className="text-sm text-numa-700 mb-4">
                 Genera y envía por correo el mismo respaldo que el sistema manda automáticamente
                 todos los días a las 3am — úsalo para confirmar ahora mismo si el envío está
                 funcionando, sin esperar a la madrugada.
@@ -676,7 +676,7 @@ export default function DashboardPage() {
         !error && (
           <div className="card p-10 text-center">
             <LayoutDashboard className="w-10 h-10 text-numa-200 mx-auto mb-3" />
-            <p className="text-sm text-numa-400">Sin datos disponibles</p>
+            <p className="text-sm text-numa-600">Sin datos disponibles</p>
           </div>
         )
       )}

@@ -57,7 +57,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-numa-100 shrink-0">
           <h2 className="text-base font-bold text-numa-900">{title}</h2>
-          <button onClick={onClose} className="p-1 text-numa-400 hover:text-numa-700 rounded-sm">
+          <button onClick={onClose} className="p-1 text-numa-600 hover:text-numa-700 rounded-sm">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -86,7 +86,7 @@ interface EmptyStateProps {
 
 export function EmptyState({ message, actionLabel, onAction, icon = '📂' }: EmptyStateProps) {
   return (
-    <div className="text-center py-14 text-numa-400 text-sm">
+    <div className="text-center py-14 text-numa-600 text-sm">
       <div className="mb-2 text-3xl">{icon}</div>
       <p>{message}</p>
 
@@ -170,7 +170,7 @@ export function PasswordField({ label, error, ...props }: PasswordFieldProps) {
           type="button"
           tabIndex={-1}
           onClick={() => setVisible((v) => !v)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-numa-400 hover:text-numa-700"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-numa-600 hover:text-numa-700"
         >
           {visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
         </button>
@@ -221,7 +221,7 @@ export function PageHeader({ title, subtitle, action }: {
     <div className="page-header">
       <div>
         <h1 className="section-title">{title}</h1>
-        {subtitle && <p className="text-sm text-numa-500 mt-0.5">{subtitle}</p>}
+        {subtitle && <p className="text-sm text-numa-700 mt-0.5">{subtitle}</p>}
       </div>
       {action}
     </div>

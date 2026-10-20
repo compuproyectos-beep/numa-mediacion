@@ -50,7 +50,7 @@ export default function PasosProceso({ pasos, mensaje }: Props) {
                       ? 'bg-emerald-600 border-emerald-600 text-white'
                       : esActual
                       ? 'bg-gold-400 border-gold-400 text-numa-900 ring-4 ring-gold-400/25'
-                      : 'bg-white border-slate-300 text-slate-400'
+                      : 'bg-white border-slate-300 text-slate-600'
                   }`}
                 >
                   {p.hecho ? <Check className="w-3.5 h-3.5" strokeWidth={3} /> : i + 1}
@@ -62,7 +62,7 @@ export default function PasosProceso({ pasos, mensaje }: Props) {
                       ? 'font-semibold text-numa-900'
                       : p.hecho
                       ? 'text-numa-700'
-                      : 'text-slate-400'
+                      : 'text-slate-600'
                   }`}
                 >
                   {p.etiqueta}

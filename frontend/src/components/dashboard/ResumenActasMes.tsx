@@ -32,7 +32,7 @@ export default function ResumenActasMes() {
   const pastilla = (n: number, tono: 'verde' | 'dorado') =>
     `shrink-0 min-w-[28px] text-center text-xs font-bold px-2 py-0.5 rounded-full ${
       n === 0
-        ? 'bg-numa-100 text-numa-400'
+        ? 'bg-numa-100 text-numa-600'
         : tono === 'verde'
         ? 'bg-emerald-100 text-emerald-800'
         : 'bg-amber-100 text-amber-800'
@@ -48,7 +48,7 @@ export default function ResumenActasMes() {
             </span>
             Actas completas del mes
           </h2>
-          <p className="text-[11px] text-numa-500 mt-0.5">
+          <p className="text-[11px] text-numa-700 mt-0.5">
             Solo cuentan las actas terminadas (con el acta firmada subida).
           </p>
         </div>
@@ -80,7 +80,7 @@ export default function ResumenActasMes() {
               {datos.sucursales.map((s: any) => (
                 <li key={s.sucursal_id} className="flex items-center justify-between gap-2 py-1 text-sm">
                   <span className="text-numa-800 truncate">
-                    {s.sucursal} <span className="text-numa-400 text-xs">· {s.ciudad}</span>
+                    {s.sucursal} <span className="text-numa-600 text-xs">· {s.ciudad}</span>
                   </span>
                   <span className={pastilla(s.total, 'verde')}>{s.total}</span>
                 </li>
@@ -96,7 +96,7 @@ export default function ResumenActasMes() {
               {datos.mediadores.map((m: any) => (
                 <li key={m.usuario_id} className="flex items-center justify-between gap-2 py-1 text-sm">
                   <span className="text-numa-800 truncate">
-                    {m.mediador} <span className="text-numa-400 text-xs">· {m.sucursal}</span>
+                    {m.mediador} <span className="text-numa-600 text-xs">· {m.sucursal}</span>
                   </span>
                   <span className={pastilla(m.total, 'dorado')}>{m.total}</span>
                 </li>

@@ -31,9 +31,16 @@ const config: Config = {
         // Placed against the blue, it's what keeps the palette from
         // feeling monotone.
         gold: {
+          50:  '#FBF6E6',
+          100: '#F6EBC4',
+          200: '#EFDB96',
+          300: '#E8C96B',
           400: '#E0B84A',
           500: '#C99A2E',
           600: '#A67B1F',
+          700: '#82601A',
+          800: '#634A16',
+          900: '#463412',
         }
       },
       fontFamily: {

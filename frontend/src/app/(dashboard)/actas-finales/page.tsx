@@ -467,7 +467,7 @@ const handleExportarZip = async () => {
         </form>
       </div>
 
-      <div className="mb-2 text-[13px] text-numa-500">
+      <div className="mb-2 text-[13px] text-numa-700">
         Mostrando{' '}
         <span className="font-semibold text-numa-800">
           {actas.length}
@@ -492,7 +492,7 @@ const handleExportarZip = async () => {
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
               <div className="space-y-0.5 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <FileText className="w-4 h-4 text-numa-500" />
+                  <FileText className="w-4 h-4 text-numa-700" />
 
                   <span className="font-semibold text-numa-900">
                     {a.codigo_acta}
@@ -528,7 +528,7 @@ const handleExportarZip = async () => {
                   {a.demandante} vs {a.demandado}
                 </p>
 
-                <p className="text-[11px] text-numa-400">
+                <p className="text-[11px] text-numa-600">
                   {a.ciudad} · {a.sucursal} · Subido por: {a.usuario || '—'} · Fecha:{' '}
                   {a.fecha_subida
                     ? new Date(a.fecha_subida).toLocaleDateString('es-EC')
@@ -536,7 +536,7 @@ const handleExportarZip = async () => {
                 </p>
 
                 {a.fact_nombre && (
-                  <p className="text-[11px] text-numa-500">
+                  <p className="text-[11px] text-numa-700">
                     Facturar a: <span className="font-medium text-numa-700">{a.fact_nombre}</span>
                     {' · '}
                     {a.fact_tipo_identificacion === 'ruc'
@@ -549,7 +549,7 @@ const handleExportarZip = async () => {
                 )}
 
                 {(formatearPeso(a.tamano_bytes) || formatearPeso(a.tamano_comprobante_bytes)) && (
-                  <p className="text-[11px] text-numa-400">
+                  <p className="text-[11px] text-numa-600">
                     Peso — Acta: {formatearPeso(a.tamano_bytes) || '—'}
                     {a.ruta_comprobante_pago && (
                       <> · Comprobante: {formatearPeso(a.tamano_comprobante_bytes) || '—'}</>

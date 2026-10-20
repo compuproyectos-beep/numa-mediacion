@@ -260,7 +260,7 @@ export default function AgendaPage() {
           <CalendarPlus className="w-4 h-4 text-gold-600" />
           Agendar nueva invitación
         </h3>
-        <p className="text-xs text-numa-500 mb-3">
+        <p className="text-xs text-numa-700 mb-3">
           {esSecretaria
             ? 'Haz clic en un día del calendario, elige la hora libre y llena los datos: la invitación queda asignada al mediador que seleccionaste arriba y él recibe un aviso.'
             : 'Haz clic en un día del calendario para crear una invitación rápida (sin proceso), o elige primero un proceso ya creado.'}
@@ -269,7 +269,7 @@ export default function AgendaPage() {
         {esSecretaria ? null : loadingProcesos ? (
           <Spinner />
         ) : procesos.length === 0 ? (
-          <p className="text-xs text-numa-400">
+          <p className="text-xs text-numa-600">
             {puedeElegirMediador
               ? `${mediadorActivo?.nombre || 'Este mediador'} no tiene`
               : 'No tienes'}{' '}
@@ -526,7 +526,7 @@ export default function AgendaPage() {
           </SelectField>
 
           {mediadorActivo && (
-            <p className="text-xs text-numa-500 mt-2">
+            <p className="text-xs text-numa-700 mt-2">
               {mediadorActivo.sucursal}
               {mediadorActivo.ciudad && ` — ${mediadorActivo.ciudad}`}
               {mediadorActivo.provincia && `, ${mediadorActivo.provincia}`}

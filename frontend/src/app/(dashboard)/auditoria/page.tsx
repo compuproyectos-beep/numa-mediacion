@@ -92,7 +92,7 @@ export default function AuditoriaPage() {
       <div className="card p-4 mb-4">
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <div>
-            <label className="block text-xs font-medium text-numa-500 mb-1">Acción</label>
+            <label className="block text-xs font-medium text-numa-700 mb-1">Acción</label>
             <select
               value={accion}
               onChange={(e) => setAccion(e.target.value)}
@@ -115,7 +115,7 @@ export default function AuditoriaPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-numa-500 mb-1">Desde</label>
+            <label className="block text-xs font-medium text-numa-700 mb-1">Desde</label>
             <input
               type="date"
               value={fechaDesde}
@@ -125,7 +125,7 @@ export default function AuditoriaPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-numa-500 mb-1">Hasta</label>
+            <label className="block text-xs font-medium text-numa-700 mb-1">Hasta</label>
             <input
               type="date"
               value={fechaHasta}
@@ -162,7 +162,7 @@ export default function AuditoriaPage() {
               <tbody>
                 {registros.map((r) => (
                   <tr key={r.id} className="table-row">
-                    <td className="table-cell table-cell-sticky text-numa-500 whitespace-nowrap">
+                    <td className="table-cell table-cell-sticky text-numa-700 whitespace-nowrap">
                       {new Date(r.fecha_creacion).toLocaleString('es-EC', {
                         dateStyle: 'short',
                         timeStyle: 'short',

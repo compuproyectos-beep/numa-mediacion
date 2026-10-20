@@ -236,7 +236,7 @@ const handleCambiarEstado = async () => {
       )}
 
       <div className="mb-3 relative max-w-sm">
-        <Search className="w-4 h-4 text-numa-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <Search className="w-4 h-4 text-numa-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
 
         <input
           type="text"
@@ -282,7 +282,7 @@ const handleCambiarEstado = async () => {
                     <tr key={s.id} className="table-row">
                       <td className="table-cell table-cell-sticky max-w-[160px] sm:max-w-[240px]">
                         <div className="flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-numa-400 shrink-0" />
+                          <Building2 className="w-4 h-4 text-numa-600 shrink-0" />
                           <span
                             onClick={() =>
                               setNombreExpandidoId((prev) => (prev === s.id ? null : s.id))
@@ -311,11 +311,11 @@ const handleCambiarEstado = async () => {
                         {s.codigo_corto || '—'}
                       </td>
 
-                      <td className="table-cell text-numa-500 max-w-xs truncate">
+                      <td className="table-cell text-numa-700 max-w-xs truncate">
                         {s.direccion || '—'}
                       </td>
 
-                      <td className="table-cell text-numa-500">
+                      <td className="table-cell text-numa-700">
                         {s.telefono || '—'}
                       </td>
 
@@ -423,7 +423,7 @@ const handleCambiarEstado = async () => {
           />
 
           <div className="pt-2 border-t border-numa-100">
-            <p className="text-xs text-numa-500 mb-3">
+            <p className="text-xs text-numa-700 mb-3">
               Administrador responsable de la sucursal: su teléfono y correo salen en
               el encabezado de las invitaciones.
             </p>

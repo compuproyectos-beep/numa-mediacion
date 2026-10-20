@@ -116,7 +116,7 @@ function PanelMediador({ version, onCambio }: { version: number; onCambio: () =>
                     {copiado === r.id ? <Check size={14} /> : <Copy size={14} />}
                     {copiado === r.id ? 'Copiado' : 'Copiar'}
                   </button>
-                  <span className={`text-xs ${r.vencido ? 'text-red-600 font-semibold' : 'text-slate-500'}`}>
+                  <span className={`text-xs ${r.vencido ? 'text-red-600 font-semibold' : 'text-slate-700'}`}>
                     Pedido el {fechaEC(r.fecha_solicitud)}
                     {r.vencido ? ' · ya pasaron 48 horas, completa esta acta' : ` · plazo hasta ${fechaEC(r.vence_en)}`}
                   </span>
@@ -140,7 +140,7 @@ function PanelMediador({ version, onCambio }: { version: number; onCambio: () =>
           </button>
 
           {estado.recientes?.length > 0 && (
-            <p className="text-xs text-slate-500 mt-2">
+            <p className="text-xs text-slate-700 mt-2">
               Números anulados por el administrador:{' '}
               {estado.recientes.map((r: any) => r.codigo).join(', ')}
             </p>
@@ -209,12 +209,12 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
       </div>
 
       {datos.pendientes.length === 0 ? (
-        <p className="text-sm text-slate-500">Ningún mediador tiene un número pendiente.</p>
+        <p className="text-sm text-slate-700">Ningún mediador tiene un número pendiente.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-slate-500">
+              <tr className="text-left text-slate-700">
                 <th className="py-1 pr-3">Número</th>
                 <th className="py-1 pr-3">Mediador</th>
                 <th className="py-1 pr-3">Sucursal</th>
@@ -257,7 +257,7 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
         <div className="mt-2">
           <button
             type="button"
-            className="text-xs text-slate-500 underline"
+            className="text-xs text-slate-700 underline"
             onClick={() => setVerAnulados(!verAnulados)}
           >
             {verAnulados ? 'Ocultar' : 'Ver'} números anulados ({datos.anulados.length})

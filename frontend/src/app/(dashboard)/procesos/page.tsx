@@ -656,7 +656,7 @@ export default function ProcesosPage() {
                   }`}
                 >
                   {c.texto}{' '}
-                  <span className={activo ? 'text-gold-300' : 'text-numa-400'}>{n}</span>
+                  <span className={activo ? 'text-gold-300' : 'text-numa-600'}>{n}</span>
                 </button>
               );
             })}
@@ -793,7 +793,7 @@ export default function ProcesosPage() {
         </form>
       </div>
 
-      <div className="mb-2 text-[13px] text-numa-500">
+      <div className="mb-2 text-[13px] text-numa-700">
         {loading ? (
           'Cargando procesos...'
         ) : (
@@ -840,7 +840,7 @@ export default function ProcesosPage() {
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
                 <div className="space-y-0.5 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="code-text text-numa-500">{p.codigo_proceso}</span>
+                    <span className="code-text text-numa-700">{p.codigo_proceso}</span>
                     <Pill label={estadoLabelProceso(p.estado, p.requiere_acta_no_acuerdo)} {...estadoPill(p.estado)} />
                     {/* Un proceso "cerrado con acuerdo" no significa que ya
                         esté todo listo: se muestra qué falta (o si espera
@@ -851,17 +851,17 @@ export default function ProcesosPage() {
                   <p className="text-sm font-semibold text-numa-900 leading-snug">
                     {p.demandante}
                     {p.total_solicitantes > 1 && (
-                      <span className="font-normal text-numa-400"> y {p.total_solicitantes - 1} más</span>
+                      <span className="font-normal text-numa-600"> y {p.total_solicitantes - 1} más</span>
                     )}{' '}
-                    <span className="font-normal text-numa-400">vs</span> {p.demandado}
+                    <span className="font-normal text-numa-600">vs</span> {p.demandado}
                     {p.total_invitados > 1 && (
-                      <span className="font-normal text-numa-400"> y {p.total_invitados - 1} más</span>
+                      <span className="font-normal text-numa-600"> y {p.total_invitados - 1} más</span>
                     )}
                   </p>
 
                   <p className="text-[13px] text-numa-700 line-clamp-1">{mayusInicial(p.tema)}</p>
 
-                  <p className="text-[11px] text-numa-500 flex flex-wrap gap-x-3 gap-y-0">
+                  <p className="text-[11px] text-numa-700 flex flex-wrap gap-x-3 gap-y-0">
                     <span>{p.ciudad || '—'} · {p.sucursal || '—'}</span>
                     <span>Mediador: {p.usuario || '—'}</span>
                     <span>
@@ -870,7 +870,7 @@ export default function ProcesosPage() {
                         ? new Date(p.fecha_creacion).toLocaleDateString('es-EC')
                         : '—'}
                     </span>
-                    <span className="code-text text-[11px] text-numa-400">
+                    <span className="code-text text-[11px] text-numa-600">
                       {p.demandante_cedula || '—'} · {p.demandado_cedula || '—'}
                     </span>
                   </p>

@@ -185,7 +185,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                   <div className="max-h-[28rem] overflow-y-auto">
                     {notificaciones.length === 0 ? (
-                      <div className="px-4 py-8 text-sm text-numa-500 text-center">
+                      <div className="px-4 py-8 text-sm text-numa-700 text-center">
                         Sin notificaciones
                       </div>
                     ) : (
@@ -221,7 +221,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 {n.mensaje}
                               </p>
 
-                              <p className="text-xs text-numa-500 mt-1.5">
+                              <p className="text-xs text-numa-700 mt-1.5">
                                 {new Date(n.fecha_creacion).toLocaleString('es-EC', {
                                   day: '2-digit',
                                   month: '2-digit',

@@ -39,7 +39,7 @@ function Paginador({
   if (total === 0) return null;
   if (total <= porPagina) {
     return (
-      <span className="text-xs text-numa-500">
+      <span className="text-xs text-numa-700">
         {total} {total === 1 ? unidad : unidades}
       </span>
     );
@@ -49,7 +49,7 @@ function Paginador({
   const boton =
     'px-1.5 py-0.5 rounded border border-numa-200 bg-white font-semibold hover:bg-numa-50 disabled:opacity-30 disabled:cursor-default';
   return (
-    <span className="flex items-center gap-1.5 text-xs text-numa-500">
+    <span className="flex items-center gap-1.5 text-xs text-numa-700">
       <button type="button" onClick={() => onCambiar(pagina - 1)} disabled={pagina === 0} className={boton}>
         ‹ Anterior
       </button>
@@ -170,7 +170,7 @@ export default function MiDia({
               unidades="invitaciones"
             />
           ) : (
-            <span className="text-xs text-numa-500">{nombreDia}</span>
+            <span className="text-xs text-numa-700">{nombreDia}</span>
           )}
         </div>
 
@@ -210,7 +210,7 @@ export default function MiDia({
 
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-medium text-numa-900 truncate">
-                        {c.demandante} <span className="text-numa-400 font-normal">vs</span>{' '}
+                        {c.demandante} <span className="text-numa-600 font-normal">vs</span>{' '}
                         {c.demandado}
                         {!c.proceso_id && (
                           <span className="ml-2 align-middle text-[11px] font-bold uppercase tracking-wide text-gold-700 bg-gold-100 border border-gold-300 rounded px-1.5 py-0.5">
@@ -218,7 +218,7 @@ export default function MiDia({
                           </span>
                         )}
                       </span>
-                      <span className="block text-xs text-numa-500 truncate">
+                      <span className="block text-xs text-numa-700 truncate">
                         {verOtros ? `${c.mediador} · ${c.ciudad || '—'} · ` : ''}
                         {c.sucursal || '—'}
                         {paso ? ' · ya pasó la hora' : ''}
@@ -278,10 +278,10 @@ export default function MiDia({
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-medium text-numa-900 truncate">
-                      {p.demandante} <span className="text-numa-400 font-normal">vs</span>{' '}
+                      {p.demandante} <span className="text-numa-600 font-normal">vs</span>{' '}
                       {p.demandado}
                     </span>
-                    <span className="block text-xs text-numa-500 truncate">
+                    <span className="block text-xs text-numa-700 truncate">
                       <span className="code-text">{p.codigo_proceso}</span>
                       {verOtros && (
                         <>
