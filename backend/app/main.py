@@ -213,6 +213,33 @@ def crear_notificacion(
     referencia_tipo: str = None,
     referencia_id: int = None
 ):
+    # Al administrador (que ve a todo el país) se le indica siempre a qué
+    # sucursal y ciudad pertenece lo que se le avisa.
+    _tabla_sucursal = {
+        "proceso_mediacion": "procesos_mediacion",
+        "cita": "citas",
+        "reunion": "reuniones_mediadores",
+        "numero_acta": "numeros_acta",
+    }.get(referencia_tipo)
+    if _tabla_sucursal and referencia_id and "Sucursal " not in (mensaje or ""):
+        cur.execute("SELECT rol FROM usuarios WHERE id = %s", (usuario_id,))
+        _dest = cur.fetchone()
+        if _dest and _dest["rol"] == "administrador":
+            cur.execute(f"""
+                SELECT s.nombre AS sucursal, ci.nombre AS ciudad
+                FROM {_tabla_sucursal} t
+                JOIN sucursales s ON s.id = t.sucursal_id
+                LEFT JOIN ciudades ci ON ci.id = s.ciudad_id
+                WHERE t.id = %s
+            """, (referencia_id,))
+            _suc = cur.fetchone()
+            if _suc:
+                mensaje = (
+                    f"{(mensaje or '').rstrip()} "
+                    f"[Sucursal {_suc['sucursal']}"
+                    f"{' · ' + _suc['ciudad'] if _suc['ciudad'] else ''}]"
+                )
+
     cur.execute("""
         INSERT INTO notificaciones (
             usuario_id,
