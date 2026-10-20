@@ -23,6 +23,7 @@ import {
   getProcesos,
   createProceso,
   getClientes,
+  createCliente,
   getUsuarios,
   getCitas
 } from '@/lib/services';
@@ -34,6 +35,66 @@ import { accionProceso, hoyEcuador } from '@/lib/accionProceso';
 // Qué le toca hacer a quien mira la lista en este proceso (el botón lo dice
 // en vez de un "Gestionar" genérico).
 const accionDe = (p: any) => accionProceso(p, isAdmin());
+
+// Parte de la invitación rápida que se registrará en Clientes al crear el proceso.
+function NuevoClienteBox({
+  etiqueta,
+  n,
+  onChange,
+  onQuitar
+}: {
+  etiqueta: string;
+  n: {
+    tipo: 'persona' | 'empresa';
+    cedula: string;
+    nombre: string;
+    apellido: string;
+    razon_social?: string;
+    ruc?: string;
+    representante_nombre?: string;
+    representante_cedula?: string;
+  };
+  onChange: (n: any) => void;
+  onQuitar: () => void;
+}) {
+  return (
+    <div className="rounded-sm border border-amber-300 bg-amber-50 p-3 space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-xs font-bold uppercase tracking-wider text-amber-900">
+          {etiqueta} · cliente nuevo
+        </p>
+        <button type="button" onClick={onQuitar} className="text-xs underline text-numa-700">
+          Elegir otro cliente
+        </button>
+      </div>
+      {n.tipo === 'empresa' ? (
+        <p className="text-sm text-numa-800">
+          <b>{n.razon_social}</b> · RUC {n.ruc} · rep. legal {n.representante_nombre} (C.I.{' '}
+          {n.representante_cedula}). Se registrará con estos datos.
+        </p>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <InputField
+              label="Nombres"
+              value={n.nombre}
+              onChange={(e) => onChange({ ...n, nombre: e.target.value })}
+            />
+            <InputField
+              label="Apellidos"
+              value={n.apellido}
+              onChange={(e) => onChange({ ...n, apellido: e.target.value })}
+            />
+          </div>
+          <p className="text-xs text-numa-600">Cédula {n.cedula} (no se puede cambiar aquí).</p>
+        </>
+      )}
+      <p className="text-xs text-numa-600">
+        Se registra en Clientes al crear el proceso. El teléfono y el correo se completan después.
+      </p>
+    </div>
+  );
+}
 
 export default function ProcesosPage() {
   const router = useRouter();
@@ -102,6 +163,22 @@ export default function ProcesosPage() {
   // Invitaciones rápidas de la Agenda que todavía no tienen proceso.
   const [citasRapidas, setCitasRapidas] = useState<any[]>([]);
   const [avisoCitaRapida, setAvisoCitaRapida] = useState('');
+  // Partes de la invitación rápida que aún no están en Clientes: se registran
+  // solas al crear el proceso. El nombre y el apellido se pueden corregir aquí.
+  type NuevoCliente = {
+    tipo: 'persona' | 'empresa';
+    cedula: string;
+    nombre: string;
+    apellido: string;
+    razon_social?: string;
+    ruc?: string;
+    representante_nombre?: string;
+    representante_cedula?: string;
+  };
+  const [nuevos, setNuevos] = useState<{ sol: NuevoCliente | null; inv: NuevoCliente | null }>({
+    sol: null,
+    inv: null
+  });
 
   const visibles = procesos.filter((p) =>
     rapido === 'pendientes'
@@ -175,6 +252,7 @@ export default function ProcesosPage() {
   };
 
   const abrirCrear = () => {
+    setNuevos({ sol: null, inv: null });
     setForm({
       cliente_demandante_id: '',
       cliente_demandado_id: '',
@@ -207,12 +285,40 @@ export default function ProcesosPage() {
       ? `${x.razon_social} (rep. legal ${x.representante_nombre}, C.I. ${x.representante_cedula})`
       : `${x.nombre} (C.I. ${x.cedula})`;
 
+  // Parte de la invitación rápida -> datos para registrarla como cliente.
+  // El nombre completo se reparte en nombres y apellidos (se puede corregir).
+  // Una empresa sin RUC no se puede registrar sola (el RUC es obligatorio).
+  const nuevoDesdeParte = (x: any): NuevoCliente | null => {
+    if (x.tipo === 'empresa') {
+      if (!x.ruc) return null;
+      return {
+        tipo: 'empresa',
+        cedula: '',
+        nombre: x.razon_social || '',
+        apellido: '',
+        razon_social: x.razon_social,
+        ruc: x.ruc,
+        representante_nombre: x.representante_nombre,
+        representante_cedula: x.representante_cedula
+      };
+    }
+    const palabras = String(x.nombre || '').trim().split(/\s+/).filter(Boolean);
+    const corte = Math.floor(palabras.length / 2);
+    return {
+      tipo: 'persona',
+      cedula: x.cedula,
+      nombre: palabras.slice(0, corte || 1).join(' '),
+      apellido: palabras.slice(corte || 1).join(' ')
+    };
+  };
+
   // Al elegir una invitación rápida se llenan solos los datos que ya se
   // escribieron en la Agenda. Las partes que aún no están en Clientes se avisan.
   const elegirCitaRapida = (id: string) => {
     if (!id) {
       setForm((f) => ({ ...f, cita_rapida_id: '' }));
       setAvisoCitaRapida('');
+      setNuevos({ sol: null, inv: null });
       return;
     }
     const cita = citasRapidas.find((c: any) => String(c.id) === String(id));
@@ -222,14 +328,22 @@ export default function ProcesosPage() {
     const inv = cita.partes_rapidas?.invitados || [];
     const cSol = sol.length ? buscarCliente(sol[0]) : undefined;
     const cInv = inv.length ? buscarCliente(inv[0]) : undefined;
-    const faltan = [...sol, ...inv].filter((x: any) => !buscarCliente(x));
+    const nuevoSol = sol.length && !cSol ? nuevoDesdeParte(sol[0]) : null;
+    const nuevoInv = inv.length && !cInv ? nuevoDesdeParte(inv[0]) : null;
+    setNuevos({ sol: nuevoSol, inv: nuevoInv });
+    // Solo se avisa de lo que NO se registrará solo: las demás personas de
+    // cada lado y las empresas sin RUC.
+    const faltan = [
+      ...sol.slice(nuevoSol || cSol ? 1 : 0),
+      ...inv.slice(nuevoInv || cInv ? 1 : 0)
+    ].filter((x: any) => !buscarCliente(x));
 
     setForm((f) => ({
       ...f,
       cita_rapida_id: String(cita.id),
       sucursal_id: String(cita.sucursal_id),
-      cliente_demandante_id: cSol ? String(cSol.id) : f.cliente_demandante_id,
-      cliente_demandado_id: cInv ? String(cInv.id) : f.cliente_demandado_id,
+      cliente_demandante_id: cSol ? String(cSol.id) : '',
+      cliente_demandado_id: cInv ? String(cInv.id) : '',
       // El tema se sugiere con el asunto escrito en el documento de la invitación
       // (o el tema con que se agendó); se puede corregir.
       tema: !f.tema
@@ -240,7 +354,12 @@ export default function ProcesosPage() {
     const avisos: string[] = [];
     if (faltan.length) {
       avisos.push(
-        `Aún no están en Clientes: ${faltan.map(nombreParteRapida).join('; ')}. Regístralos en "Clientes" para poder usarlos en el proceso.`
+        `Aún no están en Clientes y no se registran solos: ${faltan.map(nombreParteRapida).join('; ')}. Regístralos en "Clientes" (las empresas necesitan el RUC) para poder usarlos en el proceso.`
+      );
+    }
+    if (nuevoSol || nuevoInv) {
+      avisos.push(
+        'Lo que aún no está en Clientes se registrará solo al crear el proceso; revisa los nombres abajo. El teléfono y el correo se completan después en Clientes.'
       );
     }
     if (sol.length > 1 || inv.length > 1) {
@@ -270,15 +389,31 @@ export default function ProcesosPage() {
   // Paso 1: sucursal (solo admin) + solicitante + invitado.
   const validarPaso1 = () => {
     if (
-      !form.cliente_demandante_id ||
-      !form.cliente_demandado_id ||
+      (!form.cliente_demandante_id && !nuevos.sol) ||
+      (!form.cliente_demandado_id && !nuevos.inv) ||
       (isAdmin() && !form.sucursal_id)
     ) {
       setError('Completa sucursal, solicitante e invitado');
       return false;
     }
 
-    if (form.cliente_demandante_id === form.cliente_demandado_id) {
+    for (const n of [nuevos.sol, nuevos.inv]) {
+      if (n && n.tipo === 'persona' && (!n.nombre.trim() || !n.apellido.trim())) {
+        setError('Escribe los nombres y los apellidos de la persona que se va a registrar');
+        return false;
+      }
+    }
+
+    if (
+      nuevos.sol && nuevos.inv &&
+      (nuevos.sol.tipo === 'empresa' ? nuevos.sol.ruc : nuevos.sol.cedula) ===
+        (nuevos.inv.tipo === 'empresa' ? nuevos.inv.ruc : nuevos.inv.cedula)
+    ) {
+      setError('Solicitante e invitado no pueden ser iguales');
+      return false;
+    }
+
+    if (form.cliente_demandante_id && form.cliente_demandante_id === form.cliente_demandado_id) {
       setError('Solicitante e invitado no pueden ser iguales');
       return false;
     }
@@ -340,9 +475,40 @@ export default function ProcesosPage() {
     setSaving(true);
 
     try {
+      // Primero se registran en Clientes las partes de la invitación que
+      // faltaban. Cada una se quita de la lista apenas se crea, para que un
+      // reintento no la cree dos veces.
+      let idSol = form.cliente_demandante_id;
+      let idInv = form.cliente_demandado_id;
+      const registrar = async (n: NuevoCliente) => {
+        const c: any = await createCliente(
+          (n.tipo === 'empresa'
+            ? {
+                tipo: 'empresa',
+                razon_social: n.razon_social,
+                ruc: n.ruc,
+                representante_nombre: n.representante_nombre,
+                representante_cedula: n.representante_cedula
+              }
+            : { tipo: 'persona', cedula: n.cedula, nombre: n.nombre.trim(), apellido: n.apellido.trim() }) as any
+        );
+        return String(c.id);
+      };
+      if (nuevos.sol) {
+        idSol = await registrar(nuevos.sol);
+        setNuevos((a) => ({ ...a, sol: null }));
+        setForm((f) => ({ ...f, cliente_demandante_id: idSol }));
+      }
+      if (nuevos.inv) {
+        idInv = await registrar(nuevos.inv);
+        setNuevos((a) => ({ ...a, inv: null }));
+        setForm((f) => ({ ...f, cliente_demandado_id: idInv }));
+      }
+      if (nuevos.sol || nuevos.inv) getClientes().then(setClientes).catch(() => {});
+
       const nuevoProceso = await createProceso({
-        cliente_demandante_id: Number(form.cliente_demandante_id),
-        cliente_demandado_id: Number(form.cliente_demandado_id),
+        cliente_demandante_id: Number(idSol),
+        cliente_demandado_id: Number(idInv),
         tema: form.tema,
         ...(isAdmin() ? { sucursal_id: Number(form.sucursal_id) } : {}),
         ...(form.cita_rapida_id ? { cita_rapida_id: Number(form.cita_rapida_id) } : {})
@@ -763,6 +929,15 @@ export default function ProcesosPage() {
               </SelectField>
             )}
 
+            {nuevos.sol && (
+              <NuevoClienteBox
+                etiqueta="Solicitante"
+                n={nuevos.sol}
+                onChange={(n) => setNuevos((a) => ({ ...a, sol: n }))}
+                onQuitar={() => setNuevos((a) => ({ ...a, sol: null }))}
+              />
+            )}
+            {!nuevos.sol && (
             <SelectField
               label="Solicitante"
               value={form.cliente_demandante_id}
@@ -778,7 +953,17 @@ export default function ProcesosPage() {
                 </option>
               ))}
             </SelectField>
+            )}
 
+            {nuevos.inv && (
+              <NuevoClienteBox
+                etiqueta="Invitado"
+                n={nuevos.inv}
+                onChange={(n) => setNuevos((a) => ({ ...a, inv: n }))}
+                onQuitar={() => setNuevos((a) => ({ ...a, inv: null }))}
+              />
+            )}
+            {!nuevos.inv && (
             <SelectField
               label="Invitado"
               value={form.cliente_demandado_id}
@@ -794,6 +979,7 @@ export default function ProcesosPage() {
                 </option>
               ))}
             </SelectField>
+            )}
 
             {clientes.length === 0 && (
               <p className="text-xs text-numa-400">
@@ -839,16 +1025,18 @@ export default function ProcesosPage() {
               <div>
                 <span className="text-numa-400">Solicitante: </span>
                 <span className="font-medium text-numa-800">
-                  {nombreCliente(form.cliente_demandante_id)?.nombre}{' '}
-                  {nombreCliente(form.cliente_demandante_id)?.apellido}
+                  {nuevos.sol
+                    ? `${nuevos.sol.nombre} ${nuevos.sol.apellido}`.trim() + ' (se registrará como cliente nuevo)'
+                    : `${nombreCliente(form.cliente_demandante_id)?.nombre} ${nombreCliente(form.cliente_demandante_id)?.apellido}`}
                 </span>
               </div>
 
               <div>
                 <span className="text-numa-400">Invitado: </span>
                 <span className="font-medium text-numa-800">
-                  {nombreCliente(form.cliente_demandado_id)?.nombre}{' '}
-                  {nombreCliente(form.cliente_demandado_id)?.apellido}
+                  {nuevos.inv
+                    ? `${nuevos.inv.nombre} ${nuevos.inv.apellido}`.trim() + ' (se registrará como cliente nuevo)'
+                    : `${nombreCliente(form.cliente_demandado_id)?.nombre} ${nombreCliente(form.cliente_demandado_id)?.apellido}`}
                 </span>
               </div>
 
