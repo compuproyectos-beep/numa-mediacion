@@ -251,6 +251,8 @@ export default function CalendarioAgendaMediador({
   const [errorEstado, setErrorEstado] = useState('');
   const [mostrarConfirmarCancelar, setMostrarConfirmarCancelar] = useState(false);
   const [motivoCancelacion, setMotivoCancelacion] = useState('');
+  const [mostrarCerrarSinProceso, setMostrarCerrarSinProceso] = useState(false);
+  const [notaCierre, setNotaCierre] = useState('');
   const [errorMotivoCancelacion, setErrorMotivoCancelacion] = useState('');
 
   // El panel con el detalle del día o de una cita aparece debajo del
@@ -481,7 +483,15 @@ export default function CalendarioAgendaMediador({
     try {
       await cambiarEstadoCita(citaActiva.id, nuevoEstado, motivo);
       await cargarCitas();
-      setCitaActiva({ ...citaActiva, estado: nuevoEstado, motivo_cancelacion: motivo });
+      const nota = nuevoEstado === 'realizada' ? (motivo || '').trim() : '';
+      setCitaActiva({
+        ...citaActiva,
+        estado: nuevoEstado,
+        motivo_cancelacion: nuevoEstado === 'cancelada' ? motivo : citaActiva.motivo_cancelacion,
+        observaciones: nota
+          ? [citaActiva.observaciones, `Cierre sin proceso: ${nota}`].filter(Boolean).join('\n')
+          : citaActiva.observaciones,
+      });
       onCitaActualizada?.();
     } catch (err: any) {
       setErrorEstado(
@@ -490,6 +500,12 @@ export default function CalendarioAgendaMediador({
     } finally {
       setCambiandoEstado(false);
     }
+  };
+
+  const confirmarCierreSinProceso = async () => {
+    await handleCambiarEstado('realizada', notaCierre.trim() || undefined);
+    setMostrarCerrarSinProceso(false);
+    setNotaCierre('');
   };
 
   const handleCancelarClick = () => {
@@ -801,7 +817,7 @@ export default function CalendarioAgendaMediador({
             {citaActiva.observaciones && (
               <p>
                 <span className="text-numa-700 font-semibold">Observaciones:</span>{' '}
-                <span className="text-numa-900">{citaActiva.observaciones}</span>
+                <span className="text-numa-900 whitespace-pre-line">{citaActiva.observaciones}</span>
               </p>
             )}
 
@@ -905,7 +921,10 @@ export default function CalendarioAgendaMediador({
                           <button
                             type="button"
                             disabled={!horaLlego || cambiandoEstado}
-                            onClick={() => handleCambiarEstado('realizada')}
+                            onClick={() => {
+                              setNotaCierre('');
+                              setMostrarCerrarSinProceso(true);
+                            }}
                             className="btn-primary disabled:opacity-50"
                           >
                             Cerrar sin proceso
@@ -1203,6 +1222,39 @@ export default function CalendarioAgendaMediador({
             }}
           >
             Sí, cancelar reunión
+          </button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={mostrarCerrarSinProceso}
+        onClose={() => setMostrarCerrarSinProceso(false)}
+        title="Cerrar sin crear proceso"
+        size="sm"
+      >
+        <p className="text-sm text-numa-800 mb-4">
+          La invitación quedará como realizada y se cerrará sin crear proceso de mediación ni acta.
+          Si la reunión continúa, usa «Crear el proceso». Esta acción no se puede deshacer.
+        </p>
+
+        <TextareaField
+          label="Observación (opcional)"
+          rows={3}
+          value={notaCierre}
+          onChange={(e) => setNotaCierre(e.target.value)}
+          placeholder="Ejemplo: La parte solicitante desistió, no se abrió trámite..."
+        />
+
+        <div className="flex gap-3 justify-end mt-6">
+          <button onClick={() => setMostrarCerrarSinProceso(false)} className="btn-secondary text-sm">
+            Volver
+          </button>
+          <button
+            onClick={confirmarCierreSinProceso}
+            disabled={cambiandoEstado}
+            className="btn-primary text-sm"
+          >
+            {cambiandoEstado ? 'Procesando...' : 'Sí, cerrar sin proceso'}
           </button>
         </div>
       </Modal>

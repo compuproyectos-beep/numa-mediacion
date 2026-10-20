@@ -3318,10 +3318,18 @@ def cambiar_estado_cita(
             UPDATE citas
             SET estado = %s,
                 motivo_cancelacion = CASE WHEN %s = 'cancelada' THEN %s ELSE motivo_cancelacion END,
+                observaciones = CASE
+                    WHEN %s = 'realizada' AND %s IS NOT NULL AND proceso_id IS NULL
+                    THEN CASE WHEN COALESCE(btrim(observaciones), '') = '' THEN '' ELSE observaciones || E'\n' END
+                         || 'Cierre sin proceso: ' || %s
+                    ELSE observaciones
+                END,
                 fecha_modificacion = NOW()
             WHERE id = %s
             RETURNING *
-        """, (estado, estado, motivo.strip() if motivo else None, cita_id))
+        """, (estado, estado, motivo.strip() if motivo else None,
+               estado, (motivo.strip() or None) if motivo else None,
+               (motivo.strip() or None) if motivo else None, cita_id))
 
         cita = cur.fetchone()
 
