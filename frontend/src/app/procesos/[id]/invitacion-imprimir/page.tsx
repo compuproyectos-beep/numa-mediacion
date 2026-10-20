@@ -665,7 +665,11 @@ function ImprimirInvitacion() {
       <div className="print:hidden max-w-5xl mx-auto px-4 pt-6 pb-4">
         <div className="bg-white border border-numa-200 rounded-sm p-4">
           <Link
-            href={esRapida ? '/agenda' : `/procesos/${procesoId}`}
+            href={
+              esRapida
+                ? `/agenda?cita=${citaId || citaParam}${cita?.usuario_id ? `&mediador=${cita.usuario_id}` : ''}`
+                : `/procesos/${procesoId}`
+            }
             className="inline-flex items-center gap-1.5 text-sm text-numa-600 hover:text-numa-900 mb-3"
           >
             <ArrowLeft className="w-4 h-4" />
