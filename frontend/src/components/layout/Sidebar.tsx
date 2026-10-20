@@ -192,7 +192,7 @@ export default function Sidebar() {
                 : user?.username}
             </p>
             <span className="inline-block mt-1 text-[9px] font-medium capitalize text-gold-400 bg-gold-400/10 rounded-full px-1.5 py-0.5 font-sans">
-              {user?.rol}
+              {user?.rol === 'mediador' && user?.es_coordinador ? 'coordinador' : user?.rol}
             </span>
             <p
               className="text-[11px] text-white/40 truncate font-sans"

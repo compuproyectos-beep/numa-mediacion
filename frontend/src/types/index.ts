@@ -18,6 +18,7 @@ export interface User {
   rol: 'administrador' | 'mediador' | 'secretaria' | 'usuario';
   activo: boolean;
   debe_cambiar_password?: boolean;
+  es_coordinador?: boolean;
 
   sucursal_id?: number;
   sucursal?: string;

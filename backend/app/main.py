@@ -2038,6 +2038,46 @@ def _telefono_usuario(telefono):
     return limpio
 
 
+def _telefono_mediador_obligatorio(telefono):
+    """Para un mediador el teléfono es obligatorio (sale en el pie de sus
+    invitaciones). Devuelve solo los dígitos."""
+    t = _telefono_usuario(telefono)
+    if not t:
+        raise HTTPException(status_code=400, detail="El teléfono del mediador es obligatorio (10 dígitos)")
+    return t
+
+
+def _verificar_un_coordinador(cur, sucursal_id, excluir_id=None):
+    """Cada sucursal tiene UN solo coordinador activo."""
+    cur.execute("""
+        SELECT nombre, apellido FROM usuarios
+        WHERE rol = 'mediador' AND es_coordinador = true AND activo = true
+          AND sucursal_id = %s AND id <> COALESCE(%s, -1)
+        LIMIT 1
+    """, (sucursal_id, excluir_id))
+    ya = cur.fetchone()
+    if ya:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Esta sucursal ya tiene un coordinador ({ya['nombre']} {ya['apellido']}). "
+                "Quítale primero la marca de coordinador para asignar a otro."
+            )
+        )
+
+
+def _email_administrador(cur):
+    """Correo principal del administrador (único para todo el país): es el
+    que sale en el pie de las invitaciones."""
+    cur.execute("""
+        SELECT email FROM usuarios
+        WHERE rol = 'administrador' AND activo = true
+        ORDER BY id ASC LIMIT 1
+    """)
+    r = cur.fetchone()
+    return r["email"] if r else None
+
+
 @app.post("/usuarios")
 def crear_usuario(
     nombre: str,
@@ -2048,6 +2088,7 @@ def crear_usuario(
     rol: str = "mediador",
     sucursal_id: int = 1,
     telefono: str = None,
+    es_coordinador: bool = False,
     usuario=Depends(obtener_usuario_actual)
 ):
     if usuario["rol"] != "administrador":
@@ -2072,6 +2113,13 @@ def crear_usuario(
             raise HTTPException(status_code=400, detail="Rol inválido")
         if rol == "secretaria":
             _verificar_una_secretaria(cur, sucursal_id)
+        if rol == "mediador":
+            if not (nombre or "").strip() or not (apellido or "").strip():
+                raise HTTPException(status_code=400, detail="Nombre y apellido son obligatorios")
+        if es_coordinador and rol != "mediador":
+            raise HTTPException(status_code=400, detail="Solo un mediador puede ser coordinador")
+        if es_coordinador:
+            _verificar_un_coordinador(cur, sucursal_id)
 
         # VALIDAR CÉDULA
         if not validar_cedula_ecuatoriana(cedula):
@@ -2123,7 +2171,7 @@ def crear_usuario(
             )
 
         verificar_cedula_misma_persona(cur, cedula, nombre, apellido, "clientes")
-        telefono = _telefono_usuario(telefono)
+        telefono = _telefono_mediador_obligatorio(telefono) if rol == "mediador" else _telefono_usuario(telefono)
 
         password_generada_automaticamente = not password
 
@@ -2154,13 +2202,14 @@ def crear_usuario(
                 password_hash,
                 rol,
                 telefono,
+                es_coordinador,
                 activo,
                 debe_cambiar_password,
                 fecha_creacion,
                 fecha_modificacion
             )
             VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 true,
                 %s,
                 NOW(),
@@ -2186,6 +2235,7 @@ def crear_usuario(
             password_hash,
             rol,
             telefono,
+            bool(es_coordinador),
             debe_cambiar_password
         ))
 
@@ -2285,6 +2335,7 @@ def editar_usuario(
     rol: str,
     sucursal_id: int,
     telefono: str = None,
+    es_coordinador: bool = None,
     usuario=Depends(obtener_usuario_actual)
 ):
     if usuario["rol"] != "administrador":
@@ -2306,7 +2357,7 @@ def editar_usuario(
         if rol not in ("administrador", "mediador", "secretaria"):
             raise HTTPException(status_code=400, detail="Rol inválido")
 
-        cur.execute("SELECT id, rol, activo FROM usuarios WHERE id = %s", (id,))
+        cur.execute("SELECT id, rol, activo, telefono, es_coordinador FROM usuarios WHERE id = %s", (id,))
         usuario_existente = cur.fetchone()
 
         if not usuario_existente:
@@ -2340,13 +2391,28 @@ def editar_usuario(
 
         verificar_cedula_misma_persona(cur, cedula, nombre, apellido, "clientes")
 
-        # El teléfono es opcional: si no viene en la petición se deja como
-        # está; si viene vacío se borra.
-        if telefono is not None:
+        # Mediador: nombre, apellido y teléfono obligatorios. Para los demás
+        # roles el teléfono es opcional (si viene vacío se borra).
+        if rol == "mediador":
+            if not (nombre or "").strip() or not (apellido or "").strip():
+                raise HTTPException(status_code=400, detail="Nombre y apellido son obligatorios")
+            tel_final = _telefono_mediador_obligatorio(
+                telefono if telefono is not None else usuario_existente["telefono"]
+            )
+            cur.execute("UPDATE usuarios SET telefono = %s WHERE id = %s", (tel_final, id))
+        elif telefono is not None:
             cur.execute(
                 "UPDATE usuarios SET telefono = %s WHERE id = %s",
                 (_telefono_usuario(telefono), id)
             )
+
+        # Coordinador: solo un mediador, y uno por sucursal.
+        coord_final = usuario_existente["es_coordinador"] if es_coordinador is None else bool(es_coordinador)
+        if rol != "mediador":
+            coord_final = False
+        if coord_final and usuario_existente["activo"]:
+            _verificar_un_coordinador(cur, sucursal_id, excluir_id=id)
+        cur.execute("UPDATE usuarios SET es_coordinador = %s WHERE id = %s", (coord_final, id))
 
         cur.execute("""
             UPDATE usuarios
@@ -2355,7 +2421,7 @@ def editar_usuario(
             WHERE id = %s
             RETURNING
                 id, sucursal_id, nombre, apellido, cedula, email, rol, activo,
-                telefono, debe_cambiar_password, fecha_creacion, fecha_modificacion
+                telefono, es_coordinador, debe_cambiar_password, fecha_creacion, fecha_modificacion
         """, (nombre, apellido, cedula, email, rol, sucursal_id, id))
 
         usuario_actualizado = cur.fetchone()
@@ -2406,6 +2472,7 @@ def obtener_usuarios(usuario=Depends(obtener_usuario_actual)):
                 u.email,
                 u.telefono,
                 u.rol,
+                u.es_coordinador,
                 u.activo,
                 u.fecha_creacion,
                 s.nombre AS sucursal,
@@ -2517,6 +2584,7 @@ def me(usuario=Depends(obtener_usuario_actual)):
                 u.activo,
                 u.sucursal_id,
                 u.debe_cambiar_password,
+                u.es_coordinador,
                 s.nombre AS sucursal,
                 c.nombre AS ciudad,
                 c.provincia AS provincia
@@ -2697,6 +2765,10 @@ def cambiar_estado_usuario(
             destino = cur.fetchone()
             if destino and destino["rol"] == "secretaria":
                 _verificar_una_secretaria(cur, destino["sucursal_id"], excluir_id=id)
+            cur.execute("SELECT rol, sucursal_id, es_coordinador FROM usuarios WHERE id = %s", (id,))
+            d2 = cur.fetchone()
+            if d2 and d2["rol"] == "mediador" and d2["es_coordinador"]:
+                _verificar_un_coordinador(cur, d2["sucursal_id"], excluir_id=id)
 
         cur.execute("""
             UPDATE usuarios
@@ -3258,6 +3330,10 @@ def obtener_sede_publica(slug: str):
                 s.prefijo,
                 s.direccion,
                 s.telefono,
+                (SELECT u.telefono FROM usuarios u
+                 WHERE u.sucursal_id = s.id AND u.rol = 'mediador'
+                   AND u.es_coordinador = true AND u.activo = true
+                 LIMIT 1) AS telefono_coordinador,
                 s.slug,
                 c.nombre AS ciudad,
                 p.nombre AS provincia
@@ -3300,6 +3376,10 @@ def listar_sedes_publicas():
                 s.prefijo,
                 s.direccion,
                 s.telefono,
+                (SELECT u.telefono FROM usuarios u
+                 WHERE u.sucursal_id = s.id AND u.rol = 'mediador'
+                   AND u.es_coordinador = true AND u.activo = true
+                 LIMIT 1) AS telefono_coordinador,
                 s.slug,
                 c.nombre AS ciudad,
                 p.nombre AS provincia
@@ -4608,6 +4688,9 @@ def datos_invitacion_rapida(cita_id: int, usuario=Depends(obtener_usuario_actual
                 status_code=409,
                 detail=f"proceso:{c['proceso_id']}"
             )
+
+        c["sucursal_admin_telefono"] = c["mediador_telefono"]
+        c["sucursal_admin_email"] = _email_administrador(cur)
 
         proceso = {
             "id": None, "usuario_id": c["usuario_id"],
@@ -6601,6 +6684,11 @@ def datos_invitacion_imprimible(proceso_id: int, usuario=Depends(obtener_usuario
             WHERE c.proceso_id = %s ORDER BY c.id ASC
         """, (proceso_id,))
         citas = cur.fetchall()
+
+        # Pie de la invitación: teléfono del mediador que la hace y correo
+        # principal del administrador (igual para todo el país).
+        p["sucursal_admin_telefono"] = p["mediador_telefono"]
+        p["sucursal_admin_email"] = _email_administrador(cur)
 
         return {"proceso": p, "partes": _consulta_partes(cur, proceso_id), "citas": citas}
     finally:

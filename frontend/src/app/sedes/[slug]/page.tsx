@@ -33,7 +33,8 @@ export default function SedePage() {
       .finally(() => setLoading(false));
   }, [slug]);
 
-  const telefonoLimpio = (sede?.telefono || '').replace(/[^0-9+]/g, '');
+  const telefonoSede = sede?.telefono_coordinador || sede?.telefono || '';
+  const telefonoLimpio = telefonoSede.replace(/[^0-9+]/g, '');
 
   return (
     <div className="min-h-screen bg-white font-brand">
@@ -134,9 +135,9 @@ export default function SedePage() {
                       <div className="min-w-0">
                         <dt className="font-semibold text-numa-900">Teléfono</dt>
                         <dd className="text-numa-600">
-                          {sede.telefono ? (
+                          {telefonoSede ? (
                             <a href={`tel:${telefonoLimpio}`} className="hover:text-gold-600">
-                              {sede.telefono}
+                              {telefonoSede}
                             </a>
                           ) : (
                             'No registrado'

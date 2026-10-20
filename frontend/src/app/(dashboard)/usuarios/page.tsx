@@ -49,7 +49,8 @@ const emptyForm = {
   telefono: '',
   password: '',
   rol: 'mediador',
-  sucursal_id: ''
+  sucursal_id: '',
+  es_coordinador: false
 };
 
 export default function UsuariosPage() {
@@ -164,7 +165,8 @@ export default function UsuariosPage() {
       telefono: u.telefono || '',
       password: '',
       rol: u.rol || 'mediador',
-      sucursal_id: u.sucursal_id ? String(u.sucursal_id) : ''
+      sucursal_id: u.sucursal_id ? String(u.sucursal_id) : '',
+      es_coordinador: !!u.es_coordinador
     });
     setCedulaError('');
     setEmailError('');
@@ -184,6 +186,7 @@ export default function UsuariosPage() {
       !form.apellido.trim() && 'Apellido',
       !form.cedula.trim() && 'Cédula',
       !form.email.trim() && 'Email',
+      form.rol === 'mediador' && !form.telefono.trim() && 'Teléfono',
       !form.rol && 'Rol',
       !form.sucursal_id && 'Sucursal'
     ].filter(Boolean);
@@ -208,7 +211,7 @@ export default function UsuariosPage() {
     }
 
     if (form.telefono && form.telefono.length !== 10) {
-      setError('El teléfono debe tener 10 dígitos (o déjalo en blanco)');
+      setError('El teléfono debe tener 10 dígitos');
       return;
     }
 
@@ -228,7 +231,8 @@ export default function UsuariosPage() {
           email: form.email,
           telefono: form.telefono,
           rol: form.rol,
-          sucursal_id: Number(form.sucursal_id)
+          sucursal_id: Number(form.sucursal_id),
+          es_coordinador: form.rol === 'mediador' && form.es_coordinador
         });
 
         // Se recarga la lista para que muestre de inmediato la sucursal y
@@ -244,7 +248,8 @@ export default function UsuariosPage() {
           telefono: form.telefono,
           password: form.password,
           rol: form.rol,
-          sucursal_id: Number(form.sucursal_id)
+          sucursal_id: Number(form.sucursal_id),
+          es_coordinador: form.rol === 'mediador' && form.es_coordinador
         });
 
         // Mientras el correo no tenga un dominio propio verificado, el envío
@@ -426,7 +431,7 @@ export default function UsuariosPage() {
 
                     <td className="table-cell">
                       <Badge
-                        label={u.rol}
+                        label={u.rol === 'mediador' && u.es_coordinador ? 'coordinador' : u.rol}
                         variant={u.rol === 'administrador' ? 'aprobado' : 'enviado'}
                       />
                     </td>
@@ -548,7 +553,7 @@ export default function UsuariosPage() {
           </div>
 
           <InputField
-            label="Teléfono (opcional)"
+            label={form.rol === 'mediador' ? 'Teléfono' : 'Teléfono (opcional)'}
             value={form.telefono}
             onChange={(e) =>
               setForm({ ...form, telefono: e.target.value.replace(/\D/g, '').slice(0, 10) })
@@ -626,6 +631,25 @@ export default function UsuariosPage() {
               ))}
             </SelectField>
           </div>
+
+          {form.rol === 'mediador' && (
+            <label className="flex items-start gap-2 text-sm text-numa-700">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={form.es_coordinador}
+                onChange={(e) => setForm({ ...form, es_coordinador: e.target.checked })}
+              />
+              <span>
+                Es coordinador de la sucursal
+                <span className="block text-xs text-numa-400">
+                  Sigue siendo un mediador normal, sin permisos adicionales. Solo
+                  puede haber un coordinador por sucursal; su teléfono sale en la
+                  página pública de la sede.
+                </span>
+              </span>
+            </label>
+          )}
         </div>
 
         {/* El aviso va dentro del formulario: arriba de la página quedaba
