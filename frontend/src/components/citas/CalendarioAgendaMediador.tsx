@@ -271,7 +271,7 @@ export default function CalendarioAgendaMediador({
     // él.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
   };
@@ -661,7 +661,7 @@ export default function CalendarioAgendaMediador({
 
       {/* Detalle y gestión de una cita existente */}
       {citaActiva && (
-        <div ref={panelRef} className="mt-5 border-t border-numa-100 pt-5">
+        <div ref={panelRef} className="mt-5 border-t border-numa-100 pt-5 scroll-mt-24">
           <div className="flex items-start justify-between mb-4">
             <div>
               <p className="text-sm font-semibold text-numa-800 capitalize">
@@ -958,7 +958,7 @@ export default function CalendarioAgendaMediador({
 
       {/* Detalle de una reunión de mediadores */}
       {reunionActiva && !citaActiva && !diaSeleccionado && (
-        <div ref={panelRef} className="mt-5 border-t border-numa-100 pt-5">
+        <div ref={panelRef} className="mt-5 border-t border-numa-100 pt-5 scroll-mt-24">
           <div className="flex items-start justify-between mb-3">
             <div>
               <p className="text-sm font-semibold text-numa-800 capitalize flex items-center gap-2">
@@ -1095,7 +1095,12 @@ export default function CalendarioAgendaMediador({
           )}
 
           {/* Elegir fecha/hora para una cita NUEVA — solo si se permite crear */}
-          {permitirCrear && (
+          {permitirCrear && diaSeleccionado < hoyISO() && (
+            <p className="text-[13px] font-medium text-numa-700 rounded-sm border border-numa-200 bg-numa-50 px-3 py-2">
+              Esta fecha ya pasó: no se pueden agendar invitaciones nuevas en fechas anteriores a hoy.
+            </p>
+          )}
+          {permitirCrear && diaSeleccionado >= hoyISO() && (
             <div className="flex flex-wrap items-end gap-4">
               <InputField
                 label="Hora para la nueva invitación"
