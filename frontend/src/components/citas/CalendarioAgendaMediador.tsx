@@ -1033,7 +1033,7 @@ export default function CalendarioAgendaMediador({
 
       {/* Citas del día seleccionado (clic en un día vacío o en "+N más") */}
       {diaSeleccionado && !citaActiva && (
-        <div ref={panelRef} className="mt-5 border-t border-numa-100 pt-5">
+        <div id="panel-dia-agenda" ref={panelRef} className="mt-5 border-t border-numa-100 pt-5 scroll-mt-24">
           <p className="text-sm font-semibold text-numa-800 mb-2 capitalize">
             {etiquetaFecha(diaSeleccionado)}
           </p>

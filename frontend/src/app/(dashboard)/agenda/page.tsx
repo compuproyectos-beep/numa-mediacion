@@ -69,7 +69,11 @@ export default function AgendaPage() {
   const bajarAObservaciones = () => {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        observacionesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Se baja hasta el panel del día (fecha, hora y botón "Usar esta fecha
+        // y hora") para que desde ahí se vea también el formulario de abajo.
+        const destino =
+          document.getElementById('panel-dia-agenda') ?? observacionesRef.current;
+        destino?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
   };
