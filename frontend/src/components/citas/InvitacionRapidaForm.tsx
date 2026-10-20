@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Trash2, Zap, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, Zap, CheckCircle2 } from 'lucide-react';
 import { InputField, TextareaField, ErrorAlert } from '@/components/ui';
 import { crearInvitacionRapida, getClientes } from '@/lib/services';
 
@@ -122,6 +122,9 @@ function LadoEditor({
     onChange({ ...lado, empresa });
   };
 
+  const ultima = lado.personas[lado.personas.length - 1];
+  const puedeAgregar = !!ultima && !!ultima.nombre.trim() && cedulaValida(ultima.cedula);
+
   return (
     <div className={`bg-white border border-numa-200 border-l-4 ${acento} rounded-md p-4 shadow-sm`}>
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
@@ -192,6 +195,23 @@ function LadoEditor({
               )}
             </div>
           ))}
+          <button
+            type="button"
+            disabled={!puedeAgregar}
+            onClick={() =>
+              onChange({ ...lado, personas: [...lado.personas, { nombre: '', cedula: '' }] })
+            }
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-gold-600 hover:text-gold-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gold-600"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Agregar otra persona
+          </button>
+          {!puedeAgregar && (
+            <p className="text-[13px] font-semibold text-numa-700">
+              Para agregar otra persona, completa primero el nombre y una cédula válida de la
+              anterior.
+            </p>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

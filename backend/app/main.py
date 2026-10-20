@@ -4432,11 +4432,8 @@ def _limpiar_partes_rapidas(datos, cedula_mediador=None):
         lista = datos.get(clave)
         if not isinstance(lista, list) or not lista:
             raise HTTPException(status_code=400, detail=f"Agrega al menos un {singular}")
-        if len(lista) > 1:
-            raise HTTPException(
-                status_code=400,
-                detail=f"En la invitación rápida va un solo {singular} (o una empresa). Si hay más personas, se agregan desde el proceso."
-            )
+        if len(lista) > 10:
+            raise HTTPException(status_code=400, detail=f"Demasiados {etiqueta} (máximo 10)")
 
         limpio = []
         for x in lista:
