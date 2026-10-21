@@ -405,7 +405,7 @@ export default function AgendaPage() {
               <FileText className="w-4 h-4" />
               Abrir documento de la invitación
             </button>
-            {rapidaCreada.usuario_id === user.id && <PedirNumeroActaBoton />}
+            {rapidaCreada.usuario_id === user.id && <PedirNumeroActaBoton citaId={rapidaCreada.id} />}
           </div>
         </div>
       )}

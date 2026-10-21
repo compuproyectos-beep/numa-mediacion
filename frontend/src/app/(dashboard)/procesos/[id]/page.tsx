@@ -1667,11 +1667,19 @@ export default function ProcesoDetallePage() {
                     getMiNumeroActa()
                       .then((r: any) => {
                         // Solo los números de la sucursal de este proceso.
-                        const lista = (r?.reservados || []).filter(
+                        const deSucursal = (r?.reservados || []).filter(
                           (n: any) => n.sucursal_id === proceso.sucursal_id
                         );
+                        // Si el proceso nació de una invitación con número de acta,
+                        // ese es el número: no se elige otro. Si no, solo los
+                        // números que no están ligados a otra invitación.
+                        const ligado = deSucursal.find((n: any) => n.proceso_id === proceso.id);
+                        const lista = ligado
+                          ? [ligado]
+                          : deSucursal.filter((n: any) => !n.cita_id && !n.proceso_id);
                         setNumerosPedidos(lista);
-                        if (lista.length === 1 && !esAdminSesion()) setNumeroActaId(String(lista[0].id));
+                        if ((ligado || lista.length === 1) && !esAdminSesion()) setNumeroActaId(String(lista[0].id));
+                        if (ligado) setNumeroActaId(String(ligado.id));
                       })
                       .catch(() => setNumerosPedidos([]));
                     setArchivoActaFinal(null);
@@ -1743,6 +1751,7 @@ export default function ProcesoDetallePage() {
               <select
                 className="input-field"
                 value={numeroActaId}
+                disabled={numerosPedidos.length === 1 && numerosPedidos[0].proceso_id === proceso.id}
                 onChange={(e) => setNumeroActaId(e.target.value)}
               >
                 {(numerosPedidos.length > 1 || esAdminSesion()) && (
@@ -1755,7 +1764,9 @@ export default function ProcesoDetallePage() {
                 ))}
               </select>
               <p className="text-xs text-numa-700 mt-1">
-                Debe ser el mismo número que escribiste en el acta.
+                {numerosPedidos.length === 1 && numerosPedidos[0].proceso_id === proceso.id
+                  ? 'Este número se pidió desde la invitación que dio origen al proceso.'
+                  : 'Debe ser el mismo número que escribiste en el acta.'}
               </p>
             </div>
           )}

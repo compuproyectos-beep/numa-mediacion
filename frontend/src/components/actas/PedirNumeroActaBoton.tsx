@@ -5,22 +5,34 @@ import { Hash, Copy, Check } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ui';
 import { pedirNumeroActa } from '@/lib/services';
 
-// Botón para pedir el número de acta sin salir de la pantalla donde se está
-// (por ejemplo, desde una invitación de la Agenda). Es el mismo número y las
-// mismas reglas que en "Actas finales".
-export default function PedirNumeroActaBoton() {
+// Pide el número de acta de UNA invitación rápida, sin salir de la Agenda.
+// El número queda ligado a la invitación: si ya lo tiene, se muestra ese
+// (nunca se pide otro) y, al crear el proceso, pasa a él automáticamente.
+export default function PedirNumeroActaBoton({
+  citaId,
+  numero,
+  onPedido,
+}: {
+  citaId: number;
+  numero?: { codigo?: string | null; estado?: string | null } | null;
+  onPedido?: () => void;
+}) {
   const [confirmando, setConfirmando] = useState(false);
   const [pidiendo, setPidiendo] = useState(false);
-  const [codigo, setCodigo] = useState('');
+  const [pedido, setPedido] = useState('');
   const [error, setError] = useState('');
   const [copiado, setCopiado] = useState(false);
+
+  const codigo = numero?.codigo || pedido;
+  const anulado = numero?.estado === 'anulado';
 
   const pedir = async () => {
     setPidiendo(true);
     setError('');
     try {
-      const r = await pedirNumeroActa();
-      setCodigo(r.codigo);
+      const r = await pedirNumeroActa(citaId);
+      setPedido(r.codigo);
+      onPedido?.();
     } catch (e: any) {
       setError(e?.response?.data?.detail || 'No se pudo pedir el número de acta');
     } finally {
@@ -39,6 +51,40 @@ export default function PedirNumeroActaBoton() {
     }
   };
 
+  if (codigo) {
+    return (
+      <div className="w-full rounded-md border border-numa-300 border-l-4 border-l-gold-500 bg-white px-4 py-3">
+        <p className="text-sm font-semibold text-numa-900 flex items-center gap-2 flex-wrap">
+          <Hash className="w-4 h-4 text-gold-600" aria-hidden="true" />
+          Número de acta de esta invitación:
+          <span className="font-mono text-base font-bold">{codigo}</span>
+          {!anulado && (
+            <button
+              type="button"
+              onClick={copiar}
+              className="btn-secondary btn-sm"
+            >
+              {copiado ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              {copiado ? 'Copiado' : 'Copiar'}
+            </button>
+          )}
+        </p>
+        {anulado ? (
+          <p className="text-sm text-red-700 mt-1.5">
+            El administrador anuló este número. Solo el administrador puede reactivarlo para que
+            continúes con esta acta con el mismo número.
+          </p>
+        ) : (
+          <ol className="text-sm text-numa-800 mt-1.5 list-decimal pl-5 space-y-0.5">
+            <li>Redacta el acta con este número.</li>
+            <li>Cuando la reunión continúe, pulsa «Crear el proceso»: el número pasa solo al proceso.</li>
+            <li>Dentro del proceso, sube los documentos del acta.</li>
+          </ol>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
       <button
@@ -51,20 +97,7 @@ export default function PedirNumeroActaBoton() {
         Pedir número de acta
       </button>
 
-      {codigo && (
-        <p className="mt-2 text-sm text-numa-700 flex items-center gap-2 flex-wrap">
-          Tu número de acta: <span className="font-mono font-semibold">{codigo}</span>
-          <button
-            type="button"
-            onClick={copiar}
-            className="inline-flex items-center gap-1 text-xs text-gold-600 hover:text-gold-700"
-          >
-            {copiado ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-            {copiado ? 'Copiado' : 'Copiar'}
-          </button>
-        </p>
-      )}
-      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
 
       <ConfirmDialog
         open={confirmando}
@@ -72,7 +105,7 @@ export default function PedirNumeroActaBoton() {
         onConfirm={pedir}
         loading={pidiendo}
         confirmLabel="Pedir número"
-        message="¿Pedir un número de acta ahora?"
+        message="¿Pedir el número de acta de esta invitación? Quedará ligado a ella: no se podrá pedir otro para la misma invitación y tendrás 48 horas para completar el acta."
       />
     </div>
   );

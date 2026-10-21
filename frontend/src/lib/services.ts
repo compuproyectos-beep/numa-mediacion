@@ -993,8 +993,17 @@ export async function getMiNumeroActa(): Promise<any> {
   return res.data;
 }
 
-export async function pedirNumeroActa(): Promise<any> {
-  const res = await api.post('/numeros-acta');
+// Con citaId, el número queda ligado a esa invitación rápida.
+export async function pedirNumeroActa(citaId?: number): Promise<any> {
+  const res = await api.post('/numeros-acta', null, {
+    params: citaId ? { cita_id: citaId } : undefined,
+  });
+  return res.data;
+}
+
+// Solo administrador: devuelve un número anulado al mediador para que continúe con el mismo.
+export async function reactivarNumeroActa(id: number): Promise<any> {
+  const res = await api.post(`/numeros-acta/${id}/reactivar`);
   return res.data;
 }
 

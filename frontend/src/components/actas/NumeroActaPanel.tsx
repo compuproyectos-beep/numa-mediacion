@@ -7,7 +7,8 @@ import {
   getMiNumeroActa,
   pedirNumeroActa,
   getNumerosActaAdmin,
-  anularNumeroActa
+  anularNumeroActa,
+  reactivarNumeroActa
 } from '@/lib/services';
 
 // Las fechas vienen del servidor en UTC: se muestran en hora de Ecuador.
@@ -108,6 +109,11 @@ function PanelMediador({ version, onCambio }: { version: number; onCambio: () =>
               {reservados.map((r) => (
                 <li key={r.id} className="flex flex-wrap items-center gap-2">
                   <span className="font-mono text-lg font-bold text-numa-900">{r.codigo}</span>
+                  {(r.cita_id || r.proceso_id) && (
+                    <span className="badge bg-numa-100 text-numa-800 font-semibold">
+                      {r.proceso_id ? 'Ligado a un proceso' : 'Ligado a una invitación rápida'}
+                    </span>
+                  )}
                   <button
                     type="button"
                     className="btn-secondary btn-sm"
@@ -127,16 +133,24 @@ function PanelMediador({ version, onCambio }: { version: number; onCambio: () =>
 
           {estado.motivo && <p className="text-sm text-amber-700 mt-2">{estado.motivo}</p>}
 
+          {reservados.length > 0 && (
+            <p className="text-sm text-numa-800 mt-2">
+              Ya tienes {reservados.length === 1 ? 'un número pedido' : `${reservados.length} números pedidos`}.
+              Pide otro solo si tienes otra reunión. El número de una invitación rápida se pide desde la
+              Agenda, dentro de esa invitación, y queda ligado a ella.
+            </p>
+          )}
+
           <button
             type="button"
-            className="btn-primary btn-sm mt-2 disabled:opacity-50"
+            className={`${reservados.length > 0 ? 'btn-secondary' : 'btn-primary'} btn-sm mt-2 disabled:opacity-50`}
             disabled={!estado.puede_pedir || pidiendo}
             onClick={() => {
               setError('');
               setConfirmando(true);
             }}
           >
-            Pedir número de acta
+            {reservados.length > 0 ? 'Pedir otro número' : 'Pedir número de acta'}
           </button>
 
           {estado.recientes?.length > 0 && (
@@ -168,6 +182,24 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
   const [verAnulados, setVerAnulados] = useState(false);
+  const [reactivar, setReactivar] = useState<any | null>(null);
+  const [reactivando, setReactivando] = useState(false);
+
+  const confirmarReactivar = async () => {
+    if (!reactivar) return;
+    setReactivando(true);
+    setError('');
+    try {
+      await reactivarNumeroActa(reactivar.id);
+      setReactivar(null);
+      onCambio();
+    } catch (e: any) {
+      setReactivar(null);
+      setError(e?.response?.data?.detail || 'No se pudo reactivar el número');
+    } finally {
+      setReactivando(false);
+    }
+  };
 
   const cargar = () =>
     getNumerosActaAdmin().then(setDatos).catch(() => setDatos(null));
@@ -208,6 +240,12 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
         </p>
       </div>
 
+      {error && !anular && (
+        <div className="mb-2">
+          <ErrorAlert message={error} />
+        </div>
+      )}
+
       {datos.pendientes.length === 0 ? (
         <p className="text-sm text-slate-700">Ningún mediador tiene un número pendiente.</p>
       ) : (
@@ -226,7 +264,14 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
             <tbody>
               {datos.pendientes.map((n) => (
                 <tr key={n.id} className="border-t border-slate-100">
-                  <td className="py-1.5 pr-3 font-mono font-semibold">{n.codigo}</td>
+                  <td className="py-1.5 pr-3 font-mono font-semibold">
+                    {n.codigo}
+                    {(n.cita_id || n.proceso_id) && (
+                      <span className="block font-sans text-xs font-normal text-numa-700">
+                        {n.proceso_id ? 'Ligado a un proceso' : 'Ligado a una invitación rápida'}
+                      </span>
+                    )}
+                  </td>
                   <td className="py-1.5 pr-3">{n.mediador}</td>
                   <td className="py-1.5 pr-3">
                     {n.ciudad} · {n.sucursal}
@@ -263,11 +308,23 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
             {verAnulados ? 'Ocultar' : 'Ver'} números anulados ({datos.anulados.length})
           </button>
           {verAnulados && (
-            <ul className="mt-1 text-sm text-slate-600 space-y-0.5">
+            <ul className="mt-1 text-sm text-slate-700 space-y-1.5">
               {datos.anulados.map((n) => (
-                <li key={n.id}>
-                  <span className="font-mono">{n.codigo}</span> · {n.mediador} ·{' '}
-                  {fechaEC(n.fecha_anulacion)} · {n.motivo_anulacion}
+                <li key={n.id} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span>
+                    <span className="font-mono">{n.codigo}</span> · {n.mediador} ·{' '}
+                    {fechaEC(n.fecha_anulacion)} · {n.motivo_anulacion}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-secondary btn-sm"
+                    onClick={() => {
+                      setError('');
+                      setReactivar(n);
+                    }}
+                  >
+                    Reactivar
+                  </button>
                 </li>
               ))}
             </ul>
@@ -275,13 +332,24 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
         </div>
       )}
 
+      <ConfirmDialog
+        open={!!reactivar}
+        onClose={() => setReactivar(null)}
+        onConfirm={confirmarReactivar}
+        loading={reactivando}
+        confirmLabel="Sí, reactivar"
+        message={`¿Reactivar el número ${reactivar?.codigo ?? ''}? Vuelve a ${reactivar?.mediador ?? 'el mediador'} como número pedido, con un plazo nuevo de 48 horas para completar esa acta.`}
+      />
+
       <Modal
         open={!!anular}
         onClose={() => setAnular(null)}
         title={`Anular número ${anular?.codigo ?? ''}`}
       >
-        <p className="text-sm text-slate-600 mb-3">
-          El número queda anulado y no se vuelve a entregar. {anular?.mediador} podrá pedir otro.
+        <p className="text-sm text-slate-700 mb-3">
+          {anular?.cita_id || anular?.proceso_id
+            ? `El número está ligado a ${anular?.proceso_id ? 'un proceso' : 'una invitación'}: ${anular?.mediador} no podrá pedir otro para esa acta. Más adelante puedes reactivarlo para que continúe con el mismo número.`
+            : `El número queda anulado y no se vuelve a entregar. ${anular?.mediador} podrá pedir otro.`}
         </p>
         {error && (
           <div className="mb-3">

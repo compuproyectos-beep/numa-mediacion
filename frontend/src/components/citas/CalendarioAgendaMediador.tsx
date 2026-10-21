@@ -936,7 +936,11 @@ export default function CalendarioAgendaMediador({
                       </div>
                       {usuarioActual?.id === citaActiva.usuario_id && (
                         <div className="mt-3">
-                          <PedirNumeroActaBoton />
+                          <PedirNumeroActaBoton
+                            citaId={citaActiva.id}
+                            numero={{ codigo: citaActiva.numero_acta_codigo, estado: citaActiva.numero_acta_estado }}
+                            onPedido={() => cargarCitas()}
+                          />
                         </div>
                       )}
                     </>
@@ -1236,6 +1240,12 @@ export default function CalendarioAgendaMediador({
           La invitación quedará como realizada y se cerrará sin crear proceso de mediación ni acta.
           Si la reunión continúa, usa «Crear el proceso». Esta acción no se puede deshacer.
         </p>
+        {citaActiva?.numero_acta_codigo && (
+          <p className="text-sm text-numa-800 mb-4">
+            Esta invitación tiene el número de acta {citaActiva.numero_acta_codigo}. Si cierras sin
+            proceso, ese número quedará pedido: pide al administrador que lo anule si ya no se usará.
+          </p>
+        )}
 
         <TextareaField
           label="Observación (opcional)"
