@@ -3919,6 +3919,16 @@ def _supabase_config():
         raise HTTPException(status_code=500, detail="Supabase no está configurado en el backend")
     return url.rstrip("/"), key, bucket
 
+
+def _sb_auth(key):
+    """Cabecera Authorization para Supabase. Las claves JWT antiguas (service_role)
+    se envian tambien como Bearer; las claves nuevas (sb_secret_...) no son JWT
+    y solo van en la cabecera apikey."""
+    if key and str(key).startswith("eyJ"):
+        return {"Authorization": f"Bearer {key}"}
+    return {}
+
+
 # =========================
 # PARTES DEL PROCESO (varios solicitantes / invitados)
 # =========================
@@ -5549,7 +5559,7 @@ async def subir_acta_final_proceso(
                 f"{SUPABASE_BUCKET}/{ruta_encoded}"
             )
             headers = {
-                "Authorization": f"Bearer {SUPABASE_KEY}",
+                **_sb_auth(SUPABASE_KEY),
                 "apikey": SUPABASE_KEY,
                 "Content-Type": content_type,
                 "x-upsert": "true",
@@ -5801,7 +5811,7 @@ async def subir_acta_firmada(
         resp = requests.post(
             f"{base_url}/storage/v1/object/{bucket}/{quote(ruta, safe='/')}",
             headers={
-                "Authorization": f"Bearer {key}",
+                **_sb_auth(key),
                 "apikey": key,
                 "Content-Type": "application/pdf",
                 "x-upsert": "true",
@@ -5830,7 +5840,7 @@ async def subir_acta_firmada(
             resp_c = requests.post(
                 f"{base_url}/storage/v1/object/{bucket}/{quote(ruta_c, safe='/')}",
                 headers={
-                    "Authorization": f"Bearer {key}",
+                    **_sb_auth(key),
                     "apikey": key,
                     "Content-Type": ct_c,
                     "x-upsert": "true",
@@ -5914,7 +5924,7 @@ def ver_acta_firmada(proceso_id: int, usuario=Depends(obtener_usuario_actual)):
         base_url, key, bucket = _supabase_config()
         resp = requests.get(
             f"{base_url}/storage/v1/object/{bucket}/{quote(p['acta_firmada_ruta'], safe='/')}",
-            headers={"Authorization": f"Bearer {key}", "apikey": key}
+            headers={**_sb_auth(key), "apikey": key}
         )
         if resp.status_code != 200:
             raise HTTPException(status_code=404, detail="PDF no encontrado en Storage")
@@ -6021,7 +6031,7 @@ async def subir_factura_proceso(
         resp = requests.post(
             f"{base_url}/storage/v1/object/{bucket}/{quote(ruta, safe='/')}",
             headers={
-                "Authorization": f"Bearer {key}",
+                **_sb_auth(key),
                 "apikey": key,
                 "Content-Type": "application/pdf",
                 "x-upsert": "true",
@@ -6088,7 +6098,7 @@ def ver_factura_proceso(proceso_id: int, factura_id: int, usuario=Depends(obtene
         base_url, key, bucket = _supabase_config()
         resp = requests.get(
             f"{base_url}/storage/v1/object/{bucket}/{quote(f['ruta'], safe='/')}",
-            headers={"Authorization": f"Bearer {key}", "apikey": key}
+            headers={**_sb_auth(key), "apikey": key}
         )
         if resp.status_code != 200:
             raise HTTPException(status_code=404, detail="PDF no encontrado en Storage")
@@ -6732,7 +6742,7 @@ def ver_comprobante_pago_final(proceso_id: int, usuario=Depends(obtener_usuario_
         base_url, key, bucket = _supabase_config()
         resp = requests.get(
             f"{base_url}/storage/v1/object/{bucket}/{quote(c['ruta'], safe='/')}",
-            headers={"Authorization": f"Bearer {key}", "apikey": key}
+            headers={**_sb_auth(key), "apikey": key}
         )
         if resp.status_code != 200:
             raise HTTPException(status_code=404, detail="Comprobante no encontrado en Storage")
@@ -7575,7 +7585,7 @@ def ver_pdf_acta_final(
         )
 
         headers = {
-            "Authorization": f"Bearer {SUPABASE_KEY}",
+            **_sb_auth(SUPABASE_KEY),
             "apikey": SUPABASE_KEY,
         }
 
@@ -7650,7 +7660,7 @@ def ver_comprobante_pago_acta_final(
         )
 
         headers = {
-            "Authorization": f"Bearer {SUPABASE_KEY}",
+            **_sb_auth(SUPABASE_KEY),
             "apikey": SUPABASE_KEY,
         }
 
@@ -7756,7 +7766,7 @@ async def reemplazar_acta_final_pdf(
         )
 
         headers = {
-            "Authorization": f"Bearer {SUPABASE_KEY}",
+            **_sb_auth(SUPABASE_KEY),
             "apikey": SUPABASE_KEY,
             "Content-Type": "application/pdf",
             "x-upsert": "true",
@@ -8016,7 +8026,7 @@ def exportar_pdfs_actas_finales(
         tmp.close()
 
         headers = {
-            "Authorization": f"Bearer {SUPABASE_KEY}",
+            **_sb_auth(SUPABASE_KEY),
             "apikey": SUPABASE_KEY,
         }
 
@@ -9375,7 +9385,7 @@ def obtener_uso_almacenamiento(usuario=Depends(obtener_usuario_actual)):
         )
 
     headers = {
-        "Authorization": f"Bearer {SUPABASE_KEY}",
+        **_sb_auth(SUPABASE_KEY),
         "apikey": SUPABASE_KEY,
     }
 
