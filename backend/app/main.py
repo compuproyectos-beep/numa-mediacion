@@ -3213,9 +3213,9 @@ def obtener_citas(
                 ci.nombre AS ciudad,
                 ci.provincia AS provincia,
                 u.nombre || ' ' || u.apellido AS mediador,
-                cd.cedula AS demandante_cedula,
+                COALESCE(NULLIF(cd.cedula, ''), cd.ruc) AS demandante_cedula,
                 cd.nombre || ' ' || cd.apellido AS demandante,
-                cdd.cedula AS demandado_cedula,
+                COALESCE(NULLIF(cdd.cedula, ''), cdd.ruc) AS demandado_cedula,
                 cdd.nombre || ' ' || cdd.apellido AS demandado
             FROM citas c
             LEFT JOIN actas a ON c.acta_id = a.id
@@ -3789,9 +3789,9 @@ def obtener_procesos_mediacion(
                   WHERE c.proceso_id = p.id AND c.estado = 'pendiente'
                   ORDER BY c.fecha, c.hora LIMIT 1) AS proxima_cita_hora,
                 cd.nombre || ' ' || cd.apellido AS demandante,
-                cd.cedula AS demandante_cedula,
+                COALESCE(NULLIF(cd.cedula, ''), cd.ruc) AS demandante_cedula,
                 cdd.nombre || ' ' || cdd.apellido AS demandado,
-                cdd.cedula AS demandado_cedula,
+                COALESCE(NULLIF(cdd.cedula, ''), cdd.ruc) AS demandado_cedula,
                 ARRAY(SELECT pp.cliente_id FROM proceso_partes pp
                       WHERE pp.proceso_id = p.id) AS partes_ids,
                 (SELECT COUNT(*) FROM proceso_partes pp
