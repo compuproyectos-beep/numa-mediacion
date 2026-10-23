@@ -6324,6 +6324,51 @@ def _numeros_pendientes_de(cur, usuario_id):
     return cur.fetchall()
 
 
+def _nombre_parte_rapida(x):
+    if not isinstance(x, dict):
+        return ""
+    if x.get("tipo") == "empresa":
+        return x.get("razon_social") or ""
+    return x.get("nombre") or ""
+
+
+def _enriquecer_numeros(cur, filas):
+    """Agrega a cada número a qué está ligado: el proceso (código y partes) o
+    la invitación rápida (fecha y partes). Para mostrarlo en las listas."""
+    for f in filas:
+        f["ligado_a"] = None
+        f["proceso_codigo"] = None
+        f["ligado_detalle"] = None
+        if f.get("proceso_id"):
+            cur.execute("""
+                SELECT p.codigo_proceso,
+                       trim(COALESCE(cd.nombre, '') || ' ' || COALESCE(cd.apellido, '')) AS sol,
+                       trim(COALESCE(cdd.nombre, '') || ' ' || COALESCE(cdd.apellido, '')) AS inv
+                FROM procesos_mediacion p
+                LEFT JOIN clientes cd ON cd.id = p.cliente_demandante_id
+                LEFT JOIN clientes cdd ON cdd.id = p.cliente_demandado_id
+                WHERE p.id = %s
+            """, (f["proceso_id"],))
+            r = cur.fetchone()
+            if r:
+                f["ligado_a"] = "proceso"
+                f["proceso_codigo"] = r["codigo_proceso"]
+                f["ligado_detalle"] = f"{r['sol']} y {r['inv']}".strip()
+        elif f.get("cita_id"):
+            cur.execute("SELECT fecha, hora, partes_rapidas FROM citas WHERE id = %s", (f["cita_id"],))
+            r = cur.fetchone()
+            if r:
+                pr = r["partes_rapidas"] or {}
+                sol = (pr.get("solicitantes") or [None])[0]
+                inv = (pr.get("invitados") or [None])[0]
+                f["ligado_a"] = "invitacion"
+                f["ligado_detalle"] = (
+                    f"{_nombre_parte_rapida(sol)} y {_nombre_parte_rapida(inv)}".strip()
+                    + f" · {r['fecha'].strftime('%d/%m/%Y')} {str(r['hora'])[:5]}"
+                )
+    return filas
+
+
 def _motivo_no_puede_pedir_numero(cur, usuario):
     """Regla de las 48 horas: tener números o actas pendientes NO bloquea
     mientras no pasen 48 horas (puede haber varias reuniones el mismo día).
@@ -6358,19 +6403,29 @@ def mi_numero_acta(usuario=Depends(obtener_usuario_actual)):
     cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
         es_admin = usuario["rol"] == "administrador"
-        reservados = _numeros_pendientes_de(cur, usuario["id"])
+        reservados = _enriquecer_numeros(cur, _numeros_pendientes_de(cur, usuario["id"]))
         motivo = None if es_admin else _motivo_no_puede_pedir_numero(cur, usuario)
         cur.execute("""
-            SELECT codigo, estado, fecha_solicitud, motivo_anulacion
+            SELECT id, codigo, estado, fecha_solicitud, fecha_anulacion, motivo_anulacion,
+                   cita_id, proceso_id
             FROM numeros_acta WHERE usuario_id = %s AND estado = 'anulado'
-            ORDER BY fecha_anulacion DESC NULLS LAST, id DESC LIMIT 5
+            ORDER BY fecha_anulacion DESC NULLS LAST, id DESC LIMIT 20
         """, (usuario["id"],))
+        anulados = _enriquecer_numeros(cur, cur.fetchall())
+        cur.execute("""
+            SELECT id, codigo, estado, fecha_solicitud, fecha_uso, cita_id, proceso_id
+            FROM numeros_acta WHERE usuario_id = %s AND estado = 'usado'
+            ORDER BY fecha_uso DESC NULLS LAST, id DESC LIMIT 10
+        """, (usuario["id"],))
+        usados = _enriquecer_numeros(cur, cur.fetchall())
         return {
             "es_admin": es_admin,
             "reservados": reservados,
             "puede_pedir": motivo is None,
             "motivo": motivo,
-            "recientes": cur.fetchall(),
+            "recientes": anulados[:5],
+            "anulados": anulados,
+            "usados": usados,
         }
     finally:
         cur.close()
@@ -6540,7 +6595,10 @@ def listar_numeros_acta(sucursal_id: int = None, usuario=Depends(obtener_usuario
         pendientes = cur.fetchall()
         cur.execute(base + "n.estado = 'anulado'" + filtro + " ORDER BY n.fecha_anulacion DESC LIMIT 30", {"s": sucursal_id})
         anulados = cur.fetchall()
-        return {"pendientes": pendientes, "anulados": anulados}
+        return {
+            "pendientes": _enriquecer_numeros(cur, pendientes),
+            "anulados": _enriquecer_numeros(cur, anulados),
+        }
     finally:
         cur.close()
         conn.close()

@@ -5,7 +5,6 @@ import { Hash, Copy, Check, Ban } from 'lucide-react';
 import { ConfirmDialog, ErrorAlert, Modal, TextareaField } from '@/components/ui';
 import {
   getMiNumeroActa,
-  pedirNumeroActa,
   getNumerosActaAdmin,
   anularNumeroActa,
   reactivarNumeroActa
@@ -42,12 +41,34 @@ export default function NumeroActaPanel({ esAdmin }: { esAdmin: boolean }) {
 }
 
 /* ───────────────────────── Mediador ───────────────────────── */
-function PanelMediador({ version, onCambio }: { version: number; onCambio: () => void }) {
+// A qué está ligado un número: el proceso (con enlace) o la invitación rápida.
+function Ligado({ n }: { n: any }) {
+  if (n.ligado_a === 'proceso') {
+    return (
+      <span className="text-sm text-numa-800">
+        Proceso{' '}
+        <a href={`/procesos/${n.proceso_id}`} className="underline font-semibold">
+          {n.proceso_codigo}
+        </a>
+        {n.ligado_detalle ? ` · ${n.ligado_detalle}` : ''}
+      </span>
+    );
+  }
+  if (n.ligado_a === 'invitacion') {
+    return (
+      <span className="text-sm text-numa-800">
+        Invitación rápida · {n.ligado_detalle}
+      </span>
+    );
+  }
+  return <span className="text-sm text-slate-600">Sin proceso ni invitación</span>;
+}
+
+function PanelMediador({ version }: { version: number; onCambio: () => void }) {
   const [estado, setEstado] = useState<any | null>(null);
-  const [pidiendo, setPidiendo] = useState(false);
-  const [confirmando, setConfirmando] = useState(false);
-  const [error, setError] = useState('');
   const [copiado, setCopiado] = useState<number | null>(null);
+  const [verAnulados, setVerAnulados] = useState(false);
+  const [verUsados, setVerUsados] = useState(false);
 
   const cargar = () =>
     getMiNumeroActa().then(setEstado).catch(() => setEstado(null));
@@ -55,21 +76,6 @@ function PanelMediador({ version, onCambio }: { version: number; onCambio: () =>
   useEffect(() => {
     cargar();
   }, [version]);
-
-  const pedir = async () => {
-    setError('');
-    setPidiendo(true);
-    try {
-      await pedirNumeroActa();
-      setConfirmando(false);
-      onCambio();
-    } catch (e: any) {
-      setConfirmando(false);
-      setError(e?.response?.data?.detail || 'No se pudo pedir el número de acta');
-    } finally {
-      setPidiendo(false);
-    }
-  };
 
   const copiar = async (id: number, texto: string) => {
     try {
@@ -84,6 +90,8 @@ function PanelMediador({ version, onCambio }: { version: number; onCambio: () =>
   if (!estado) return null;
 
   const reservados: any[] = estado.reservados || [];
+  const anulados: any[] = estado.anulados || [];
+  const usados: any[] = estado.usados || [];
 
   return (
     <div className="card px-4 py-3 mb-3">
@@ -92,61 +100,99 @@ function PanelMediador({ version, onCambio }: { version: number; onCambio: () =>
           <Hash size={20} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-numa-900">Número de acta</p>
+          <p className="font-semibold text-numa-900">Mis números de acta</p>
           <p className="text-sm text-slate-600 mt-0.5">
             El número se asigna solo cuando cierras un proceso con acuerdo o con no acuerdo, o lo
             pides desde la Agenda en una invitación rápida. Tienes 48 horas para completar cada acta;
             pasado ese plazo, no podrás cerrar otros procesos con acta.
           </p>
 
-          {error && (
-            <div className="my-2">
-              <ErrorAlert message={error} />
-            </div>
-          )}
+          {estado.motivo && <p className="text-sm text-amber-700 mt-2">{estado.motivo}</p>}
 
-          {reservados.length > 0 && (
-            <ul className="mt-2 space-y-1.5">
+          <p className="text-sm font-semibold text-numa-900 mt-3">
+            Pendientes por completar ({reservados.length})
+          </p>
+          {reservados.length === 0 ? (
+            <p className="text-sm text-numa-800 mt-1">No tienes números de acta pendientes.</p>
+          ) : (
+            <ul className="mt-1 space-y-2">
               {reservados.map((r) => (
-                <li key={r.id} className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-lg font-bold text-numa-900">{r.codigo}</span>
-                  {(r.cita_id || r.proceso_id) && (
-                    <span className="badge bg-numa-100 text-numa-800 font-semibold">
-                      {r.proceso_id ? 'Ligado a un proceso' : 'Ligado a una invitación rápida'}
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    className="btn-secondary btn-sm"
-                    onClick={() => copiar(r.id, r.codigo)}
-                  >
-                    {copiado === r.id ? <Check size={14} /> : <Copy size={14} />}
-                    {copiado === r.id ? 'Copiado' : 'Copiar'}
-                  </button>
+                <li key={r.id} className="flex flex-col gap-0.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-lg font-bold text-numa-900">{r.codigo}</span>
+                    <button
+                      type="button"
+                      className="btn-secondary btn-sm"
+                      onClick={() => copiar(r.id, r.codigo)}
+                    >
+                      {copiado === r.id ? <Check size={14} /> : <Copy size={14} />}
+                      {copiado === r.id ? 'Copiado' : 'Copiar'}
+                    </button>
+                  </div>
+                  <Ligado n={r} />
                   <span className={`text-xs ${r.vencido ? 'text-red-600 font-semibold' : 'text-slate-700'}`}>
-                    Pedido el {fechaEC(r.fecha_solicitud)}
-                    {r.vencido ? ' · ya pasaron 48 horas, completa esta acta' : ` · plazo hasta ${fechaEC(r.vence_en)}`}
+                    Asignado el {fechaEC(r.fecha_solicitud)}
+                    {r.vencido
+                      ? ' · ya pasaron 48 horas, completa esta acta'
+                      : ` · plazo hasta ${fechaEC(r.vence_en)}`}
                   </span>
                 </li>
               ))}
             </ul>
           )}
 
-          {estado.motivo && <p className="text-sm text-amber-700 mt-2">{estado.motivo}</p>}
+          <div className="mt-3">
+            <button
+              type="button"
+              className="text-sm text-numa-800 underline"
+              onClick={() => setVerAnulados(!verAnulados)}
+            >
+              {verAnulados ? 'Ocultar' : 'Ver'} números anulados por el administrador ({anulados.length})
+            </button>
+            {verAnulados && (
+              <ul className="mt-2 space-y-2">
+                {anulados.length === 0 && (
+                  <li className="text-sm text-slate-700">No tienes números anulados.</li>
+                )}
+                {anulados.map((r) => (
+                  <li key={r.id} className="flex flex-col gap-0.5">
+                    <span className="font-mono font-bold text-numa-900">{r.codigo}</span>
+                    <Ligado n={r} />
+                    <span className="text-xs text-slate-700">
+                      Anulado el {fechaEC(r.fecha_anulacion)}
+                      {r.motivo_anulacion ? ` · Motivo: ${r.motivo_anulacion}` : ''}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
 
-          {reservados.length === 0 && (
-            <p className="text-sm text-numa-800 mt-2">No tienes números de acta pendientes.</p>
-          )}
-
-          {estado.recientes?.length > 0 && (
-            <p className="text-xs text-slate-700 mt-2">
-              Números anulados por el administrador:{' '}
-              {estado.recientes.map((r: any) => r.codigo).join(', ')}
-            </p>
-          )}
+          <div className="mt-2">
+            <button
+              type="button"
+              className="text-sm text-numa-800 underline"
+              onClick={() => setVerUsados(!verUsados)}
+            >
+              {verUsados ? 'Ocultar' : 'Ver'} mis últimas actas completas ({usados.length})
+            </button>
+            {verUsados && (
+              <ul className="mt-2 space-y-2">
+                {usados.length === 0 && (
+                  <li className="text-sm text-slate-700">Aún no tienes actas completas.</li>
+                )}
+                {usados.map((r) => (
+                  <li key={r.id} className="flex flex-col gap-0.5">
+                    <span className="font-mono font-bold text-numa-900">{r.codigo}</span>
+                    <Ligado n={r} />
+                    <span className="text-xs text-slate-700">Completada el {fechaEC(r.fecha_uso)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
-
     </div>
   );
 }
@@ -243,9 +289,19 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
                 <tr key={n.id} className="border-t border-slate-100">
                   <td className="py-1.5 pr-3 font-mono font-semibold">
                     {n.codigo}
-                    {(n.cita_id || n.proceso_id) && (
+                    {n.ligado_a && (
                       <span className="block font-sans text-xs font-normal text-numa-700">
-                        {n.proceso_id ? 'Ligado a un proceso' : 'Ligado a una invitación rápida'}
+                        {n.ligado_a === 'proceso' ? (
+                          <>
+                            Proceso{' '}
+                            <a href={`/procesos/${n.proceso_id}`} className="underline font-semibold">
+                              {n.proceso_codigo}
+                            </a>
+                          </>
+                        ) : (
+                          'Invitación rápida'
+                        )}
+                        {n.ligado_detalle ? ` · ${n.ligado_detalle}` : ''}
                       </span>
                     )}
                   </td>
@@ -254,7 +310,10 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
                     {n.ciudad} · {n.sucursal}
                   </td>
                   <td className="py-1.5 pr-3">{fechaEC(n.fecha_solicitud)}</td>
-                  <td className="py-1.5 pr-3">{n.dias ?? 0}</td>
+                  <td className={`py-1.5 pr-3 ${(n.dias ?? 0) >= 2 ? 'text-red-600 font-semibold' : ''}`}>
+                    {n.dias ?? 0}
+                    {(n.dias ?? 0) >= 2 ? ' · vencido' : ''}
+                  </td>
                   <td className="py-1.5 text-right">
                     <button
                       type="button"
