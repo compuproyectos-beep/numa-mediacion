@@ -201,8 +201,8 @@ export default function FacturacionProceso({ procesoId, editable, onEstado, fina
     if (t === 'ruc' && num.length !== 13) return setError('El RUC debe tener 13 dígitos');
     const eId = errorIdentificacion(t, num);
     if (eId) return setError(eId);
-    if ((form.nombre || '').trim().length < 3) return setError('El nombre o razón social debe tener al menos 3 letras');
-    if ((form.direccion || '').trim().length < 5) return setError('La dirección debe tener al menos 5 caracteres');
+    if (!(form.nombre || '').trim()) return setError('Escribe el nombre o razón social');
+    if ((form.direccion || '').trim().length < 3) return setError('La dirección debe tener al menos 3 caracteres');
     if (!correoValido(form.email || '')) return setError('Escribe un correo válido');
     if (form.telefono && !/^\d{7,10}$/.test(form.telefono))
       return setError('El teléfono debe tener entre 7 y 10 dígitos');
@@ -331,7 +331,7 @@ export default function FacturacionProceso({ procesoId, editable, onEstado, fina
                 onChange={(e) => cambiar('nombre', e.target.value)}
               />
               <InputField
-                label="Dirección (mínimo 5 caracteres)"
+                label="Dirección (puede ser solo la ciudad)"
                 value={form.direccion}
                 onChange={(e) => cambiar('direccion', e.target.value)}
               />
