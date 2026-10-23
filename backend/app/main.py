@@ -5622,11 +5622,11 @@ async def subir_acta_final_proceso(
             codigo_acta = numero_reservado["codigo"]
             numero_id = numero_reservado["id"]
         else:
-            nuevo_numero = _reservar_numero_acta(
-                cur, proceso["sucursal_id"], usuario["id"], proceso_id=proceso_id, estado="usado"
+            # Ya no se asigna número solo: debe pedirse antes en el proceso.
+            raise HTTPException(
+                status_code=400,
+                detail="Primero pide el número de acta de este proceso (botón «Pedir número de acta»)."
             )
-            codigo_acta = nuevo_numero["codigo"]
-            numero_id = nuevo_numero["id"]
 
         nombre_unico_acta = f"{uuid.uuid4()}.pdf"
         ruta_storage = f"actas-finales/{codigo_acta}/{nombre_unico_acta}"
