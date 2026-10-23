@@ -721,6 +721,7 @@ export default function CalendarioAgendaMediador({
         <div ref={panelRef} className="mt-5 border-t-2 border-numa-300 pt-5 scroll-mt-24">
           <div className="flex items-start justify-between mb-4">
             <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-numa-600">Fecha y hora de la reunión</p>
               <p className="text-lg font-bold text-numa-900">
                 {etiquetaFecha(citaActiva.fecha)} — {citaActiva.hora?.slice(0, 5)}
               </p>
@@ -740,9 +741,9 @@ export default function CalendarioAgendaMediador({
                   </span>
                 )}
               </p>
-              {citaActiva.fecha_creacion && !(citaActiva.partes_rapidas && !citaActiva.proceso_id && citaActiva.estado === 'pendiente') && (
+              {citaActiva.fecha_creacion && (
                 <p className="text-sm text-numa-700 mt-1">
-                  Creada el{' '}
+                  Invitación creada el{' '}
                   <span className="font-bold text-numa-900">{fechaCreacionEC(citaActiva.fecha_creacion)}</span>
                   {citaActiva.creado_por && (
                     <>
