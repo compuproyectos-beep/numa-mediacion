@@ -83,6 +83,18 @@ const citaEstaAtrasada = (cita: any) => {
   return !isNaN(momento.getTime()) && momento.getTime() < Date.now();
 };
 
+// Fecha en letras (ej. "lunes, 26 de octubre de 2026") a partir de "AAAA-MM-DD".
+function fechaLargaEC(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('es-EC', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
 export default function ProcesoDetallePage() {
   const params = useParams();
   const router = useRouter();
@@ -701,9 +713,10 @@ export default function ProcesoDetallePage() {
     }
 
     if (citaPendiente) {
-      const fechaCita = String(citaPendiente.fecha || '').slice(0, 10);
+      const fechaCitaIso = String(citaPendiente.fecha || '').slice(0, 10);
+      const fechaCita = fechaLargaEC(fechaCitaIso);
       const horaCita = String(citaPendiente.hora || '').slice(0, 5);
-      const fechaHoraCita = new Date(`${fechaCita}T${horaCita || '00:00'}:00`);
+      const fechaHoraCita = new Date(`${fechaCitaIso}T${horaCita || '00:00'}:00`);
       const yaPaso = !isNaN(fechaHoraCita.getTime()) && fechaHoraCita.getTime() < Date.now();
 
       return yaPaso
@@ -1490,7 +1503,7 @@ export default function ProcesoDetallePage() {
               </h3>
               <p className="text-xs text-numa-700">
                 Se habilita cuando llegue la hora de la reunión (
-                {String(citaPendiente.fecha || '').slice(0, 10)} a las{' '}
+                {fechaLargaEC(String(citaPendiente.fecha || '').slice(0, 10))} a las{' '}
                 {String(citaPendiente.hora || '').slice(0, 5)}). Mientras tanto puedes cancelarla
                 desde el calendario.
               </p>

@@ -9,10 +9,10 @@ import { isAdmin } from '@/lib/auth';
 // Colores del badge por tipo de acción — para que sea fácil detectar de un
 // vistazo lo negativo (login fallido, desactivaciones) de lo neutral.
 function claseAccion(accion: string): string {
-  if (accion === 'login_fallido' || accion.includes('desactivad') || accion.includes('anulad')) {
+  if (accion === 'login_fallido' || accion.includes('desactivad') || accion.includes('anula') || accion.includes('suspendid')) {
     return 'bg-red-50 text-red-700 border-red-200';
   }
-  if (accion.includes('creado') || accion.includes('creada') || accion.includes('activad')) {
+  if (accion.includes('creado') || accion.includes('creada') || accion.includes('activad') || accion.includes('reactiva')) {
     return 'bg-green-50 text-green-700 border-green-200';
   }
   return 'bg-numa-100 text-numa-600 border-numa-200';
@@ -32,6 +32,20 @@ function etiquetaAccion(accion: string): string {
     sucursal_activada: 'Sucursal activada',
     sucursal_desactivada: 'Sucursal desactivada',
     proceso_anulado: 'Proceso anulado',
+    pedir_numero_acta: 'Número de acta pedido',
+    anular_numero_acta: 'Número de acta anulado',
+    reactivar_numero_acta: 'Número de acta reactivado',
+    acta_firmada_subida: 'Acta firmada subida',
+    acta_no_acuerdo_solicitada: 'Acta de no acuerdo pedida',
+    acuerdo_corregido: 'Acuerdo corregido',
+    guardar_facturacion: 'Facturación guardada',
+    factura_subida: 'Factura subida',
+    factura_reemplazada: 'Factura reemplazada',
+    proceso_suspendido: 'Proceso suspendido',
+    proceso_reactivado: 'Proceso reactivado',
+    proceso_parte_agregada: 'Parte agregada al proceso',
+    proceso_parte_quitada: 'Parte quitada del proceso',
+    proceso_responsable_cambiado: 'Responsable cambiado',
   };
   return etiquetas[accion] || accion;
 }
@@ -111,6 +125,20 @@ export default function AuditoriaPage() {
               <option value="sucursal_activada">Sucursal activada</option>
               <option value="sucursal_desactivada">Sucursal desactivada</option>
               <option value="proceso_anulado">Proceso anulado</option>
+              <option value="pedir_numero_acta">Número de acta pedido</option>
+              <option value="anular_numero_acta">Número de acta anulado</option>
+              <option value="reactivar_numero_acta">Número de acta reactivado</option>
+              <option value="acta_firmada_subida">Acta firmada subida</option>
+              <option value="acta_no_acuerdo_solicitada">Acta de no acuerdo pedida</option>
+              <option value="acuerdo_corregido">Acuerdo corregido</option>
+              <option value="guardar_facturacion">Facturación guardada</option>
+              <option value="factura_subida">Factura subida</option>
+              <option value="factura_reemplazada">Factura reemplazada</option>
+              <option value="proceso_suspendido">Proceso suspendido</option>
+              <option value="proceso_reactivado">Proceso reactivado</option>
+              <option value="proceso_parte_agregada">Parte agregada al proceso</option>
+              <option value="proceso_parte_quitada">Parte quitada del proceso</option>
+              <option value="proceso_responsable_cambiado">Responsable cambiado</option>
             </select>
           </div>
 
