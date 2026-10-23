@@ -522,7 +522,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
       <Modal
         open={showCorregir}
         onClose={() => setShowCorregir(false)}
-        title={`Corregir acuerdo — ${proceso.codigo_proceso}`}
+        title={`Corregir acuerdo — ${proceso.numero_acta_codigo || proceso.codigo_proceso}`}
         size="lg"
       >
         {error && (
