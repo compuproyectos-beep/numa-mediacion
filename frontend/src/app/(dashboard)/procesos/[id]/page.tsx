@@ -99,6 +99,11 @@ function fechaLargaEC(iso: string): string {
 export default function ProcesoDetallePage() {
   const params = useParams();
   const router = useRouter();
+  // "Volver" regresa a la pantalla de donde vino la persona (Actas finales, Agenda, etc.); si no hay historial, va a Procesos.
+  const volverAtras = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
+    else router.push('/procesos');
+  };
   const procesoId = Number(params.id);
 
   const [proceso, setProceso] = useState<any | null>(null);
@@ -834,9 +839,9 @@ export default function ProcesoDetallePage() {
   if (!proceso) {
     return (
       <>
-        <button onClick={() => router.push('/procesos')} className="btn-ghost text-sm mb-4">
+        <button onClick={volverAtras} className="btn-ghost text-sm mb-4">
           <ArrowLeft className="w-4 h-4" />
-          Volver a Procesos
+          Volver
         </button>
 
         <EmptyState message="Proceso no encontrado." />
@@ -846,9 +851,9 @@ export default function ProcesoDetallePage() {
 
   return (
     <>
-      <button onClick={() => router.push('/procesos')} className="btn-ghost text-sm mb-4 -ml-2">
+      <button onClick={volverAtras} className="btn-ghost text-sm mb-4 -ml-2">
         <ArrowLeft className="w-4 h-4" />
-        Volver a Procesos
+        Volver
       </button>
 
       {/* En celular el título y los botones van uno debajo del otro (para que el
