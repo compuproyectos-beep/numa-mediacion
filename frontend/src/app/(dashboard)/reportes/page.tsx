@@ -70,7 +70,6 @@ const formatoFecha = (v: any) => {
 };
 
 const TIPOS: { valor: TipoReporte; titulo: string; adminOnly?: boolean; soloSecretaria?: boolean }[] = [
-  { valor: 'agenda', titulo: 'Agenda de invitaciones', soloSecretaria: true },
   { valor: 'actas', titulo: 'Actas finales' },
   { valor: 'procesos', titulo: 'Procesos' },
   { valor: 'sin-avance', titulo: 'Procesos sin avance' },
@@ -136,10 +135,10 @@ export default function ReportesPage() {
   // demás reportes son información de administración.
   const esSecretaria = getUser()?.rol === 'secretaria';
   const tiposVisibles = esSecretaria
-    ? TIPOS.filter((t) => t.valor === 'agenda' || t.valor === 'clientes')
+    ? TIPOS.filter((t) => t.valor === 'clientes')
     : TIPOS.filter((t) => (!t.adminOnly || admin) && !t.soloSecretaria);
 
-  const [tipo, setTipo] = useState<TipoReporte>(esSecretaria ? 'agenda' : 'actas');
+  const [tipo, setTipo] = useState<TipoReporte>(esSecretaria ? 'clientes' : 'actas');
   const [diasMinimo, setDiasMinimo] = useState('7');
   // Filtro local de la lista de Actas finales: todas, solo de acuerdo o solo de no acuerdo.
   const [filtroTipoActa, setFiltroTipoActa] = useState<'' | 'acuerdo' | 'no_acuerdo'>('');

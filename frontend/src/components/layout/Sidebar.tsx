@@ -59,7 +59,7 @@ export default function Sidebar() {
   }, []);
 
   const isAdmin = user?.rol === 'administrador';
-  // La secretaria solo trabaja con la Agenda, los Clientes y dos reportes (Agenda y Clientes).
+  // La secretaria solo trabaja con la Agenda, los Clientes y un reporte (Clientes).
   const esSecretaria = user?.rol === 'secretaria';
   const inicio = esSecretaria ? '/agenda' : '/dashboard';
 
