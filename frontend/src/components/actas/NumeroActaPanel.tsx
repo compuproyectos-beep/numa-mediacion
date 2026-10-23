@@ -68,7 +68,6 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
   const [estado, setEstado] = useState<any | null>(null);
   const [copiado, setCopiado] = useState<number | null>(null);
   const [verAnulados, setVerAnulados] = useState(false);
-  const [verUsados, setVerUsados] = useState(false);
 
   const cargar = () =>
     getMiNumeroActa().then(setEstado).catch(() => setEstado(null));
@@ -91,7 +90,6 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
 
   const reservados: any[] = estado.reservados || [];
   const anulados: any[] = estado.anulados || [];
-  const usados: any[] = estado.usados || [];
 
   return (
     <div className="card px-4 py-3 mb-3">
@@ -168,29 +166,6 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
             )}
           </div>
 
-          <div className="mt-2">
-            <button
-              type="button"
-              className="text-sm text-numa-800 underline"
-              onClick={() => setVerUsados(!verUsados)}
-            >
-              {verUsados ? 'Ocultar' : 'Ver'} mis últimas actas completas ({usados.length})
-            </button>
-            {verUsados && (
-              <ul className="mt-2 space-y-2">
-                {usados.length === 0 && (
-                  <li className="text-sm text-slate-700">Aún no tienes actas completas.</li>
-                )}
-                {usados.map((r) => (
-                  <li key={r.id} className="flex flex-col gap-0.5">
-                    <span className="font-mono font-bold text-numa-900">{r.codigo}</span>
-                    <Ligado n={r} />
-                    <span className="text-xs text-slate-700">Completada el {fechaEC(r.fecha_uso)}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
         </div>
       </div>
     </div>
