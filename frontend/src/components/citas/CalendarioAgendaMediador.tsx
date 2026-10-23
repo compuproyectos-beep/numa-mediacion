@@ -239,6 +239,14 @@ export default function CalendarioAgendaMediador({
   const [loading, setLoading] = useState(true);
   const esAdminActual = usuarioActual?.rol === 'administrador';
   const esSecretariaActual = usuarioActual?.rol === 'secretaria';
+  // La secretaria solo cancela lo que ella agendó y mientras el mediador no haya
+  // continuado (sin proceso y sin número de acta pedido).
+  const secretariaPuedeCancelar = (c: any) =>
+    !!c &&
+    c.creado_por_id === usuarioActual?.id &&
+    !c.proceso_id &&
+    c.estado === 'pendiente' &&
+    (!c.numero_acta_codigo || c.numero_acta_estado === 'anulado');
   const [calendarDate, setCalendarDate] = useState(new Date());
 
   // Día vacío elegido para agendar una cita NUEVA
@@ -763,11 +771,19 @@ export default function CalendarioAgendaMediador({
           </div>
 
           <div className="bg-white border border-numa-300 border-l-4 border-l-gold-500 rounded-md shadow-sm px-4 py-3 mb-4 space-y-1 text-sm leading-snug">
-            {citaActiva.tema && (
+            {citaActiva.falta_tema ? (
               <p>
                 <span className="text-numa-700 font-semibold">Tema:</span>{' '}
-                <span className="text-numa-900 font-semibold">{citaActiva.tema}</span>
+                <span className="text-amber-700 font-semibold">pendiente de completar</span>
               </p>
+            ) : (
+              citaActiva.tema &&
+              citaActiva.tema !== 'Invitación rápida' && (
+                <p>
+                  <span className="text-numa-700 font-semibold">Tema:</span>{' '}
+                  <span className="text-numa-900 font-semibold">{citaActiva.tema}</span>
+                </p>
+              )
             )}
 
             {citaActiva.partes_rapidas && !citaActiva.proceso_id && (
@@ -994,7 +1010,8 @@ export default function CalendarioAgendaMediador({
           )}
 
           {citaActiva.estado === 'pendiente' &&
-          (permitirGestionarEstado || permitirCancelar) ? (
+          (permitirGestionarEstado ||
+            (esSecretariaActual ? secretariaPuedeCancelar(citaActiva) : permitirCancelar)) ? (
             <div className="flex flex-wrap items-center gap-3">
               {permitirGestionarEstado && !!citaActiva.proceso_id && (
                 <p className="text-sm text-numa-700 w-full">
@@ -1013,7 +1030,10 @@ export default function CalendarioAgendaMediador({
               </button>
             </div>
           ) : citaActiva.estado === 'pendiente' ? (
-            <p className="text-sm text-numa-700">Esta invitación está pendiente.</p>
+            <p className="text-sm text-numa-700">
+              Esta invitación está pendiente.
+              {esSecretariaActual && ' Solo el mediador puede cancelarla o registrar su resultado.'}
+            </p>
           ) : (
             <p className="text-sm text-numa-700">
               Esta invitación ya no está pendiente, por lo que no ocupa esa hora para una nueva invitación.

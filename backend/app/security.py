@@ -53,6 +53,7 @@ _RUTAS_SECRETARIA = [
     ("PUT", r"^/citas/\d+/documento$"),
     ("GET", r"^/clientes$"),
     ("POST", r"^/clientes$"),
+    ("PUT", r"^/clientes/\d+$"),
     ("GET", r"^/provincias$"),
     ("GET", r"^/ciudades$"),
     ("GET", r"^/sucursal/mediadores$"),

@@ -72,6 +72,8 @@ export default function ClientesPage() {
 
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Cliente | null>(null);
+  // La secretaria solo corrige datos de contacto: nombre y cédula salen en actas y reportes.
+  const soloContacto = !!editing && getUser()?.rol === 'secretaria';
   const [form, setForm] = useState<CreateClientePayload>(empty);
   const [saving, setSaving] = useState(false);
 
@@ -395,14 +397,12 @@ export default function ClientesPage() {
 
                     <td className="table-cell">
                       <div className="flex items-center gap-1">
-                        {getUser()?.rol !== 'secretaria' && (
-                          <button
-                            onClick={() => openEdit(c)}
-                            className="btn-ghost btn-sm"
-                          >
-                            <Pencil className="w-3 h-3" /> Editar
-                          </button>
-                        )}
+                        <button
+                          onClick={() => openEdit(c)}
+                          className="btn-ghost btn-sm"
+                        >
+                          <Pencil className="w-3 h-3" /> Editar
+                        </button>
 
                       </div>
                     </td>
@@ -424,6 +424,13 @@ export default function ClientesPage() {
           <div className="mb-4">
             <ErrorAlert message={error} />
           </div>
+        )}
+
+        {soloContacto && (
+          <p className="mb-4 text-xs text-numa-700 bg-numa-50 border border-numa-200 rounded-sm p-3">
+            Puedes corregir teléfono, correo, dirección y ciudad. Para cambiar el nombre o la cédula
+            pide ayuda a un mediador o al administrador, porque salen en las actas.
+          </p>
         )}
 
         {!editing && (
@@ -454,6 +461,7 @@ export default function ClientesPage() {
               <div className="col-span-2">
                 <InputField
                   label="Razón social"
+                  disabled={soloContacto}
                   value={form.razon_social || ''}
                   onChange={(e) => setForm({ ...form, razon_social: e.target.value })}
                   placeholder="Comercial Ejemplo S.A."
@@ -463,6 +471,7 @@ export default function ClientesPage() {
               <div>
                 <InputField
                   label="RUC"
+                  disabled={soloContacto}
                   value={form.ruc || ''}
                   onChange={(e) => {
                     const value = e.target.value.replace(/\D/g, '').slice(0, 13);
@@ -480,6 +489,7 @@ export default function ClientesPage() {
 
               <InputField
                 label="Representante legal (nombre completo)"
+                disabled={soloContacto}
                 value={form.representante_nombre || ''}
                 onChange={(e) => setForm({ ...form, representante_nombre: e.target.value })}
                 placeholder="Juan Pérez"
@@ -488,6 +498,7 @@ export default function ClientesPage() {
               <div>
                 <InputField
                   label="Cédula del representante"
+                  disabled={soloContacto}
                   value={form.representante_cedula || ''}
                   onChange={(e) => {
                     const value = e.target.value.replace(/\D/g, '').slice(0, 10);
@@ -509,6 +520,7 @@ export default function ClientesPage() {
             <>
               <InputField
                 label="Nombres"
+                disabled={soloContacto}
                 value={form.nombre}
                 onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                 placeholder="Juan"
@@ -516,6 +528,7 @@ export default function ClientesPage() {
 
               <InputField
                 label="Apellidos"
+                disabled={soloContacto}
                 value={form.apellido}
                 onChange={(e) => setForm({ ...form, apellido: e.target.value })}
                 placeholder="Pérez"
@@ -524,6 +537,7 @@ export default function ClientesPage() {
               <div>
                 <InputField
                   label="Cédula"
+                  disabled={soloContacto}
                   value={form.cedula}
                   onChange={(e) => {
                     const value = e.target.value.replace(/\D/g, '').slice(0, 10);

@@ -84,10 +84,10 @@ interface EmptyStateProps {
   icon?: string;
 }
 
-export function EmptyState({ message, actionLabel, onAction, icon = '📂' }: EmptyStateProps) {
+export function EmptyState({ message, actionLabel, onAction, icon = '' }: EmptyStateProps) {
   return (
     <div className="text-center py-14 text-numa-600 text-sm">
-      <div className="mb-2 text-3xl">{icon}</div>
+      {icon && <div className="mb-2 text-3xl">{icon}</div>}
       <p>{message}</p>
 
       {actionLabel && onAction && (

@@ -1346,6 +1346,28 @@ def actualizar_cliente(
                 detail="No se puede cambiar una persona a empresa (ni al revés). Crea un cliente nuevo."
             )
 
+        if usuario["rol"] == "secretaria":
+            # La secretaria solo corrige datos de contacto: el nombre y la cédula
+            # salen en actas y reportes, así que no puede cambiarlos.
+            cur.execute(
+                "SELECT cedula, nombre, apellido, razon_social, ruc, representante_nombre, "
+                "representante_cedula FROM clientes WHERE id = %s", (id,)
+            )
+            _act = cur.fetchone()
+            _enviado = {
+                "cedula": cedula, "nombre": nombre, "apellido": apellido,
+                "razon_social": razon_social, "ruc": ruc,
+                "representante_nombre": representante_nombre,
+                "representante_cedula": representante_cedula,
+            }
+            for _k, _v in _enviado.items():
+                if (_v or "").strip() != (_act[_k] or "").strip():
+                    raise HTTPException(
+                        status_code=403,
+                        detail="Solo puedes cambiar teléfono, correo, dirección y ciudad. "
+                               "Para corregir nombre o cédula pide ayuda a un mediador o al administrador."
+                    )
+
         d = _validar_datos_cliente(
             cur, tipo, cedula, nombre, apellido, telefono, email, ciudad_id,
             razon_social, ruc, representante_nombre, representante_cedula,
@@ -2942,9 +2964,8 @@ def _notificar_reunion(cur, sucursal_id, titulo, mensaje, reunion_id, excluir_id
 
 
 def _notificar_secretaria(cur, sucursal_id, titulo, mensaje, cita_id, excluir_id=None):
-    """Avisa a la secretaria de la sucursal de las invitaciones que otros
-    agendan, para que pueda avisar a los mediadores que no estén mirando el
-    sistema."""
+    """Avisa a la secretaria de la sucursal de las cancelaciones que hacen
+    otras personas, para que sepa que ese horario quedó libre."""
     cur.execute("""
         SELECT id FROM usuarios
         WHERE sucursal_id = %s AND rol = 'secretaria' AND activo = true
@@ -3184,6 +3205,7 @@ def obtener_citas(
                 NULLIF(btrim(c.documento->>'asunto'), '') AS documento_asunto,
                 (SELECT na.codigo FROM numeros_acta na WHERE na.cita_id = c.id LIMIT 1) AS numero_acta_codigo,
                 (SELECT na.estado FROM numeros_acta na WHERE na.cita_id = c.id LIMIT 1) AS numero_acta_estado,
+                c.creado_por_id,
                 cp.nombre || ' ' || cp.apellido AS creado_por,
                 pm.codigo_proceso AS codigo_proceso,
                 a.codigo_acta,
@@ -3282,7 +3304,7 @@ def cambiar_estado_cita(
 
     try:
         cur.execute("""
-            SELECT id, sucursal_id, usuario_id, proceso_id, fecha, hora
+            SELECT id, sucursal_id, usuario_id, proceso_id, fecha, hora, estado, creado_por_id
             FROM citas
             WHERE id = %s
         """, (cita_id,))
@@ -3312,6 +3334,27 @@ def cambiar_estado_cita(
                 raise HTTPException(
                     status_code=403,
                     detail="Solo puedes modificar invitaciones de tu sucursal"
+                )
+            # La secretaria solo cancela lo que ella agendó, mientras el mediador
+            # no haya continuado (sin proceso, sin número de acta pedido).
+            if estado != "cancelada":
+                raise HTTPException(
+                    status_code=403,
+                    detail="El resultado de la invitación lo registra el mediador"
+                )
+            if cita_actual["creado_por_id"] != usuario["id"]:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Solo puedes cancelar las invitaciones que tú agendaste. Pide al mediador que cancele esta."
+                )
+            cur.execute(
+                "SELECT 1 FROM numeros_acta WHERE cita_id = %s AND estado IN ('reservado', 'usado') LIMIT 1",
+                (cita_id,)
+            )
+            if cita_actual["proceso_id"] or cita_actual["estado"] != "pendiente" or cur.fetchone():
+                raise HTTPException(
+                    status_code=403,
+                    detail="El mediador ya continuó con esta invitación: ahora solo él puede cancelarla"
                 )
         elif usuario["rol"] != "administrador":
             if usuario["id"] != cita_actual["usuario_id"]:
@@ -3347,6 +3390,19 @@ def cambiar_estado_cita(
                 f"{usuario['nombre']} {usuario['apellido']} canceló tu invitación del "
                 f"{str(cita['fecha'])[:10]} a las {str(cita['hora'])[:5]}. Motivo: {motivo.strip()}",
                 "cita", "cita", cita["id"]
+            )
+
+        # La secretaria de la sucursal se entera de las cancelaciones que hacen
+        # otras personas (el mediador o el administrador).
+        if estado == "cancelada" and usuario["rol"] != "secretaria":
+            cur.execute("SELECT nombre, apellido FROM usuarios WHERE id = %s", (cita["usuario_id"],))
+            _med = cur.fetchone() or {}
+            _nom_med = f"{_med.get('nombre', '')} {_med.get('apellido', '')}".strip()
+            _notificar_secretaria(
+                cur, cita["sucursal_id"], "Invitación cancelada",
+                f"{_nom_med}: se canceló la invitación del {str(cita['fecha'])[:10]} a las "
+                f"{str(cita['hora'])[:5]}. Motivo: {motivo.strip()}",
+                cita["id"], excluir_id=usuario["id"]
             )
 
         # Una invitación rápida que termina sin proceso (cancelada o reunión
@@ -4450,12 +4506,6 @@ def crear_invitacion_proceso(
                 proceso_id
             )
 
-        _notificar_secretaria(
-            cur, proceso["sucursal_id"], "Nueva invitación en la agenda",
-            f"{proceso['demandante']} y {proceso['demandado']} | {fecha} {hora}",
-            cita["id"], excluir_id=usuario["id"]
-        )
-
         conn.commit()
 
         # Si la invitación es para hoy o mañana, se avisa de inmediato al
@@ -4730,13 +4780,6 @@ def crear_invitacion_rapida(datos: dict, usuario=Depends(obtener_usuario_actual)
                 + ("" if tema else " — falta completar el tema"),
                 "cita", "cita", cita["id"]
             )
-
-        nombre_mediador = " ".join(filter(None, [mediador.get("nombre"), mediador.get("apellido")]))
-        _notificar_secretaria(
-            cur, mediador["sucursal_id"], "Nueva invitación en la agenda",
-            f"{nombre_mediador}: {sol} y {inv} | {fecha} {hora}",
-            cita["id"], excluir_id=usuario["id"]
-        )
 
         conn.commit()
         return cita
