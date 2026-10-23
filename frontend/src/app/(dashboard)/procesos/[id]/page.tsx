@@ -201,6 +201,26 @@ export default function ProcesoDetallePage() {
     observacion: ''
   });
   const [guardandoAvance, setGuardandoAvance] = useState(false);
+  // Si el mediador tiene un acta vencida (más de 48 horas), no puede cerrar
+  // con acta: acuerdo ni no acuerdo (necesitan un número nuevo).
+  const [bloqueoNumero, setBloqueoNumero] = useState<string | null>(null);
+  useEffect(() => {
+    if (!proceso?.id || esAdminSesion()) return;
+    getMiNumeroActa()
+      .then((r: any) => setBloqueoNumero(r?.puede_pedir === false ? r?.motivo || 'Tienes un acta pendiente.' : null))
+      .catch(() => setBloqueoNumero(null));
+  }, [proceso?.id]);
+  const cierreConActaBloqueado = !!bloqueoNumero && !proceso?.numero_acta_codigo;
+
+  // Borrador del texto del resultado: se conserva si el mediador sale a otra pantalla.
+  const claveBorrador = proceso?.id ? `borrador-resultado-${proceso.id}` : '';
+  useEffect(() => {
+    if (!claveBorrador) return;
+    try {
+      const guardado = window.localStorage.getItem(claveBorrador);
+      if (guardado) setAvanceForm((f) => (f.observacion ? f : { ...f, observacion: guardado }));
+    } catch {}
+  }, [claveBorrador]);
 
   const [showActaFinal, setShowActaFinal] = useState(false);
   const [archivoActaFinal, setArchivoActaFinal] = useState<File | null>(null);
@@ -496,6 +516,9 @@ export default function ProcesoDetallePage() {
         resultado: 'en_negociacion',
         observacion: ''
       });
+      try {
+        window.localStorage.removeItem(claveBorrador);
+      } catch {}
 
       setSuccessMessage(
         conActaNoAcuerdo
@@ -1522,6 +1545,13 @@ export default function ProcesoDetallePage() {
                 Registrar resultado de la invitación pendiente
               </h3>
 
+              {cierreConActaBloqueado && (
+                <div className="mb-3 p-3 border border-red-300 bg-red-50 rounded-sm text-sm text-red-800">
+                  {bloqueoNumero} Mientras tanto no puedes cerrar este proceso con acuerdo ni con
+                  no acuerdo; las otras opciones siguen disponibles.
+                </div>
+              )}
+
               <SelectField
                 label="Resultado"
                 value={avanceForm.resultado}
@@ -1532,8 +1562,13 @@ export default function ProcesoDetallePage() {
               >
                 <option value="en_negociacion">En negociación</option>
                 <option value="no_realizada">No asistió / no se realizó</option>
-                <option value="cerrado_con_acuerdo">Cerrado con acuerdo</option>
-                <option value="cerrado_no_acuerdo">Cerrado con no acuerdo (se emite acta de no acuerdo)</option>
+                <option value="cerrado_con_acuerdo" disabled={cierreConActaBloqueado}>
+                  Cerrado con acuerdo{cierreConActaBloqueado ? ' (bloqueado: completa tus actas pendientes)' : ''}
+                </option>
+                <option value="cerrado_no_acuerdo" disabled={cierreConActaBloqueado}>
+                  Cerrado con no acuerdo (se emite acta de no acuerdo)
+                  {cierreConActaBloqueado ? ' (bloqueado: completa tus actas pendientes)' : ''}
+                </option>
                 <option value="cerrado_sin_acuerdo">Cerrado sin acuerdo (no se emite acta)</option>
                 <option value="archivado">Archivado</option>
               </SelectField>
@@ -1552,7 +1587,12 @@ export default function ProcesoDetallePage() {
                   rows={4}
                   value={avanceForm.observacion}
                   onChange={(e) =>
-                    setAvanceForm({ ...avanceForm, observacion: e.target.value })
+                    {
+                      setAvanceForm({ ...avanceForm, observacion: e.target.value });
+                      try {
+                        window.localStorage.setItem(claveBorrador, e.target.value);
+                      } catch {}
+                    }
                   }
                   placeholder="Detalle de lo ocurrido en la reunión..."
                 />
