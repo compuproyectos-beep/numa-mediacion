@@ -521,13 +521,13 @@ export default function ReportesPage() {
     tipo === 'procesos'
       ? null
       : tipo === 'productividad'
-      ? datos
-          .filter((m: any) => m.actas_subidas > 0)
-          .map((m: any) => ({ label: m.mediador, valor: m.actas_subidas, color: '#10B981' }))
+      ? datos.flatMap((m: any) =>
+          parBarras(m.mediador, { a: (m.actas_subidas || 0) - (m.actas_no_acuerdo || 0), n: m.actas_no_acuerdo || 0 })
+        )
       : tipo === 'sucursales'
-      ? datos
-          .filter((s: any) => s.actas_subidas > 0)
-          .map((s: any) => ({ label: labelSucursal(s), valor: s.actas_subidas, color: '#10B981' }))
+      ? datos.flatMap((s: any) =>
+          parBarras(labelSucursal(s), { a: (s.actas_subidas || 0) - (s.actas_no_acuerdo || 0), n: s.actas_no_acuerdo || 0 })
+        )
       : null;
 
   // Barritas para que los reportes no sean solo números: por estado en
@@ -846,7 +846,7 @@ export default function ReportesPage() {
               <p className="text-xs font-semibold text-numa-700 mb-2 uppercase tracking-wide">
                 {tipo === 'procesos'
                   ? 'Actas'
-                  : 'Actas firmadas por ' + (tipo === 'productividad' ? 'mediador' : 'sucursal')}
+                  : 'Actas de acuerdo y no acuerdo por ' + (tipo === 'productividad' ? 'mediador' : 'sucursal')}
               </p>
               <BarrasResumen items={barrasActas} />
             </div>
@@ -911,7 +911,8 @@ export default function ReportesPage() {
                         <th className="table-header">Sin acuerdo</th>
                         <th className="table-header">Archivados</th>
                         <th className="table-header">Anulados</th>
-                        <th className="table-header">Actas firmadas</th>
+                        <th className="table-header">Actas de acuerdo</th>
+                        <th className="table-header">Actas de no acuerdo</th>
                         <th className="table-header">Actas pendientes</th>
                         <th className="table-header">Prom. días cierre</th>
                         <th className="table-header">Reuniones realizadas</th>
@@ -944,7 +945,8 @@ export default function ReportesPage() {
                         <th className="table-header">Sin acuerdo</th>
                         <th className="table-header">Archivados</th>
                         <th className="table-header">Anulados</th>
-                        <th className="table-header">Actas firmadas</th>
+                        <th className="table-header">Actas de acuerdo</th>
+                        <th className="table-header">Actas de no acuerdo</th>
                         <th className="table-header">Actas pendientes</th>
                         <th className="table-header">Prom. días cierre</th>
                       </>
@@ -1213,7 +1215,8 @@ export default function ReportesPage() {
                           <td className="table-cell">{m.cerrados_sin_acuerdo}</td>
                           <td className="table-cell">{m.archivados}</td>
                           <td className="table-cell">{m.anulados}</td>
-                          <td className="table-cell">{m.actas_subidas}</td>
+                          <td className="table-cell tabular-nums">{(m.actas_subidas || 0) - (m.actas_no_acuerdo || 0)}</td>
+                          <td className="table-cell tabular-nums">{m.actas_no_acuerdo || 0}</td>
                           <td className="table-cell">
                             {m.actas_pendientes > 0 ? (
                               <span
@@ -1242,7 +1245,7 @@ export default function ReportesPage() {
 
                         {mediadorExpandidoId === m.usuario_id && (
                           <tr key={`${m.usuario_id}-detalle`}>
-                            <td colSpan={17} className="bg-numa-50 px-3 py-3">
+                            <td colSpan={18} className="bg-numa-50 px-3 py-3">
                               {cargandoDetalleId === m.usuario_id ? (
                                 <Spinner />
                               ) : !detalleProcesos[m.usuario_id]?.length ? (
@@ -1357,7 +1360,8 @@ export default function ReportesPage() {
                           <td className="table-cell">{s.cerrados_sin_acuerdo}</td>
                           <td className="table-cell">{s.archivados}</td>
                           <td className="table-cell">{s.anulados}</td>
-                          <td className="table-cell">{s.actas_subidas}</td>
+                          <td className="table-cell tabular-nums">{(s.actas_subidas || 0) - (s.actas_no_acuerdo || 0)}</td>
+                          <td className="table-cell tabular-nums">{s.actas_no_acuerdo || 0}</td>
                           <td className="table-cell">
                             {s.actas_pendientes > 0 ? (
                               <span
@@ -1383,7 +1387,7 @@ export default function ReportesPage() {
 
                         {sucursalExpandidoId === s.sucursal_id && (
                           <tr key={`${s.sucursal_id}-detalle`}>
-                            <td colSpan={12} className="bg-numa-50 px-3 py-3">
+                            <td colSpan={13} className="bg-numa-50 px-3 py-3">
                               {cargandoDetalleSucursalId === s.sucursal_id ? (
                                 <Spinner />
                               ) : !detalleSucursal[s.sucursal_id]?.length ? (

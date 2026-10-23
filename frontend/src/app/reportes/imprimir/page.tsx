@@ -304,23 +304,25 @@ function ImprimirReporteContenido() {
 
   // El sistema gira ante todo en torno a las actas, así que este gráfico se
   // muestra primero, antes que el desglose general — igual que en pantalla.
-  const actasSubidasProcesos =
-    tipo === 'procesos' ? datos.filter((p: any) => actaLista(p)).length : 0;
+
+  const parBarras = (k: string, v: { a: number; n: number }) => {
+    const out: { label: string; valor: number; color?: string }[] = [];
+    if (v.a > 0) out.push({ label: k, valor: v.a, color: '#10B981' });
+    if (v.n > 0) out.push({ label: v.a > 0 ? '↳ no acuerdo' : `${k} (no acuerdo)`, valor: v.n, color: '#F59E0B' });
+    return out;
+  };
 
   const barrasActas: { label: string; valor: number; color?: string }[] | null =
     tipo === 'procesos'
-      ? [
-          { label: 'Actas firmadas', valor: actasSubidasProcesos, color: '#10B981' },
-          { label: 'Actas pendientes', valor: actasPendientesProcesos, color: '#F59E0B' }
-        ]
+      ? null
       : tipo === 'productividad'
-      ? datos
-          .filter((m: any) => m.actas_subidas > 0)
-          .map((m: any) => ({ label: m.mediador, valor: m.actas_subidas, color: '#10B981' }))
+      ? datos.flatMap((m: any) =>
+          parBarras(m.mediador, { a: (m.actas_subidas || 0) - (m.actas_no_acuerdo || 0), n: m.actas_no_acuerdo || 0 })
+        )
       : tipo === 'sucursales'
-      ? datos
-          .filter((s: any) => s.actas_subidas > 0)
-          .map((s: any) => ({ label: labelSucursal(s), valor: s.actas_subidas, color: '#10B981' }))
+      ? datos.flatMap((s: any) =>
+          parBarras(labelSucursal(s), { a: (s.actas_subidas || 0) - (s.actas_no_acuerdo || 0), n: s.actas_no_acuerdo || 0 })
+        )
       : null;
 
   const barrasActasPendientes: { label: string; valor: number; color?: string }[] | null =
@@ -481,7 +483,7 @@ function ImprimirReporteContenido() {
                   <p className="text-[11px] font-semibold text-numa-700 uppercase tracking-wide mb-2">
                     {tipo === 'procesos'
                       ? 'Actas'
-                      : 'Actas firmadas por ' + (tipo === 'productividad' ? 'mediador' : 'sucursal')}
+                      : 'Actas de acuerdo y no acuerdo por ' + (tipo === 'productividad' ? 'mediador' : 'sucursal')}
                   </p>
                   <BarrasResumen compacto items={barrasActas} />
                 </div>
@@ -563,7 +565,8 @@ function ImprimirReporteContenido() {
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Estado</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Ingreso</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sucursal</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas firmadas</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas de acuerdo</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas de no acuerdo</th>
                       <th className="text-left py-2 pr-2 font-semibold text-amber-700">Actas pendientes</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Total (sin anulados)</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">En negociación</th>
@@ -594,7 +597,8 @@ function ImprimirReporteContenido() {
                     <>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sucursal</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Ciudad</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas firmadas</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas de acuerdo</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas de no acuerdo</th>
                       <th className="text-left py-2 pr-2 font-semibold text-amber-700">Actas pendientes</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Total (sin anulados)</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">En negociación</th>
@@ -727,7 +731,7 @@ function ImprimirReporteContenido() {
                 {tipo === 'productividad' &&
                   datos.map((m: any, i: number) => (
                     <Fragment key={m.usuario_id}>
-                    {i > 0 && <RotulosGrupo etiquetas={['Mediador', 'Estado', 'Ingreso', 'Sucursal', 'Actas firmadas', 'Actas pendientes', 'Total', 'En negociación', 'Con acuerdo', 'Sin acuerdo', 'Archivados', 'Anulados', 'Prom. días', 'Reuniones realizadas', 'Reuniones canceladas', 'No asistieron']} />}
+                    {i > 0 && <RotulosGrupo etiquetas={['Mediador', 'Estado', 'Ingreso', 'Sucursal', 'Actas de acuerdo', 'Actas de no acuerdo', 'Actas pendientes', 'Total', 'En negociación', 'Con acuerdo', 'Sin acuerdo', 'Archivados', 'Anulados', 'Prom. días', 'Reuniones realizadas', 'Reuniones canceladas', 'No asistieron']} />}
                     <tr className="bg-numa-50">
                       <td className="py-1.5 pr-2 font-semibold text-numa-900">{m.mediador}</td>
                       <td className="py-1.5 pr-2">{m.activo ? 'Activo' : 'Inactivo'}</td>
@@ -737,7 +741,8 @@ function ImprimirReporteContenido() {
                           : '—'}
                       </td>
                       <td className="py-1.5 pr-2">{m.sucursal ? `${m.sucursal}${m.ciudad ? ` (${m.ciudad})` : ''}` : '—'}</td>
-                      <td className="py-1.5 pr-2">{m.actas_subidas}</td>
+                      <td className="py-1.5 pr-2">{(m.actas_subidas || 0) - (m.actas_no_acuerdo || 0)}</td>
+                      <td className="py-1.5 pr-2">{m.actas_no_acuerdo || 0}</td>
                       <td className="py-1.5 pr-2 font-semibold text-amber-700">{m.actas_pendientes}</td>
                       <td className="py-1.5 pr-2">{m.total_procesos}</td>
                       <td className="py-1.5 pr-2">{m.en_negociacion}</td>
@@ -752,7 +757,7 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2">{m.reuniones_canceladas ?? 0}</td>
                       <td className="py-1.5 pr-2">{m.reuniones_no_asistieron ?? 0}</td>
                     </tr>
-                    <DetalleProcesos colSpan={17} titulo={`Procesos de ${m.mediador}`} mostrarMediador={false} filas={procesosDetalle.filter((p: any) => Number(p.usuario_id) === Number(m.usuario_id))} />
+                    <DetalleProcesos colSpan={18} titulo={`Procesos de ${m.mediador}`} mostrarMediador={false} filas={procesosDetalle.filter((p: any) => Number(p.usuario_id) === Number(m.usuario_id))} />
                     </Fragment>
                   ))}
 
@@ -776,11 +781,12 @@ function ImprimirReporteContenido() {
                 {tipo === 'sucursales' &&
                   datos.map((s: any, i: number) => (
                     <Fragment key={s.sucursal_id}>
-                    {i > 0 && <RotulosGrupo etiquetas={['Sucursal', 'Ciudad', 'Actas firmadas', 'Actas pendientes', 'Total', 'En negociación', 'Con acuerdo', 'Sin acuerdo', 'Archivados', 'Anulados', 'Prom. días']} />}
+                    {i > 0 && <RotulosGrupo etiquetas={['Sucursal', 'Ciudad', 'Actas de acuerdo', 'Actas de no acuerdo', 'Actas pendientes', 'Total', 'En negociación', 'Con acuerdo', 'Sin acuerdo', 'Archivados', 'Anulados', 'Prom. días']} />}
                     <tr className="bg-numa-50">
                       <td className="py-1.5 pr-2 font-semibold text-numa-900">{s.sucursal}</td>
                       <td className="py-1.5 pr-2">{s.ciudad || '—'}</td>
-                      <td className="py-1.5 pr-2">{s.actas_subidas}</td>
+                      <td className="py-1.5 pr-2">{(s.actas_subidas || 0) - (s.actas_no_acuerdo || 0)}</td>
+                      <td className="py-1.5 pr-2">{s.actas_no_acuerdo || 0}</td>
                       <td className="py-1.5 pr-2 font-semibold text-amber-700">{s.actas_pendientes}</td>
                       <td className="py-1.5 pr-2">{s.total_procesos}</td>
                       <td className="py-1.5 pr-2">{s.en_negociacion}</td>
@@ -792,7 +798,7 @@ function ImprimirReporteContenido() {
                         {s.promedio_dias_cierre != null ? `${s.promedio_dias_cierre}` : '—'}
                       </td>
                     </tr>
-                    <DetalleProcesos colSpan={11} titulo={`Procesos de la sucursal ${s.sucursal} (${s.ciudad})`} mostrarMediador={true} filas={procesosDetalle.filter((p: any) => Number(p.sucursal_id) === Number(s.sucursal_id))} />
+                    <DetalleProcesos colSpan={12} titulo={`Procesos de la sucursal ${s.sucursal} (${s.ciudad})`} mostrarMediador={true} filas={procesosDetalle.filter((p: any) => Number(p.sucursal_id) === Number(s.sucursal_id))} />
                     </Fragment>
                   ))}
 

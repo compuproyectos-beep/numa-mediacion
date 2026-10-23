@@ -8314,6 +8314,7 @@ def obtener_reporte_productividad(
                 COUNT(*) FILTER (WHERE p.estado = 'archivado') AS archivados,
                 COUNT(*) FILTER (WHERE p.estado = 'anulado') AS anulados,
                 COUNT(*) FILTER (WHERE (p.finalizado = true AND (NOT COALESCE(p.requiere_acta_firmada, false) OR p.acta_firmada_ruta IS NOT NULL))) AS actas_subidas,
+                COUNT(*) FILTER (WHERE (p.finalizado = true AND p.estado = 'cerrado_sin_acuerdo' AND (NOT COALESCE(p.requiere_acta_firmada, false) OR p.acta_firmada_ruta IS NOT NULL))) AS actas_no_acuerdo,
                 -- Cerrado con acuerdo pero el acta final + comprobante de
                 -- pago todavía no se han subido: para que el admin no
                 -- asuma que "cerrado" ya significa "acta lista".
@@ -8459,6 +8460,7 @@ def obtener_reporte_sucursales(
                 COUNT(*) FILTER (WHERE p.estado = 'archivado') AS archivados,
                 COUNT(*) FILTER (WHERE p.estado = 'anulado') AS anulados,
                 COUNT(*) FILTER (WHERE (p.finalizado = true AND (NOT COALESCE(p.requiere_acta_firmada, false) OR p.acta_firmada_ruta IS NOT NULL))) AS actas_subidas,
+                COUNT(*) FILTER (WHERE (p.finalizado = true AND p.estado = 'cerrado_sin_acuerdo' AND (NOT COALESCE(p.requiere_acta_firmada, false) OR p.acta_firmada_ruta IS NOT NULL))) AS actas_no_acuerdo,
                 COUNT(*) FILTER (
                     WHERE (p.estado = 'cerrado_con_acuerdo'
                            OR (p.estado = 'cerrado_sin_acuerdo' AND p.requiere_acta_no_acuerdo))
@@ -8986,7 +8988,7 @@ def exportar_reporte_excel(
         encabezados = [
             "Mediador", "Estado", "Fecha de ingreso", "Ciudad", "Sucursal",
             "Total procesos", "En negociación", "Cerrados con acuerdo",
-            "Cerrados sin acuerdo", "Archivados", "Anulados", "Actas firmadas",
+            "Cerrados sin acuerdo", "Archivados", "Anulados", "Actas de acuerdo", "Actas de no acuerdo",
             "Actas pendientes", "Promedio días de cierre",
             "Reuniones realizadas", "Reuniones canceladas", "No asistieron"
         ]
@@ -9004,7 +9006,8 @@ def exportar_reporte_excel(
                 f.get("cerrados_sin_acuerdo"),
                 f.get("archivados"),
                 f.get("anulados"),
-                f.get("actas_subidas"),
+                (f.get("actas_subidas") or 0) - (f.get("actas_no_acuerdo") or 0),
+                f.get("actas_no_acuerdo") or 0,
                 f.get("actas_pendientes"),
                 f.get("promedio_dias_cierre") if f.get("promedio_dias_cierre") is not None else "",
                 f.get("reuniones_realizadas", 0),
@@ -9025,7 +9028,7 @@ def exportar_reporte_excel(
         encabezados = [
             "Sucursal", "Ciudad", "Total procesos", "En negociación",
             "Cerrados con acuerdo", "Cerrados sin acuerdo", "Archivados", "Anulados",
-            "Actas firmadas", "Actas pendientes", "Promedio días de cierre"
+            "Actas de acuerdo", "Actas de no acuerdo", "Actas pendientes", "Promedio días de cierre"
         ]
 
         filas_excel = [
@@ -9038,7 +9041,8 @@ def exportar_reporte_excel(
                 f.get("cerrados_sin_acuerdo"),
                 f.get("archivados"),
                 f.get("anulados"),
-                f.get("actas_subidas"),
+                (f.get("actas_subidas") or 0) - (f.get("actas_no_acuerdo") or 0),
+                f.get("actas_no_acuerdo") or 0,
                 f.get("actas_pendientes"),
                 f.get("promedio_dias_cierre") if f.get("promedio_dias_cierre") is not None else ""
             ]
