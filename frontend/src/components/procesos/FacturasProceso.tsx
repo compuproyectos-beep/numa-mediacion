@@ -122,8 +122,7 @@ export default function FacturasProceso({ proceso, esAdmin, onCambio }: Props) {
       </div>
       <p className="text-xs text-numa-700 mb-3">
         Se suben en PDF después del acta firmada. Son obligatorias para el expediente, pero no
-        bloquean nada del proceso. Si te equivocas puedes reemplazarlas; la anterior queda en el
-        historial.
+        bloquean nada del proceso. Si te equivocas puedes reemplazarlas.
       </p>
 
       {error && (
@@ -136,8 +135,7 @@ export default function FacturasProceso({ proceso, esAdmin, onCambio }: Props) {
         {TARJETAS.map((t) => {
           const lista = facturas.filter((f) => f.tipo === t.tipo);
           const vigente = lista.find((f) => f.vigente);
-          const historial = lista.filter((f) => !f.vigente);
-          return (
+                    return (
             <div key={t.tipo} className="border border-numa-100 rounded-sm p-3 bg-white">
               <p className="text-sm font-semibold text-numa-800">{t.titulo}</p>
               <p className="text-xs text-numa-600 mb-2">{t.ayuda}</p>
@@ -181,30 +179,6 @@ export default function FacturasProceso({ proceso, esAdmin, onCambio }: Props) {
                 />
               </div>
 
-              {historial.length > 0 && (
-                <details className="mt-2">
-                  <summary className="text-xs text-numa-700 cursor-pointer">
-                    Historial ({historial.length})
-                  </summary>
-                  <ul className="mt-1 space-y-1">
-                    {historial.map((h) => (
-                      <li key={h.id} className="text-xs text-numa-700 flex items-center gap-2">
-                        <span>
-                          {fechaEC(h.fecha_subida)}
-                          {h.subida_por ? ` · ${h.subida_por}` : ''}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => ver(h.id)}
-                          className="underline underline-offset-2 hover:text-gold-700"
-                        >
-                          Ver
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              )}
             </div>
           );
         })}

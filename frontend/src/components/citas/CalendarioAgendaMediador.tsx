@@ -1023,6 +1023,15 @@ export default function CalendarioAgendaMediador({
                 </p>
               )}
 
+              {!!citaActiva.proceso_id && !esSecretariaActual && (
+                <button
+                  type="button"
+                  onClick={() => router.push(`/procesos/${citaActiva.proceso_id}`)}
+                  className="btn-primary"
+                >
+                  Ir al proceso
+                </button>
+              )}
               <button
                 type="button"
                 disabled={cambiandoEstado}

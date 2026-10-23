@@ -28,6 +28,45 @@ interface Opcion {
   datos?: Omit<DatosFacturacion, 'origen'>;
 }
 
+
+const cedulaValida = (cedula: string) => {
+  if (!/^\d{10}$/.test(cedula)) return false;
+  const provincia = parseInt(cedula.slice(0, 2), 10);
+  if (provincia < 1 || provincia > 24) return false;
+  if (parseInt(cedula[2], 10) >= 6) return false;
+  const coef = [2, 1, 2, 1, 2, 1, 2, 1, 2];
+  let suma = 0;
+  for (let i = 0; i < 9; i++) {
+    let v = parseInt(cedula[i], 10) * coef[i];
+    if (v >= 10) v -= 9;
+    suma += v;
+  }
+  return (10 - (suma % 10)) % 10 === parseInt(cedula[9], 10);
+};
+
+// Devuelve el mensaje de error del número de identificación, o '' si está bien.
+const errorIdentificacion = (tipo: string, num: string): string => {
+  if (!num) return '';
+  if (tipo === 'cedula') {
+    if (!/^\d+$/.test(num)) return 'Solo números';
+    if (num.length < 10) return '';
+    return cedulaValida(num) ? '' : 'Cédula inválida';
+  }
+  if (tipo === 'ruc') {
+    if (!/^\d+$/.test(num)) return 'Solo números';
+    if (num.length < 13) return '';
+    if (num.endsWith('000')) return 'RUC inválido';
+    if (parseInt(num[2], 10) < 6 && !cedulaValida(num.slice(0, 10))) return 'RUC inválido';
+    return '';
+  }
+  if (!/^[A-Za-z0-9]{5,20}$/.test(num)) return 'Pasaporte: 5 a 20 letras o números';
+  return '';
+};
+
+const correoValido = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
+
+const soloDigitos = (v: string, max: number) => v.replace(/\D/g, '').slice(0, max);
+
 const TIPOS = { cedula: 'Cédula', ruc: 'RUC', pasaporte: 'Pasaporte' } as const;
 
 const VACIO: DatosFacturacion = {
@@ -125,6 +164,7 @@ export default function FacturacionProceso({ procesoId, editable, onEstado, fina
 
   const abrir = () => {
     setError('');
+    getPartesProceso(procesoId).then(setPartes).catch(() => {});
     if (datos) {
       setForm({ ...VACIO, ...datos, telefono: datos.telefono || '' });
       setSeleccion(datos.origen === 'parte' && datos.cliente_id ? `c:${datos.cliente_id}` : 'tercero');
@@ -154,6 +194,16 @@ export default function FacturacionProceso({ procesoId, editable, onEstado, fina
       setError('Elige a nombre de quién va la factura');
       return;
     }
+    const t = form.tipo_identificacion;
+    const num = (form.identificacion || '').trim();
+    if (!num) return setError('Escribe el número de identificación');
+    if (t === 'cedula' && num.length !== 10) return setError('La cédula debe tener 10 dígitos');
+    if (t === 'ruc' && num.length !== 13) return setError('El RUC debe tener 13 dígitos');
+    const eId = errorIdentificacion(t, num);
+    if (eId) return setError(eId);
+    if (!correoValido(form.email || '')) return setError('Escribe un correo válido');
+    if (form.telefono && !/^\d{7,10}$/.test(form.telefono))
+      return setError('El teléfono debe tener entre 7 y 10 dígitos');
     setGuardando(true);
     setError('');
     try {
@@ -250,7 +300,7 @@ export default function FacturacionProceso({ procesoId, editable, onEstado, fina
                 <SelectField
                   label="Identificación"
                   value={form.tipo_identificacion}
-                  onChange={(e) => cambiar('tipo_identificacion', e.target.value)}
+                  onChange={(e) => setForm((f) => ({ ...f, tipo_identificacion: e.target.value as any, identificacion: '' }))}
                 >
                   <option value="cedula">Cédula</option>
                   <option value="ruc">RUC</option>
@@ -260,7 +310,16 @@ export default function FacturacionProceso({ procesoId, editable, onEstado, fina
                   <InputField
                     label="Número"
                     value={form.identificacion}
-                    onChange={(e) => cambiar('identificacion', e.target.value)}
+                    onChange={(e) =>
+                      cambiar(
+                        'identificacion',
+                        form.tipo_identificacion === 'pasaporte'
+                          ? e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 20)
+                          : soloDigitos(e.target.value, form.tipo_identificacion === 'ruc' ? 13 : 10)
+                      )
+                    }
+                    inputMode={form.tipo_identificacion === 'pasaporte' ? undefined : 'numeric'}
+                    error={errorIdentificacion(form.tipo_identificacion, form.identificacion || '') || undefined}
                   />
                 </div>
               </div>
@@ -279,12 +338,14 @@ export default function FacturacionProceso({ procesoId, editable, onEstado, fina
                   label="Correo (ahí llega la factura)"
                   type="email"
                   value={form.email}
-                  onChange={(e) => cambiar('email', e.target.value)}
+                  onChange={(e) => cambiar('email', e.target.value.slice(0, 100))}
+                  error={form.email && !correoValido(form.email) ? 'Correo no válido' : undefined}
                 />
                 <InputField
                   label="Teléfono (opcional)"
                   value={form.telefono || ''}
-                  onChange={(e) => cambiar('telefono', e.target.value)}
+                  inputMode="numeric"
+                  onChange={(e) => cambiar('telefono', soloDigitos(e.target.value, 10))}
                 />
               </div>
               {form.origen === 'parte' && (

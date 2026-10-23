@@ -7411,6 +7411,10 @@ def guardar_facturacion_proceso(
             raise HTTPException(status_code=400, detail="La dirección de facturación es obligatoria")
         if not email or not validar_email(email):
             raise HTTPException(status_code=400, detail="El correo de facturación es inválido")
+        if telefono:
+            telefono = re.sub(r"\D", "", telefono)
+            if not 7 <= len(telefono) <= 10:
+                raise HTTPException(status_code=400, detail="El teléfono de facturación debe tener entre 7 y 10 dígitos")
 
         if origen == "parte":
             if not cliente_id:

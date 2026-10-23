@@ -56,7 +56,7 @@ function NuevoClienteBox({
     representante_cedula?: string;
   };
   onChange: (n: any) => void;
-  onQuitar: () => void;
+  onQuitar?: () => void;
 }) {
   return (
     <div className="rounded-sm border border-amber-300 bg-amber-50 p-3 space-y-2">
@@ -64,9 +64,11 @@ function NuevoClienteBox({
         <p className="text-[13px] font-bold uppercase tracking-wider text-amber-900">
           {etiqueta} · cliente nuevo
         </p>
-        <button type="button" onClick={onQuitar} className="text-xs underline text-numa-700">
-          Elegir otro cliente
-        </button>
+        {onQuitar && (
+          <button type="button" onClick={onQuitar} className="text-xs underline text-numa-700">
+            Elegir otro cliente
+          </button>
+        )}
       </div>
       {n.tipo === 'empresa' ? (
         <p className="text-sm text-numa-800">
@@ -289,6 +291,12 @@ export default function ProcesosPage() {
       );
     }
     return clientes.find((c: any) => c.tipo !== 'empresa' && c.cedula === x.cedula);
+  };
+
+  const nombreInvitacion = (key: 'solicitantes' | 'invitados') => {
+    const cita = citasRapidas.find((c: any) => String(c.id) === String(form.cita_rapida_id));
+    const lista = cita?.partes_rapidas?.[key] || [];
+    return lista.length ? nombreParteRapida(lista[0]) : '';
   };
 
   const nombreParteRapida = (x: any) =>
@@ -991,15 +999,40 @@ export default function ProcesosPage() {
               </SelectField>
             )}
 
+            {!form.cita_rapida_id && (
+              <p className="text-[13px] text-numa-700">
+                Solo puedes elegir clientes ya registrados. Si falta alguien,{' '}
+                <a href="/clientes" target="_blank" rel="noreferrer" className="underline font-medium">
+                  créalo en Clientes
+                </a>{' '}
+                y luego{' '}
+                <button
+                  type="button"
+                  className="underline font-medium"
+                  onClick={() => getClientes().then(setClientes).catch(() => {})}
+                >
+                  actualiza la lista
+                </button>
+                .
+              </p>
+            )}
+
             {nuevos.sol && (
               <NuevoClienteBox
                 etiqueta="Solicitante"
                 n={nuevos.sol}
                 onChange={(n) => setNuevos((a) => ({ ...a, sol: n }))}
-                onQuitar={() => setNuevos((a) => ({ ...a, sol: null }))}
               />
             )}
             {!nuevos.sol && (
+            form.cita_rapida_id ? (
+              <div>
+                <p className="text-sm font-medium text-numa-800 mb-1">Solicitante</p>
+                <p className="text-sm text-numa-800 border border-numa-200 bg-numa-50 rounded-sm px-3 py-2">
+                  {nombreInvitacion('solicitantes')} · tomado de la invitación
+                </p>
+              </div>
+            ) : (
             <SelectField
               label="Solicitante"
               value={form.cliente_demandante_id}
@@ -1015,6 +1048,7 @@ export default function ProcesosPage() {
                 </option>
               ))}
             </SelectField>
+            )
             )}
 
             {extras.sol.length > 0 && (
@@ -1034,9 +1068,6 @@ export default function ProcesosPage() {
                           sol: a.sol.map((x, idx) => (idx === i ? { ...x, nuevo: n } : x))
                         }))
                       }
-                      onQuitar={() =>
-                        setExtras((a) => ({ ...a, sol: a.sol.filter((_, idx) => idx !== i) }))
-                      }
                     />
                   ) : (
                     <p key={i} className="text-sm text-numa-800 border border-numa-200 rounded-sm px-3 py-1.5">
@@ -1052,10 +1083,17 @@ export default function ProcesosPage() {
                 etiqueta="Invitado"
                 n={nuevos.inv}
                 onChange={(n) => setNuevos((a) => ({ ...a, inv: n }))}
-                onQuitar={() => setNuevos((a) => ({ ...a, inv: null }))}
               />
             )}
             {!nuevos.inv && (
+            form.cita_rapida_id ? (
+              <div>
+                <p className="text-sm font-medium text-numa-800 mb-1">Invitado</p>
+                <p className="text-sm text-numa-800 border border-numa-200 bg-numa-50 rounded-sm px-3 py-2">
+                  {nombreInvitacion('invitados')} · tomado de la invitación
+                </p>
+              </div>
+            ) : (
             <SelectField
               label="Invitado"
               value={form.cliente_demandado_id}
@@ -1071,6 +1109,7 @@ export default function ProcesosPage() {
                 </option>
               ))}
             </SelectField>
+            )
             )}
 
             {extras.inv.length > 0 && (
@@ -1089,9 +1128,6 @@ export default function ProcesosPage() {
                           ...a,
                           inv: a.inv.map((x, idx) => (idx === i ? { ...x, nuevo: n } : x))
                         }))
-                      }
-                      onQuitar={() =>
-                        setExtras((a) => ({ ...a, inv: a.inv.filter((_, idx) => idx !== i) }))
                       }
                     />
                   ) : (

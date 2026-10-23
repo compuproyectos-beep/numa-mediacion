@@ -1504,8 +1504,7 @@ export default function ProcesoDetallePage() {
               <p className="text-xs text-numa-700">
                 Se habilita cuando llegue la hora de la reunión (
                 {fechaLargaEC(String(citaPendiente.fecha || '').slice(0, 10))} a las{' '}
-                {String(citaPendiente.hora || '').slice(0, 5)}). Mientras tanto puedes cancelarla
-                desde el calendario.
+                {String(citaPendiente.hora || '').slice(0, 5)}).
               </p>
             </div>
           )}
@@ -1573,9 +1572,8 @@ export default function ProcesoDetallePage() {
 
                 {avanceForm.resultado === 'cerrado_con_acuerdo' && !confirmandoCierre && (
                   <div className="mb-3 p-3 border border-gold-200 bg-gold-50 rounded-sm text-xs text-gold-800">
-                    Este texto es el acuerdo oficial: se escribe una sola vez y sale en
-                    el acta que firmarán las partes. Revísalo bien; después solo el
-                    administrador podrá corregirlo.
+                    Este texto es el acuerdo oficial y saldrá en el acta que firmarán
+                    las partes. Revísalo bien antes de guardar.
                   </div>
                 )}
 

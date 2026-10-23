@@ -179,9 +179,9 @@ function LadoEditor({
                   onClick={() =>
                     onChange({ ...lado, personas: lado.personas.filter((_, idx) => idx !== i) })
                   }
-                  className="p-2 mb-0.5 text-red-600 hover:bg-red-50 rounded-sm"
+                  className="p-1 mb-2 ml-3 justify-self-start text-red-600 hover:bg-red-50 rounded-sm"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               ) : (
                 <span />
@@ -221,6 +221,7 @@ function LadoEditor({
             onChange={(e) => setEmpresa('razon_social', e.target.value)}
             disabled={!!lado.empresa.registrado}
           />
+<div className="sm:max-w-[220px]">
           <InputField
             label="RUC (opcional)"
             inputMode="numeric"
@@ -228,6 +229,7 @@ function LadoEditor({
             onChange={(e) => cambiarRuc(soloDigitos(e.target.value, 13))}
             placeholder="13 dígitos"
           />
+</div>
           <InputField
             label="Representante legal"
             value={lado.empresa.representante_nombre}
@@ -235,6 +237,7 @@ function LadoEditor({
             placeholder="Nombres y apellidos"
             disabled={!!lado.empresa.registrado}
           />
+<div className="sm:max-w-[220px]">
           <InputField
             label="Cédula del representante legal"
             inputMode="numeric"
@@ -248,6 +251,7 @@ function LadoEditor({
                 : undefined
             }
           />
+</div>
           {lado.empresa.registrado && (
             <p className="sm:col-span-2 text-xs text-green-800 flex items-start gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5 mt-px shrink-0 text-green-600" aria-hidden="true" />
