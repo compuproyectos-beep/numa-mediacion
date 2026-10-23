@@ -606,7 +606,7 @@ export default function ProcesosPage() {
     <>
       <PageHeader
         title="Procesos de Mediación"
-        subtitle="Gestión de procesos, invitaciones y avances"
+        subtitle="Gestión de procesos, invitaciones y resultados"
         action={
           <button onClick={abrirCrear} className="btn-primary">
             <Plus className="w-4 h-4" />
@@ -1199,7 +1199,7 @@ export default function ProcesosPage() {
             <div className="bg-numa-900 rounded-md p-3.5">
               <p className="text-[13px] leading-snug text-numa-50">
                 Al crear el proceso irás directo a su pantalla, donde podrás agendar invitaciones,
-                registrar avances y, cuando se cierre, subir los documentos del acta.
+                registrar resultados y, cuando se cierre, subir los documentos del acta.
               </p>
             </div>
           </div>

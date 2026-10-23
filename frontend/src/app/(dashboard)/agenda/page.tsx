@@ -14,7 +14,6 @@ import {
 } from '@/components/ui';
 import CalendarioAgendaMediador from '@/components/citas/CalendarioAgendaMediador';
 import InvitacionRapidaForm from '@/components/citas/InvitacionRapidaForm';
-import PedirNumeroActaBoton from '@/components/actas/PedirNumeroActaBoton';
 import ReunionModal from '@/components/citas/ReunionModal';
 import {
   getUsuarios,
@@ -413,7 +412,6 @@ export default function AgendaPage() {
               <FileText className="w-4 h-4" />
               Abrir documento de la invitación
             </button>
-            {rapidaCreada.usuario_id === user.id && <PedirNumeroActaBoton citaId={rapidaCreada.id} />}
           </div>
         </div>
       )}

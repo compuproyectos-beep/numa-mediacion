@@ -496,10 +496,10 @@ export default function ProcesoDetallePage() {
       setSuccessMessage(
         conActaNoAcuerdo
           ? 'Proceso cerrado con no acuerdo. Sube la documentación del acta de no acuerdo y el comprobante de pago.'
-          : `Avance registrado: ${estadoLabel(avanceForm.resultado)}.`
+          : `Resultado registrado: ${estadoLabel(avanceForm.resultado)}.`
       );
     } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Error al registrar avance');
+      setError(err?.response?.data?.detail || 'Error al registrar el resultado');
     } finally {
       setGuardandoAvance(false);
     }

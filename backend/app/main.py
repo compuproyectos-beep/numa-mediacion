@@ -380,7 +380,7 @@ def verificar_cedula_misma_persona(cur, cedula: str, nombre: str, apellido: str,
             raise HTTPException(
                 status_code=400,
                 detail=(
-                    f"Esa cédula ya está registrada como {donde} a nombre de "
+                    f"La cédula {cedula} ya está registrada como {donde} a nombre de "
                     f"{fila['nombre']} {fila['apellido']}. Una cédula solo puede "
                     f"pertenecer a una persona."
                 )

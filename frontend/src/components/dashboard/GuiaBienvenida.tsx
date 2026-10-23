@@ -20,7 +20,7 @@ const pasos = [
   },
   {
     icon: CalendarClock,
-    titulo: '3. Registra invitaciones y avances',
+    titulo: '3. Registra invitaciones y resultados',
     texto:
       'Dentro de cada proceso puedes agendar invitaciones y dejar constancia de cada avance de la mediación.'
   },

@@ -376,12 +376,13 @@ export default function InvitacionRapidaForm({
     }
   };
 
-  const fechaTexto = new Date(`${fecha}T00:00:00`).toLocaleDateString('es-EC', {
+  const fechaTextoBase = new Date(`${fecha}T00:00:00`).toLocaleDateString('es-EC', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric'
   });
+  const fechaTexto = fechaTextoBase.charAt(0).toUpperCase() + fechaTextoBase.slice(1);
 
   return (
     <div className="mt-5 rounded-md border border-numa-200 overflow-hidden bg-numa-50 shadow-sm">
@@ -397,7 +398,7 @@ export default function InvitacionRapidaForm({
           </p>
         </div>
         <p className="text-sm text-white/80 sm:text-right">
-          <span className="block capitalize">{fechaTexto}</span>
+          <span className="block">{fechaTexto}</span>
           <span className="block text-2xl font-semibold text-gold-400 leading-tight">{hora}</span>
         </p>
       </div>
