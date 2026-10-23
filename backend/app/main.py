@@ -5082,15 +5082,7 @@ def crear_avance_proceso(
             )
 
         if resultado == "cerrado_con_acuerdo":
-            cur.execute(
-                "SELECT 1 FROM numeros_acta WHERE proceso_id = %s AND estado <> 'anulado' LIMIT 1",
-                (proceso_id,)
-            )
-            if not cur.fetchone():
-                raise HTTPException(
-                    status_code=400,
-                    detail="Primero pide el número de acta del proceso (botón «Pedir número de acta»)"
-                )
+            _asegurar_numero_proceso(cur, proceso, usuario)
 
         cita_id = cita_pendiente["id"]
         nueva_cita_id = None
@@ -6416,6 +6408,36 @@ def pedir_numero_acta(cita_id: int = None, usuario=Depends(obtener_usuario_actua
         conn.close()
 
 
+def _asegurar_numero_proceso(cur, proceso, usuario):
+    """Da al proceso su número de acta si aún no lo tiene (al cerrarlo con acuerdo
+    o con acta de no acuerdo). Si ya tiene uno (por ejemplo, de la invitación
+    rápida) lo conserva. Desde aquí empiezan a contar las 48 horas. El número
+    queda a nombre del mediador dueño del proceso."""
+    cur.execute(
+        "SELECT codigo, estado FROM numeros_acta WHERE proceso_id = %s ORDER BY id LIMIT 1",
+        (proceso["id"],)
+    )
+    previo = cur.fetchone()
+    if previo:
+        if previo["estado"] == "anulado":
+            raise HTTPException(
+                status_code=400,
+                detail=f"El número de acta {previo['codigo']} de este proceso fue anulado. "
+                       f"Pide al administrador que lo reactive para continuar con el mismo número."
+            )
+        return previo["codigo"]
+    if usuario["rol"] != "administrador":
+        cur.execute("SELECT " + _sql_acta_vencida("p") + " AS v FROM procesos_mediacion p WHERE p.id = %s",
+                    (proceso["id"],))
+        fila = cur.fetchone()
+        if not (fila and fila["v"]):
+            motivo = _motivo_no_puede_pedir_numero(cur, usuario)
+            if motivo:
+                raise HTTPException(status_code=400, detail=motivo)
+    n = _reservar_numero_acta(cur, proceso["sucursal_id"], proceso["usuario_id"], proceso_id=proceso["id"])
+    return n["codigo"]
+
+
 @app.post("/procesos/{proceso_id}/numero-acta")
 def pedir_numero_acta_proceso(proceso_id: int, usuario=Depends(obtener_usuario_actual)):
     """Pide el número de acta de un proceso (el que no nació de una invitación
@@ -6451,7 +6473,7 @@ def pedir_numero_acta_proceso(proceso_id: int, usuario=Depends(obtener_usuario_a
         if motivo:
             raise HTTPException(status_code=400, detail=motivo)
         try:
-            n = _reservar_numero_acta(cur, p["sucursal_id"], usuario["id"], proceso_id=proceso_id)
+            n = _reservar_numero_acta(cur, p["sucursal_id"], p["usuario_id"], proceso_id=proceso_id)
         except psycopg2_errors.UniqueViolation:
             conn.rollback()
             raise HTTPException(status_code=409, detail="Ya tienes un número de acta pedido")
@@ -6817,7 +6839,7 @@ def solicitar_acta_no_acuerdo(proceso_id: int, usuario=Depends(obtener_usuario_a
     cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
         cur.execute(
-            "SELECT id, codigo_proceso, usuario_id, estado, requiere_acta_no_acuerdo "
+            "SELECT id, codigo_proceso, usuario_id, sucursal_id, estado, requiere_acta_no_acuerdo "
             "FROM procesos_mediacion WHERE id = %s FOR UPDATE",
             (proceso_id,)
         )
@@ -6836,15 +6858,7 @@ def solicitar_acta_no_acuerdo(proceso_id: int, usuario=Depends(obtener_usuario_a
             )
         if p["requiere_acta_no_acuerdo"]:
             raise HTTPException(status_code=400, detail="El acta de no acuerdo ya fue pedida")
-        cur.execute(
-            "SELECT 1 FROM numeros_acta WHERE proceso_id = %s AND estado <> 'anulado' LIMIT 1",
-            (proceso_id,)
-        )
-        if not cur.fetchone():
-            raise HTTPException(
-                status_code=400,
-                detail="Primero pide el número de acta del proceso (botón «Pedir número de acta»)"
-            )
+        _asegurar_numero_proceso(cur, {"id": p["id"], "usuario_id": p["usuario_id"], "sucursal_id": p["sucursal_id"]}, usuario)
 
         cur.execute("""
             UPDATE procesos_mediacion
