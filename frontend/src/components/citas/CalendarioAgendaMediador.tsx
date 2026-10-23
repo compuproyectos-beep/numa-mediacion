@@ -777,11 +777,14 @@ export default function CalendarioAgendaMediador({
                 <span className="text-amber-700 font-semibold">pendiente de completar</span>
               </p>
             ) : (
-              citaActiva.tema &&
-              citaActiva.tema !== 'Invitación rápida' && (
+              (citaActiva.documento_asunto ||
+                (citaActiva.tema && citaActiva.tema !== 'Invitación rápida' ? citaActiva.tema : '')) && (
                 <p>
                   <span className="text-numa-700 font-semibold">Tema:</span>{' '}
-                  <span className="text-numa-900 font-semibold">{citaActiva.tema}</span>
+                  <span className="text-numa-900 font-semibold">
+                    {citaActiva.documento_asunto ||
+                      (citaActiva.tema !== 'Invitación rápida' ? citaActiva.tema : '')}
+                  </span>
                 </p>
               )
             )}
