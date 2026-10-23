@@ -458,6 +458,11 @@ export default function ClientesPage() {
         <div className="grid grid-cols-2 gap-4">
           {form.tipo === 'empresa' ? (
             <>
+              <p className="col-span-2 text-xs text-numa-700 bg-numa-50 border border-numa-200 rounded-sm p-3">
+                Razón social, RUC, teléfono, correo, provincia, ciudad y dirección son los de la
+                <strong> empresa</strong>. Solo el representante legal y su cédula son de la
+                <strong> persona</strong> que firma en nombre de la empresa.
+              </p>
               <div className="col-span-2">
                 <InputField
                   label="Razón social"
@@ -563,7 +568,7 @@ export default function ClientesPage() {
 
           <div>
             <InputField
-              label="Teléfono"
+              label={form.tipo === 'empresa' ? 'Teléfono de la empresa' : 'Teléfono'}
               value={form.telefono}
               onChange={(e) => {
                 const value = e.target.value.replace(/\D/g, '').slice(0, 10);
@@ -587,7 +592,7 @@ export default function ClientesPage() {
 
           <div className="col-span-2">
             <InputField
-              label="Email"
+              label={form.tipo === 'empresa' ? 'Correo de la empresa' : 'Email'}
               value={form.email}
               onChange={(e) => {
                 const value = e.target.value.trim();
@@ -610,7 +615,7 @@ export default function ClientesPage() {
           </div>
 
           <SelectField
-            label="Provincia domicilio"
+            label={form.tipo === 'empresa' ? 'Provincia de la empresa' : 'Provincia domicilio'}
             value={provinciaId}
             onChange={(e) => {
               setProvinciaId(e.target.value);
@@ -627,7 +632,7 @@ export default function ClientesPage() {
           </SelectField>
 
           <SelectField
-            label="Ciudad de domicilio"
+            label={form.tipo === 'empresa' ? 'Ciudad de la empresa' : 'Ciudad de domicilio'}
             value={form.ciudad_id || ''}
             onChange={(e) =>
               setForm({
@@ -650,7 +655,7 @@ export default function ClientesPage() {
 
           <div className="col-span-2">
             <InputField
-              label="Dirección domiciliaria"
+              label={form.tipo === 'empresa' ? 'Dirección de la empresa' : 'Dirección domiciliaria'}
               value={form.direccion || ''}
               onChange={(e) =>
                 setForm({ ...form, direccion: e.target.value })

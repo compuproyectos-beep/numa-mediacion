@@ -8397,6 +8397,17 @@ def exportar_pdfs_actas_finales(
 # =========================
 # REPORTES
 # =========================
+def _bloquear_secretaria_reportes(usuario):
+    """La secretaria solo puede sacar el reporte de Agenda y el de Clientes
+    (de su propia sucursal). El resto de reportes es información de
+    administración y no debe poder verlos."""
+    if usuario["rol"] == "secretaria":
+        raise HTTPException(
+            status_code=403,
+            detail="Este reporte es solo para el administrador y los mediadores"
+        )
+
+
 @app.get("/reportes/resumen")
 def obtener_reporte_resumen(
     fecha_desde: str = None,
@@ -8406,6 +8417,7 @@ def obtener_reporte_resumen(
     usuario_id: int = None,
     usuario=Depends(obtener_usuario_actual)
 ):
+    _bloquear_secretaria_reportes(usuario)
     """
     Indicadores de resultado (no solo de volumen): de los procesos que
     llegaron a una resolución real en el rango, qué porcentaje se cerró con
@@ -8500,6 +8512,7 @@ def obtener_reporte_productividad(
     usuario_id: int = None,
     usuario=Depends(obtener_usuario_actual)
 ):
+    _bloquear_secretaria_reportes(usuario)
     # Reporte de comparación entre mediadores: solo el administrador puede
     # verlo (igual que Sucursales/Ciudades/Usuarios).
     if usuario["rol"] != "administrador":
@@ -8650,6 +8663,7 @@ def obtener_reporte_sucursales(
     sucursal_id: int = None,
     usuario=Depends(obtener_usuario_actual)
 ):
+    _bloquear_secretaria_reportes(usuario)
     # Comparación entre sucursales: solo el administrador puede verlo (igual
     # que Productividad).
     if usuario["rol"] != "administrador":
@@ -8795,14 +8809,18 @@ def obtener_reporte_clientes(
 
         # Mismo criterio que el resto del sistema: un mediador solo ve lo
         # relacionado con sus propios procesos.
-        if usuario["rol"] != "administrador":
+        if usuario["rol"] == "secretaria":
+            # La secretaria ve los clientes de los procesos de su sucursal.
+            query += " AND p.sucursal_id = %s"
+            params.append(usuario["sucursal_id"])
+        elif usuario["rol"] != "administrador":
             query += " AND p.usuario_id = %s"
             params.append(usuario["id"])
         elif usuario_id:
             query += " AND p.usuario_id = %s"
             params.append(usuario_id)
 
-        if sucursal_id:
+        if sucursal_id and usuario["rol"] != "secretaria":
             query += " AND s.id = %s"
             params.append(sucursal_id)
 
@@ -8886,13 +8904,20 @@ def reporte_operativo_agenda(
             WHERE (c.proceso_id IS NOT NULL OR c.partes_rapidas IS NOT NULL)
         """
         params = []
-        if usuario["rol"] != "administrador":
+        if usuario["rol"] == "secretaria":
+            # La secretaria ve la agenda de toda su sucursal (no la de otras).
+            query += " AND s.id = %s"
+            params.append(usuario["sucursal_id"])
+            if usuario_id:
+                query += " AND u.id = %s"
+                params.append(usuario_id)
+        elif usuario["rol"] != "administrador":
             query += " AND u.id = %s"
             params.append(usuario["id"])
         elif usuario_id:
             query += " AND u.id = %s"
             params.append(usuario_id)
-        if sucursal_id:
+        if sucursal_id and usuario["rol"] != "secretaria":
             query += " AND s.id = %s"
             params.append(sucursal_id)
         if ciudad_id:
@@ -8927,6 +8952,7 @@ def reporte_operativo_sin_avance(
     usuario_id: int = None,
     usuario=Depends(obtener_usuario_actual)
 ):
+    _bloquear_secretaria_reportes(usuario)
     if dias_minimo < 0:
         dias_minimo = 0
     conn = get_db()
@@ -8978,6 +9004,7 @@ def reporte_operativo_actas_pendientes(
     usuario_id: int = None,
     usuario=Depends(obtener_usuario_actual)
 ):
+    _bloquear_secretaria_reportes(usuario)
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
@@ -9025,6 +9052,7 @@ def reporte_operativo_facturas_pendientes(
     usuario_id: int = None,
     usuario=Depends(obtener_usuario_actual)
 ):
+    _bloquear_secretaria_reportes(usuario)
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
@@ -9159,6 +9187,8 @@ def exportar_reporte_excel(
     if tipo not in ["procesos", "productividad", "actas", "sucursales", "clientes",
                     "agenda", "sin-avance", "actas-pendientes", "facturas-pendientes"]:
         raise HTTPException(status_code=400, detail="Tipo de reporte inválido")
+    if usuario["rol"] == "secretaria" and tipo not in ("agenda", "clientes"):
+        raise HTTPException(status_code=403, detail="Este reporte es solo para el administrador y los mediadores")
 
     # Se reutilizan las mismas funciones que alimentan la pantalla (llamadas
     # directamente como funciones de Python, no como endpoints HTTP), para

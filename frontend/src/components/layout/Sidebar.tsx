@@ -59,7 +59,7 @@ export default function Sidebar() {
   }, []);
 
   const isAdmin = user?.rol === 'administrador';
-  // La secretaria solo trabaja con la Agenda y los Clientes.
+  // La secretaria solo trabaja con la Agenda, los Clientes y dos reportes (Agenda y Clientes).
   const esSecretaria = user?.rol === 'secretaria';
   const inicio = esSecretaria ? '/agenda' : '/dashboard';
 
@@ -82,7 +82,7 @@ export default function Sidebar() {
   }, [userMenuOpen]);
 
   const visibleNavItems = navItems.filter((item) => {
-    if (esSecretaria) return item.href === '/agenda' || item.href === '/clientes';
+    if (esSecretaria) return item.href === '/agenda' || item.href === '/clientes' || item.href === '/reportes';
     if (item.adminOnly && !isAdmin) return false;
     return true;
   });

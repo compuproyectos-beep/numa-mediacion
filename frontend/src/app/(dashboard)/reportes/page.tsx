@@ -28,7 +28,7 @@ import {
   getUsuarios
 } from '@/lib/services';
 import { getCiudadesCached, getSucursalesCached } from '@/lib/catalogCache';
-import { isAdmin } from '@/lib/auth';
+import { isAdmin, getUser } from '@/lib/auth';
 
 type TipoReporte =
   | 'procesos'
@@ -69,7 +69,8 @@ const formatoFecha = (v: any) => {
   return `${d}/${m}/${y}`;
 };
 
-const TIPOS: { valor: TipoReporte; titulo: string; adminOnly?: boolean }[] = [
+const TIPOS: { valor: TipoReporte; titulo: string; adminOnly?: boolean; soloSecretaria?: boolean }[] = [
+  { valor: 'agenda', titulo: 'Agenda de invitaciones', soloSecretaria: true },
   { valor: 'actas', titulo: 'Actas finales' },
   { valor: 'procesos', titulo: 'Procesos' },
   { valor: 'sin-avance', titulo: 'Procesos sin avance' },
@@ -131,9 +132,14 @@ const labelSucursal = (s: any) => (s.ciudad ? `${s.sucursal} (${s.ciudad})` : s.
 export default function ReportesPage() {
   const admin = isAdmin();
 
-  const tiposVisibles = TIPOS.filter((t) => !t.adminOnly || admin);
+  // La secretaria solo puede sacar Agenda y Clientes (de su sucursal); los
+  // demás reportes son información de administración.
+  const esSecretaria = getUser()?.rol === 'secretaria';
+  const tiposVisibles = esSecretaria
+    ? TIPOS.filter((t) => t.valor === 'agenda' || t.valor === 'clientes')
+    : TIPOS.filter((t) => (!t.adminOnly || admin) && !t.soloSecretaria);
 
-  const [tipo, setTipo] = useState<TipoReporte>('actas');
+  const [tipo, setTipo] = useState<TipoReporte>(esSecretaria ? 'agenda' : 'actas');
   const [diasMinimo, setDiasMinimo] = useState('7');
   // Filtro local de la lista de Actas finales: todas, solo de acuerdo o solo de no acuerdo.
   const [filtroTipoActa, setFiltroTipoActa] = useState<'' | 'acuerdo' | 'no_acuerdo'>('');
@@ -319,6 +325,8 @@ export default function ReportesPage() {
   };
 
   const toggleDetalleCliente = async (clienteId: number, soloPendientes = false) => {
+    // La secretaria ve solo el resumen por cliente, sin el detalle de cada proceso.
+    if (esSecretaria) return;
     if (clienteExpandidoId === clienteId && !soloPendientes) {
       setClienteExpandidoId(null);
       setSoloPendientesDetalle(false);
@@ -978,7 +986,7 @@ export default function ReportesPage() {
                         <th className="table-header">Hora</th>
                         <th className="table-header">Solicitante</th>
                         <th className="table-header">Invitado</th>
-                        {admin && <th className="table-header">Mediador</th>}
+                        {(admin || esSecretaria) && <th className="table-header">Mediador</th>}
                         <th className="table-header">Sucursal</th>
                         <th className="table-header">Estado</th>
                       </>
@@ -1045,7 +1053,7 @@ export default function ReportesPage() {
                         <td className="table-cell">{String(c.hora).slice(0, 5)}</td>
                         <td className="table-cell">{c.demandante}</td>
                         <td className="table-cell">{c.demandado}</td>
-                        {admin && <td className="table-cell">{c.mediador}</td>}
+                        {(admin || esSecretaria) && <td className="table-cell">{c.mediador}</td>}
                         <td className="table-cell">{labelSucursal(c)}</td>
                         <td className="table-cell">
                           {c.atrasada ? (

@@ -38,7 +38,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         router.replace('/cambiar-password');
       } else if (
         usuarioActual?.rol === 'secretaria' &&
-        !['/agenda', '/clientes', '/cambiar-password'].some(
+        !['/agenda', '/clientes', '/reportes', '/cambiar-password'].some(
           (r) => pathname === r || pathname.startsWith(r + '/')
         )
       ) {
