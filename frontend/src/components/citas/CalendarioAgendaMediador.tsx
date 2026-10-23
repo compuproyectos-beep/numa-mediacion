@@ -909,14 +909,20 @@ export default function CalendarioAgendaMediador({
                         no, ciérrala sin proceso una vez realizada.
                       </p>
                       <div className="flex flex-wrap gap-3 items-center">
-                        <button
-                          type="button"
-                          onClick={() => router.push(`/procesos?crear=1&cita=${citaActiva.id}`)}
-                          className="btn-secondary inline-flex items-center gap-2"
-                        >
-                          <FolderPlus className="w-4 h-4" />
-                          Crear el proceso
-                        </button>
+                        {usuarioActual?.id === citaActiva.usuario_id ? (
+                          <button
+                            type="button"
+                            onClick={() => router.push(`/procesos?crear=1&cita=${citaActiva.id}`)}
+                            className="btn-secondary inline-flex items-center gap-2"
+                          >
+                            <FolderPlus className="w-4 h-4" />
+                            Crear el proceso
+                          </button>
+                        ) : (
+                          <span className="text-sm font-medium text-numa-700">
+                            Solo {citaActiva.mediador || 'el mediador de esta invitación'} puede crear el proceso.
+                          </span>
+                        )}
                         {permitirGestionarEstado && (
                           <button
                             type="button"
@@ -934,6 +940,13 @@ export default function CalendarioAgendaMediador({
                           <span>Se habilita cuando llegue la hora de la reunión.</span>
                         )}
                       </div>
+                      {usuarioActual?.id !== citaActiva.usuario_id && citaActiva.numero_acta_codigo && (
+                        <p className="mt-3 text-sm text-numa-800">
+                          Número de acta de esta invitación:{' '}
+                          <span className="font-mono font-bold">{citaActiva.numero_acta_codigo}</span>
+                          {citaActiva.numero_acta_estado === 'anulado' ? ' (anulado)' : ''}
+                        </p>
+                      )}
                       {usuarioActual?.id === citaActiva.usuario_id && (
                         <div className="mt-3">
                           <PedirNumeroActaBoton

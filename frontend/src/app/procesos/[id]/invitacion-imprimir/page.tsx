@@ -667,7 +667,7 @@ function ImprimirInvitacion() {
           <Link
             href={
               esRapida
-                ? `/agenda?cita=${citaId || citaParam}${cita?.usuario_id ? `&mediador=${cita.usuario_id}` : ''}`
+                ? `/agenda?cita=${citaId || citaParam}${(cita?.usuario_id || data?.proceso?.usuario_id) ? `&mediador=${cita?.usuario_id || data?.proceso?.usuario_id}` : ''}`
                 : `/procesos/${procesoId}`
             }
             className="inline-flex items-center gap-1.5 text-sm text-numa-600 hover:text-numa-900 mb-3"

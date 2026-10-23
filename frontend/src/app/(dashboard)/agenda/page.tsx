@@ -391,7 +391,14 @@ export default function AgendaPage() {
       {rapidaCreada && !hayFechaHora && (
         <div className="mt-5 border border-green-200 bg-green-50 rounded-sm p-4">
           <p className="text-sm text-green-800 font-medium mb-3">
-            Invitación rápida creada para el {String(rapidaCreada.fecha).slice(0, 10)} a las{' '}
+            Invitación rápida creada para el{' '}
+            {new Date(`${String(rapidaCreada.fecha).slice(0, 10)}T00:00:00`).toLocaleDateString('es-EC', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })}{' '}
+            a las{' '}
             {String(rapidaCreada.hora).slice(0, 5)}.
           </p>
           <div className="flex flex-wrap items-start gap-3">
