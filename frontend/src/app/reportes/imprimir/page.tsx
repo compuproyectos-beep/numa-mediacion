@@ -32,7 +32,8 @@ const ETIQUETAS_CITA: Record<string, string> = {
   confirmada: 'Confirmada',
   realizada: 'Realizada',
   no_realizada: 'No asistió / no se realizó',
-  cancelada: 'Cancelada'
+  cancelada: 'Cancelada',
+  reagendada: 'Reagendada'
 };
 
 // fecha_acuerdo viene en UTC sin zona horaria: se convierte a fecha de Ecuador.
@@ -562,7 +563,7 @@ function ImprimirReporteContenido() {
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sucursal</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas firmadas</th>
                       <th className="text-left py-2 pr-2 font-semibold text-amber-700">Actas pendientes</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Total</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Total (sin anulados)</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">En negociación</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Con acuerdo</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sin acuerdo</th>
@@ -589,7 +590,7 @@ function ImprimirReporteContenido() {
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Ciudad</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas firmadas</th>
                       <th className="text-left py-2 pr-2 font-semibold text-amber-700">Actas pendientes</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Total</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Total (sin anulados)</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">En negociación</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Con acuerdo</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sin acuerdo</th>
@@ -605,7 +606,7 @@ function ImprimirReporteContenido() {
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Cédula</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas firmadas</th>
                       <th className="text-left py-2 pr-2 font-semibold text-amber-700">Actas pendientes</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Total</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Total (sin anulados)</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">En negociación</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Con acuerdo</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sin acuerdo</th>

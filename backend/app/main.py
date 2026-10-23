@@ -8613,9 +8613,13 @@ def reporte_operativo_agenda(
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
+        # Incluye las invitaciones de procesos y también las invitaciones
+        # rápidas (sin proceso), que no tienen clientes registrados: sus partes
+        # salen de lo que se escribió al crearlas.
         query = """
             SELECT
-                c.id, c.proceso_id, c.fecha, c.hora, c.estado, c.tema,
+                c.id, c.proceso_id, c.usuario_id AS mediador_id, c.fecha, c.hora, c.estado, c.tema,
+                c.partes_rapidas,
                 p.codigo_proceso,
                 cd.nombre || ' ' || cd.apellido AS demandante,
                 cdd.nombre || ' ' || cdd.apellido AS demandado,
@@ -8625,16 +8629,27 @@ def reporte_operativo_agenda(
                 (c.estado IN ('pendiente', 'confirmada')
                  AND (c.fecha + c.hora) < (NOW() AT TIME ZONE 'America/Guayaquil')) AS atrasada
             FROM citas c
-            JOIN procesos_mediacion p ON c.proceso_id = p.id
-            JOIN clientes cd ON c.cliente_demandante_id = cd.id
-            JOIN clientes cdd ON c.cliente_demandado_id = cdd.id
-            JOIN usuarios u ON p.usuario_id = u.id
-            JOIN sucursales s ON p.sucursal_id = s.id
+            LEFT JOIN procesos_mediacion p ON c.proceso_id = p.id
+            LEFT JOIN clientes cd ON c.cliente_demandante_id = cd.id
+            LEFT JOIN clientes cdd ON c.cliente_demandado_id = cdd.id
+            JOIN usuarios u ON u.id = COALESCE(p.usuario_id, c.usuario_id)
+            JOIN sucursales s ON s.id = COALESCE(p.sucursal_id, c.sucursal_id)
             JOIN ciudades ci ON s.ciudad_id = ci.id
-            WHERE 1=1
+            WHERE (c.proceso_id IS NOT NULL OR c.partes_rapidas IS NOT NULL)
         """
         params = []
-        query = _filtros_operativos(query, params, usuario, usuario_id, sucursal_id, ciudad_id)
+        if usuario["rol"] != "administrador":
+            query += " AND u.id = %s"
+            params.append(usuario["id"])
+        elif usuario_id:
+            query += " AND u.id = %s"
+            params.append(usuario_id)
+        if sucursal_id:
+            query += " AND s.id = %s"
+            params.append(sucursal_id)
+        if ciudad_id:
+            query += " AND ci.id = %s"
+            params.append(ciudad_id)
         if fecha_desde:
             query += " AND c.fecha >= %s"
             params.append(fecha_desde)
@@ -8643,7 +8658,14 @@ def reporte_operativo_agenda(
             params.append(fecha_hasta)
         query += " ORDER BY c.fecha ASC, c.hora ASC"
         cur.execute(query, tuple(params))
-        return cur.fetchall()
+        filas = cur.fetchall()
+        for fila in filas:
+            pr = fila.pop("partes_rapidas", None)
+            fila["sin_proceso"] = fila["proceso_id"] is None
+            if pr and not fila.get("demandante"):
+                fila["demandante"], _ = _resumen_lado_rapido(pr.get("solicitantes"))
+                fila["demandado"], _ = _resumen_lado_rapido(pr.get("invitados"))
+        return filas
     finally:
         cur.close()
         conn.close()

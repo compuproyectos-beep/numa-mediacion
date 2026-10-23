@@ -48,7 +48,8 @@ const ETIQUETAS_CITA: Record<string, string> = {
   confirmada: 'Confirmada',
   realizada: 'Realizada',
   no_realizada: 'No asistió / no se realizó',
-  cancelada: 'Cancelada'
+  cancelada: 'Cancelada',
+  reagendada: 'Reagendada'
 };
 
 // fecha_acuerdo viene en UTC sin zona horaria: se convierte a fecha de Ecuador.
@@ -95,7 +96,7 @@ const DESCRIPCIONES: Record<TipoReporte, string> = {
   clientes:
     'Por cada cliente, cuántos procesos de mediación ha tenido (como solicitante o invitado) y en qué estado están. Da clic en un cliente para ver el detalle de sus procesos.',
   agenda:
-    'Las reuniones (invitaciones) programadas en el rango de fechas elegido. Las marcadas como "Atrasada" ya pasaron y siguen sin resultado registrado. Da clic en una fila para abrir el proceso.',
+    'Las reuniones (invitaciones) programadas en el rango de fechas elegido. Incluye las invitaciones rápidas (marcadas "Sin proceso"). Las marcadas como "Atrasada" ya pasaron y siguen sin resultado registrado. Da clic en una fila para abrir el proceso o la agenda.',
   'sin-avance':
     'Procesos que siguen en negociación y llevan al menos esos días sin que se registre ningún avance. Sirve para saber cuáles se están quedando olvidados. Los días se cuentan desde el último avance (o desde que se creó el proceso, si nunca tuvo uno).',
   'actas-pendientes':
@@ -696,7 +697,7 @@ export default function ReportesPage() {
                     </div>
                   )}
                   <div>
-                    <dt className="text-xs text-numa-700">Con acuerdo sin acta firmada firmada</dt>
+                    <dt className="text-xs text-numa-700">Con acuerdo sin acta firmada</dt>
                     <dd
                       className={`text-base font-bold tabular-nums ${
                         actasPendientesProcesos > 0 ? 'text-amber-700' : 'text-numa-900'
@@ -800,7 +801,7 @@ export default function ReportesPage() {
                         <th className="table-header">Fecha ingreso</th>
                         <th className="table-header">Ciudad</th>
                         <th className="table-header">Sucursal</th>
-                        <th className="table-header">Total</th>
+                        <th className="table-header">Total (sin anulados)</th>
                         <th className="table-header">En negociación</th>
                         <th className="table-header">Con acuerdo</th>
                         <th className="table-header">Sin acuerdo</th>
@@ -829,7 +830,7 @@ export default function ReportesPage() {
                         <th className="table-header"></th>
                         <th className="table-header">Sucursal</th>
                         <th className="table-header">Ciudad</th>
-                        <th className="table-header">Total</th>
+                        <th className="table-header">Total (sin anulados)</th>
                         <th className="table-header">En negociación</th>
                         <th className="table-header">Con acuerdo</th>
                         <th className="table-header">Sin acuerdo</th>
@@ -848,7 +849,7 @@ export default function ReportesPage() {
                         <th className="table-header">Cédula</th>
                         <th className="table-header">Teléfono</th>
                         <th className="table-header">Email</th>
-                        <th className="table-header">Total</th>
+                        <th className="table-header">Total (sin anulados)</th>
                         <th className="table-header">En negociación</th>
                         <th className="table-header">Con acuerdo</th>
                         <th className="table-header">Sin acuerdo</th>
@@ -916,10 +917,20 @@ export default function ReportesPage() {
                     datos.map((c: any) => (
                       <tr
                         key={c.id}
-                        onClick={() => c.proceso_id && window.open(`/procesos/${c.proceso_id}`, '_blank')}
+                        onClick={() =>
+                          window.open(
+                            c.proceso_id ? `/procesos/${c.proceso_id}` : `/agenda?cita=${c.id}&mediador=${c.mediador_id}`,
+                            '_blank'
+                          )
+                        }
                         className="table-row cursor-pointer hover:bg-gold-400/[0.06]"
                       >
-                        <td className="table-cell">{formatoFecha(c.fecha)}</td>
+                        <td className="table-cell">
+                          {formatoFecha(c.fecha)}
+                          {c.sin_proceso && (
+                            <span className="ml-2 text-xs font-medium text-numa-600">Sin proceso</span>
+                          )}
+                        </td>
                         <td className="table-cell">{String(c.hora).slice(0, 5)}</td>
                         <td className="table-cell">{c.demandante}</td>
                         <td className="table-cell">{c.demandado}</td>
