@@ -361,6 +361,16 @@ export default function CalendarioAgendaMediador({
     cargarCitas();
   }, [cargarCitas]);
 
+  // Si la lista se recarga (p. ej. tras pedir el número de acta), el detalle
+  // abierto se actualiza con los datos nuevos en vez de quedarse con los viejos.
+  useEffect(() => {
+    setCitaActiva((prev: any) => {
+      if (!prev) return prev;
+      const fresca = citas.find((x) => Number(x.id) === Number(prev.id));
+      return fresca ? { ...prev, ...fresca } : prev;
+    });
+  }, [citas]);
+
   // Si se llegó con una invitación indicada, se abre sola en cuanto cargan las
   // citas (una sola vez): se muestra el mes de esa invitación y se baja hasta su
   // detalle, sin tener que volver a darle clic.
@@ -466,13 +476,15 @@ export default function CalendarioAgendaMediador({
     horasOcupadasDelDia.includes(horaSeleccionada) || !!reunionEnLaHora;
   const horaYaPaso = esHoy && horaSeleccionada < horaActual();
 
-  const etiquetaFecha = (fecha: string) =>
-    new Date(`${fecha}T00:00:00`).toLocaleDateString('es-EC', {
+  const etiquetaFecha = (fecha: string) => {
+    const t = new Date(`${fecha}T00:00:00`).toLocaleDateString('es-EC', {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
       year: 'numeric',
     });
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  };
 
   const handleCambiarEstado = async (nuevoEstado: string, motivo?: string) => {
     if (!citaActiva) return;
@@ -701,7 +713,7 @@ export default function CalendarioAgendaMediador({
         <div ref={panelRef} className="mt-5 border-t-2 border-numa-300 pt-5 scroll-mt-24">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <p className="text-lg font-bold text-numa-900 capitalize">
+              <p className="text-lg font-bold text-numa-900">
                 {etiquetaFecha(citaActiva.fecha)} — {citaActiva.hora?.slice(0, 5)}
               </p>
               <p className="text-sm text-numa-700 mt-1">
@@ -1019,7 +1031,7 @@ export default function CalendarioAgendaMediador({
                 <Users className="w-4 h-4 text-violet-600" />
                 {reunionActiva.titulo}
               </p>
-              <p className="text-sm text-numa-700 mt-0.5 capitalize">
+              <p className="text-sm text-numa-700 mt-0.5">
                 {etiquetaFecha(String(reunionActiva.fecha).slice(0, 10))} · de{' '}
                 {horaCorta(reunionActiva.hora_inicio)} a {horaCorta(reunionActiva.hora_fin)}
               </p>
@@ -1088,7 +1100,7 @@ export default function CalendarioAgendaMediador({
       {/* Citas del día seleccionado (clic en un día vacío o en "+N más") */}
       {diaSeleccionado && !citaActiva && (
         <div id="panel-dia-agenda" ref={panelRef} className="mt-5 border-t border-numa-100 pt-5 scroll-mt-24">
-          <p className="text-sm font-semibold text-numa-800 mb-2 capitalize">
+          <p className="text-sm font-semibold text-numa-800 mb-2">
             {etiquetaFecha(diaSeleccionado)}
           </p>
 

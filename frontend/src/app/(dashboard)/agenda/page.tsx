@@ -341,7 +341,7 @@ export default function AgendaPage() {
           </p>
 
           <TextareaField
-            label="Observaciones"
+            label="Observaciones (obligatorio)"
             rows={3}
             value={invitacionForm.observaciones}
             onChange={(e) =>
@@ -381,6 +381,7 @@ export default function AgendaPage() {
             onCancelar={() => setInvitacionForm({ fecha: '', hora: '', observaciones: '' })}
             onCreada={(cita) => {
               setRapidaCreada(cita);
+              setCitaInicialId(cita?.id);
               setInvitacionForm({ fecha: '', hora: '', observaciones: '' });
               setCalendarRefreshKey((k) => k + 1);
             }}

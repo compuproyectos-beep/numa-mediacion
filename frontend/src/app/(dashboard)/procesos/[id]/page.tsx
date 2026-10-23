@@ -1530,8 +1530,8 @@ export default function ProcesoDetallePage() {
                 <option value="en_negociacion">En negociación</option>
                 <option value="no_realizada">No asistió / no se realizó</option>
                 <option value="cerrado_con_acuerdo">Cerrado con acuerdo</option>
-                <option value="cerrado_no_acuerdo">Cerrado con no acuerdo (con acta de no acuerdo)</option>
-                <option value="cerrado_sin_acuerdo">Cerrado sin acuerdo (sin acta)</option>
+                <option value="cerrado_no_acuerdo">Cerrado con no acuerdo (se emite acta de no acuerdo)</option>
+                <option value="cerrado_sin_acuerdo">Cerrado sin acuerdo (no se emite acta)</option>
                 <option value="archivado">Archivado</option>
               </SelectField>
 
@@ -1586,8 +1586,8 @@ export default function ProcesoDetallePage() {
                         <p className="font-semibold mb-1">¿Está seguro de este acuerdo?</p>
                         <p className="whitespace-pre-line mb-2">{avanceForm.observacion}</p>
                         <p>
-                          Después de confirmar no podrás cambiarlo ni cambiar el resultado
-                          del proceso.
+                          Una vez confirmado, el acuerdo y el resultado del proceso ya
+                          no se podrán modificar.
                         </p>
                       </>
                     ) : (
@@ -1633,7 +1633,7 @@ export default function ProcesoDetallePage() {
                     disabled={guardandoAvance}
                     className="btn-primary"
                   >
-                    {guardandoAvance ? 'Guardando...' : 'Registrar avance'}
+                    {guardandoAvance ? 'Guardando...' : 'Registrar resultado'}
                   </button>
                 )}
               </div>

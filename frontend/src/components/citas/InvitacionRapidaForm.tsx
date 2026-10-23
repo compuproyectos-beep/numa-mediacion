@@ -327,6 +327,11 @@ export default function InvitacionRapidaForm({
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
 
+  // Al corregir cualquier dato se quita el aviso de error anterior.
+  useEffect(() => {
+    setError('');
+  }, [solicitantes, invitados, tema, observaciones]);
+
   const crear = async () => {
     const problema =
       revisarLado(solicitantes, 'solicitante') || revisarLado(invitados, 'invitado');
@@ -422,7 +427,7 @@ export default function InvitacionRapidaForm({
           />
 
           <TextareaField
-            label="Observaciones"
+            label="Observaciones (obligatorio)"
             rows={3}
             value={observaciones}
             onChange={(e) => setObservaciones(e.target.value)}

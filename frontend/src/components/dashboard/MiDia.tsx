@@ -18,7 +18,7 @@ const etiquetaDia = (fecha: string, hoy: string) => {
   const [a, m, d] = fecha.split('-');
   const f = new Date(Date.UTC(Number(a), Number(m) - 1, Number(d)));
   const larga = f.toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
-  return `el ${larga}`;
+  return `el ${larga.replace(',', '')}`;
 };
 
 // Controles "‹ Anterior  1–4 de 9  Siguiente ›". Si todo cabe en una página
