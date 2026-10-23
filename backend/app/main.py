@@ -5021,9 +5021,16 @@ def crear_avance_proceso(
 
         if resultado not in [
             "en_negociacion", "no_realizada",
-            "cerrado_con_acuerdo", "cerrado_sin_acuerdo", "archivado"
+            "cerrado_con_acuerdo", "cerrado_no_acuerdo", "cerrado_sin_acuerdo", "archivado"
         ]:
             raise HTTPException(status_code=400, detail="Resultado no válido")
+
+        # "Cerrado con no acuerdo": cierra sin acuerdo Y pide el acta de no
+        # acuerdo, todo en un solo paso (con su número de acta). Si algo falla
+        # (por ejemplo, un acta vencida), no se cierra nada.
+        con_acta_na = (resultado == "cerrado_no_acuerdo")
+        if con_acta_na:
+            resultado = "cerrado_sin_acuerdo"
 
         cur.execute("""
             SELECT *
@@ -5081,7 +5088,7 @@ def crear_avance_proceso(
                 detail="No existe una invitación pendiente para registrar resultado"
             )
 
-        if resultado == "cerrado_con_acuerdo":
+        if resultado == "cerrado_con_acuerdo" or con_acta_na:
             _asegurar_numero_proceso(cur, proceso, usuario)
 
         cita_id = cita_pendiente["id"]
@@ -5225,6 +5232,21 @@ def crear_avance_proceso(
                 resultado,
                 proceso_id
             ))
+
+        if con_acta_na:
+            cur.execute("""
+                UPDATE procesos_mediacion
+                SET requiere_acta_no_acuerdo = true,
+                    fecha_solicitud_acta_na = NOW()
+                WHERE id = %s
+            """, (proceso_id,))
+            cur.execute("SELECT id FROM usuarios WHERE rol = 'administrador' AND activo = true")
+            for admin in cur.fetchall():
+                crear_notificacion(
+                    cur, admin["id"], "Acta de no acuerdo pedida",
+                    f"Se pidió el acta de no acuerdo del proceso {proceso['codigo_proceso']}.",
+                    "acta", "proceso_mediacion", proceso_id
+                )
 
         if resultado in ["cerrado_con_acuerdo", "cerrado_sin_acuerdo", "archivado"]:
             etiquetas_resultado = {

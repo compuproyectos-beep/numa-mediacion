@@ -480,20 +480,9 @@ export default function ProcesoDetallePage() {
 
     try {
       await crearAvanceProceso(proceso.id, {
-        resultado: conActaNoAcuerdo ? 'cerrado_sin_acuerdo' : avanceForm.resultado,
+        resultado: avanceForm.resultado,
         observacion: avanceForm.observacion
       });
-
-      if (conActaNoAcuerdo) {
-        try {
-          await solicitarActaNoAcuerdo(proceso.id);
-        } catch (e: any) {
-          setError(
-            (e?.response?.data?.detail || 'No se pudo pedir el acta de no acuerdo') +
-              '. El proceso ya quedó cerrado: puedes pedirla con el botón "Emitir acta de no acuerdo".'
-          );
-        }
-      }
 
       const avances = await getAvancesProceso(proceso.id);
       setAvancesProceso(avances);
