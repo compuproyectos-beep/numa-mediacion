@@ -870,6 +870,15 @@ export default function ProcesoDetallePage() {
           <p className="text-xs text-numa-600 mt-1">
             {proceso.demandante_cedula || '—'} · {proceso.demandado_cedula || '—'}
           </p>
+          {proceso.numero_acta_codigo && (
+            <p className="text-xs text-numa-700 mt-1">
+              Número de acta:{' '}
+              <strong className="font-mono">{proceso.numero_acta_codigo}</strong>
+              {proceso.numero_acta_estado === 'anulado' && (
+                <span className="text-red-700"> (anulado)</span>
+              )}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
