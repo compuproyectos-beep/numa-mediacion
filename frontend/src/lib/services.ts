@@ -1001,6 +1001,12 @@ export async function pedirNumeroActa(citaId?: number): Promise<any> {
   return res.data;
 }
 
+// Pide el número de acta de un proceso (queda ligado a él).
+export async function pedirNumeroActaProceso(procesoId: number): Promise<any> {
+  const res = await api.post(`/procesos/${procesoId}/numero-acta`);
+  return res.data;
+}
+
 // Solo administrador: devuelve un número anulado al mediador para que continúe con el mismo.
 export async function reactivarNumeroActa(id: number): Promise<any> {
   const res = await api.post(`/numeros-acta/${id}/reactivar`);

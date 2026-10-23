@@ -42,7 +42,8 @@ import {
   getExpedienteProceso,
   getCitas,
   descargarPdfActaFinal,
-  descargarComprobantePagoActaFinal
+  descargarComprobantePagoActaFinal,
+  pedirNumeroActaProceso,
 } from '@/lib/services';
 
 // Mismos colores que ya se usan en la Agenda (ver colorPorEstado en
@@ -214,6 +215,20 @@ export default function ProcesoDetallePage() {
   // Números de acta que el mediador pidió y aún no usó: elige cuál corresponde
   // a esta acta (debe coincidir con la que redactó).
   const [numerosPedidos, setNumerosPedidos] = useState<any[]>([]);
+  const [pidiendoNumero, setPidiendoNumero] = useState(false);
+  const [errorNumero, setErrorNumero] = useState('');
+  const pedirNumeroProceso = async () => {
+    setPidiendoNumero(true);
+    setErrorNumero('');
+    try {
+      await pedirNumeroActaProceso(proceso.id);
+      await cargarProceso();
+    } catch (e: any) {
+      setErrorNumero(e?.response?.data?.detail || 'No se pudo pedir el número de acta');
+    } finally {
+      setPidiendoNumero(false);
+    }
+  };
   const [numeroActaId, setNumeroActaId] = useState('');
 
   const cargarProceso = async () => {
@@ -1647,6 +1662,13 @@ export default function ProcesoDetallePage() {
                   : esNoAcuerdo(proceso)
                   ? 'Se pidió el acta de no acuerdo. Sube la documentación y el comprobante de pago para cerrarla.'
                   : 'El proceso llegó a un acuerdo. Sube la documentación y el comprobante de pago para cerrarlo.'}
+                {proceso.numero_acta_codigo ? (
+                  <>
+                    {' '}Número de acta: <b className="font-mono">{proceso.numero_acta_codigo}</b>.
+                  </>
+                ) : (
+                  !procesoPrimeroEnFila && ' Primero pide el número de acta.'
+                )}
               </p>
 
               {procesoPrimeroEnFila ? (
@@ -1656,6 +1678,15 @@ export default function ProcesoDetallePage() {
                   className="btn-secondary shrink-0"
                 >
                   Ir a {procesoPrimeroEnFila.codigo_proceso}
+                </button>
+              ) : !proceso.numero_acta_codigo ? (
+                <button
+                  type="button"
+                  onClick={pedirNumeroProceso}
+                  disabled={pidiendoNumero}
+                  className="btn-primary shrink-0 disabled:opacity-50"
+                >
+                  {pidiendoNumero ? 'Pidiendo...' : 'Pedir número de acta'}
                 </button>
               ) : tieneFacturacion === false ? (
                 <button
@@ -1707,6 +1738,7 @@ export default function ProcesoDetallePage() {
                 </button>
               )}
             </div>
+            {errorNumero && <p className="text-sm text-red-700 mt-2">{errorNumero}</p>}
           </div>
         )}
 

@@ -3769,6 +3769,8 @@ def obtener_procesos_mediacion(
                 EXISTS (SELECT 1 FROM proceso_facturas f
                          WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'mediador') AS tiene_factura_mediador,
                 (p.acta_impresa_fecha IS NOT NULL) AS acta_impresa,
+                (SELECT na.codigo FROM numeros_acta na WHERE na.proceso_id = p.id ORDER BY na.id LIMIT 1) AS numero_acta_codigo,
+                (SELECT na.estado FROM numeros_acta na WHERE na.proceso_id = p.id ORDER BY na.id LIMIT 1) AS numero_acta_estado,
                 -- Si ya tiene una invitación pendiente, no se puede agendar
                 -- otra hasta que esa se resuelva (realizada/cancelada) —
                 -- usado para saber qué procesos se pueden elegir al crear
@@ -5508,6 +5510,11 @@ async def subir_acta_final_proceso(
                     f"Pide al administrador que lo reactive para continuar con el mismo número."
                 )
             )
+        if not numero_ligado:
+            raise HTTPException(
+                status_code=400,
+                detail="Primero pide el número de acta de este proceso (botón «Pedir número de acta»)."
+            )
         cur.execute(
             "SELECT id, sucursal_id, codigo, fecha_solicitud, cita_id, proceso_id, "
             "(fecha_solicitud <= NOW() - INTERVAL '48 hours') AS vencido "
@@ -6382,6 +6389,58 @@ def pedir_numero_acta(cita_id: int = None, usuario=Depends(obtener_usuario_actua
             raise HTTPException(status_code=400, detail=motivo)
         try:
             n = _reservar_numero_acta(cur, sucursal_numero, usuario["id"], cita_id=cita_id)
+        except psycopg2_errors.UniqueViolation:
+            conn.rollback()
+            raise HTTPException(status_code=409, detail="Ya tienes un número de acta pedido")
+        conn.commit()
+        return {"id": n["id"], "codigo": n["codigo"]}
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudo pedir el número de acta: {e}")
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/procesos/{proceso_id}/numero-acta")
+def pedir_numero_acta_proceso(proceso_id: int, usuario=Depends(obtener_usuario_actual)):
+    """Pide el número de acta de un proceso (el que no nació de una invitación
+    con número). Queda ligado al proceso: es el número del acta y no se pide otro."""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute(
+            "SELECT p.id, p.usuario_id, p.sucursal_id, p.estado, p.finalizado, p.suspendido, "
+            "p.requiere_acta_no_acuerdo, " + _sql_acta_vencida("p") + " AS vencida_propia "
+            "FROM procesos_mediacion p WHERE p.id = %s FOR UPDATE",
+            (proceso_id,)
+        )
+        p = cur.fetchone()
+        if not p:
+            raise HTTPException(status_code=404, detail="Proceso no encontrado")
+        es_admin = usuario["rol"] == "administrador"
+        if not es_admin and p["usuario_id"] != usuario["id"]:
+            raise HTTPException(status_code=403, detail="Solo el mediador del proceso puede pedir su número de acta")
+        if p["estado"] == "anulado" or p["suspendido"]:
+            raise HTTPException(status_code=400, detail="Este proceso está anulado o suspendido")
+        if not _con_acta(p["estado"], p["requiere_acta_no_acuerdo"]):
+            raise HTTPException(status_code=400, detail="Este proceso aún no tiene un resultado que lleve acta")
+        if p["finalizado"]:
+            raise HTTPException(status_code=400, detail="El acta de este proceso ya está completa")
+        cur.execute("SELECT codigo, estado FROM numeros_acta WHERE proceso_id = %s ORDER BY id LIMIT 1", (proceso_id,))
+        previo = cur.fetchone()
+        if previo:
+            extra = (" Fue anulado: solo el administrador puede reactivarlo." if previo["estado"] == "anulado" else "")
+            raise HTTPException(status_code=409, detail=f"Este proceso ya tiene el número {previo['codigo']}.{extra}")
+        # Un proceso ya vencido (48 h) debe poder pedir su propio número.
+        motivo = None if (es_admin or p["vencida_propia"]) else _motivo_no_puede_pedir_numero(cur, usuario)
+        if motivo:
+            raise HTTPException(status_code=400, detail=motivo)
+        try:
+            n = _reservar_numero_acta(cur, p["sucursal_id"], usuario["id"], proceso_id=proceso_id)
         except psycopg2_errors.UniqueViolation:
             conn.rollback()
             raise HTTPException(status_code=409, detail="Ya tienes un número de acta pedido")
