@@ -6379,6 +6379,11 @@ def mi_numero_acta(usuario=Depends(obtener_usuario_actual)):
 
 @app.post("/numeros-acta")
 def pedir_numero_acta(cita_id: int = None, usuario=Depends(obtener_usuario_actual)):
+    if not cita_id:
+        raise HTTPException(
+            status_code=400,
+            detail="El número de acta se asigna al cerrar el proceso, o se pide desde una invitación rápida en la Agenda."
+        )
     if not usuario.get("sucursal_id"):
         raise HTTPException(status_code=400, detail="Tu usuario no tiene sucursal asignada")
     conn = get_db()

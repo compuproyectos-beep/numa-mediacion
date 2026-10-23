@@ -94,8 +94,9 @@ function PanelMediador({ version, onCambio }: { version: number; onCambio: () =>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-numa-900">Número de acta</p>
           <p className="text-sm text-slate-600 mt-0.5">
-            Pídelo antes de redactar tu acta. Tienes 48 horas para completarla; pasado ese plazo,
-            no podrás pedir otro número ni subir otras actas.
+            El número se asigna solo cuando cierras un proceso con acuerdo o con no acuerdo, o lo
+            pides desde la Agenda en una invitación rápida. Tienes 48 horas para completar cada acta;
+            pasado ese plazo, no podrás cerrar otros procesos con acta.
           </p>
 
           {error && (
@@ -133,25 +134,9 @@ function PanelMediador({ version, onCambio }: { version: number; onCambio: () =>
 
           {estado.motivo && <p className="text-sm text-amber-700 mt-2">{estado.motivo}</p>}
 
-          {reservados.length > 0 && (
-            <p className="text-sm text-numa-800 mt-2">
-              Ya tienes {reservados.length === 1 ? 'un número pedido' : `${reservados.length} números pedidos`}.
-              Pide otro solo si tienes otra reunión. El número de una invitación rápida se pide desde la
-              Agenda, dentro de esa invitación, y queda ligado a ella.
-            </p>
+          {reservados.length === 0 && (
+            <p className="text-sm text-numa-800 mt-2">No tienes números de acta pendientes.</p>
           )}
-
-          <button
-            type="button"
-            className={`${reservados.length > 0 ? 'btn-secondary' : 'btn-primary'} btn-sm mt-2 disabled:opacity-50`}
-            disabled={!estado.puede_pedir || pidiendo}
-            onClick={() => {
-              setError('');
-              setConfirmando(true);
-            }}
-          >
-            {reservados.length > 0 ? 'Pedir otro número' : 'Pedir número de acta'}
-          </button>
 
           {estado.recientes?.length > 0 && (
             <p className="text-xs text-slate-700 mt-2">
@@ -162,14 +147,6 @@ function PanelMediador({ version, onCambio }: { version: number; onCambio: () =>
         </div>
       </div>
 
-      <ConfirmDialog
-        open={confirmando}
-        onClose={() => setConfirmando(false)}
-        onConfirm={pedir}
-        loading={pidiendo}
-        confirmLabel="Sí, pedir número"
-        message="¿Quieres pedir un número de acta? Se te asignará el siguiente número consecutivo de tu sucursal y tendrás 48 horas para completar esa acta. Una vez pedido, solo el administrador puede anularlo."
-      />
     </div>
   );
 }
