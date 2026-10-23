@@ -45,7 +45,7 @@ export default function NumeroActaPanel({ esAdmin }: { esAdmin: boolean }) {
 function Ligado({ n }: { n: any }) {
   if (n.ligado_a === 'proceso') {
     return (
-      <span className="text-sm text-numa-900 font-medium">
+      <span className="text-sm text-slate-900 font-medium">
         Proceso{' '}
         <a href={`/procesos/${n.proceso_id}`} className="underline font-semibold">
           {n.proceso_codigo}
@@ -56,7 +56,7 @@ function Ligado({ n }: { n: any }) {
   }
   if (n.ligado_a === 'invitacion') {
     return (
-      <span className="text-sm text-numa-900 font-medium">
+      <span className="text-sm text-slate-900 font-medium">
         Invitación rápida · {n.ligado_detalle}
       </span>
     );
@@ -92,13 +92,13 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
   const anulados: any[] = estado.anulados || [];
 
   return (
-    <div className="card px-5 py-4 mb-4 bg-numa-50 border-2 border-numa-300">
+    <div className="card px-5 py-4 mb-4 bg-white border border-slate-300 border-l-4 border-l-gold-500">
       <div className="flex items-start gap-3">
         <div className="mt-0.5 text-gold-700">
           <Hash size={20} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-lg font-bold text-numa-900">Mis números de acta</p>
+          <p className="text-lg font-bold text-slate-900">Mis números de acta</p>
           <p className="text-sm text-slate-800 mt-0.5">
             El número se asigna solo cuando cierras un proceso con acuerdo o con no acuerdo, o lo
             pides desde la Agenda en una invitación rápida. Tienes 48 horas para completar cada acta;
@@ -107,17 +107,17 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
 
           {estado.motivo && <p className="text-sm text-amber-700 mt-2">{estado.motivo}</p>}
 
-          <p className="text-sm font-semibold text-numa-900 mt-3">
+          <p className="text-sm font-semibold text-slate-900 mt-3">
             Pendientes por completar ({reservados.length})
           </p>
           {reservados.length === 0 ? (
-            <p className="text-sm text-numa-900 font-medium mt-1">No tienes números de acta pendientes.</p>
+            <p className="text-sm text-slate-900 font-medium mt-1">No tienes números de acta pendientes.</p>
           ) : (
             <ul className="mt-1 space-y-2">
               {reservados.map((r) => (
                 <li key={r.id} className="flex flex-col gap-0.5">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-lg font-bold text-numa-900">{r.codigo}</span>
+                    <span className="font-mono text-lg font-bold text-slate-900">{r.codigo}</span>
                     <button
                       type="button"
                       className="btn-secondary btn-sm"
@@ -142,7 +142,7 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
           <div className="mt-3">
             <button
               type="button"
-              className="text-sm text-numa-900 font-medium underline"
+              className="text-sm text-slate-900 font-medium underline"
               onClick={() => setVerAnulados(!verAnulados)}
             >
               {verAnulados ? 'Ocultar' : 'Ver'} números anulados por el administrador ({anulados.length})
@@ -154,7 +154,7 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
                 )}
                 {anulados.map((r) => (
                   <li key={r.id} className="flex flex-col gap-0.5">
-                    <span className="font-mono font-bold text-numa-900">{r.codigo}</span>
+                    <span className="font-mono font-bold text-slate-900">{r.codigo}</span>
                     <Ligado n={r} />
                     <span className="text-xs text-slate-900">
                       Anulado el {fechaEC(r.fecha_anulacion)}
@@ -230,10 +230,10 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
   if (datos.pendientes.length === 0 && datos.anulados.length === 0) return null;
 
   return (
-    <div className="card px-5 py-4 mb-4 bg-numa-50 border-2 border-numa-300">
+    <div className="card px-5 py-4 mb-4 bg-white border border-slate-300 border-l-4 border-l-gold-500">
       <div className="flex items-center gap-2 mb-2">
         <Hash size={18} className="text-gold-700" />
-        <p className="font-semibold text-numa-900">
+        <p className="font-semibold text-slate-900">
           Números de acta pedidos sin completar ({datos.pendientes.length})
         </p>
       </div>
@@ -261,11 +261,11 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
             </thead>
             <tbody>
               {datos.pendientes.map((n) => (
-                <tr key={n.id} className="border-t border-numa-200">
+                <tr key={n.id} className="border-t border-slate-200">
                   <td className="py-1.5 pr-3 font-mono font-semibold">
                     {n.codigo}
                     {n.ligado_a && (
-                      <span className="block font-sans text-xs font-normal text-numa-700">
+                      <span className="block font-sans text-xs font-normal text-slate-700">
                         {n.ligado_a === 'proceso' ? (
                           <>
                             Proceso{' '}
