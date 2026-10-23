@@ -3345,6 +3345,28 @@ def cambiar_estado_cita(
                 "cita", "cita", cita["id"]
             )
 
+        # Una invitación rápida que termina sin proceso (cancelada o reunión
+        # sin trámite) nunca tendrá acta: su número reservado se anula solo,
+        # queda registrado y deja de contar para el plazo de 48 horas.
+        if cita["proceso_id"] is None and estado in ("realizada", "cancelada"):
+            motivo_num = "Invitación cancelada" if estado == "cancelada" else "Reunión sin trámite"
+            cur.execute(
+                "SELECT id, codigo, usuario_id FROM numeros_acta "
+                "WHERE cita_id = %s AND estado = 'reservado' AND proceso_id IS NULL FOR UPDATE",
+                (cita["id"],)
+            )
+            num = cur.fetchone()
+            if num:
+                cur.execute("""
+                    UPDATE numeros_acta
+                    SET estado = 'anulado', anulado_por = %s, motivo_anulacion = %s, fecha_anulacion = NOW()
+                    WHERE id = %s
+                """, (usuario["id"], motivo_num, num["id"]))
+                registrar_auditoria(
+                    cur, usuario, "anular_numero_acta", "numero_acta", num["id"],
+                    f"Número {num['codigo']} anulado automáticamente. Motivo: {motivo_num}"
+                )
+
         conn.commit()
 
         return cita

@@ -71,7 +71,7 @@ export default function PedirNumeroActaBoton({
         </p>
         {anulado ? (
           <p className="text-sm text-red-700 mt-1.5">
-            El administrador anuló este número. Solo el administrador puede reactivarlo para que
+            Este número fue anulado. Solo el administrador puede reactivarlo para que
             continúes con esta acta con el mismo número.
           </p>
         ) : (
