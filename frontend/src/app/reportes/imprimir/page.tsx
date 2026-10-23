@@ -54,9 +54,9 @@ const fmtFecha = (v: any) => {
 };
 
 const TITULOS: Record<TipoReporte, string> = {
-  procesos: 'Reporte de Procesos por Periodo',
+  procesos: 'Reporte de Procesos',
   productividad: 'Reporte del Equipo de Mediadores',
-  actas: 'Reporte de Actas Finales Emitidas',
+  actas: 'Reporte de Actas Finales',
   sucursales: 'Reporte por Sucursal',
   clientes: 'Reporte de Clientes',
   agenda: 'Reporte de Agenda de Reuniones',
