@@ -441,7 +441,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
       <Modal
         open={showFirmada}
         onClose={() => setShowFirmada(false)}
-        title={`Subir acta firmada — ${proceso.codigo_proceso}`}
+        title={`Subir acta firmada — ${proceso.numero_acta_codigo || proceso.codigo_proceso}`}
       >
         {error && (
           <div className="mb-4">

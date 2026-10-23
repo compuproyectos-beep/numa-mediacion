@@ -1640,10 +1640,10 @@ export default function ProcesoDetallePage() {
                           Una vez confirmado, el acuerdo y el resultado del proceso ya
                           no se podrán modificar.
                         </p>
-                        <p className="mt-2">
+                        <p className="mt-3 px-3 py-2 rounded-sm border-2 border-amber-500 bg-white font-semibold">
                           {proceso.numero_acta_codigo
-                            ? `El acta mantiene su número ${proceso.numero_acta_codigo}.`
-                            : 'Se asignará el número de acta de este proceso y desde ese momento cuentan las 48 horas para completarla.'}
+                            ? `Este proceso ya tiene el número de acta ${proceso.numero_acta_codigo}.`
+                            : 'Al confirmar se le asignará un número de acta nuevo a este proceso, y desde ese momento cuentan las 48 horas para completar la documentación.'}
                         </p>
                       </>
                     ) : (
@@ -1652,10 +1652,12 @@ export default function ProcesoDetallePage() {
                           <>
                             Vas a cerrar este proceso con <strong>no acuerdo</strong> y a pedir su
                             acta de no acuerdo: entrará a tu fila de actas pendientes. Después de
-                            esto ya no podrás cambiar el resultado.
-                            {!proceso.numero_acta_codigo &&
-                              ' Se asignará el número de acta y desde ese momento cuentan las 48 horas para completarla.'}{' '}
-                            ¿Confirmas?
+                            esto ya no podrás cambiar el resultado. ¿Confirmas?
+                            <span className="block mt-3 px-3 py-2 rounded-sm border-2 border-amber-500 bg-white font-semibold">
+                              {proceso.numero_acta_codigo
+                                ? `Este proceso ya tiene el número de acta ${proceso.numero_acta_codigo}.`
+                                : 'Al confirmar se le asignará un número de acta nuevo a este proceso, y desde ese momento cuentan las 48 horas para completar la documentación.'}
+                            </span>
                           </>
                         ) : (
                           <>
@@ -1814,7 +1816,7 @@ export default function ProcesoDetallePage() {
           setArchivoComprobantePago(null);
           setError('');
         }}
-        title={`${esNoAcuerdo(proceso) ? 'Subir documentos del acta de no acuerdo' : 'Subir documentos del acta'} — ${proceso.codigo_proceso}`}
+        title={`${esNoAcuerdo(proceso) ? 'Subir documentos del acta de no acuerdo' : 'Subir documentos del acta'} — ${proceso.numero_acta_codigo || proceso.codigo_proceso}`}
         size="md"
       >
         {error && (
