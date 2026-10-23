@@ -16,13 +16,13 @@ const TARJETAS: { tipo: Tipo; titulo: string; ayuda: string }[] = [
     tipo: 'cliente',
     titulo: 'Factura de NUMA al cliente',
     ayuda:
-      'La factura que NUMA emite al cliente por esta acta (el administrador te la entrega). Una sola por acta, aunque el pago haya sido en abonos.'
+      'La factura que NUMA emite al cliente por esta acta. Una sola por acta, aunque el pago haya sido en abonos.'
   },
   {
     tipo: 'mediador',
     titulo: 'Tu factura a NUMA',
     ayuda:
-      'La factura que tú, como trabajador independiente, emites a NUMA por esta acta.'
+      'La factura que tú emites a NUMA por esta acta.'
   }
 ];
 
