@@ -439,8 +439,6 @@ export default function ReportesPage() {
   // En Procesos, es un solo gráfico con 2 barras (subidas vs pendientes).
   // En Equipo/Sucursales, es un listado por mediador/sucursal, igual que ya
   // existía para "pendientes" — ahora con su contraparte "completas".
-  const actasSubidasProcesos =
-    tipo === 'procesos' ? datos.filter((p: any) => actaLista(p)).length : 0;
 
   // --- Actas finales: acuerdo vs no acuerdo ---
   const esNoAcuerdo = (a: any) => a.tipo === 'no_acuerdo';
@@ -473,6 +471,14 @@ export default function ReportesPage() {
   };
   // Cada grupo trae sus barras de "acuerdo" y "no acuerdo" por separado
   // (mismos colores en todos los gráficos: verde = acuerdo, ámbar = no acuerdo).
+  // Un nombre por grupo: la barra verde lleva el nombre y la ámbar, debajo,
+  // solo "no acuerdo" (así las etiquetas no se cortan).
+  const parBarras = (k: string, v: { a: number; n: number }) => {
+    const out: { label: string; valor: number; color?: string }[] = [];
+    if (v.a > 0) out.push({ label: k, valor: v.a, color: '#10B981' });
+    if (v.n > 0) out.push({ label: v.a > 0 ? '   ↳ no acuerdo' : `${k} (no acuerdo)`, valor: v.n, color: '#F59E0B' });
+    return out;
+  };
   const gruposActas: { titulo: string; items: { label: string; valor: number; color?: string }[] }[] =
     tipo === 'actas'
       ? [
@@ -489,11 +495,7 @@ export default function ReportesPage() {
               .sort((x, y) => x[0].localeCompare(y[0]))
               .flatMap(([k, v]) => {
                 const [y, mm] = k.split('-');
-                const et = `${MESES_CORTOS[Number(mm) - 1]} ${y}`;
-                return [
-                  { label: `${et} · acuerdo`, valor: v.a, color: '#10B981' },
-                  ...(v.n > 0 ? [{ label: `${et} · no acuerdo`, valor: v.n, color: '#F59E0B' }] : [])
-                ].filter((i) => i.valor > 0);
+                return parBarras(`${MESES_CORTOS[Number(mm) - 1]} ${y}`, v);
               })
           },
           ...(admin
@@ -502,23 +504,13 @@ export default function ReportesPage() {
                   titulo: 'Actas por mediador',
                   items: barrasActasPor((a) => a.mediador || a.usuario)
                     .sort((x, y) => y[1].a + y[1].n - (x[1].a + x[1].n))
-                    .flatMap(([k, v]) =>
-                      [
-                        { label: `${k} · acuerdo`, valor: v.a, color: '#10B981' },
-                        { label: `${k} · no acuerdo`, valor: v.n, color: '#F59E0B' }
-                      ].filter((i) => i.valor > 0)
-                    )
+                    .flatMap(([k, v]) => parBarras(k, v))
                 },
                 {
                   titulo: 'Actas por sucursal',
                   items: barrasActasPor((a) => (a.sucursal ? labelSucursal(a) : null))
                     .sort((x, y) => y[1].a + y[1].n - (x[1].a + x[1].n))
-                    .flatMap(([k, v]) =>
-                      [
-                        { label: `${k} · acuerdo`, valor: v.a, color: '#10B981' },
-                        { label: `${k} · no acuerdo`, valor: v.n, color: '#F59E0B' }
-                      ].filter((i) => i.valor > 0)
-                    )
+                    .flatMap(([k, v]) => parBarras(k, v))
                 }
               ]
             : [])
@@ -527,10 +519,7 @@ export default function ReportesPage() {
 
   const barrasActas: { label: string; valor: number; color?: string }[] | null =
     tipo === 'procesos'
-      ? [
-          { label: 'Actas firmadas', valor: actasSubidasProcesos, color: '#10B981' },
-          { label: 'Actas pendientes', valor: actasPendientesProcesos, color: '#F59E0B' }
-        ]
+      ? null
       : tipo === 'productividad'
       ? datos
           .filter((m: any) => m.actas_subidas > 0)
@@ -746,19 +735,6 @@ export default function ReportesPage() {
                     <p className="text-2xl font-bold text-numa-900 leading-none tabular-nums">{datos.length}</p>
                     <p className="text-xs text-numa-700 mt-1">en total</p>
                   </div>
-                  <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-numa-700">
-                    {Object.entries(resumenProcesos).map(([estado, cantidad]) => (
-                      <li key={estado} className="inline-flex items-center gap-2">
-                        <span
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: COLOR_ESTADO[estado] || '#94A3B8' }}
-                          aria-hidden="true"
-                        />
-                        {getEstadoLabel(estado)}
-                        <strong className="text-numa-900 tabular-nums">{cantidad as number}</strong>
-                      </li>
-                    ))}
-                  </ul>
                 </div>
               </div>
 
