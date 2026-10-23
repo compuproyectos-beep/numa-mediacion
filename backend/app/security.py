@@ -38,7 +38,7 @@ def crear_token(data: dict):
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-# La secretaria solo puede usar la Agenda y los Clientes. Aquí se listan,
+# La secretaria solo puede usar la Agenda, los Clientes y el reporte de Clientes. Aquí se listan,
 # una por una, las únicas rutas a las que puede llamar; todo lo demás
 # (procesos, actas, reportes, usuarios...) se le niega aunque conozca la URL.
 _RUTAS_SECRETARIA = [
@@ -58,6 +58,10 @@ _RUTAS_SECRETARIA = [
     ("GET", r"^/ciudades$"),
     ("GET", r"^/sucursal/mediadores$"),
     ("GET", r"^/reuniones$"),
+    # Reportes: solo el de Clientes (de su sucursal) y su descarga en Excel;
+    # main.py además rechaza cualquier otro tipo de reporte para ella.
+    ("GET", r"^/reportes/clientes$"),
+    ("GET", r"^/reportes/exportar-excel$"),
 ]
 
 
@@ -105,7 +109,7 @@ def obtener_usuario_actual(request: Request, token: str = Depends(oauth2_scheme)
     ):
         raise HTTPException(
             status_code=403,
-            detail="Tu usuario solo puede usar la Agenda y los Clientes"
+            detail="Tu usuario solo puede usar la Agenda, los Clientes y el reporte de Clientes"
         )
 
     return usuario
