@@ -72,7 +72,6 @@ const formatoFecha = (v: any) => {
 const TIPOS: { valor: TipoReporte; titulo: string; adminOnly?: boolean }[] = [
   { valor: 'actas', titulo: 'Actas finales emitidas' },
   { valor: 'procesos', titulo: 'Procesos por periodo' },
-  { valor: 'agenda', titulo: 'Agenda de reuniones' },
   { valor: 'sin-avance', titulo: 'Procesos sin avance' },
   { valor: 'actas-pendientes', titulo: 'Actas pendientes de subir' },
   { valor: 'facturas-pendientes', titulo: 'Facturas pendientes' },
@@ -86,9 +85,9 @@ const TIPOS: { valor: TipoReporte; titulo: string; adminOnly?: boolean }[] = [
 // los números sin tener que preguntar.
 const DESCRIPCIONES: Record<TipoReporte, string> = {
   procesos:
-    'Lista todos los procesos de mediación creados en el rango de fechas elegido, con su estado actual (los suspendidos se cuentan aparte). Da clic en cualquier fila para abrir ese proceso. "Tasa de acuerdo" es, de los procesos ya resueltos (con o sin acuerdo — los archivados no cuentan porque no llegaron a resolverse), qué porcentaje terminó con acuerdo.',
+    'Lista todos los procesos de mediación creados en el rango de fechas elegido, con su estado actual (los suspendidos se cuentan aparte). Da clic en cualquier fila para abrir ese proceso. "Procesos que terminaron en acuerdo" es, de los procesos ya cerrados (con o sin acuerdo; los archivados y anulados no cuentan), qué porcentaje cerró con acuerdo.',
   productividad:
-    'El listado del equipo de mediadores (activos e inactivos), con cuántos procesos maneja cada uno y qué tan rápido los resuelve. "Prom. días cierre" es el promedio de días entre que se crea un proceso y se cierra (con o sin acuerdo, o archivado); mientras más bajo, más rápido resuelve. Da clic en un mediador para ver el detalle de sus procesos.',
+    'El listado del equipo de mediadores (activos e inactivos), con cuántos procesos maneja cada uno y qué tan rápido los resuelve. Las columnas de reuniones cuentan las reuniones del mediador en el rango de fechas (realizadas, canceladas y las que no se realizaron por inasistencia). "Prom. días cierre" es el promedio de días entre que se crea un proceso y se cierra (con o sin acuerdo, o archivado); mientras más bajo, más rápido resuelve. Da clic en un mediador para ver el detalle de sus procesos.',
   actas:
     'Lista las actas finales emitidas en el rango de fechas elegido: solo las que ya tienen el acta firmada subida (no basta con subir los documentos del acta). Da clic en cualquier fila para abrir el proceso al que pertenece esa acta.',
   sucursales:
@@ -684,8 +683,13 @@ export default function ReportesPage() {
                     <div
                       title={`De ${resumenIndicadores.total_resueltos} procesos resueltos (con o sin acuerdo), ${resumenIndicadores.cerrados_con_acuerdo} terminaron con acuerdo.`}
                     >
-                      <dt className="text-xs text-numa-700">Tasa de acuerdo</dt>
-                      <dd className="text-base font-bold text-emerald-700 tabular-nums">{resumenIndicadores.tasa_acuerdo}%</dd>
+                      <dt className="text-xs text-numa-700">Procesos que terminaron en acuerdo</dt>
+                      <dd className="text-base font-bold text-emerald-700 tabular-nums">
+                        {resumenIndicadores.tasa_acuerdo}%{' '}
+                        <span className="text-xs font-medium text-numa-700">
+                          ({resumenIndicadores.cerrados_con_acuerdo} de {resumenIndicadores.total_resueltos} cerrados)
+                        </span>
+                      </dd>
                     </div>
                   )}
                   {resumenIndicadores && resumenIndicadores.promedio_dias_resolucion !== null && (
@@ -810,6 +814,9 @@ export default function ReportesPage() {
                         <th className="table-header">Actas firmadas</th>
                         <th className="table-header">Actas pendientes</th>
                         <th className="table-header">Prom. días cierre</th>
+                        <th className="table-header">Reuniones realizadas</th>
+                        <th className="table-header">Reuniones canceladas</th>
+                        <th className="table-header">No asistieron</th>
                       </>
                     )}
 
@@ -1127,11 +1134,14 @@ export default function ReportesPage() {
                               ? `${m.promedio_dias_cierre} días`
                               : '—'}
                           </td>
+                          <td className="table-cell tabular-nums">{m.reuniones_realizadas ?? 0}</td>
+                          <td className="table-cell tabular-nums">{m.reuniones_canceladas ?? 0}</td>
+                          <td className="table-cell tabular-nums">{m.reuniones_no_asistieron ?? 0}</td>
                         </tr>
 
                         {mediadorExpandidoId === m.usuario_id && (
                           <tr key={`${m.usuario_id}-detalle`}>
-                            <td colSpan={14} className="bg-numa-50 px-3 py-3">
+                            <td colSpan={17} className="bg-numa-50 px-3 py-3">
                               {cargandoDetalleId === m.usuario_id ? (
                                 <Spinner />
                               ) : !detalleProcesos[m.usuario_id]?.length ? (

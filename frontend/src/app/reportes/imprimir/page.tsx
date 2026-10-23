@@ -418,7 +418,7 @@ function ImprimirReporteContenido() {
                       </th>
                       {resumenIndicadores && resumenIndicadores.tasa_acuerdo !== null && (
                         <th className="text-left py-1 pr-4 font-semibold text-emerald-700">
-                          Tasa de acuerdo
+                          Procesos que terminaron en acuerdo
                         </th>
                       )}
                       {resumenIndicadores && resumenIndicadores.promedio_dias_resolucion !== null && (
@@ -453,7 +453,7 @@ function ImprimirReporteContenido() {
                       </td>
                       {resumenIndicadores && resumenIndicadores.tasa_acuerdo !== null && (
                         <td className="py-1 pr-4 text-emerald-700 text-sm font-bold">
-                          {resumenIndicadores.tasa_acuerdo}%
+                          {resumenIndicadores.tasa_acuerdo}% ({resumenIndicadores.cerrados_con_acuerdo} de {resumenIndicadores.total_resueltos})
                         </td>
                       )}
                       {resumenIndicadores && resumenIndicadores.promedio_dias_resolucion !== null && (
@@ -570,6 +570,9 @@ function ImprimirReporteContenido() {
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Archivados</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Anulados</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Prom. días</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Reuniones realizadas</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Reuniones canceladas</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">No asistieron</th>
                     </>
                   )}
 
@@ -721,7 +724,7 @@ function ImprimirReporteContenido() {
                 {tipo === 'productividad' &&
                   datos.map((m: any, i: number) => (
                     <Fragment key={m.usuario_id}>
-                    {i > 0 && <RotulosGrupo etiquetas={['Mediador', 'Estado', 'Ingreso', 'Sucursal', 'Actas firmadas', 'Actas pendientes', 'Total', 'En negociación', 'Con acuerdo', 'Sin acuerdo', 'Archivados', 'Anulados', 'Prom. días']} />}
+                    {i > 0 && <RotulosGrupo etiquetas={['Mediador', 'Estado', 'Ingreso', 'Sucursal', 'Actas firmadas', 'Actas pendientes', 'Total', 'En negociación', 'Con acuerdo', 'Sin acuerdo', 'Archivados', 'Anulados', 'Prom. días', 'Reuniones realizadas', 'Reuniones canceladas', 'No asistieron']} />}
                     <tr className="bg-numa-50">
                       <td className="py-1.5 pr-2 font-semibold text-numa-900">{m.mediador}</td>
                       <td className="py-1.5 pr-2">{m.activo ? 'Activo' : 'Inactivo'}</td>
@@ -742,8 +745,11 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2">
                         {m.promedio_dias_cierre != null ? `${m.promedio_dias_cierre}` : '—'}
                       </td>
+                      <td className="py-1.5 pr-2">{m.reuniones_realizadas ?? 0}</td>
+                      <td className="py-1.5 pr-2">{m.reuniones_canceladas ?? 0}</td>
+                      <td className="py-1.5 pr-2">{m.reuniones_no_asistieron ?? 0}</td>
                     </tr>
-                    <DetalleProcesos colSpan={14} titulo={`Procesos de ${m.mediador}`} mostrarMediador={false} filas={procesosDetalle.filter((p: any) => Number(p.usuario_id) === Number(m.usuario_id))} />
+                    <DetalleProcesos colSpan={17} titulo={`Procesos de ${m.mediador}`} mostrarMediador={false} filas={procesosDetalle.filter((p: any) => Number(p.usuario_id) === Number(m.usuario_id))} />
                     </Fragment>
                   ))}
 

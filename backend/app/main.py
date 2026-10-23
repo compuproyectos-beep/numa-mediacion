@@ -8389,7 +8389,35 @@ def obtener_reporte_productividad(
         """
 
         cur.execute(query, tuple(params))
-        return cur.fetchall()
+        filas = cur.fetchall()
+
+        # Reuniones de cada mediador en el mismo rango de fechas (de procesos
+        # y también invitaciones rápidas): solo conteos, sin listado.
+        if filas:
+            q_citas = """
+                SELECT usuario_id,
+                       COUNT(*) FILTER (WHERE estado = 'realizada') AS reuniones_realizadas,
+                       COUNT(*) FILTER (WHERE estado = 'cancelada') AS reuniones_canceladas,
+                       COUNT(*) FILTER (WHERE estado = 'no_realizada') AS reuniones_no_asistieron
+                FROM citas
+                WHERE usuario_id = ANY(%s)
+            """
+            p_citas = [[f["usuario_id"] for f in filas]]
+            if fecha_desde:
+                q_citas += " AND fecha >= %s"
+                p_citas.append(fecha_desde)
+            if fecha_hasta:
+                q_citas += " AND fecha <= %s"
+                p_citas.append(fecha_hasta)
+            q_citas += " GROUP BY usuario_id"
+            cur.execute(q_citas, tuple(p_citas))
+            por_usuario = {r["usuario_id"]: r for r in cur.fetchall()}
+            for f in filas:
+                r = por_usuario.get(f["usuario_id"]) or {}
+                f["reuniones_realizadas"] = r.get("reuniones_realizadas", 0)
+                f["reuniones_canceladas"] = r.get("reuniones_canceladas", 0)
+                f["reuniones_no_asistieron"] = r.get("reuniones_no_asistieron", 0)
+        return filas
 
     finally:
         cur.close()
@@ -8959,7 +8987,8 @@ def exportar_reporte_excel(
             "Mediador", "Estado", "Fecha de ingreso", "Ciudad", "Sucursal",
             "Total procesos", "En negociación", "Cerrados con acuerdo",
             "Cerrados sin acuerdo", "Archivados", "Anulados", "Actas firmadas",
-            "Actas pendientes", "Promedio días de cierre"
+            "Actas pendientes", "Promedio días de cierre",
+            "Reuniones realizadas", "Reuniones canceladas", "No asistieron"
         ]
 
         filas_excel = [
@@ -8977,7 +9006,10 @@ def exportar_reporte_excel(
                 f.get("anulados"),
                 f.get("actas_subidas"),
                 f.get("actas_pendientes"),
-                f.get("promedio_dias_cierre") if f.get("promedio_dias_cierre") is not None else ""
+                f.get("promedio_dias_cierre") if f.get("promedio_dias_cierre") is not None else "",
+                f.get("reuniones_realizadas", 0),
+                f.get("reuniones_canceladas", 0),
+                f.get("reuniones_no_asistieron", 0)
             ]
             for f in filas
         ]
