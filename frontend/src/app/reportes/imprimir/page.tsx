@@ -614,7 +614,8 @@ function ImprimirReporteContenido() {
                     <>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Cliente</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Cédula</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas firmadas</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas de acuerdo</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Actas de no acuerdo</th>
                       <th className="text-left py-2 pr-2 font-semibold text-amber-700">Actas pendientes</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Total (sin anulados)</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">En negociación</th>
@@ -805,11 +806,12 @@ function ImprimirReporteContenido() {
                 {tipo === 'clientes' &&
                   datos.map((c: any, i: number) => (
                     <Fragment key={c.cliente_id}>
-                    {i > 0 && <RotulosGrupo etiquetas={['Cliente', 'Cédula', 'Actas firmadas', 'Actas pendientes', 'Total', 'En negociación', 'Con acuerdo', 'Sin acuerdo', 'Archivados', 'Anulados']} />}
+                    {i > 0 && <RotulosGrupo etiquetas={['Cliente', 'Cédula', 'Actas de acuerdo', 'Actas de no acuerdo', 'Actas pendientes', 'Total', 'En negociación', 'Con acuerdo', 'Sin acuerdo', 'Archivados', 'Anulados']} />}
                     <tr className="bg-numa-50">
                       <td className="py-1.5 pr-2 font-semibold text-numa-900">{c.cliente}</td>
                       <td className="py-1.5 pr-2 code-text whitespace-nowrap">{c.cedula || '—'}</td>
-                      <td className="py-1.5 pr-2">{c.actas_subidas}</td>
+                      <td className="py-1.5 pr-2">{(c.actas_subidas || 0) - (c.actas_no_acuerdo || 0)}</td>
+                      <td className="py-1.5 pr-2">{c.actas_no_acuerdo || 0}</td>
                       <td className="py-1.5 pr-2 font-semibold text-amber-700">{c.actas_pendientes}</td>
                       <td className="py-1.5 pr-2">{c.total_procesos}</td>
                       <td className="py-1.5 pr-2">{c.en_negociacion}</td>
@@ -818,7 +820,7 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2">{c.archivados}</td>
                       <td className="py-1.5 pr-2">{c.anulados}</td>
                     </tr>
-                    <DetalleProcesos colSpan={10} titulo={`Procesos de ${c.cliente}`} mostrarMediador={true} filas={procesosDetalle.filter((p: any) => (p.partes_ids || []).includes(c.cliente_id))} />
+                    <DetalleProcesos colSpan={11} titulo={`Procesos de ${c.cliente}`} mostrarMediador={true} filas={procesosDetalle.filter((p: any) => (p.partes_ids || []).includes(c.cliente_id))} />
                     </Fragment>
                   ))}
               </tbody>

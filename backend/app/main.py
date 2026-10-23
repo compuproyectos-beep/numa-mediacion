@@ -8553,6 +8553,7 @@ def obtener_reporte_clientes(
                 COUNT(DISTINCT p.id) FILTER (WHERE p.estado = 'archivado') AS archivados,
                 COUNT(DISTINCT p.id) FILTER (WHERE p.estado = 'anulado') AS anulados,
                 COUNT(DISTINCT p.id) FILTER (WHERE (p.finalizado = true AND (NOT COALESCE(p.requiere_acta_firmada, false) OR p.acta_firmada_ruta IS NOT NULL))) AS actas_subidas,
+                COUNT(DISTINCT p.id) FILTER (WHERE (p.finalizado = true AND p.estado = 'cerrado_sin_acuerdo' AND (NOT COALESCE(p.requiere_acta_firmada, false) OR p.acta_firmada_ruta IS NOT NULL))) AS actas_no_acuerdo,
                 COUNT(DISTINCT p.id) FILTER (
                     WHERE (p.estado = 'cerrado_con_acuerdo'
                            OR (p.estado = 'cerrado_sin_acuerdo' AND p.requiere_acta_no_acuerdo))
@@ -9060,7 +9061,7 @@ def exportar_reporte_excel(
         encabezados = [
             "Cliente", "Cédula", "Teléfono", "Email", "Total procesos",
             "En negociación", "Cerrados con acuerdo", "Cerrados sin acuerdo",
-            "Archivados", "Anulados", "Actas firmadas", "Actas pendientes",
+            "Archivados", "Anulados", "Actas de acuerdo", "Actas de no acuerdo", "Actas pendientes",
             "Procesos (códigos)", "Actas (códigos)"
         ]
 
@@ -9076,7 +9077,8 @@ def exportar_reporte_excel(
                 f.get("cerrados_sin_acuerdo"),
                 f.get("archivados"),
                 f.get("anulados"),
-                f.get("actas_subidas"),
+                (f.get("actas_subidas") or 0) - (f.get("actas_no_acuerdo") or 0),
+                f.get("actas_no_acuerdo") or 0,
                 f.get("actas_pendientes"),
                 f.get("codigos_procesos") or "",
                 f.get("codigos_actas") or ""

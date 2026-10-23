@@ -965,7 +965,8 @@ export default function ReportesPage() {
                         <th className="table-header">Sin acuerdo</th>
                         <th className="table-header">Archivados</th>
                         <th className="table-header">Anulados</th>
-                        <th className="table-header">Actas firmadas</th>
+                        <th className="table-header">Actas de acuerdo</th>
+                        <th className="table-header">Actas de no acuerdo</th>
                         <th className="table-header">Actas pendientes</th>
                         <th className="table-header">Procesos (códigos)</th>
                         <th className="table-header">Actas (códigos)</th>
@@ -1474,7 +1475,8 @@ export default function ReportesPage() {
                           <td className="table-cell">{c.cerrados_sin_acuerdo}</td>
                           <td className="table-cell">{c.archivados}</td>
                           <td className="table-cell">{c.anulados}</td>
-                          <td className="table-cell">{c.actas_subidas}</td>
+                          <td className="table-cell tabular-nums">{(c.actas_subidas || 0) - (c.actas_no_acuerdo || 0)}</td>
+                          <td className="table-cell tabular-nums">{c.actas_no_acuerdo || 0}</td>
                           <td className="table-cell">
                             {c.actas_pendientes > 0 ? (
                               <span
@@ -1501,7 +1503,7 @@ export default function ReportesPage() {
 
                         {clienteExpandidoId === c.cliente_id && (
                           <tr key={`${c.cliente_id}-detalle`}>
-                            <td colSpan={15} className="bg-numa-50 px-3 py-3">
+                            <td colSpan={16} className="bg-numa-50 px-3 py-3">
                               {cargandoDetalleClienteId === c.cliente_id ? (
                                 <Spinner />
                               ) : !detalleCliente[c.cliente_id]?.length ? (
