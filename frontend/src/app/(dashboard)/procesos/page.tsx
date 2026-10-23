@@ -37,12 +37,28 @@ import { accionProceso, hoyEcuador } from '@/lib/accionProceso';
 // en vez de un "Gestionar" genérico).
 const accionDe = (p: any) => accionProceso(p, isAdmin());
 
+const cedulaValida = (cedula: string) => {
+  if (!/^\d{10}$/.test(cedula)) return false;
+  const provincia = parseInt(cedula.slice(0, 2), 10);
+  if (provincia < 1 || provincia > 24) return false;
+  if (parseInt(cedula[2], 10) >= 6) return false;
+  const coef = [2, 1, 2, 1, 2, 1, 2, 1, 2];
+  let suma = 0;
+  for (let i = 0; i < 9; i++) {
+    let v = parseInt(cedula[i], 10) * coef[i];
+    if (v >= 10) v -= 9;
+    suma += v;
+  }
+  return (10 - (suma % 10)) % 10 === parseInt(cedula[9], 10);
+};
+
 // Parte de la invitación rápida que se registrará en Clientes al crear el proceso.
 function NuevoClienteBox({
   etiqueta,
   n,
   onChange,
-  onQuitar
+  onQuitar,
+  manual
 }: {
   etiqueta: string;
   n: {
@@ -57,6 +73,7 @@ function NuevoClienteBox({
   };
   onChange: (n: any) => void;
   onQuitar?: () => void;
+  manual?: boolean;
 }) {
   return (
     <div className="rounded-sm border border-amber-300 bg-amber-50 p-3 space-y-2">
@@ -66,7 +83,7 @@ function NuevoClienteBox({
         </p>
         {onQuitar && (
           <button type="button" onClick={onQuitar} className="text-xs underline text-numa-700">
-            Elegir otro cliente
+            {manual ? 'Cancelar' : 'Elegir otro cliente'}
           </button>
         )}
       </div>
@@ -89,7 +106,17 @@ function NuevoClienteBox({
               onChange={(e) => onChange({ ...n, apellido: e.target.value })}
             />
           </div>
-          <p className="text-[13px] font-medium text-numa-800">Cédula {n.cedula} (no se puede cambiar aquí).</p>
+          {manual ? (
+            <InputField
+              label="Cédula"
+              inputMode="numeric"
+              value={n.cedula}
+              onChange={(e) => onChange({ ...n, cedula: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+              error={n.cedula.length === 10 && !cedulaValida(n.cedula) ? 'Cédula inválida' : undefined}
+            />
+          ) : (
+            <p className="text-[13px] font-medium text-numa-800">Cédula {n.cedula} (no se puede cambiar aquí).</p>
+          )}
         </>
       )}
       <p className="text-[13px] text-numa-700">
@@ -428,6 +455,10 @@ export default function ProcesosPage() {
     ]) {
       if (n && n.tipo === 'persona' && (!n.nombre.trim() || !n.apellido.trim())) {
         setError('Escribe los nombres y los apellidos de la persona que se va a registrar');
+        return false;
+      }
+      if (n && n.tipo === 'persona' && !cedulaValida(n.cedula)) {
+        setError('Escribe una cédula válida para la persona que se va a registrar');
         return false;
       }
     }
@@ -1001,9 +1032,9 @@ export default function ProcesosPage() {
 
             {!form.cita_rapida_id && (
               <p className="text-[13px] text-numa-700">
-                Solo puedes elegir clientes ya registrados. Si falta alguien,{' '}
+                Si algún dato de un cliente está mal,{' '}
                 <a href="/clientes" target="_blank" rel="noreferrer" className="underline font-medium">
-                  créalo en Clientes
+                  corrígelo en Clientes
                 </a>{' '}
                 y luego{' '}
                 <button
@@ -1013,7 +1044,7 @@ export default function ProcesosPage() {
                 >
                   actualiza la lista
                 </button>
-                .
+                . Las empresas nuevas se crean en Clientes.
               </p>
             )}
 
@@ -1022,6 +1053,8 @@ export default function ProcesosPage() {
                 etiqueta="Solicitante"
                 n={nuevos.sol}
                 onChange={(n) => setNuevos((a) => ({ ...a, sol: n }))}
+                manual={!form.cita_rapida_id}
+                onQuitar={!form.cita_rapida_id ? () => setNuevos((a) => ({ ...a, sol: null })) : undefined}
               />
             )}
             {!nuevos.sol && (
@@ -1036,11 +1069,17 @@ export default function ProcesosPage() {
             <SelectField
               label="Solicitante"
               value={form.cliente_demandante_id}
-              onChange={(e) =>
-                setForm({ ...form, cliente_demandante_id: e.target.value })
-              }
+              onChange={(e) => {
+                if (e.target.value === '__nuevo__') {
+                  setForm({ ...form, cliente_demandante_id: '' });
+                  setNuevos((a) => ({ ...a, sol: { tipo: 'persona', cedula: '', nombre: '', apellido: '' } }));
+                } else {
+                  setForm({ ...form, cliente_demandante_id: e.target.value });
+                }
+              }}
             >
               <option value="">Seleccione</option>
+              <option value="__nuevo__">+ Cliente nuevo (persona)</option>
 
               {clientes.map((c: any) => (
                 <option key={c.id} value={c.id}>
@@ -1083,6 +1122,8 @@ export default function ProcesosPage() {
                 etiqueta="Invitado"
                 n={nuevos.inv}
                 onChange={(n) => setNuevos((a) => ({ ...a, inv: n }))}
+                manual={!form.cita_rapida_id}
+                onQuitar={!form.cita_rapida_id ? () => setNuevos((a) => ({ ...a, inv: null })) : undefined}
               />
             )}
             {!nuevos.inv && (
@@ -1097,11 +1138,17 @@ export default function ProcesosPage() {
             <SelectField
               label="Invitado"
               value={form.cliente_demandado_id}
-              onChange={(e) =>
-                setForm({ ...form, cliente_demandado_id: e.target.value })
-              }
+              onChange={(e) => {
+                if (e.target.value === '__nuevo__') {
+                  setForm({ ...form, cliente_demandado_id: '' });
+                  setNuevos((a) => ({ ...a, inv: { tipo: 'persona', cedula: '', nombre: '', apellido: '' } }));
+                } else {
+                  setForm({ ...form, cliente_demandado_id: e.target.value });
+                }
+              }}
             >
               <option value="">Seleccione</option>
+              <option value="__nuevo__">+ Cliente nuevo (persona)</option>
 
               {clientes.map((c: any) => (
                 <option key={c.id} value={c.id}>
