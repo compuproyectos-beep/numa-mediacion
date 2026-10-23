@@ -833,11 +833,11 @@ export default function ProcesoDetallePage() {
           <p className="text-numa-700 mt-1">
             {proceso.demandante}
             {proceso.total_solicitantes > 1 && (
-              <span className="text-numa-600"> y {proceso.total_solicitantes - 1} más</span>
+              <span className="text-numa-600"> +{proceso.total_solicitantes - 1} más</span>
             )}{' '}
             y {proceso.demandado}
             {proceso.total_invitados > 1 && (
-              <span className="text-numa-600"> y {proceso.total_invitados - 1} más</span>
+              <span className="text-numa-600"> +{proceso.total_invitados - 1} más</span>
             )}
           </p>
           <p className="text-xs text-numa-600 mt-1">

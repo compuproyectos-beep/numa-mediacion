@@ -851,11 +851,11 @@ export default function ProcesosPage() {
                   <p className="text-sm font-semibold text-numa-900 leading-snug">
                     {p.demandante}
                     {p.total_solicitantes > 1 && (
-                      <span className="font-normal text-numa-600"> y {p.total_solicitantes - 1} más</span>
+                      <span className="font-normal text-numa-600"> +{p.total_solicitantes - 1} más</span>
                     )}{' '}
                     <span className="font-normal text-numa-600">y</span> {p.demandado}
                     {p.total_invitados > 1 && (
-                      <span className="font-normal text-numa-600"> y {p.total_invitados - 1} más</span>
+                      <span className="font-normal text-numa-600"> +{p.total_invitados - 1} más</span>
                     )}
                   </p>
 

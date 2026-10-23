@@ -4674,6 +4674,17 @@ def crear_invitacion_rapida(datos: dict, usuario=Depends(obtener_usuario_actual)
 
         partes = _limpiar_partes_rapidas(datos, mediador["cedula"])
 
+        # Avisa desde la invitación (y no hasta crear el proceso) si una
+        # cédula ya pertenece a un usuario del sistema con otro nombre.
+        for _clave in ("solicitantes", "invitados"):
+            for _x in partes.get(_clave, []):
+                if _x.get("tipo") == "empresa":
+                    verificar_cedula_misma_persona(
+                        cur, _x.get("representante_cedula"), _x.get("representante_nombre"), "", "usuarios"
+                    )
+                else:
+                    verificar_cedula_misma_persona(cur, _x.get("cedula"), _x.get("nombre"), "", "usuarios")
+
         cur.execute("""
             SELECT id FROM citas
             WHERE usuario_id = %s AND fecha = %s AND hora = %s AND estado = 'pendiente'
