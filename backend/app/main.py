@@ -5081,6 +5081,17 @@ def crear_avance_proceso(
                 detail="No existe una invitación pendiente para registrar resultado"
             )
 
+        if resultado == "cerrado_con_acuerdo":
+            cur.execute(
+                "SELECT 1 FROM numeros_acta WHERE proceso_id = %s AND estado <> 'anulado' LIMIT 1",
+                (proceso_id,)
+            )
+            if not cur.fetchone():
+                raise HTTPException(
+                    status_code=400,
+                    detail="Primero pide el número de acta del proceso (botón «Pedir número de acta»)"
+                )
+
         cita_id = cita_pendiente["id"]
         nueva_cita_id = None
 
@@ -6426,8 +6437,8 @@ def pedir_numero_acta_proceso(proceso_id: int, usuario=Depends(obtener_usuario_a
             raise HTTPException(status_code=403, detail="Solo el mediador del proceso puede pedir su número de acta")
         if p["estado"] == "anulado" or p["suspendido"]:
             raise HTTPException(status_code=400, detail="Este proceso está anulado o suspendido")
-        if not _con_acta(p["estado"], p["requiere_acta_no_acuerdo"]):
-            raise HTTPException(status_code=400, detail="Este proceso aún no tiene un resultado que lleve acta")
+        if p["estado"] not in ("en_negociacion", "cerrado_sin_acuerdo") and not _con_acta(p["estado"], p["requiere_acta_no_acuerdo"]):
+            raise HTTPException(status_code=400, detail="Este proceso ya está cerrado y no lleva acta")
         if p["finalizado"]:
             raise HTTPException(status_code=400, detail="El acta de este proceso ya está completa")
         cur.execute("SELECT codigo, estado FROM numeros_acta WHERE proceso_id = %s ORDER BY id LIMIT 1", (proceso_id,))
@@ -6825,6 +6836,15 @@ def solicitar_acta_no_acuerdo(proceso_id: int, usuario=Depends(obtener_usuario_a
             )
         if p["requiere_acta_no_acuerdo"]:
             raise HTTPException(status_code=400, detail="El acta de no acuerdo ya fue pedida")
+        cur.execute(
+            "SELECT 1 FROM numeros_acta WHERE proceso_id = %s AND estado <> 'anulado' LIMIT 1",
+            (proceso_id,)
+        )
+        if not cur.fetchone():
+            raise HTTPException(
+                status_code=400,
+                detail="Primero pide el número de acta del proceso (botón «Pedir número de acta»)"
+            )
 
         cur.execute("""
             UPDATE procesos_mediacion

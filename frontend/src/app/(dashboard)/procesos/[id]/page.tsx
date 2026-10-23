@@ -1543,8 +1543,13 @@ export default function ProcesoDetallePage() {
               >
                 <option value="en_negociacion">En negociación</option>
                 <option value="no_realizada">No asistió / no se realizó</option>
-                <option value="cerrado_con_acuerdo">Cerrado con acuerdo</option>
-                <option value="cerrado_no_acuerdo">Cerrado con no acuerdo (se emite acta de no acuerdo)</option>
+                <option value="cerrado_con_acuerdo" disabled={!proceso.numero_acta_codigo}>
+                  Cerrado con acuerdo{!proceso.numero_acta_codigo ? ' (primero pide el número de acta)' : ''}
+                </option>
+                <option value="cerrado_no_acuerdo" disabled={!proceso.numero_acta_codigo}>
+                  Cerrado con no acuerdo (se emite acta de no acuerdo)
+                  {!proceso.numero_acta_codigo ? ' (primero pide el número de acta)' : ''}
+                </option>
                 <option value="cerrado_sin_acuerdo">Cerrado sin acuerdo (no se emite acta)</option>
                 <option value="archivado">Archivado</option>
               </SelectField>
@@ -1650,6 +1655,38 @@ export default function ProcesoDetallePage() {
                   </button>
                 )}
               </div>
+            </div>
+          )}
+
+        {!proceso.finalizado &&
+          !proceso.suspendido &&
+          proceso.estado === 'en_negociacion' &&
+          !!citaPendiente &&
+          !conActa(proceso) && (
+            <div className="card p-4">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <p className="text-sm text-numa-600">
+                  {proceso.numero_acta_codigo ? (
+                    <>
+                      Número de acta de este proceso:{' '}
+                      <b className="font-mono">{proceso.numero_acta_codigo}</b>.
+                    </>
+                  ) : (
+                    'Pide el número de acta para poder registrar un acuerdo o un no acuerdo con acta.'
+                  )}
+                </p>
+                {!proceso.numero_acta_codigo && (
+                  <button
+                    type="button"
+                    onClick={pedirNumeroProceso}
+                    disabled={pidiendoNumero}
+                    className="btn-primary shrink-0 disabled:opacity-50"
+                  >
+                    {pidiendoNumero ? 'Pidiendo...' : 'Pedir número de acta'}
+                  </button>
+                )}
+              </div>
+              {errorNumero && <p className="text-sm text-red-700 mt-2">{errorNumero}</p>}
             </div>
           )}
 
