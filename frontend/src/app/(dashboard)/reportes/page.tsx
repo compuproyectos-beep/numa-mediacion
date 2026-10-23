@@ -70,8 +70,8 @@ const formatoFecha = (v: any) => {
 };
 
 const TIPOS: { valor: TipoReporte; titulo: string; adminOnly?: boolean }[] = [
-  { valor: 'actas', titulo: 'Actas finales emitidas' },
-  { valor: 'procesos', titulo: 'Procesos por periodo' },
+  { valor: 'actas', titulo: 'Actas finales' },
+  { valor: 'procesos', titulo: 'Procesos' },
   { valor: 'sin-avance', titulo: 'Procesos sin avance' },
   { valor: 'actas-pendientes', titulo: 'Actas pendientes de subir' },
   { valor: 'facturas-pendientes', titulo: 'Facturas pendientes' },
@@ -85,11 +85,11 @@ const TIPOS: { valor: TipoReporte; titulo: string; adminOnly?: boolean }[] = [
 // los números sin tener que preguntar.
 const DESCRIPCIONES: Record<TipoReporte, string> = {
   procesos:
-    'Lista todos los procesos de mediación creados en el rango de fechas elegido, con su estado actual (los suspendidos se cuentan aparte). Da clic en cualquier fila para abrir ese proceso. "Procesos que terminaron en acuerdo" es, de los procesos ya cerrados (con o sin acuerdo; los archivados y anulados no cuentan), qué porcentaje cerró con acuerdo.',
+    'Resumen básico de los procesos de mediación creados en el rango de fechas elegido, con su estado actual (los suspendidos se cuentan aparte). Da clic en cualquier fila para abrir ese proceso. "Procesos que terminaron en acuerdo" es, de los procesos ya cerrados (con o sin acuerdo; los archivados y anulados no cuentan), qué porcentaje cerró con acuerdo.',
   productividad:
     'El listado del equipo de mediadores (activos e inactivos), con cuántos procesos maneja cada uno y qué tan rápido los resuelve. Las columnas de reuniones cuentan las reuniones del mediador en el rango de fechas (realizadas, canceladas y las que no se realizaron por inasistencia). "Prom. días cierre" es el promedio de días entre que se crea un proceso y se cierra (con o sin acuerdo, o archivado); mientras más bajo, más rápido resuelve. Da clic en un mediador para ver el detalle de sus procesos.',
   actas:
-    'Lista las actas finales emitidas en el rango de fechas elegido: solo las que ya tienen el acta firmada subida (no basta con subir los documentos del acta). Da clic en cualquier fila para abrir el proceso al que pertenece esa acta.',
+    'Las actas finales de acuerdo y de no acuerdo del rango de fechas elegido: solo cuentan las que ya tienen el acta firmada subida (no basta con subir los documentos del acta). Arriba se ve cuántas son de cada tipo y cómo se reparten por mes, mediador y sucursal. Da clic en cualquier fila para abrir el proceso al que pertenece esa acta.',
   sucursales:
     'Compara cuántos procesos ha manejado cada sucursal, con su desglose por estado y el promedio de días de cierre.',
   clientes:
@@ -135,6 +135,8 @@ export default function ReportesPage() {
 
   const [tipo, setTipo] = useState<TipoReporte>('actas');
   const [diasMinimo, setDiasMinimo] = useState('7');
+  // Filtro local de la lista de Actas finales: todas, solo de acuerdo o solo de no acuerdo.
+  const [filtroTipoActa, setFiltroTipoActa] = useState<'' | 'acuerdo' | 'no_acuerdo'>('');
   const esOperativo = TIPOS_OPERATIVOS.includes(tipo);
 
   const [filters, setFilters] = useState({
@@ -278,6 +280,7 @@ export default function ReportesPage() {
     setClienteExpandidoId(null);
     setSucursalExpandidoId(null);
     setSoloPendientesDetalle(false);
+    setFiltroTipoActa('');
   };
 
   // Abre el proceso en una pestaña nueva para no perder el reporte ya
@@ -438,6 +441,89 @@ export default function ReportesPage() {
   // existía para "pendientes" — ahora con su contraparte "completas".
   const actasSubidasProcesos =
     tipo === 'procesos' ? datos.filter((p: any) => actaLista(p)).length : 0;
+
+  // --- Actas finales: acuerdo vs no acuerdo ---
+  const esNoAcuerdo = (a: any) => a.tipo === 'no_acuerdo';
+  const actasDeAcuerdo = tipo === 'actas' ? datos.filter((a: any) => !esNoAcuerdo(a)).length : 0;
+  const actasNoAcuerdo = tipo === 'actas' ? datos.filter(esNoAcuerdo).length : 0;
+  const actasMostradas =
+    tipo === 'actas' && filtroTipoActa
+      ? datos.filter((a: any) => (filtroTipoActa === 'no_acuerdo' ? esNoAcuerdo(a) : !esNoAcuerdo(a)))
+      : datos;
+
+  const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const mesDeActa = (v: any) => {
+    if (!v) return null;
+    const iso = String(v).replace(' ', 'T');
+    const d = new Date(/(Z|[+-]\d\d:?\d\d)$/.test(iso) ? iso : `${iso}Z`);
+    if (isNaN(d.getTime())) return null;
+    const f = d.toLocaleDateString('en-CA', { timeZone: 'America/Guayaquil' }); // YYYY-MM-DD
+    return f.slice(0, 7);
+  };
+  const barrasActasPor = (clave: (a: any) => string | null | undefined) => {
+    const m = new Map<string, { a: number; n: number }>();
+    datos.forEach((a: any) => {
+      const k = clave(a);
+      if (!k) return;
+      const x = m.get(k) || { a: 0, n: 0 };
+      if (esNoAcuerdo(a)) x.n++; else x.a++;
+      m.set(k, x);
+    });
+    return Array.from(m.entries());
+  };
+  // Cada grupo trae sus barras de "acuerdo" y "no acuerdo" por separado
+  // (mismos colores en todos los gráficos: verde = acuerdo, ámbar = no acuerdo).
+  const gruposActas: { titulo: string; items: { label: string; valor: number; color?: string }[] }[] =
+    tipo === 'actas'
+      ? [
+          {
+            titulo: 'Acuerdo y no acuerdo',
+            items: [
+              { label: 'Actas de acuerdo', valor: actasDeAcuerdo, color: '#10B981' },
+              { label: 'Actas de no acuerdo', valor: actasNoAcuerdo, color: '#F59E0B' }
+            ]
+          },
+          {
+            titulo: 'Actas por mes',
+            items: barrasActasPor((a) => mesDeActa(a.fecha_subida))
+              .sort((x, y) => x[0].localeCompare(y[0]))
+              .flatMap(([k, v]) => {
+                const [y, mm] = k.split('-');
+                const et = `${MESES_CORTOS[Number(mm) - 1]} ${y}`;
+                return [
+                  { label: `${et} · acuerdo`, valor: v.a, color: '#10B981' },
+                  ...(v.n > 0 ? [{ label: `${et} · no acuerdo`, valor: v.n, color: '#F59E0B' }] : [])
+                ].filter((i) => i.valor > 0);
+              })
+          },
+          ...(admin
+            ? [
+                {
+                  titulo: 'Actas por mediador',
+                  items: barrasActasPor((a) => a.mediador || a.usuario)
+                    .sort((x, y) => y[1].a + y[1].n - (x[1].a + x[1].n))
+                    .flatMap(([k, v]) =>
+                      [
+                        { label: `${k} · acuerdo`, valor: v.a, color: '#10B981' },
+                        { label: `${k} · no acuerdo`, valor: v.n, color: '#F59E0B' }
+                      ].filter((i) => i.valor > 0)
+                    )
+                },
+                {
+                  titulo: 'Actas por sucursal',
+                  items: barrasActasPor((a) => (a.sucursal ? labelSucursal(a) : null))
+                    .sort((x, y) => y[1].a + y[1].n - (x[1].a + x[1].n))
+                    .flatMap(([k, v]) =>
+                      [
+                        { label: `${k} · acuerdo`, valor: v.a, color: '#10B981' },
+                        { label: `${k} · no acuerdo`, valor: v.n, color: '#F59E0B' }
+                      ].filter((i) => i.valor > 0)
+                    )
+                }
+              ]
+            : [])
+        ].filter((g) => g.items.length > 0)
+      : [];
 
   const barrasActas: { label: string; valor: number; color?: string }[] | null =
     tipo === 'procesos'
@@ -715,7 +801,40 @@ export default function ReportesPage() {
             </div>
           )}
 
-          {tipo !== 'procesos' && (
+          {tipo === 'actas' && (
+            <div className="card px-4 py-3 flex items-end gap-8 flex-wrap">
+              <div>
+                <p className="text-2xl font-bold text-numa-900 leading-none tabular-nums">{datos.length}</p>
+                <p className="text-xs text-numa-700 mt-1">actas finales</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-emerald-700 leading-none tabular-nums">{actasDeAcuerdo}</p>
+                <p className="text-xs text-numa-700 mt-1">de acuerdo</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-amber-700 leading-none tabular-nums">{actasNoAcuerdo}</p>
+                <p className="text-xs text-numa-700 mt-1">de no acuerdo</p>
+              </div>
+              <div className="ml-auto flex gap-1.5">
+                {([['', 'Todas'], ['acuerdo', 'De acuerdo'], ['no_acuerdo', 'De no acuerdo']] as const).map(([v, t]) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setFiltroTipoActa(v)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                      filtroTipoActa === v
+                        ? 'bg-numa-900 text-white'
+                        : 'bg-white border border-numa-200 text-numa-600 hover:border-gold-400'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {tipo !== 'procesos' && tipo !== 'actas' && (
             <div className="text-[13px] text-numa-700">
               Mostrando <span className="font-semibold text-numa-800">{datos.length}</span>{' '}
               {tipo === 'productividad' &&
@@ -724,12 +843,11 @@ export default function ReportesPage() {
                 (datos.length === 1 ? 'sucursal' : 'sucursales')}
               {tipo === 'clientes' &&
                 (datos.length === 1 ? 'cliente' : 'clientes')}
-              {tipo === 'actas' &&
-                (datos.length === 1 ? 'acta final' : 'actas finales')}
             </div>
           )}
 
-          {((barrasActas && barrasActas.length > 0) ||
+          {((gruposActas.length > 0) ||
+            (barrasActas && barrasActas.length > 0) ||
             (barrasResumen && barrasResumen.length > 0) ||
             (barrasActasPendientes && barrasActasPendientes.length > 0)) && (
             <div className="flex items-center gap-3 pt-1">
@@ -741,6 +859,12 @@ export default function ReportesPage() {
           {/* El gráfico de actas va primero: es el corazón del sistema,
               antes que el desglose general de procesos. */}
           <div className="grid gap-3 md:grid-cols-2 items-start">
+{gruposActas.map((g) => (
+            <div key={g.titulo} className="card px-3 py-2.5">
+              <p className="text-xs font-semibold text-numa-700 mb-2 uppercase tracking-wide">{g.titulo}</p>
+              <BarrasResumen items={g.items} />
+            </div>
+          ))}
 {barrasActas && barrasActas.length > 0 && (
             <div className="card px-3 py-2.5">
               <p className="text-xs font-semibold text-numa-700 mb-2 uppercase tracking-wide">
@@ -823,6 +947,7 @@ export default function ReportesPage() {
                     {tipo === 'actas' && (
                       <>
                         <th className="table-header">Código de acta</th>
+                        <th className="table-header">Tipo</th>
                         <th className="table-header">Solicitante</th>
                         <th className="table-header">Invitado</th>
                         <th className="table-header">Ciudad</th>
@@ -1205,13 +1330,22 @@ export default function ReportesPage() {
                     ))}
 
                   {tipo === 'actas' &&
-                    datos.map((a: any) => (
+                    actasMostradas.map((a: any) => (
                       <tr
                         key={a.id}
                         onClick={() => abrirProceso(a.proceso_id)}
                         className="table-row cursor-pointer hover:bg-gold-400/[0.06]"
                       >
                         <td className="table-cell font-medium">{a.codigo_acta}</td>
+                        <td className="table-cell">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              esNoAcuerdo(a) ? 'bg-amber-50 text-amber-800' : 'bg-emerald-50 text-emerald-800'
+                            }`}
+                          >
+                            {esNoAcuerdo(a) ? 'No acuerdo' : 'Acuerdo'}
+                          </span>
+                        </td>
                         <td className="table-cell">{a.demandante}</td>
                         <td className="table-cell">{a.demandado}</td>
                         <td className="table-cell">{a.ciudad || '—'}</td>

@@ -517,7 +517,9 @@ function ImprimirReporteContenido() {
                     : 'mt-0'
                 } text-[11px] font-bold text-numa-900 uppercase tracking-[0.12em] mb-1 pb-1.5 border-b-2 border-gold-500`}
               >
-                Detalle · {datos.length} {datos.length === 1 ? 'registro' : 'registros'}
+                {tipo === 'actas'
+                  ? `Detalle · ${datos.length} ${datos.length === 1 ? 'acta' : 'actas'} (${datos.filter((a: any) => a.tipo !== 'no_acuerdo').length} de acuerdo, ${datos.filter((a: any) => a.tipo === 'no_acuerdo').length} de no acuerdo)`
+                  : `Detalle · ${datos.length} ${datos.length === 1 ? 'registro' : 'registros'}`}
               </h3>
               <table className="w-full text-xs border-collapse">
               <thead>
@@ -579,7 +581,8 @@ function ImprimirReporteContenido() {
                   {tipo === 'actas' && (
                     <>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Código acta</th>
-                                            <th className="text-left py-2 pr-2 font-semibold text-numa-700">Solicitante</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Tipo</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Solicitante</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Invitado</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sucursal</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Mediador</th>
@@ -757,6 +760,7 @@ function ImprimirReporteContenido() {
                   datos.map((a: any) => (
                     <tr key={a.id} className="border-b border-numa-300">
                       <td className="py-1.5 pr-2 code-text whitespace-nowrap">{a.codigo_acta}</td>
+                      <td className="py-1.5 pr-2">{a.tipo === 'no_acuerdo' ? 'No acuerdo' : 'Acuerdo'}</td>
                       <td className="py-1.5 pr-2">{a.demandante}</td>
                       <td className="py-1.5 pr-2">{a.demandado}</td>
                       <td className="py-1.5 pr-2">{a.sucursal ? `${a.sucursal}${a.ciudad ? ` (${a.ciudad})` : ''}` : '—'}</td>

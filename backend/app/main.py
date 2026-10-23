@@ -9163,7 +9163,7 @@ def exportar_reporte_excel(
                  if (not f.get("requiere_acta_firmada")) or f.get("tiene_acta_firmada")]
 
         encabezados = [
-            "Código de acta", "Solicitante", "Invitado", "Ciudad",
+            "Código de acta", "Tipo", "Solicitante", "Invitado", "Ciudad",
             "Sucursal", "Mediador", "Fecha de subida",
             "Facturar a", "Identificación", "Dirección", "Correo", "Teléfono"
         ]
@@ -9171,6 +9171,7 @@ def exportar_reporte_excel(
         filas_excel = [
             [
                 f.get("codigo_acta"),
+                "No acuerdo" if f.get("tipo") == "no_acuerdo" else "Acuerdo",
                 f.get("demandante"),
                 f.get("demandado"),
                 f.get("ciudad"),
@@ -9189,9 +9190,9 @@ def exportar_reporte_excel(
         nombre_archivo = "reporte_actas_finales_numa.xlsx"
 
     titulos_excel = {
-        "procesos": "Reporte de procesos por periodo",
+        "procesos": "Reporte de procesos",
         "productividad": "Reporte del equipo de mediadores",
-        "actas": "Reporte de actas finales emitidas",
+        "actas": "Reporte de actas finales",
         "sucursales": "Reporte por sucursales",
         "clientes": "Reporte de clientes",
         "agenda": "Agenda de reuniones",
