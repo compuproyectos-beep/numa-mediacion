@@ -10,6 +10,7 @@ import {
   getHistorialAcuerdo,
   suspenderProceso,
   solicitarActaNoAcuerdo,
+  pedirNumeroActaProceso,
   descargarComprobanteFinal,
   marcarActaImpresa
 } from '@/lib/services';
@@ -79,6 +80,8 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
     setPidiendoNA(true);
     setError('');
     try {
+      // Si el proceso no tiene número de acta todavía, se pide junto con el acta.
+      if (!proceso.numero_acta_codigo) await pedirNumeroActaProceso(proceso.id);
       await solicitarActaNoAcuerdo(proceso.id);
       setConfirmandoNA(false);
       setOk('Acta de no acuerdo pedida. Ahora sube la documentación y el comprobante de pago.');
