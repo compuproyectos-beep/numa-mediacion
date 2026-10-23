@@ -268,8 +268,14 @@ export default function ReportesPage() {
       }
 
       setDatos(data);
-    } catch {
-      setError('No se pudo generar el reporte. Intenta de nuevo.');
+    } catch (err: any) {
+      const detalle = err?.response?.data?.detail;
+      const estado = err?.response?.status;
+      setError(
+        `No se pudo generar el reporte. Intenta de nuevo.${
+          typeof detalle === 'string' ? ` (${detalle})` : estado ? ` (error ${estado})` : ' (sin respuesta del servidor)'
+        }`
+      );
       setDatos([]);
     } finally {
       setLoading(false);
