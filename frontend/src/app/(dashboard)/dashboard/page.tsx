@@ -472,7 +472,7 @@ export default function DashboardPage() {
                       </div>
 
                       <p className="text-sm font-medium text-numa-800 mt-0.5 line-clamp-1">
-                        {item.demandante} <span className="font-normal text-numa-600">vs</span> {item.demandado}
+                        {item.demandante} <span className="font-normal text-numa-600">y</span> {item.demandado}
                       </p>
 
                       <p className="text-xs text-numa-700 mt-0.5 flex flex-wrap gap-x-3">
@@ -526,7 +526,7 @@ export default function DashboardPage() {
                           </p>
 
                           <p className="text-sm text-numa-600 mt-0.5">
-                            {a.demandante} vs {a.demandado}
+                            {a.demandante} y {a.demandado}
                           </p>
 
                           <p className="text-xs text-numa-600 mt-0.5">

@@ -103,11 +103,11 @@ def generar_recordatorios_citas():
             # al administrador. Se acepta también el formato anterior para
             # no duplicar recordatorios ya generados.
             mensaje = (
-                f"{cita['demandante']} vs {cita['demandado']} | "
+                f"{cita['demandante']} y {cita['demandado']} | "
                 f"{cita['fecha']} {cita['hora']}"
             )
             mensaje_antiguo = (
-                f"{cita['demandante']} vs {cita['demandado']} | "
+                f"{cita['demandante']} y {cita['demandado']} | "
                 f"{cita['ciudad']} - {cita['sucursal']} | "
                 f"{cita['fecha']} {cita['hora']}"
             )
@@ -138,7 +138,7 @@ def generar_recordatorios_citas():
                       AND referencia_tipo = 'proceso_mediacion'
                       AND referencia_id = %s
                       AND titulo = %s
-                      AND (mensaje = %s OR mensaje = %s OR LEFT(mensaje, %s) = %s)
+                      AND (REPLACE(mensaje, ' vs ', ' y ') = %s OR REPLACE(mensaje, ' vs ', ' y ') = %s OR LEFT(REPLACE(mensaje, ' vs ', ' y '), %s) = %s)
                 """, (
                     usuario_id,
                     cita["proceso_id"],
@@ -186,8 +186,8 @@ def generar_recordatorios_citas():
             sol, _ = _resumen_lado_rapido(pr.get("solicitantes"))
             inv, _ = _resumen_lado_rapido(pr.get("invitados"))
             titulo = "Invitación para hoy" if str(ct["fecha"]) == str(hoy) else "Invitación para mañana"
-            mensaje = f"{sol} vs {inv} | {ct['fecha']} {ct['hora']}"
-            mensaje_antiguo = f"{sol} vs {inv} | {ct['ciudad']} - {ct['sucursal']} | {ct['fecha']} {ct['hora']}"
+            mensaje = f"{sol} y {inv} | {ct['fecha']} {ct['hora']}"
+            mensaje_antiguo = f"{sol} y {inv} | {ct['ciudad']} - {ct['sucursal']} | {ct['fecha']} {ct['hora']}"
 
             cur.execute("SELECT id FROM usuarios WHERE rol = 'administrador' AND activo = true")
             destino = {ct["usuario_id"]} | {a["id"] for a in cur.fetchall()}
@@ -197,7 +197,7 @@ def generar_recordatorios_citas():
                     SELECT id FROM notificaciones
                     WHERE usuario_id = %s AND referencia_tipo = 'cita'
                       AND referencia_id = %s AND titulo = %s
-                      AND (mensaje = %s OR mensaje = %s OR LEFT(mensaje, %s) = %s)
+                      AND (REPLACE(mensaje, ' vs ', ' y ') = %s OR REPLACE(mensaje, ' vs ', ' y ') = %s OR LEFT(REPLACE(mensaje, ' vs ', ' y '), %s) = %s)
                 """, (uid, ct["id"], titulo, mensaje, mensaje_antiguo, len(mensaje), mensaje))
                 if cur.fetchone():
                     continue
@@ -4450,7 +4450,7 @@ def crear_invitacion_proceso(
                 admin["id"],
                 "Nueva invitación creada",
                 f"{proceso['codigo_proceso']} | "
-                f"{proceso['demandante']} vs {proceso['demandado']} | "
+                f"{proceso['demandante']} y {proceso['demandado']} | "
                 f"{proceso['ciudad']} - {proceso['sucursal']} | "
                 f"{fecha} {hora}",
                 "cita",
@@ -4460,7 +4460,7 @@ def crear_invitacion_proceso(
 
         _notificar_secretaria(
             cur, proceso["sucursal_id"], "Nueva invitación en la agenda",
-            f"{proceso['demandante']} vs {proceso['demandado']} | {fecha} {hora}",
+            f"{proceso['demandante']} y {proceso['demandado']} | {fecha} {hora}",
             cita["id"], excluir_id=usuario["id"]
         )
 
@@ -4713,7 +4713,7 @@ def crear_invitacion_rapida(datos: dict, usuario=Depends(obtener_usuario_actual)
         for admin in cur.fetchall():
             crear_notificacion(
                 cur, admin["id"], "Nueva invitación rápida",
-                f"{sol} vs {inv} | {fecha} {hora}",
+                f"{sol} y {inv} | {fecha} {hora}",
                 "cita", "cita", cita["id"]
             )
 
@@ -4723,7 +4723,7 @@ def crear_invitacion_rapida(datos: dict, usuario=Depends(obtener_usuario_actual)
             crear_notificacion(
                 cur, mediador_id, "Nueva invitación asignada",
                 f"{usuario['nombre']} {usuario['apellido']} te asignó una invitación: "
-                f"{sol} vs {inv} | {fecha} {hora}"
+                f"{sol} y {inv} | {fecha} {hora}"
                 + ("" if tema else " — falta completar el tema"),
                 "cita", "cita", cita["id"]
             )
@@ -4731,7 +4731,7 @@ def crear_invitacion_rapida(datos: dict, usuario=Depends(obtener_usuario_actual)
         nombre_mediador = " ".join(filter(None, [mediador.get("nombre"), mediador.get("apellido")]))
         _notificar_secretaria(
             cur, mediador["sucursal_id"], "Nueva invitación en la agenda",
-            f"{nombre_mediador}: {sol} vs {inv} | {fecha} {hora}",
+            f"{nombre_mediador}: {sol} y {inv} | {fecha} {hora}",
             cita["id"], excluir_id=usuario["id"]
         )
 

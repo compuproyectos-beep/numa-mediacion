@@ -853,7 +853,7 @@ export default function ProcesosPage() {
                     {p.total_solicitantes > 1 && (
                       <span className="font-normal text-numa-600"> y {p.total_solicitantes - 1} más</span>
                     )}{' '}
-                    <span className="font-normal text-numa-600">vs</span> {p.demandado}
+                    <span className="font-normal text-numa-600">y</span> {p.demandado}
                     {p.total_invitados > 1 && (
                       <span className="font-normal text-numa-600"> y {p.total_invitados - 1} más</span>
                     )}
@@ -958,7 +958,7 @@ export default function ProcesosPage() {
                   {citasRapidas.map((c: any) => (
                     <option key={c.id} value={c.id}>
                       {String(c.fecha).slice(0, 10).split('-').reverse().join('/')}{' '}
-                      {String(c.hora).slice(0, 5)} · {c.demandante} vs {c.demandado}
+                      {String(c.hora).slice(0, 5)} · {c.demandante} y {c.demandado}
                     </option>
                   ))}
                 </SelectField>

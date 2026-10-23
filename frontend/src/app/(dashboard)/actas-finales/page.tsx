@@ -525,7 +525,7 @@ const handleExportarZip = async () => {
                 </div>
 
                 <p className="text-[13px] text-numa-800">
-                  {a.demandante} vs {a.demandado}
+                  {a.demandante} y {a.demandado}
                 </p>
 
                 <p className="text-[11px] text-numa-600">

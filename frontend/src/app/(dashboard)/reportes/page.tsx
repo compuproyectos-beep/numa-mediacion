@@ -1289,7 +1289,7 @@ export default function ReportesPage() {
                                     >
                                       <div>
                                         <span className="text-xs text-numa-600 ml-2">
-                                          {p.demandante} vs {p.demandado}
+                                          {p.demandante} y {p.demandado}
                                         </span>
                                       </div>
 
@@ -1431,7 +1431,7 @@ export default function ReportesPage() {
                                     >
                                       <div>
                                         <span className="text-xs text-numa-600 ml-2">
-                                          {p.demandante} vs {p.demandado}
+                                          {p.demandante} y {p.demandado}
                                         </span>
                                       </div>
 
@@ -1546,7 +1546,7 @@ export default function ReportesPage() {
                                     >
                                       <div>
                                         <span className="text-xs text-numa-600 ml-2">
-                                          {p.demandante} vs {p.demandado}
+                                          {p.demandante} y {p.demandado}
                                         </span>
                                       </div>
 

@@ -160,7 +160,7 @@ function DetalleProcesos({
               <th className={`${th} w-[12%]`}>Acta final</th>
               <th className={`${th} w-[12%]`}>Fecha de subida</th>
               <th className={`${th} w-[16%]`}>Estado</th>
-              <th className={th}>Solicitante vs Invitado</th>
+              <th className={th}>Solicitante y Invitado</th>
               {mostrarMediador && <th className={th}>Mediador responsable</th>}
             </tr>
           </thead>
@@ -182,7 +182,7 @@ function DetalleProcesos({
                 </td>
                 <td className="py-0.5 pr-2">{getEstadoLabel(p.suspendido ? 'suspendido' : p.estado)}</td>
                 <td className="py-0.5 pr-2">
-                  {p.demandante} vs {p.demandado}
+                  {p.demandante} y {p.demandado}
                 </td>
                 {mostrarMediador && <td className="py-0.5 pr-2">{p.usuario || '—'}</td>}
               </tr>

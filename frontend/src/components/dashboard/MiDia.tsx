@@ -191,7 +191,7 @@ export default function MiDia({
                   <>
                     {' '}con{' '}
                     <strong className="text-numa-800">
-                      {proxima.demandante} <span className="font-normal">vs</span> {proxima.demandado}
+                      {proxima.demandante} <span className="font-normal">y</span> {proxima.demandado}
                     </strong>
                   </>
                 )}
@@ -221,7 +221,7 @@ export default function MiDia({
 
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-medium text-numa-900 break-words leading-snug">
-                        {c.demandante} <span className="text-numa-600 font-normal">vs</span>{' '}
+                        {c.demandante} <span className="text-numa-600 font-normal">y</span>{' '}
                         {c.demandado}
                       </span>
                       <span className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5 text-xs text-numa-700">
@@ -291,7 +291,7 @@ export default function MiDia({
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-medium text-numa-900 truncate">
-                      {p.demandante} <span className="text-numa-600 font-normal">vs</span>{' '}
+                      {p.demandante} <span className="text-numa-600 font-normal">y</span>{' '}
                       {p.demandado}
                     </span>
                     <span className="block text-xs text-numa-700 truncate">

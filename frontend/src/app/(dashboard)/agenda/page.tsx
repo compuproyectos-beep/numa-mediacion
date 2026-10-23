@@ -292,7 +292,7 @@ export default function AgendaPage() {
               <option value="">Sin proceso (invitación rápida)</option>
               {procesos.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.codigo_proceso} — {p.demandante} vs {p.demandado}
+                  {p.codigo_proceso} — {p.demandante} y {p.demandado}
                 </option>
               ))}
             </SelectField>

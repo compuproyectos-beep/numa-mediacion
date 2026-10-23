@@ -398,7 +398,7 @@ export default function CalendarioAgendaMediador({
       const fin = new Date(inicio);
       fin.setHours(fin.getHours() + 1);
 
-      const partes = [cita.demandante, cita.demandado].filter(Boolean).join(' vs ');
+      const partes = [cita.demandante, cita.demandado].filter(Boolean).join(' y ');
 
       return {
         id: cita.id,
@@ -423,7 +423,7 @@ export default function CalendarioAgendaMediador({
         .filter(Boolean)
         .join('\n');
     }
-    const partes = [c.demandante, c.demandado].filter(Boolean).join(' vs ');
+    const partes = [c.demandante, c.demandado].filter(Boolean).join(' y ');
     const ubicacion = [c.sucursal, c.ciudad].filter(Boolean).join(' — ');
     return [
       `${c.hora?.slice(0, 5) ?? ''} · ${c.estado === 'pendiente' && event.start < new Date() ? 'atrasada (sin resultado)' : c.estado}`,
@@ -789,7 +789,7 @@ export default function CalendarioAgendaMediador({
                 <span className="text-numa-900 font-semibold">
                   {citaActiva.demandante}
                   {citaActiva.demandante_cedula && ` (${citaActiva.demandante_cedula})`}
-                  {' vs '}
+                  {' y '}
                   {citaActiva.demandado}
                   {citaActiva.demandado_cedula && ` (${citaActiva.demandado_cedula})`}
                 </span>
@@ -1095,7 +1095,7 @@ export default function CalendarioAgendaMediador({
           {citasDelDia.length > 0 ? (
             <div className="flex flex-wrap gap-2 mb-4">
               {citasDelDia.map((c) => {
-                const partes = [c.demandante, c.demandado].filter(Boolean).join(' vs ');
+                const partes = [c.demandante, c.demandado].filter(Boolean).join(' y ');
                 return (
                   <button
                     key={c.id}

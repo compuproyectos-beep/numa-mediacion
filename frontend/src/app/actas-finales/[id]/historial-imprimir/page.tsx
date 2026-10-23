@@ -129,7 +129,7 @@ export default function ImprimirHistorialActaPage() {
                     Partes
                   </p>
                   <p className="text-sm text-numa-800">
-                    {acta.demandante || '—'} vs {acta.demandado || '—'}
+                    {acta.demandante || '—'} y {acta.demandado || '—'}
                   </p>
                 </div>
 

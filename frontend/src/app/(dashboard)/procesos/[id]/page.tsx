@@ -835,7 +835,7 @@ export default function ProcesoDetallePage() {
             {proceso.total_solicitantes > 1 && (
               <span className="text-numa-600"> y {proceso.total_solicitantes - 1} más</span>
             )}{' '}
-            vs {proceso.demandado}
+            y {proceso.demandado}
             {proceso.total_invitados > 1 && (
               <span className="text-numa-600"> y {proceso.total_invitados - 1} más</span>
             )}
