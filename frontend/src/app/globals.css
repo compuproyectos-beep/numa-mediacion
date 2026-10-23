@@ -143,6 +143,17 @@
     @apply sticky left-0 z-10 bg-white;
   }
 
+  /* Columna de acciones pegada a la derecha: el botón queda siempre a la vista
+     aunque la tabla sea ancha y haya muchas filas. */
+  .table-cell-sticky-right {
+    @apply sticky right-0 z-10 bg-white shadow-[-6px_0_6px_-6px_rgba(14,35,56,0.25)];
+  }
+
+  .table-row:nth-child(even) .table-cell-sticky-right,
+  .table-row:hover .table-cell-sticky-right {
+    background-color: #F3F6FA;
+  }
+
   .table-row:nth-child(even) .table-cell-sticky {
     background-color: #F3F6FA;
   }

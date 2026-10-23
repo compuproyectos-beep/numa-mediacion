@@ -340,7 +340,7 @@ export default function ClientesPage() {
                   <th className="table-header">Teléfono</th>
                   <th className="table-header">Ciudad domicilio</th>
                   <th className="table-header">Dirección</th>
-                  <th className="table-header">Acciones</th>
+                  <th className="table-header table-cell-sticky-right !bg-numa-50">Acciones</th>
                 </tr>
               </thead>
 
@@ -395,7 +395,7 @@ export default function ClientesPage() {
                       {c.direccion || '—'}
                     </td>
 
-                    <td className="table-cell">
+                    <td className="table-cell table-cell-sticky-right">
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => openEdit(c)}
@@ -458,11 +458,6 @@ export default function ClientesPage() {
         <div className="grid grid-cols-2 gap-4">
           {form.tipo === 'empresa' ? (
             <>
-              <p className="col-span-2 text-xs text-numa-700 bg-numa-50 border border-numa-200 rounded-sm p-3">
-                Razón social, RUC, teléfono, correo, provincia, ciudad y dirección son los de la
-                <strong> empresa</strong>. Solo el representante legal y su cédula son de la
-                <strong> persona</strong> que firma en nombre de la empresa.
-              </p>
               <div className="col-span-2">
                 <InputField
                   label="Razón social"
