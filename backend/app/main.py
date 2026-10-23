@@ -4189,11 +4189,19 @@ def quitar_parte_proceso(
                 detail="No puedes quitar al responsable. Primero marca a otra persona como responsable."
             )
 
+        cur.execute(
+            "SELECT COALESCE(NULLIF(btrim(razon_social), ''), btrim(nombre || ' ' || COALESCE(apellido, ''))) AS nombre "
+            "FROM clientes WHERE id = %s",
+            (parte["cliente_id"],)
+        )
+        _cli = cur.fetchone()
+        _nombre_quitado = (_cli["nombre"] if _cli and _cli["nombre"] else f"cliente {parte['cliente_id']}")
+
         cur.execute("DELETE FROM proceso_partes WHERE id = %s", (parte_id,))
 
         registrar_auditoria(
             cur, usuario, "proceso_parte_quitada", "procesos", proceso_id,
-            f"Quitó a un {parte['rol']} (cliente {parte['cliente_id']})"
+            f"Quitó a {_nombre_quitado} como {parte['rol']}"
         )
         conn.commit()
         return _consulta_partes(cur, proceso_id)

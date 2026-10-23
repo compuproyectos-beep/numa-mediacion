@@ -720,7 +720,7 @@ export default function CalendarioAgendaMediador({
                   </span>
                 )}
               </p>
-              {citaActiva.fecha_creacion && (
+              {citaActiva.fecha_creacion && !(citaActiva.partes_rapidas && !citaActiva.proceso_id && citaActiva.estado === 'pendiente') && (
                 <p className="text-sm text-numa-700 mt-1">
                   Creada el{' '}
                   <span className="font-bold text-numa-900">{fechaCreacionEC(citaActiva.fecha_creacion)}</span>
@@ -905,8 +905,9 @@ export default function CalendarioAgendaMediador({
                   ) : (
                     <>
                       <p className="mb-2">
-                        Si la reunión continúa, crea el proceso (puedes hacerlo antes de la hora). Si
-                        no, ciérrala sin proceso una vez realizada.
+                        {usuarioActual?.id === citaActiva.usuario_id
+                          ? 'Si la reunión continúa, crea el proceso (puedes hacerlo antes de la hora). Si no, ciérrala sin proceso una vez realizada.'
+                          : `Si la reunión continúa, ${citaActiva.mediador || 'el mediador'} crea el proceso. Si no, puedes cerrarla sin proceso una vez realizada.`}
                       </p>
                       <div className="flex flex-wrap gap-3 items-center">
                         {usuarioActual?.id === citaActiva.usuario_id ? (
@@ -918,11 +919,7 @@ export default function CalendarioAgendaMediador({
                             <FolderPlus className="w-4 h-4" />
                             Crear el proceso
                           </button>
-                        ) : (
-                          <span className="text-sm font-medium text-numa-700">
-                            Solo {citaActiva.mediador || 'el mediador de esta invitación'} puede crear el proceso.
-                          </span>
-                        )}
+                        ) : null}
                         {permitirGestionarEstado && (
                           <button
                             type="button"
