@@ -871,9 +871,9 @@ export default function ProcesoDetallePage() {
             {proceso.demandante_cedula || '—'} · {proceso.demandado_cedula || '—'}
           </p>
           {proceso.numero_acta_codigo && (
-            <p className="text-xs text-numa-700 mt-1">
+            <p className="text-base text-numa-800 mt-2">
               Número de acta:{' '}
-              <strong className="font-mono">{proceso.numero_acta_codigo}</strong>
+              <strong className="font-mono text-lg">{proceso.numero_acta_codigo}</strong>
               {proceso.numero_acta_estado === 'anulado' && (
                 <span className="text-red-700"> (anulado)</span>
               )}
