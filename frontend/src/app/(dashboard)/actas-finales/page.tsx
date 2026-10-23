@@ -376,7 +376,7 @@ const handleExportarZip = async () => {
                   )
                   .map((s: any) => (
                     <option key={s.id} value={s.id}>
-                      {s.nombre}{(s.ciudad_nombre || s.ciudad) ? ` · ${s.ciudad_nombre || s.ciudad}` : ''}
+                      {s.nombre}{(s.ciudad_nombre || s.ciudad) && (s.ciudad_nombre || s.ciudad) !== s.nombre ? ` · ${s.ciudad_nombre || s.ciudad}` : ''}
                     </option>
                   ))}
               </SelectField>

@@ -1253,7 +1253,8 @@ export default function CalendarioAgendaMediador({
         {citaActiva?.numero_acta_codigo && (
           <p className="text-sm text-numa-800 mb-4">
             Esta invitación tiene el número de acta {citaActiva.numero_acta_codigo}. Si cierras sin
-            proceso, ese número quedará pedido: pide al administrador que lo anule si ya no se usará.
+            proceso, ese número se anula solo y queda registrado. Si después la reunión continúa, solo el
+            administrador puede reactivarlo.
           </p>
         )}
 
@@ -1292,6 +1293,12 @@ export default function CalendarioAgendaMediador({
               )} a las ${citaActiva.hora?.slice(0, 5)}? Esta acción no se puede deshacer.`
             : ''}
         </p>
+        {citaActiva?.numero_acta_codigo && (
+          <p className="text-sm text-numa-800 mb-4">
+            Esta invitación tiene el número de acta {citaActiva.numero_acta_codigo}. Al cancelarla, ese
+            número se anula solo y queda registrado.
+          </p>
+        )}
 
         <TextareaField
           label="Motivo de la cancelación"

@@ -6225,6 +6225,17 @@ def _reservar_numero_acta(cur, sucursal_id, usuario_id, proceso_id=None, estado=
     return cur.fetchone()
 
 
+def _fecha_ec_txt(valor):
+    """Fecha y hora de Ecuador en texto (dd/mm/aaaa hh:mm) para los detalles de auditoría."""
+    try:
+        v = valor
+        if v.tzinfo is not None:
+            v = v.astimezone(datetime.timezone(datetime.timedelta(hours=-5)))
+        return v.strftime("%d/%m/%Y %H:%M")
+    except Exception:
+        return str(valor)[:16]
+
+
 def _numeros_pendientes_de(cur, usuario_id):
     """Números pedidos que aún no se usaron. 'vencido' = pasaron 48 horas."""
     cur.execute("""
@@ -6442,7 +6453,7 @@ def reactivar_numero_acta(numero_id: int, usuario=Depends(obtener_usuario_actual
             WHERE id = %s
         """, (usuario["id"], numero_id))
         registrar_auditoria(cur, usuario, "reactivar_numero_acta", "numero_acta", numero_id,
-                            f"Número {n['codigo']} reactivado (pedido originalmente el {str(n['fecha_solicitud'])[:16]})")
+                            f"Número {n['codigo']} reactivado (pedido originalmente el {_fecha_ec_txt(n['fecha_solicitud'])})")
         if n["usuario_id"]:
             crear_notificacion(
                 cur, n["usuario_id"], "Número de acta reactivado",
