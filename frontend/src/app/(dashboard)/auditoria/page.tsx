@@ -9,7 +9,7 @@ import { isAdmin } from '@/lib/auth';
 // Colores del badge por tipo de acción — para que sea fácil detectar de un
 // vistazo lo negativo (login fallido, desactivaciones) de lo neutral.
 function claseAccion(accion: string): string {
-  if (accion === 'login_fallido' || accion.includes('desactivad') || accion.includes('anula') || accion.includes('suspendid')) {
+  if (accion === 'login_fallido' || accion === 'cuenta_bloqueada' || accion.includes('desactivad') || accion.includes('anula') || accion.includes('suspendid')) {
     return 'bg-red-50 text-red-700 border-red-200';
   }
   if (accion.includes('creado') || accion.includes('creada') || accion.includes('activad') || accion.includes('reactiva')) {
@@ -20,7 +20,8 @@ function claseAccion(accion: string): string {
 
 function etiquetaAccion(accion: string): string {
   const etiquetas: Record<string, string> = {
-    login_fallido: 'Login fallido',
+    cuenta_bloqueada: 'Cuenta bloqueada por intentos fallidos',
+    login_fallido: 'Intento de ingreso fallido',
     usuario_creado: 'Usuario creado',
     usuario_editado: 'Usuario editado',
     usuario_activado: 'Usuario activado',
@@ -33,7 +34,7 @@ function etiquetaAccion(accion: string): string {
     sucursal_desactivada: 'Sucursal desactivada',
     proceso_anulado: 'Proceso anulado',
     pedir_numero_acta: 'Número de acta pedido',
-    anular_numero_acta: 'Número de acta anulado',
+    anular_numero_acta: 'Número de acta anulado por el administrador',
     reactivar_numero_acta: 'Número de acta reactivado',
     acta_firmada_subida: 'Acta firmada subida',
     acta_no_acuerdo_solicitada: 'Acta de no acuerdo pedida',
@@ -113,7 +114,8 @@ export default function AuditoriaPage() {
               className="input-field"
             >
               <option value="">Todas</option>
-              <option value="login_fallido">Login fallido</option>
+              <option value="cuenta_bloqueada">Cuenta bloqueada por intentos fallidos</option>
+              <option value="login_fallido">Intento de ingreso fallido (historial)</option>
               <option value="usuario_creado">Usuario creado</option>
               <option value="usuario_editado">Usuario editado</option>
               <option value="usuario_activado">Usuario activado</option>
@@ -125,19 +127,12 @@ export default function AuditoriaPage() {
               <option value="sucursal_activada">Sucursal activada</option>
               <option value="sucursal_desactivada">Sucursal desactivada</option>
               <option value="proceso_anulado">Proceso anulado</option>
-              <option value="pedir_numero_acta">Número de acta pedido</option>
               <option value="anular_numero_acta">Número de acta anulado</option>
               <option value="reactivar_numero_acta">Número de acta reactivado</option>
-              <option value="acta_firmada_subida">Acta firmada subida</option>
-              <option value="acta_no_acuerdo_solicitada">Acta de no acuerdo pedida</option>
               <option value="acuerdo_corregido">Acuerdo corregido</option>
-              <option value="guardar_facturacion">Facturación guardada</option>
-              <option value="factura_subida">Factura subida</option>
               <option value="factura_reemplazada">Factura reemplazada</option>
               <option value="proceso_suspendido">Proceso suspendido</option>
               <option value="proceso_reactivado">Proceso reactivado</option>
-              <option value="proceso_parte_agregada">Parte agregada al proceso</option>
-              <option value="proceso_parte_quitada">Parte quitada del proceso</option>
               <option value="proceso_responsable_cambiado">Responsable cambiado</option>
             </select>
           </div>

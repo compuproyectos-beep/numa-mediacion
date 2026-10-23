@@ -831,10 +831,13 @@ def _registrar_intento_fallido(username: str):
     registro = _intentos_login.get(clave, {"fallos": 0, "bloqueado_hasta": None})
     registro["fallos"] += 1
 
+    bloqueo_nuevo = False
     if registro["fallos"] >= MAX_INTENTOS_LOGIN:
         registro["bloqueado_hasta"] = datetime.datetime.utcnow() + datetime.timedelta(minutes=BLOQUEO_MINUTOS)
+        bloqueo_nuevo = True
 
     _intentos_login[clave] = registro
+    return bloqueo_nuevo  # True solo cuando este intento provoca el bloqueo
 
 
 def _limpiar_intentos(username: str):
@@ -894,19 +897,20 @@ def login(username: str = Form(...), password: str = Form(...)):
         user = cur.fetchone()
 
         if not user:
-            _registrar_intento_fallido(username)
-            registrar_auditoria(cur, None, "login_fallido", "auth", detalle=f"Usuario no encontrado: {username}")
+            if _registrar_intento_fallido(username):
+                registrar_auditoria(cur, None, "cuenta_bloqueada", "auth",
+                                    detalle=f"Se bloqueó el ingreso de «{username}» por {MAX_INTENTOS_LOGIN} intentos fallidos seguidos (el usuario no existe). Bloqueo de {BLOQUEO_MINUTOS} minutos.")
             conn.commit()
             raise HTTPException(status_code=401, detail="Usuario no encontrado")
 
         if not user["activo"]:
-            registrar_auditoria(cur, user, "login_fallido", "auth", user["id"], "Cuenta inactiva")
             conn.commit()
             raise HTTPException(status_code=401, detail="Usuario inactivo")
 
         if not pwd_context.verify(password, user["password_hash"]):
-            _registrar_intento_fallido(username)
-            registrar_auditoria(cur, user, "login_fallido", "auth", user["id"], "Contraseña incorrecta")
+            if _registrar_intento_fallido(username):
+                registrar_auditoria(cur, user, "cuenta_bloqueada", "auth", user["id"],
+                                    f"Se bloqueó el ingreso por {MAX_INTENTOS_LOGIN} contraseñas incorrectas seguidas. Bloqueo de {BLOQUEO_MINUTOS} minutos.")
             conn.commit()
             raise HTTPException(status_code=401, detail="Contraseña incorrecta")
 
@@ -3362,10 +3366,6 @@ def cambiar_estado_cita(
                     SET estado = 'anulado', anulado_por = %s, motivo_anulacion = %s, fecha_anulacion = NOW()
                     WHERE id = %s
                 """, (usuario["id"], motivo_num, num["id"]))
-                registrar_auditoria(
-                    cur, usuario, "anular_numero_acta", "numero_acta", num["id"],
-                    f"Número {num['codigo']} anulado automáticamente. Motivo: {motivo_num}"
-                )
 
         conn.commit()
 
@@ -4112,10 +4112,6 @@ def agregar_parte_proceso(
             VALUES (%s, %s, %s, false, %s)
         """, (proceso_id, rol, cliente_id, empresa_representada_id))
 
-        registrar_auditoria(
-            cur, usuario, "proceso_parte_agregada", "procesos", proceso_id,
-            f"Agregó a {cliente['nombre']} {cliente['apellido']} como {rol}"
-        )
         conn.commit()
         return _consulta_partes(cur, proceso_id)
 
@@ -4221,10 +4217,6 @@ def quitar_parte_proceso(
 
         cur.execute("DELETE FROM proceso_partes WHERE id = %s", (parte_id,))
 
-        registrar_auditoria(
-            cur, usuario, "proceso_parte_quitada", "procesos", proceso_id,
-            f"Quitó a {_nombre_quitado} como {parte['rol']}"
-        )
         conn.commit()
         return _consulta_partes(cur, proceso_id)
 
@@ -5926,10 +5918,6 @@ async def subir_acta_firmada(
                 "acta", "proceso_mediacion", proceso_id
             )
 
-        registrar_auditoria(
-            cur, usuario, "acta_firmada_subida", "procesos", proceso_id,
-            f"Subió el acta firmada del proceso {proceso['codigo_proceso']}"
-        )
 
         conn.commit()
         return {"mensaje": "Acta firmada subida. El proceso quedó completo."}
@@ -6098,11 +6086,12 @@ async def subir_factura_proceso(
             VALUES (%s, %s, %s, %s, %s, %s)
         """, (proceso_id, tipo, ruta, archivo.filename, len(contenido), usuario["id"]))
 
-        registrar_auditoria(
-            cur, usuario, "factura_reemplazada" if reemplazo else "factura_subida",
-            "procesos", proceso_id,
-            f"{'Reemplazó' if reemplazo else 'Subió'} la {TIPOS_FACTURA[tipo].lower()} del proceso {p['codigo_proceso']}"
-        )
+        if reemplazo:
+            registrar_auditoria(
+                cur, usuario, "factura_reemplazada",
+                "procesos", proceso_id,
+                f"Reemplazó la {TIPOS_FACTURA[tipo].lower()} del proceso {p['codigo_proceso']}"
+            )
         conn.commit()
         return {
             "requiere_facturas": True,
@@ -6353,8 +6342,6 @@ def pedir_numero_acta(cita_id: int = None, usuario=Depends(obtener_usuario_actua
         except psycopg2_errors.UniqueViolation:
             conn.rollback()
             raise HTTPException(status_code=409, detail="Ya tienes un número de acta pedido")
-        registrar_auditoria(cur, usuario, "pedir_numero_acta", "numero_acta", n["id"],
-                            f"Número {n['codigo']}" + (f" (invitación {cita_id})" if cita_id else ""))
         conn.commit()
         return {"id": n["id"], "codigo": n["codigo"]}
     except HTTPException:
@@ -6752,10 +6739,6 @@ def solicitar_acta_no_acuerdo(proceso_id: int, usuario=Depends(obtener_usuario_a
                 f"Se pidió el acta de no acuerdo del proceso {p['codigo_proceso']}.",
                 "acta", "proceso_mediacion", proceso_id
             )
-        registrar_auditoria(
-            cur, usuario, "acta_no_acuerdo_solicitada", "procesos", proceso_id,
-            f"Pidió el acta de no acuerdo del proceso {p['codigo_proceso']}"
-        )
         conn.commit()
         return {"mensaje": "Acta de no acuerdo solicitada. Ya puedes subirla como cualquier otra acta."}
 
@@ -7418,10 +7401,6 @@ def guardar_facturacion_proceso(
         """, (proceso_id, origen, cliente_id, tipo_identificacion, identificacion,
               nombre, direccion, email, telefono, usuario["id"]))
 
-        registrar_auditoria(
-            cur, usuario, "guardar_facturacion", "proceso", proceso_id,
-            f"Facturación de {p['codigo_proceso']}: {nombre} ({identificacion})"
-        )
         conn.commit()
         return _consulta_facturacion(cur, proceso_id)
     except HTTPException:
