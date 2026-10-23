@@ -8988,7 +8988,7 @@ def exportar_reporte_excel(
 
         encabezados = [
             "Mediador", "Estado", "Fecha de ingreso", "Ciudad", "Sucursal",
-            "Total procesos", "En negociación", "Cerrados con acuerdo",
+            "Total (sin anulados)", "En negociación", "Cerrados con acuerdo",
             "Cerrados sin acuerdo", "Archivados", "Anulados", "Actas de acuerdo", "Actas de no acuerdo",
             "Actas pendientes", "Promedio días de cierre",
             "Reuniones realizadas", "Reuniones canceladas", "No asistieron"
@@ -9027,7 +9027,7 @@ def exportar_reporte_excel(
         )
 
         encabezados = [
-            "Sucursal", "Ciudad", "Total procesos", "En negociación",
+            "Sucursal", "Ciudad", "Total (sin anulados)", "En negociación",
             "Cerrados con acuerdo", "Cerrados sin acuerdo", "Archivados", "Anulados",
             "Actas de acuerdo", "Actas de no acuerdo", "Actas pendientes", "Promedio días de cierre"
         ]
@@ -9059,7 +9059,7 @@ def exportar_reporte_excel(
         )
 
         encabezados = [
-            "Cliente", "Cédula", "Teléfono", "Email", "Total procesos",
+            "Cliente", "Cédula", "Teléfono", "Email", "Total (sin anulados)",
             "En negociación", "Cerrados con acuerdo", "Cerrados sin acuerdo",
             "Archivados", "Anulados", "Actas de acuerdo", "Actas de no acuerdo", "Actas pendientes",
             "Procesos (códigos)", "Actas (códigos)"
