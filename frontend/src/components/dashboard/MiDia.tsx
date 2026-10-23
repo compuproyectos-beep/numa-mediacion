@@ -16,7 +16,9 @@ const etiquetaDia = (fecha: string, hoy: string) => {
   if (fecha === hoy) return 'Hoy';
   if (fecha === sumarDias(hoy, 1)) return 'Mañana';
   const [a, m, d] = fecha.split('-');
-  return `${d}/${m}/${a}`;
+  const f = new Date(Date.UTC(Number(a), Number(m) - 1, Number(d)));
+  const larga = f.toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+  return `el ${larga}`;
 };
 
 // Controles "‹ Anterior  1–4 de 9  Siguiente ›". Si todo cabe en una página
@@ -185,6 +187,15 @@ export default function MiDia({
                   {etiquetaDia(String(proxima.fecha).slice(0, 10), hoy).toLowerCase()} a las{' '}
                   {hora5(proxima.hora)}
                 </strong>
+                {proxima.demandante && (
+                  <>
+                    {' '}con{' '}
+                    <strong className="text-numa-800">
+                      {proxima.demandante} <span className="font-normal">vs</span> {proxima.demandado}
+                    </strong>
+                  </>
+                )}
+                {verOtros && proxima.mediador ? ` (${proxima.mediador})` : ''}
                 .
               </>
             )}

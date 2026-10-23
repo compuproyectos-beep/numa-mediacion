@@ -89,7 +89,7 @@ const DESCRIPCIONES: Record<TipoReporte, string> = {
   productividad:
     'El listado del equipo de mediadores (activos e inactivos), con cuántos procesos maneja cada uno y qué tan rápido los resuelve. Las columnas de reuniones cuentan las reuniones del mediador en el rango de fechas (realizadas, canceladas y las que no se realizaron por inasistencia). "Prom. días cierre" es el promedio de días entre que se crea un proceso y se cierra (con o sin acuerdo, o archivado); mientras más bajo, más rápido resuelve. Da clic en un mediador para ver el detalle de sus procesos.',
   actas:
-    'Las actas finales de acuerdo y de no acuerdo del rango de fechas elegido: solo cuentan las que ya tienen el acta firmada subida (no basta con subir los documentos del acta). Arriba se ve cuántas son de cada tipo y cómo se reparten por mes, mediador y sucursal. Da clic en cualquier fila para abrir el proceso al que pertenece esa acta.',
+    'Las actas finales de acuerdo y de no acuerdo del rango de fechas elegido: solo cuentan las que ya tienen el acta firmada subida (no basta con subir los documentos del acta). Arriba se ve cuántas son de cada tipo y cómo se reparten por mes (y, para el administrador, también por mediador y por sucursal). Da clic en cualquier fila para abrir el proceso al que pertenece esa acta.',
   sucursales:
     'Compara cuántos procesos ha manejado cada sucursal, con su desglose por estado y el promedio de días de cierre.',
   clientes:
