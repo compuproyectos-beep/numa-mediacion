@@ -7583,10 +7583,14 @@ def guardar_facturacion_proceso(
             if not re.match(r"^[A-Z0-9]{5,20}$", identificacion):
                 raise HTTPException(status_code=400, detail="El pasaporte debe tener entre 5 y 20 letras o números")
 
-        if len(nombre) < 3:
+        if not nombre:
             raise HTTPException(status_code=400, detail="El nombre o razón social de facturación es obligatorio")
-        if len(direccion) < 5:
+        if len(nombre) < 3:
+            raise HTTPException(status_code=400, detail="El nombre o razón social debe tener al menos 3 letras")
+        if not direccion:
             raise HTTPException(status_code=400, detail="La dirección de facturación es obligatoria")
+        if len(direccion) < 5:
+            raise HTTPException(status_code=400, detail="La dirección debe tener al menos 5 caracteres")
         if not email or not validar_email(email):
             raise HTTPException(status_code=400, detail="El correo de facturación es inválido")
         if telefono:
