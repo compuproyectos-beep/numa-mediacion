@@ -313,6 +313,9 @@ export default function AgendaPage() {
           bajarAObservaciones();
         }}
         onCitaActualizada={() => {
+          // Si se canceló o cambió la invitación recién creada, ya no corresponde
+          // el aviso verde con "Abrir documento de la invitación".
+          setRapidaCreada(null);
           if (!esSecretaria) cargarProcesosDisponibles(usuarioIdAgenda);
         }}
         permitirGestionarEstado={!esSecretaria}
