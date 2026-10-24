@@ -299,7 +299,7 @@ export default function HomePage() {
         <div className="hero-float-a pointer-events-none absolute -bottom-40 -left-32 w-[520px] h-[520px] rounded-full border-[70px] border-white/[0.05]" />
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-gold-400 to-transparent z-10" />
 
-        <div className="relative z-10 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-32 sm:pt-40 pb-20 grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-14 lg:gap-8 items-center">
+        <div className="relative z-10 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-32 sm:pt-40 pb-20 grid grid-cols-1 lg:grid-cols-[0.95fr_1.05fr] gap-14 lg:gap-8 items-center">
           <div className="max-w-2xl">
             <div className="hero-rise flex items-center gap-3 mb-7">
               <div className="h-px w-14 bg-gold-400" />
@@ -332,7 +332,7 @@ export default function HomePage() {
           </div>
 
           {/* Portal en arco: el símbolo de la marca enmarca las fotos que rotan */}
-          <div className="hero-rise hero-d2 relative mx-auto w-[min(78vw,380px)] lg:w-[min(36vw,440px)]">
+          <div className="hero-rise hero-d2 relative mx-auto w-[min(88vw,470px)] lg:w-[min(45vw,580px)]">
             <div
               ref={portalRef}
               onMouseMove={inclinarPortal}
@@ -342,7 +342,7 @@ export default function HomePage() {
               <span className="portal-aro-a absolute -inset-4 rounded-t-full border border-gold-400/70" />
               <span className="portal-aro-b absolute -inset-9 rounded-t-full border border-white/15" />
 
-              <div className="relative h-full w-full overflow-hidden rounded-t-full rounded-b-[2rem] ring-4 ring-gold-400/90 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.8)] bg-[#0B141C]">
+              <div className="relative h-full w-full overflow-hidden rounded-t-full rounded-b-[2rem] ring-4 ring-gold-400/90 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.8)] bg-[#0A2A62]">
                 {heroImages.map((img, i) => (
                   <div
                     key={img.src}

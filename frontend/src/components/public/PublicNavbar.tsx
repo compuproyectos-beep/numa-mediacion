@@ -81,7 +81,7 @@ export default function PublicNavbar() {
 
   return (
     <nav className="fixed top-0 inset-x-0 z-50 px-3 sm:px-6 pointer-events-none font-ui antialiased">
-      <div className="pointer-events-auto mx-auto mt-2 sm:mt-3 max-w-6xl rounded-[1.75rem] bg-[#0B141C] backdrop-blur-xl ring-1 ring-white/10 shadow-[0_24px_50px_-24px_rgba(0,0,0,0.7)] transition-shadow">
+      <div className="pointer-events-auto mx-auto mt-2 sm:mt-3 max-w-6xl rounded-[1.75rem] bg-[#0A2A62] backdrop-blur-xl ring-1 ring-white/10 shadow-[0_24px_50px_-24px_rgba(0,0,0,0.7)] transition-shadow">
       {/* Barra de contacto — siempre visible, sin necesidad de bajar hasta el pie de página */}
       <div
         className={`hidden sm:block bg-[#101D28]/80 border-numa-800 overflow-hidden rounded-t-[1.75rem] transition-all duration-300 ${
@@ -175,8 +175,8 @@ export default function PublicNavbar() {
               </button>
 
               {openSedes && (
-                <div className="absolute top-full right-0 mt-4 w-80 max-h-[min(26rem,70vh)] overflow-y-auto overscroll-contain rounded-3xl bg-[#0B141C] ring-1 ring-white/10 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.85)] z-[9999] pb-2">
-                  <div className="px-5 py-3.5 bg-[#0B141C]/95 backdrop-blur border-b border-white/10 sticky top-0 z-10">
+                <div className="absolute top-full right-0 mt-4 w-80 max-h-[min(26rem,70vh)] overflow-y-auto overscroll-contain rounded-3xl bg-[#0A2A62] ring-1 ring-white/10 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.85)] z-[9999] pb-2">
+                  <div className="px-5 py-3.5 bg-[#0A2A62]/95 backdrop-blur border-b border-white/10 sticky top-0 z-10">
                     <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-400">
                       Nuestras sedes
                     </span>
