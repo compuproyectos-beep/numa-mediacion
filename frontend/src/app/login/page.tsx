@@ -3,7 +3,7 @@
 import { Suspense, useState, FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Scale, Eye, EyeOff, ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, AlertCircle, CheckCircle, CalendarCheck, FileCheck, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getUser } from '@/lib/auth';
 
@@ -47,28 +47,14 @@ function LoginForm() {
   };
 
 return (
-  <div className="relative min-h-screen bg-white flex overflow-hidden">
-    {/* Formas azules decorativas (a lo largo de toda la página) */}
-    <div className="absolute -bottom-40 -left-24 w-96 h-96 bg-numa-50 rounded-full blur-3xl opacity-90" />
-    <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-gold-400/10 rounded-full blur-3xl" />
+  <div className="relative min-h-screen flex bg-[#F2F5FB]">
+    {/* Panel izquierdo: azul con degradado y círculos que flotan */}
+    <div className="hidden lg:flex lg:w-[48%] relative overflow-hidden bg-gradient-to-br from-[#0A2A62] via-[#144193] to-[#2358C9] p-12 flex-col justify-between text-white">
+      <div className="hero-float-a pointer-events-none absolute -top-44 -right-24 w-[520px] h-[520px] rounded-full border-[70px] border-white/10" />
+      <div className="hero-float-b pointer-events-none absolute -bottom-48 -left-20 w-[460px] h-[460px] rounded-full border-[56px] border-white/[0.08]" />
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-gold-400 to-transparent" />
 
-    {/* Patrón sutil */}
-    <div className="absolute inset-0 opacity-[0.08] pointer-events-none">
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage:
-            'repeating-linear-gradient(45deg, #C9D6E5 0, #C9D6E5 1px, transparent 0, transparent 50%)',
-          backgroundSize: '22px 22px',
-        }}
-      />
-    </div>
-
-    {/* Panel izquierdo */}
-    <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-numa-50 p-10 flex-col justify-between border-r border-numa-100">
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-numa-800 via-gold-500 to-numa-800" />
-
-      <div className="relative z-10">
+      <div className="relative z-10 tile-in">
         <Link
           href="/"
           className="inline-flex bg-numa-950 rounded-2xl shadow-xl p-3 border border-gold-500/30 hover:opacity-90 transition-opacity"
@@ -83,39 +69,56 @@ return (
       </div>
 
       <div className="relative z-10 max-w-xl">
-        <h1 className="text-4xl font-black text-gold-600 leading-tight mb-6">
+        <h1 className="tile-in text-5xl font-extrabold tracking-tight leading-[1.05]" style={{ animationDelay: '0.1s' }}>
           Gestión jurídica
-          <span className="block text-gold-600">
-            moderna y confiable
-          </span>
+          <span className="block text-gold-300">moderna y confiable</span>
         </h1>
 
-        <p className="text-numa-700 leading-relaxed max-w-lg">
-          Plataforma integral para administrar audiencias, actas,
-          clientes, mediadores y trazabilidad documental.
+        <p className="tile-in mt-5 text-blue-100 text-lg leading-relaxed max-w-md" style={{ animationDelay: '0.2s' }}>
+          Audiencias, actas, clientes y mediadores en un solo lugar, con
+          trazabilidad de cada paso.
         </p>
 
-        <div className="mt-10 bg-white border-l-4 border-gold-400 shadow-sm rounded-r-2xl p-6">
-          <p className="text-xl italic text-numa-900 leading-relaxed">
-            “Priorizando la diplomacia sobre el conflicto.”
-          </p>
-
-          <span className="text-numa-500 text-sm mt-3 block">
-            Inspirado en Numa Pompilio
-          </span>
+        <div className="mt-8 grid gap-3 max-w-md">
+          {[
+            [CalendarCheck, 'Agenda e invitaciones', 'Cada reunión, siempre a la vista'],
+            [FileCheck, 'Actas y procesos', 'Del número de acta al archivo final'],
+            [ShieldCheck, 'Trazabilidad', 'Quién hizo qué y cuándo']
+          ].map(([Icon, titulo, texto], i) => {
+            const I = Icon as React.ComponentType<{ className?: string }>;
+            return (
+              <div
+                key={titulo as string}
+                className="tile-in flex items-center gap-4 rounded-2xl bg-white/10 border border-white/15 px-4 py-3 backdrop-blur-sm transition duration-200 hover:bg-white/15 hover:translate-x-1"
+                style={{ animationDelay: `${0.3 + i * 0.1}s` }}
+              >
+                <span className="w-10 h-10 rounded-xl bg-gold-400/20 text-gold-300 flex items-center justify-center shrink-0">
+                  <I className="w-5 h-5" />
+                </span>
+                <div>
+                  <p className="font-semibold text-sm">{titulo as string}</p>
+                  <p className="text-blue-100 text-xs">{texto as string}</p>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      <div className="relative z-10 text-sm text-numa-400">
-        NUMA · Sistema Integral de Mediación
+      <div className="relative z-10 tile-in" style={{ animationDelay: '0.6s' }}>
+        <p className="italic text-blue-100 text-sm">
+          “Priorizando la diplomacia sobre el conflicto.” · Inspirado en Numa Pompilio
+        </p>
+        <p className="mt-2 text-xs text-blue-200/70">NUMA · Sistema Integral de Mediación</p>
       </div>
     </div>
 
-    {/* Login */}
-    <div className="relative flex-1 flex items-center justify-center px-6 py-12">
-      <div className="w-full max-w-md">
+    {/* Formulario */}
+    <div className="relative flex-1 flex items-center justify-center px-6 py-12 overflow-hidden">
+      <div className="hero-float-b pointer-events-none absolute -top-32 -right-24 w-80 h-80 rounded-full bg-gold-400/15 blur-3xl" />
+      <div className="w-full max-w-md relative">
 
-        {/* Mobile logo */}
+        {/* Logo en celular */}
         <div className="lg:hidden flex justify-center mb-8">
           <Link
             href="/"
@@ -130,10 +133,10 @@ return (
           </Link>
         </div>
 
-        <div className="bg-white border border-numa-200 shadow-2xl rounded-3xl p-10 transition-all duration-300">
+        <div className="tile-in bg-white border border-numa-100 shadow-[0_30px_60px_-30px_rgba(11,39,89,0.45)] rounded-3xl p-8 sm:p-10">
 
-          <div className="mb-8 text-center">
-            <h2 className="text-3xl font-bold text-numa-900 mb-2">
+          <div className="mb-8">
+            <h2 className="text-3xl font-extrabold tracking-tight text-numa-900 mb-2">
               Bienvenido
             </h2>
 
@@ -165,7 +168,7 @@ return (
             )}
 
             <div>
-              <label className="block text-sm font-semibold text-numa-700 mb-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-numa-700 mb-2">
                 Usuario
               </label>
 
@@ -175,13 +178,13 @@ return (
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full h-12 px-4 rounded-xl border border-numa-300 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-transparent transition"
+                className="w-full h-12 px-4 rounded-xl border border-numa-300 bg-numa-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-gold-400 focus:border-transparent transition"
                 placeholder="Ingrese su usuario"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-numa-700 mb-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-numa-700 mb-2">
                 Contraseña
               </label>
 
@@ -192,13 +195,14 @@ return (
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-12 px-4 rounded-xl border border-numa-300 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-transparent transition pr-12"
+                  className="w-full h-12 px-4 rounded-xl border border-numa-300 bg-numa-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-gold-400 focus:border-transparent transition pr-12"
                   placeholder="••••••••"
                 />
 
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-numa-400 hover:text-numa-700"
                 >
                   {showPassword ? (
@@ -222,7 +226,7 @@ return (
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-12 rounded-xl bg-gradient-to-r from-gold-400 to-yellow-500 hover:from-gold-500 hover:to-yellow-600 text-numa-950 font-semibold transition shadow-lg disabled:opacity-60"
+              className="w-full h-12 rounded-xl bg-gold-400 hover:bg-gold-500 text-numa-950 font-bold transition shadow-[0_12px_24px_-12px_rgba(201,154,46,0.95)] hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-60 disabled:hover:translate-y-0"
             >
               {isLoading
                 ? 'Ingresando...'
@@ -233,7 +237,7 @@ return (
           <div className="mt-8 pt-6 border-t border-numa-100">
             <Link
               href="/"
-              className="flex items-center justify-center gap-2 text-sm font-semibold text-numa-800 hover:text-gold-600 border border-numa-200 hover:border-gold-400 hover:bg-gold-50 rounded-lg py-2.5 transition-colors"
+              className="flex items-center justify-center gap-2 text-sm font-semibold text-numa-800 hover:text-gold-600 border border-numa-200 hover:border-gold-400 hover:bg-gold-50 rounded-xl py-2.5 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               Volver al sitio institucional
