@@ -12,11 +12,12 @@ import {
   LayoutDashboard,
   HardDrive,
   ChevronDown,
-  DatabaseBackup
+  DatabaseBackup,
+  ArrowRight
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { StatCard, Spinner, ErrorAlert, PageHeader, Badge, EmptyState, Pill } from '@/components/ui';
+import { Spinner, ErrorAlert, Badge, EmptyState, Pill } from '@/components/ui';
 import { getDashboard, getUsoAlmacenamiento, getProcesos, getActasFinales, enviarRespaldoManual } from '@/lib/services';
 import { useAuth } from '@/hooks/useAuth';
 import { GuiaBienvenida, useGuiaBienvenida } from '@/components/dashboard/GuiaBienvenida';
@@ -141,6 +142,107 @@ const ETIQUETAS_ESTADO: Record<string, string> = {
   archivado: 'Archivado',
   anulado: 'Anulado'
 };
+
+// ── Tarjetas de resumen con número animado ─────────────────────────────────
+// Cuenta desde 0 hasta el valor al cargar y cada vez que cambia (por ejemplo
+// al pasar de "Mi gestión" a "Todos"). Con "reducir movimiento" salta directo.
+function useContador(valor: number) {
+  const [mostrado, setMostrado] = useState(0);
+  const anterior = useRef(0);
+  useEffect(() => {
+    const reducir =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reducir) {
+      setMostrado(valor);
+      anterior.current = valor;
+      return;
+    }
+    const desde = anterior.current;
+    const ini = performance.now();
+    let raf = 0;
+    const paso = (ahora: number) => {
+      const t = Math.min(1, (ahora - ini) / 1100);
+      const e = 1 - Math.pow(1 - t, 3);
+      setMostrado(Math.round(desde + (valor - desde) * e));
+      if (t < 1) raf = requestAnimationFrame(paso);
+      else anterior.current = valor;
+    };
+    raf = requestAnimationFrame(paso);
+    return () => cancelAnimationFrame(raf);
+  }, [valor]);
+  return mostrado;
+}
+
+// Colores de cada tarjeta (fondo, texto, acento de la barra).
+const ESTILO_TARJETA: Record<
+  string,
+  { caja: string; texto: string; sub: string; acento: string; pista: string; icono: string }
+> = {
+  actas_acuerdo: { caja: 'bg-gold-50 border-gold-200', texto: 'text-gold-900', sub: 'text-gold-700', acento: 'bg-gold-500', pista: 'bg-gold-200/70', icono: 'bg-gold-500/20 text-gold-700' },
+  actas_no_acuerdo: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-orange-500', pista: 'bg-numa-100', icono: 'bg-orange-100 text-orange-700' },
+  en_negociacion: { caja: 'bg-gradient-to-br from-[#1B4AAE] to-[#2358C9] border-transparent', texto: 'text-white', sub: 'text-blue-100', acento: 'bg-gold-300', pista: 'bg-white/25', icono: 'bg-white/15 text-gold-300' },
+  cerrado_con_acuerdo: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-emerald-500', pista: 'bg-numa-100', icono: 'bg-emerald-100 text-emerald-700' },
+  cerrado_sin_acuerdo: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-slate-500', pista: 'bg-numa-100', icono: 'bg-slate-100 text-slate-600' },
+  archivado: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-numa-400', pista: 'bg-numa-100', icono: 'bg-numa-100 text-numa-600' },
+  suspendido: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-rose-500', pista: 'bg-numa-100', icono: 'bg-rose-100 text-rose-700' }
+};
+
+function TarjetaResumen({
+  clave,
+  label,
+  value,
+  maximo,
+  icon: Icon,
+  onClick,
+  active,
+  orden
+}: {
+  clave: string;
+  label: string;
+  value: number;
+  maximo: number;
+  icon: React.ComponentType<{ className?: string }>;
+  onClick: () => void;
+  active: boolean;
+  orden: number;
+}) {
+  const e = ESTILO_TARJETA[clave];
+  const mostrado = useContador(value);
+  const porcentaje = maximo > 0 ? Math.max(value > 0 ? 8 : 0, (value / maximo) * 100) : 0;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{ animationDelay: `${0.08 + orden * 0.06}s` }}
+      className={`tarjeta-resumen tile-in group w-full text-left rounded-2xl border p-4 shadow-[0_14px_30px_-18px_rgba(11,39,89,.55)] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400 focus-visible:ring-offset-2 ${e.caja} ${
+        active ? 'ring-4 ring-gold-400 ring-offset-2' : ''
+      }`}
+    >
+      <div className="flex items-start justify-between">
+        <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${e.icono}`}>
+          <Icon className="w-5 h-5" />
+        </span>
+        <ArrowRight className={`w-4 h-4 opacity-0 -translate-x-2 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 ${e.sub}`} />
+      </div>
+      <p className={`mt-3 text-4xl font-extrabold tracking-tight tabular-nums leading-none ${e.texto}`}>{mostrado}</p>
+      <div className={`mt-3 h-1.5 rounded-full ${e.pista}`}>
+        <div className={`h-1.5 rounded-full transition-all duration-1000 ease-out ${e.acento}`} style={{ width: `${porcentaje}%` }} />
+      </div>
+      <p className={`mt-2.5 text-[11px] leading-tight uppercase tracking-wide font-semibold ${e.sub}`}>{label}</p>
+    </button>
+  );
+}
+
+function saludoSegunHora() {
+  const h = new Date().getHours();
+  return h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
+}
+
+function fechaLarga() {
+  const f = new Date().toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  return f.charAt(0).toUpperCase() + f.slice(1);
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -278,44 +380,61 @@ export default function DashboardPage() {
 
   return (
     <>
-      <PageHeader
-        title="Panel General"
-        subtitle={
-          isAdmin
-            ? 'Resumen práctico del sistema'
-            : `${user?.sucursal || 'Sucursal'} · ${user?.ciudad || 'Ciudad'}`
-        }
-        action={
-          <div className="flex items-center gap-2">
-            {isAdmin && (
-              <div className="inline-flex rounded-md border border-numa-200 bg-white p-0.5 text-xs font-semibold">
-                {(
-                  [
-                    ['mios', 'Mi gestión'],
-                    ['todos', 'Todos los mediadores']
-                  ] as const
-                ).map(([clave, texto]) => (
-                  <button
-                    key={clave}
-                    type="button"
-                    onClick={() => setVista(clave)}
-                    className={`px-3 py-1 rounded ${
-                      vista === clave
-                        ? 'bg-numa-800 text-white'
-                        : 'text-numa-600 hover:bg-numa-50'
-                    }`}
-                  >
-                    {texto}
-                  </button>
-                ))}
-              </div>
-            )}
-            <button type="button" onClick={mostrarGuia ? cerrarGuia : abrirGuia} className="btn-secondary btn-sm">
-              ¿Cómo funciona?
-            </button>
+      <section className="hero-banner relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0A2A62] via-[#144193] to-[#2358C9] px-6 sm:px-10 pt-8 pb-24 text-white shadow-[0_28px_48px_-28px_rgba(11,39,89,.75)]">
+        <div className="hero-float-a pointer-events-none absolute -top-40 -right-16 w-[420px] h-[420px] rounded-full border-[56px] border-white/10" />
+        <div className="hero-float-b pointer-events-none absolute -bottom-40 right-40 w-[340px] h-[340px] rounded-full border-[44px] border-white/[0.08]" />
+
+        <div className="relative flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-gold-300">{fechaLarga()}</p>
+            <h1 className="mt-3 text-3xl sm:text-5xl font-extrabold tracking-tight leading-[1.05]">
+              {saludoSegunHora()}, {String(user?.nombre || '').split(' ')[0] || 'bienvenido'}.
+            </h1>
+            <p className="mt-3 text-base text-blue-100 max-w-xl">
+              {isAdmin
+                ? 'Resumen práctico del sistema. Lo que toca hoy está justo debajo.'
+                : `${user?.sucursal || 'Sucursal'} · ${user?.ciudad || 'Ciudad'}. Lo que toca hoy está justo debajo.`}
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href="/agenda"
+                className="inline-flex items-center gap-2 rounded-xl bg-gold-400 px-5 py-3 text-sm font-bold text-numa-950 shadow-[0_10px_22px_-10px_rgba(224,184,74,.9)] transition hover:bg-gold-300 active:scale-[0.97]"
+              >
+                Ir a la agenda
+              </Link>
+              <button
+                type="button"
+                onClick={mostrarGuia ? cerrarGuia : abrirGuia}
+                className="rounded-xl border border-white/30 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/20 active:scale-[0.97]"
+              >
+                ¿Cómo funciona?
+              </button>
+            </div>
           </div>
-        }
-      />
+
+          {isAdmin && (
+            <div className="inline-flex gap-1 rounded-full bg-white/15 p-1 text-xs font-semibold">
+              {(
+                [
+                  ['mios', 'Mi gestión'],
+                  ['todos', 'Todos los mediadores']
+                ] as const
+              ).map(([clave, texto]) => (
+                <button
+                  key={clave}
+                  type="button"
+                  onClick={() => setVista(clave)}
+                  className={`rounded-full px-4 py-2 transition ${
+                    vista === clave ? 'bg-white text-numa-900' : 'text-white hover:bg-white/15'
+                  }`}
+                >
+                  {texto}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
       <GuiaBienvenida open={mostrarGuia} onClose={cerrarGuia} />
 
@@ -332,76 +451,30 @@ export default function DashboardPage() {
 
           {/* Las cajas van directo sobre el fondo de la página: sus colores
               suaves ya las distinguen, sin franja detrás. */}
-          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
-            <StatCard
-              compacto
-              label={stats.actas_acuerdo === 1 ? 'acta de acuerdo' : 'actas de acuerdo'}
-              value={stats.actas_acuerdo ?? 0}
-              icon={FileCheck}
-              color={TEMA_CATEGORIA.actas_acuerdo.icono} relleno={TEMA_CATEGORIA.actas_acuerdo.caja} textoColor={TEMA_CATEGORIA.actas_acuerdo.texto}
-              onClick={() => toggleCategoria('actas_acuerdo')}
-              active={categoriaAbierta === 'actas_acuerdo'}
-            />
-
-            <StatCard
-              compacto
-              label={stats.actas_no_acuerdo === 1 ? 'acta de no acuerdo' : 'actas de no acuerdo'}
-              value={stats.actas_no_acuerdo ?? 0}
-              icon={FileCheck}
-              color={TEMA_CATEGORIA.actas_no_acuerdo.icono} relleno={TEMA_CATEGORIA.actas_no_acuerdo.caja} textoColor={TEMA_CATEGORIA.actas_no_acuerdo.texto}
-              onClick={() => toggleCategoria('actas_no_acuerdo')}
-              active={categoriaAbierta === 'actas_no_acuerdo'}
-            />
-
-            <StatCard
-              compacto
-              label={procesos.en_negociacion === 1 ? 'proceso en negociación' : 'procesos en negociación'}
-              value={procesos.en_negociacion ?? 0}
-              icon={Clock}
-              color={TEMA_CATEGORIA.en_negociacion.icono} relleno={TEMA_CATEGORIA.en_negociacion.caja} textoColor={TEMA_CATEGORIA.en_negociacion.texto}
-              onClick={() => toggleCategoria('en_negociacion')}
-              active={categoriaAbierta === 'en_negociacion'}
-            />
-
-            <StatCard
-              compacto
-              label={procesos.cerrados_con_acuerdo === 1 ? 'proceso con acuerdo' : 'procesos con acuerdo'}
-              value={procesos.cerrados_con_acuerdo ?? 0}
-              icon={CheckCircle}
-              color={TEMA_CATEGORIA.cerrado_con_acuerdo.icono} relleno={TEMA_CATEGORIA.cerrado_con_acuerdo.caja} textoColor={TEMA_CATEGORIA.cerrado_con_acuerdo.texto}
-              onClick={() => toggleCategoria('cerrado_con_acuerdo')}
-              active={categoriaAbierta === 'cerrado_con_acuerdo'}
-            />
-
-            <StatCard
-              compacto
-              label={procesos.cerrados_sin_acuerdo === 1 ? 'proceso sin acuerdo' : 'procesos sin acuerdo'}
-              value={procesos.cerrados_sin_acuerdo ?? 0}
-              icon={FileText}
-              color={TEMA_CATEGORIA.cerrado_sin_acuerdo.icono} relleno={TEMA_CATEGORIA.cerrado_sin_acuerdo.caja} textoColor={TEMA_CATEGORIA.cerrado_sin_acuerdo.texto}
-              onClick={() => toggleCategoria('cerrado_sin_acuerdo')}
-              active={categoriaAbierta === 'cerrado_sin_acuerdo'}
-            />
-
-            <StatCard
-              compacto
-              label={procesos.archivados === 1 ? 'proceso archivado' : 'procesos archivados'}
-              value={procesos.archivados ?? 0}
-              icon={Archive}
-              color={TEMA_CATEGORIA.archivado.icono} relleno={TEMA_CATEGORIA.archivado.caja} textoColor={TEMA_CATEGORIA.archivado.texto}
-              onClick={() => toggleCategoria('archivado')}
-              active={categoriaAbierta === 'archivado'}
-            />
-
-            <StatCard
-              compacto
-              label={procesos.suspendidos === 1 ? 'proceso suspendido' : 'procesos suspendidos'}
-              value={procesos.suspendidos ?? 0}
-              icon={PauseCircle}
-              color={TEMA_CATEGORIA.suspendido.icono} relleno={TEMA_CATEGORIA.suspendido.caja} textoColor={TEMA_CATEGORIA.suspendido.texto}
-              onClick={() => toggleCategoria('suspendido')}
-              active={categoriaAbierta === 'suspendido'}
-            />
+          <div className="relative -mt-16 sm:-mt-20 mx-2 sm:mx-6 grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
+            {(
+              [
+                ['actas_acuerdo', stats.actas_acuerdo ?? 0, stats.actas_acuerdo === 1 ? 'acta de acuerdo' : 'actas de acuerdo', FileCheck],
+                ['actas_no_acuerdo', stats.actas_no_acuerdo ?? 0, stats.actas_no_acuerdo === 1 ? 'acta de no acuerdo' : 'actas de no acuerdo', FileCheck],
+                ['en_negociacion', procesos.en_negociacion ?? 0, procesos.en_negociacion === 1 ? 'proceso en negociación' : 'procesos en negociación', Clock],
+                ['cerrado_con_acuerdo', procesos.cerrados_con_acuerdo ?? 0, procesos.cerrados_con_acuerdo === 1 ? 'proceso con acuerdo' : 'procesos con acuerdo', CheckCircle],
+                ['cerrado_sin_acuerdo', procesos.cerrados_sin_acuerdo ?? 0, procesos.cerrados_sin_acuerdo === 1 ? 'proceso sin acuerdo' : 'procesos sin acuerdo', FileText],
+                ['archivado', procesos.archivados ?? 0, procesos.archivados === 1 ? 'proceso archivado' : 'procesos archivados', Archive],
+                ['suspendido', procesos.suspendidos ?? 0, procesos.suspendidos === 1 ? 'proceso suspendido' : 'procesos suspendidos', PauseCircle]
+              ] as const
+            ).map(([clave, valor, etiqueta, icono], i, todas) => (
+              <TarjetaResumen
+                key={clave}
+                clave={clave}
+                label={etiqueta}
+                value={valor}
+                maximo={Math.max(...todas.map((t) => t[1] as number), 1)}
+                icon={icono}
+                onClick={() => toggleCategoria(clave)}
+                active={categoriaAbierta === clave}
+                orden={i}
+              />
+            ))}
           </div>
 
           {/* Panel que se despliega al hacer clic en una de las tarjetas de

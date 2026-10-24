@@ -339,3 +339,19 @@ html[data-tamano="fijo"] { zoom: 1; --tz: 1; }
 @media print {
   html[data-tamano] { zoom: 1; --tz: 1; }
 }
+
+
+/* ===== Panel General: banner y tarjetas con movimiento ===== */
+@keyframes hero-float-a { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-24px,16px) scale(1.04); } }
+@keyframes hero-float-b { 0%,100% { transform: translate(0,0); } 50% { transform: translate(20px,-14px); } }
+@keyframes tile-in { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+.hero-float-a { animation: hero-float-a 16s ease-in-out infinite; }
+.hero-float-b { animation: hero-float-b 20s ease-in-out infinite; }
+.tile-in { animation: tile-in 700ms var(--ease-out) both; }
+.tarjeta-resumen { transition: transform 250ms var(--ease-out), box-shadow 250ms var(--ease-out); }
+.tarjeta-resumen:hover { transform: translateY(-6px); box-shadow: 0 26px 40px -18px rgba(11,39,89,.55); }
+@media (prefers-reduced-motion: reduce) {
+  .hero-float-a, .hero-float-b, .tile-in { animation: none; }
+  .tarjeta-resumen { transition: none; }
+  .tarjeta-resumen:hover { transform: none; }
+}
