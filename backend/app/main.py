@@ -4521,6 +4521,10 @@ def crear_invitacion_proceso(
             SELECT id FROM usuarios WHERE rol = 'administrador' AND activo = true
         """)
 
+        cur.execute("SELECT nombre, apellido FROM usuarios WHERE id = %s", (proceso["usuario_id"],))
+        _med_proc = cur.fetchone() or {}
+        _nom_med_proc = f"{_med_proc.get('nombre', '')} {_med_proc.get('apellido', '')}".strip()
+
         for admin in cur.fetchall():
             crear_notificacion(
                 cur,
@@ -4528,7 +4532,8 @@ def crear_invitacion_proceso(
                 "Nueva invitación creada",
                 f"{proceso['codigo_proceso']} | "
                 f"{proceso['demandante']} y {proceso['demandado']} | "
-                f"{proceso['ciudad']} - {proceso['sucursal']} | "
+                + (f"Mediador: {_nom_med_proc} | " if _nom_med_proc else "")
+                + f"{proceso['ciudad']} - {proceso['sucursal']} | "
                 f"{fecha} {hora}",
                 "cita",
                 "proceso_mediacion",
@@ -4795,7 +4800,7 @@ def crear_invitacion_rapida(datos: dict, usuario=Depends(obtener_usuario_actual)
         for admin in cur.fetchall():
             crear_notificacion(
                 cur, admin["id"], "Nueva invitación rápida",
-                f"{sol} y {inv} | {fecha} {hora}",
+                f"{sol} y {inv} | Mediador: {mediador['nombre']} {mediador['apellido']} | {fecha} {hora}",
                 "cita", "cita", cita["id"]
             )
 

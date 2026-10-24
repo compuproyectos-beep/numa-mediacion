@@ -741,6 +741,11 @@ export default function CalendarioAgendaMediador({
                   </span>
                 )}
               </p>
+              {citaActiva.mediador && (
+                <p className="text-sm text-numa-700 mt-1">
+                  Mediador: <span className="font-bold text-numa-900">{citaActiva.mediador}</span>
+                </p>
+              )}
               {citaActiva.fecha_creacion && (
                 <p className="text-sm text-numa-700 mt-1">
                   Invitación creada el{' '}
