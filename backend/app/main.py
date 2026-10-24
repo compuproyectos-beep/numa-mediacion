@@ -729,17 +729,21 @@ def obtener_notificaciones(usuario=Depends(obtener_usuario_actual)):
     try:
         cur.execute("""
             SELECT
-                id,
-                titulo,
-                mensaje,
-                tipo,
-                leida,
-                referencia_tipo,
-                referencia_id,
-                fecha_creacion
-            FROM notificaciones
-            WHERE usuario_id = %s
-            ORDER BY fecha_creacion DESC
+                n.id,
+                n.titulo,
+                n.mensaje,
+                n.tipo,
+                n.leida,
+                n.referencia_tipo,
+                n.referencia_id,
+                n.fecha_creacion,
+                -- Para las notificaciones de una invitación: de qué mediador es,
+                -- así el administrador/la secretaria llegan directo a esa cita.
+                CASE WHEN n.referencia_tipo = 'cita' THEN c.usuario_id END AS cita_usuario_id
+            FROM notificaciones n
+            LEFT JOIN citas c ON n.referencia_tipo = 'cita' AND c.id = n.referencia_id
+            WHERE n.usuario_id = %s
+            ORDER BY n.fecha_creacion DESC
             LIMIT 50
         """, (usuario["id"],))
 

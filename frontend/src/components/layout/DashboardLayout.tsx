@@ -199,7 +199,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return { texto: 'Ir al proceso', ruta: `/procesos/${n.referencia_id}` };
     }
     if (n?.referencia_tipo === 'cita' && n.referencia_id) {
-      return { texto: 'Ir a la agenda', ruta: `/agenda?cita=${n.referencia_id}` };
+      return { texto: 'Ir a la agenda', ruta: `/agenda?cita=${n.referencia_id}${n.cita_usuario_id ? `&mediador=${n.cita_usuario_id}` : ''}` };
     }
     if (n?.referencia_tipo === 'numero_acta') {
       return { texto: 'Ir a Actas finales', ruta: '/actas-finales' };
