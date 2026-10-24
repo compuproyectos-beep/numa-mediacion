@@ -3,6 +3,7 @@
 import { Fragment, Suspense, useEffect, useState } from 'react';
 import { ESTADO_COLOR_GRAFICO } from '@/lib/estados';
 import { conActa } from '@/lib/actaProceso';
+import { isAdmin } from '@/lib/auth';
 import { useSearchParams } from 'next/navigation';
 import { Printer } from 'lucide-react';
 import {
@@ -25,7 +26,8 @@ type TipoReporte =
   | 'clientes'
   | 'agenda'
   | 'sin-avance'
-  | 'actas-pendientes';
+  | 'actas-pendientes'
+  | 'facturas-pendientes';
 
 const ETIQUETAS_CITA: Record<string, string> = {
   pendiente: 'Pendiente',
@@ -61,7 +63,8 @@ const TITULOS: Record<TipoReporte, string> = {
   clientes: 'Reporte de Clientes',
   agenda: 'Reporte de Agenda de Reuniones',
   'sin-avance': 'Reporte de Procesos sin Avance',
-  'actas-pendientes': 'Reporte de Actas Pendientes de Subir'
+  'actas-pendientes': 'Reporte de Actas Pendientes de Subir',
+  'facturas-pendientes': 'Reporte de Facturas Pendientes'
 };
 
 // Un acta cuenta como lista solo cuando ya está subida el acta firmada (si la requiere).
@@ -234,7 +237,7 @@ function ImprimirReporteContenido() {
         ? getReporteSucursales(filtros)
         : tipo === 'clientes'
         ? getReporteClientes(filtros)
-        : tipo === 'agenda' || tipo === 'sin-avance' || tipo === 'actas-pendientes'
+        : tipo === 'agenda' || tipo === 'sin-avance' || tipo === 'actas-pendientes' || tipo === 'facturas-pendientes'
         ? getReporteOperativo(tipo, filtros)
         : getProcesos(filtros);
 
@@ -259,7 +262,7 @@ function ImprimirReporteContenido() {
   }, []);
 
   const rangoFechas =
-    tipo === 'actas-pendientes'
+    tipo === 'actas-pendientes' || tipo === 'facturas-pendientes'
       ? 'Situación al día de hoy'
       : tipo === 'sin-avance'
       ? `Procesos en negociación con ${dias_minimo || '7'} o más días sin avance`
@@ -311,6 +314,68 @@ function ImprimirReporteContenido() {
     if (v.n > 0) out.push({ label: `${k} · de no acuerdo`, valor: v.n, color: '#F59E0B' });
     return out;
   };
+
+  // --- Actas finales: los mismos gráficos que en pantalla ---
+  const esNoAcuerdoActa = (a: any) => a.tipo === 'no_acuerdo';
+  const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const mesDeActa = (v: any) => {
+    if (!v) return null;
+    const iso = String(v).replace(' ', 'T');
+    const d = new Date(/(Z|[+-]\d\d:?\d\d)$/.test(iso) ? iso : `${iso}Z`);
+    if (isNaN(d.getTime())) return null;
+    return d.toLocaleDateString('en-CA', { timeZone: 'America/Guayaquil' }).slice(0, 7);
+  };
+  const barrasActasPor = (clave: (a: any) => string | null | undefined) => {
+    const m = new Map<string, { a: number; n: number }>();
+    datos.forEach((a: any) => {
+      const k = clave(a);
+      if (!k) return;
+      const x = m.get(k) || { a: 0, n: 0 };
+      if (esNoAcuerdoActa(a)) x.n++; else x.a++;
+      m.set(k, x);
+    });
+    return Array.from(m.entries());
+  };
+  const gruposActas: { titulo: string; items: { label: string; valor: number; color?: string }[] }[] =
+    tipo === 'actas'
+      ? [
+          {
+            titulo: 'Acuerdo y no acuerdo',
+            items: [
+              { label: 'Actas de acuerdo', valor: datos.filter((a: any) => !esNoAcuerdoActa(a)).length, color: '#10B981' },
+              { label: 'Actas de no acuerdo', valor: datos.filter(esNoAcuerdoActa).length, color: '#F59E0B' }
+            ]
+          },
+          {
+            titulo: 'Actas por mes',
+            items:
+              barrasActasPor((a) => mesDeActa(a.fecha_subida)).length > 1
+                ? barrasActasPor((a) => mesDeActa(a.fecha_subida))
+                    .sort((x, y) => x[0].localeCompare(y[0]))
+                    .flatMap(([k, v]) => {
+                      const [y, mm] = k.split('-');
+                      return parBarras(`${MESES_CORTOS[Number(mm) - 1]} ${y}`, v);
+                    })
+                : []
+          },
+          ...(isAdmin()
+            ? [
+                {
+                  titulo: 'Actas por mediador',
+                  items: barrasActasPor((a) => a.mediador || a.usuario)
+                    .sort((x, y) => y[1].a + y[1].n - (x[1].a + x[1].n))
+                    .flatMap(([k, v]) => parBarras(k, v))
+                },
+                {
+                  titulo: 'Actas por sucursal',
+                  items: barrasActasPor((a) => (a.sucursal ? labelSucursal(a) : null))
+                    .sort((x, y) => y[1].a + y[1].n - (x[1].a + x[1].n))
+                    .flatMap(([k, v]) => parBarras(k, v))
+                }
+              ]
+            : [])
+        ].filter((g) => g.items.length > 0)
+      : [];
 
   const barrasActas: { label: string; valor: number; color?: string }[] | null =
     tipo === 'procesos'
@@ -469,7 +534,8 @@ function ImprimirReporteContenido() {
                 </section>
               )}
 
-              {((barrasActas && barrasActas.length > 0) ||
+              {((gruposActas.length > 0) ||
+                (barrasActas && barrasActas.length > 0) ||
                 (barrasResumen && barrasResumen.length > 0) ||
                 (barrasActasPendientes && barrasActasPendientes.length > 0)) && (
                 <h3 className="mt-5 text-[11px] font-bold text-numa-900 uppercase tracking-[0.12em] mb-2 pb-1 border-b-2 border-gold-500">
@@ -478,6 +544,13 @@ function ImprimirReporteContenido() {
               )}
 
               {/* El gráfico de actas va primero: es el corazón del sistema. */}
+              {gruposActas.map((g) => (
+                <div key={g.titulo} className="mb-3 pb-2 border-b border-dashed border-numa-200 last:border-b-0 print:break-inside-avoid">
+                  <p className="text-[11px] font-semibold text-numa-700 uppercase tracking-wide mb-2">{g.titulo}</p>
+                  <BarrasResumen compacto items={g.items} />
+                </div>
+              ))}
+
               {barrasActas && barrasActas.length > 0 && (
                 <div className="mb-3 pb-2 border-b border-dashed border-numa-200 last:border-b-0 print:break-inside-avoid">
                   <p className="text-[11px] font-semibold text-numa-700 uppercase tracking-wide mb-2">
@@ -512,6 +585,7 @@ function ImprimirReporteContenido() {
               <h3
                 className={`${
                   resumenProcesos ||
+                  gruposActas.length > 0 ||
                   (barrasActas && barrasActas.length > 0) ||
                   (barrasResumen && barrasResumen.length > 0) ||
                   (barrasActasPendientes && barrasActasPendientes.length > 0)
@@ -650,6 +724,19 @@ function ImprimirReporteContenido() {
                     </>
                   )}
 
+                  {tipo === 'facturas-pendientes' && (
+                    <>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Proceso</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Solicitante</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Invitado</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Mediador</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Sucursal</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Acta firmada</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Falta</th>
+                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Días</th>
+                    </>
+                  )}
+
                   {tipo === 'actas-pendientes' && (
                     <>
                                             <th className="text-left py-2 pr-2 font-semibold text-numa-700">Solicitante</th>
@@ -690,6 +777,26 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2">{p.ultimo_avance ? fmtFecha(p.ultimo_avance) : 'Ninguno'}</td>
                       <td className="py-1.5 pr-2">{p.total_avances}</td>
                       <td className="py-1.5 pr-2 font-semibold">{p.dias_sin_avance}</td>
+                    </tr>
+                  ))}
+
+                {tipo === 'facturas-pendientes' &&
+                  datos.map((p: any) => (
+                    <tr key={p.id} className="border-b border-numa-300">
+                      <td className="py-1.5 pr-2">{p.codigo_proceso}</td>
+                      <td className="py-1.5 pr-2">{p.demandante}</td>
+                      <td className="py-1.5 pr-2">{p.demandado}</td>
+                      <td className="py-1.5 pr-2">{p.mediador || '—'}</td>
+                      <td className="py-1.5 pr-2">{p.sucursal ? `${p.sucursal}${p.ciudad ? ` (${p.ciudad})` : ''}` : '—'}</td>
+                      <td className="py-1.5 pr-2">{fechaAcuerdoEC(p.acta_firmada_fecha)}</td>
+                      <td className="py-1.5 pr-2">
+                        {[p.falta_cliente ? 'Factura al cliente' : null, p.falta_mediador ? 'Factura del mediador' : null]
+                          .filter(Boolean)
+                          .join(' y ')}
+                      </td>
+                      <td className="py-1.5 pr-2">
+                        {p.dias_transcurridos == null ? '—' : `${p.dias_transcurridos} ${p.dias_transcurridos === 1 ? 'día' : 'días'}`}
+                      </td>
                     </tr>
                   ))}
 
