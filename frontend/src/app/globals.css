@@ -366,3 +366,44 @@ html[data-tamano="fijo"] { zoom: 1; --tz: 1; }
 /* Entrada suave de cada pantalla al cambiar de página. */
 .page-enter { animation: tile-in 420ms var(--ease-out) both; }
 @media (prefers-reduced-motion: reduce) { .page-enter { animation: none; } }
+
+
+/* ===== Página pública: detalles de movimiento ===== */
+@keyframes hero-zoom { from { transform: scale(1); } to { transform: scale(1.045); } }
+.hero-zoom { animation: hero-zoom 7s ease-out both; }
+@keyframes hero-progress { from { width: 0; } to { width: 100%; } }
+.hero-progress { animation: hero-progress 5s linear both; }
+@keyframes hero-bounce { 0%,100% { transform: translateY(-2px); } 50% { transform: translateY(4px); } }
+.hero-bounce { animation: hero-bounce 1.8s ease-in-out infinite; }
+
+/* Barra dorada bajo los títulos de sección */
+.title-accent::after { content: ""; display: block; width: 3.5rem; height: 4px; border-radius: 4px; margin-top: 1rem; background: linear-gradient(90deg, #E0B84A, #C99A2E); }
+.title-accent-center::after { margin-left: auto; margin-right: auto; }
+
+/* Brillo que cruza los botones al pasar el mouse */
+.btn-shine { position: relative; overflow: hidden; }
+.btn-shine::after { content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; transform: skewX(-20deg); background: linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent); transition: left 700ms var(--ease-out); pointer-events: none; }
+@media (hover: hover) { .btn-shine:hover::after { left: 130%; } }
+
+/* Tarjetas de cifras, valores y servicios que responden al mouse */
+.stat-card { transition: transform 300ms var(--ease-out); }
+@media (hover: hover) { .stat-card:hover { transform: translateY(-6px) rotate(-0.4deg); } }
+.valor-card { padding: 1rem; margin: -1rem; border-radius: 1.75rem; transition: background-color 300ms, box-shadow 300ms, transform 300ms var(--ease-out); }
+@media (hover: hover) {
+  .valor-card:hover { background: rgba(255,255,255,.7); box-shadow: 0 24px 40px -24px rgba(14,35,56,.45); transform: translateY(-5px); }
+  .valor-card:hover > div:first-child { transform: scale(1.08); box-shadow: 0 10px 22px -10px rgba(201,154,46,.8); }
+}
+.valor-card > div:first-child { transition: transform 300ms var(--ease-out), box-shadow 300ms, background-color 300ms; }
+.servicio-item { padding: .35rem .6rem; margin: 0 -.6rem; border-radius: 9999px; transition: transform 250ms var(--ease-out), background-color 250ms; }
+@media (hover: hover) { .servicio-item:hover { transform: translateX(8px); background: rgba(255,255,255,.65); } }
+
+/* Pulso del botón flotante de WhatsApp */
+@keyframes wa-pulse { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,.55); } 100% { box-shadow: 0 0 0 18px rgba(34,197,94,0); } }
+.wa-pulse { animation: wa-pulse 2.4s ease-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-zoom, .hero-progress, .hero-bounce, .wa-pulse { animation: none; }
+  .hero-progress { width: 100%; }
+  .btn-shine::after { transition: none; }
+  .stat-card, .valor-card, .servicio-item { transition: none; }
+}

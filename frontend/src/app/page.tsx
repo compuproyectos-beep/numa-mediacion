@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -19,6 +19,7 @@ import {
   Lock,
   MapPin,
   Mail,
+  ChevronDown,
 } from 'lucide-react';
 
 import PublicNavbar from '@/components/public/PublicNavbar';
@@ -154,6 +155,76 @@ function Arcos() {
   );
 }
 
+// Barra dorada fina arriba que avanza al bajar por la página.
+function BarraProgreso() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const act = () => {
+      const alto = document.documentElement.scrollHeight - window.innerHeight;
+      const p = alto > 0 ? Math.min(1, window.scrollY / alto) : 0;
+      if (ref.current) ref.current.style.transform = `scaleX(${p})`;
+    };
+    act();
+    window.addEventListener('scroll', act, { passive: true });
+    window.addEventListener('resize', act);
+    return () => {
+      window.removeEventListener('scroll', act);
+      window.removeEventListener('resize', act);
+    };
+  }, []);
+  return (
+    <div className="fixed top-0 inset-x-0 z-[60] h-[3px] pointer-events-none" aria-hidden="true">
+      <div ref={ref} className="h-full origin-left bg-gradient-to-r from-gold-500 via-gold-300 to-gold-500" style={{ transform: 'scaleX(0)' }} />
+    </div>
+  );
+}
+
+// Cuenta hacia arriba cuando la cifra aparece en pantalla; el texto final
+// es exactamente el mismo de siempre (por ejemplo "1,000+" o "98%").
+function CifraAnimada({ texto }: { texto: string }) {
+  const m = texto.match(/^([\d,]+)(.*)$/);
+  const destino = m ? parseInt(m[1].replace(/,/g, ''), 10) : 0;
+  const sufijo = m ? m[2] : '';
+  const conComa = !!m && m[1].includes(',');
+  const [valor, setValor] = useState<number | null>(null);
+  const ref = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!m || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const el = ref.current;
+    if (!el) return;
+    let raf = 0;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0].isIntersecting) return;
+        io.disconnect();
+        const ini = performance.now();
+        const paso = (t: number) => {
+          const k = Math.min(1, (t - ini) / 1400);
+          setValor(Math.round(destino * (1 - Math.pow(1 - k, 3))));
+          if (k < 1) raf = requestAnimationFrame(paso);
+        };
+        raf = requestAnimationFrame(paso);
+      },
+      { threshold: 0.4 }
+    );
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      cancelAnimationFrame(raf);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const mostrado = valor === null ? destino : valor;
+  return (
+    <span ref={ref}>
+      {conComa ? mostrado.toLocaleString('en-US') : mostrado}
+      {sufijo}
+    </span>
+  );
+}
+
 export default function HomePage() {
   // Índice de la foto que se muestra ahora mismo en el carrusel del hero.
   // (El desplegable de Sedes que antes vivía aquí se quitó del banner —
@@ -198,6 +269,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-white font-brand">
+      <BarraProgreso />
       <PublicNavbar />
 
       {/* HERO — banner a todo lo ancho con las fotos ocupando toda la
@@ -239,7 +311,7 @@ export default function HomePage() {
                   fill
                   priority={i === 0}
                   sizes="100vw"
-                  className="object-contain"
+                  className={`object-contain ${i === heroIndex ? 'hero-zoom' : ''}`}
                 />
               </div>
             </div>
@@ -256,20 +328,33 @@ export default function HomePage() {
         {/* Top line */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-numa-800 via-gold-500 to-numa-800 z-10" />
 
-        {/* Indicadores del carrusel */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+        {/* Indicadores del carrusel (el activo se va llenando hasta el siguiente cambio) */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
           {heroImages.map((img, i) => (
             <button
               key={img.src}
               type="button"
               onClick={() => setHeroIndex(i)}
               aria-label={`Mostrar foto ${i + 1}`}
-              className={`h-1.5 rounded-full transition-all ${
-                i === heroIndex ? 'w-6 bg-gold-400' : 'w-1.5 bg-white/60'
+              className={`relative overflow-hidden h-1.5 rounded-full transition-all duration-500 ${
+                i === heroIndex ? 'w-10 bg-white/30' : 'w-1.5 bg-white/60 hover:bg-white'
               }`}
-            />
+            >
+              {i === heroIndex && (
+                <span key={heroIndex} className="hero-progress absolute inset-y-0 left-0 rounded-full bg-gold-400" />
+              )}
+            </button>
           ))}
         </div>
+
+        {/* Flecha que invita a bajar */}
+        <a
+          href="#numa-pompilio"
+          aria-label="Bajar"
+          className="hidden sm:flex absolute bottom-6 right-8 z-10 w-11 h-11 items-center justify-center rounded-full border border-white/30 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20 transition-colors"
+        >
+          <ChevronDown className="w-5 h-5 hero-bounce" />
+        </a>
 
         <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-40 pb-20 w-full">
           <div className="max-w-2xl">
@@ -298,7 +383,7 @@ export default function HomePage() {
                 menú de arriba, no hace falta repetirlos aquí. */}
             <a
               href="#nosotros"
-              className="hero-rise hero-d3 inline-flex items-center gap-3 pl-6 pr-2 py-2 bg-gold-400 text-numa-950 text-sm font-semibold rounded-full group hover:bg-gold-500 btn-press"
+              className="hero-rise hero-d3 btn-shine inline-flex items-center gap-3 pl-6 pr-2 py-2 shadow-[0_14px_28px_-12px_rgba(224,184,74,0.9)] bg-gold-400 text-numa-950 text-sm font-semibold rounded-full group hover:bg-gold-500 btn-press"
             >
               Conoce más <span className="btn-ico"><ArrowRight className="w-4 h-4" /></span>
             </a>
@@ -354,7 +439,7 @@ export default function HomePage() {
                 <span className="inline-block rounded-full border border-gold-400/40 bg-gold-400/10 px-3.5 py-1 text-[11px] uppercase tracking-[0.2em] text-gold-600 font-sans">Quiénes Somos</span>
               </div>
 
-              <h2 className="text-3xl sm:text-4xl font-bold text-numa-900 mb-6 leading-tight">
+              <h2 className="title-accent text-3xl sm:text-4xl font-bold text-numa-900 mb-6 leading-tight">
                 Más de una década construyendo puentes de paz
               </h2>
 
@@ -377,10 +462,10 @@ export default function HomePage() {
                 { num: '5', label: 'Sucursales activas' },
                 { num: '98%', label: 'Satisfacción de clientes' },
               ].map((stat) => (
-                <div key={stat.label} className="reveal bezel">
+                <div key={stat.label} className="reveal bezel stat-card">
                 <div className="bg-numa-900 rounded-[1.6rem] p-6 shadow-soft inner-hl">
                   <div className="text-3xl font-bold text-gold-400 mb-1 tabular-nums">
-                    {stat.num}
+                    <CifraAnimada texto={stat.num} />
                   </div>
 
                   <div className="text-sm text-numa-200 font-sans">
@@ -397,6 +482,7 @@ export default function HomePage() {
       {/* MISION */}
       <div className="bg-white px-3 sm:px-6 py-2 sm:py-4">
       <section id="misión" className="relative py-9 sm:py-14 bg-night overflow-hidden rounded-[1.75rem] sm:rounded-[2.5rem]">
+        <div className="hero-float-a pointer-events-none absolute -top-32 -right-20 w-80 h-80 rounded-full border-[40px] border-white/[0.05]" />
         <div className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-[1fr_1px_1fr] gap-6 md:gap-12 items-start">
             <div className="reveal">
@@ -436,7 +522,7 @@ export default function HomePage() {
         <Arcos />
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
-            <h2 className="text-3xl sm:text-4xl font-bold text-numa-900">
+            <h2 className="title-accent title-accent-center text-3xl sm:text-4xl font-bold text-numa-900">
               Valores Institucionales
             </h2>
           </div>
@@ -445,7 +531,7 @@ export default function HomePage() {
             {valores.map(({ icon: Icon, titulo, desc }, idx) => (
               <div
                 key={titulo}
-                className="reveal group"
+                className="reveal group valor-card"
                 style={{ transitionDelay: `${idx * 70}ms` }}
               >
                 
@@ -469,7 +555,7 @@ export default function HomePage() {
                 <span className="inline-block rounded-full border border-gold-400/40 bg-gold-400/10 px-3.5 py-1 text-[11px] uppercase tracking-[0.2em] text-gold-600 font-sans">¿Por qué mediar?</span>
               </div>
 
-            <h2 className="text-3xl sm:text-4xl font-bold text-numa-900">
+            <h2 className="title-accent title-accent-center text-3xl sm:text-4xl font-bold text-numa-900">
               Beneficios de la Mediación
             </h2>
           </div>
@@ -559,13 +645,13 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 items-center">
             <div>
-              <h2 className="text-3xl sm:text-4xl font-bold text-numa-900 mb-4">
+              <h2 className="title-accent text-3xl sm:text-4xl font-bold text-numa-900 mb-6">
                 Nuestros Servicios
               </h2>
 
               <ul className="space-y-3">
                 {servicios.map((s) => (
-                  <li key={s} className="flex items-center gap-3">
+                  <li key={s} className="servicio-item flex items-center gap-3">
                     <CheckCircle className="w-5 h-5 text-gold-500 shrink-0" />
 
                     <span className="text-numa-800 font-sans text-sm">
@@ -601,7 +687,7 @@ export default function HomePage() {
                 <span className="inline-block rounded-full border border-gold-400/40 bg-gold-400/10 px-3.5 py-1 text-[11px] uppercase tracking-[0.2em] text-gold-600 font-sans">¿Tienes un conflicto que resolver?</span>
               </div>
 
-            <h2 className="text-3xl sm:text-4xl font-bold text-numa-900 mb-4">
+            <h2 className="title-accent title-accent-center text-3xl sm:text-4xl font-bold text-numa-900 mb-6">
               Solicita una asesoría gratuita
             </h2>
 
@@ -615,7 +701,7 @@ export default function HomePage() {
                 href="https://wa.me/593981790092?text=Hola%2C%20quisiera%20una%20asesor%C3%ADa%20gratuita%20sobre%20mi%20caso"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 text-white text-sm font-semibold rounded-full hover:bg-green-600 btn-press"
+                className="btn-shine inline-flex items-center gap-2 px-6 py-3 bg-green-500 text-white text-sm font-semibold rounded-full hover:bg-green-600 btn-press"
               >
                 <WhatsAppIcon className="w-4 h-4" />
                 Escríbenos por WhatsApp
@@ -625,7 +711,7 @@ export default function HomePage() {
                 href="https://www.facebook.com/profile.php?id=61594906720744"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-[#1877F2] text-white text-sm font-semibold rounded-full hover:bg-[#1465d6] btn-press"
+                className="btn-shine inline-flex items-center gap-2 px-6 py-3 bg-[#1877F2] text-white text-sm font-semibold rounded-full hover:bg-[#1465d6] btn-press"
               >
                 <FacebookIcon className="w-4 h-4" />
                 Síguenos en Facebook
@@ -673,8 +759,10 @@ export default function HomePage() {
       </section>
 
       {/* CTA */}
-      <section id="acceso" className="py-14 bg-gold-400">
-        <div className="max-w-4xl mx-auto px-4 text-center">
+      <section id="acceso" className="relative overflow-hidden py-14 bg-gradient-to-br from-gold-300 via-gold-400 to-gold-500">
+        <div className="hero-float-a pointer-events-none absolute -top-24 -left-16 w-72 h-72 rounded-full border-[36px] border-white/20" />
+        <div className="hero-float-b pointer-events-none absolute -bottom-28 -right-10 w-80 h-80 rounded-full border-[40px] border-numa-950/10" />
+        <div className="relative max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-numa-950 mb-4">
             Comience su proceso de mediación hoy
           </h2>
@@ -699,7 +787,7 @@ export default function HomePage() {
         href="https://wa.me/593981790092?text=Hola%2C%20quisiera%20informaci%C3%B3n%20sobre%20mediaci%C3%B3n"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-green-500 hover:bg-green-600 rounded-full shadow-2xl flex items-center justify-center btn-press"
+        className="wa-pulse fixed bottom-6 right-6 z-50 w-14 h-14 bg-green-500 hover:bg-green-600 rounded-full shadow-2xl flex items-center justify-center btn-press"
         aria-label="Escríbenos por WhatsApp"
       >
         <WhatsAppIcon className="w-7 h-7 text-white" />
