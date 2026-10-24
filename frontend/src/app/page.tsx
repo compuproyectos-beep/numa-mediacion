@@ -70,7 +70,7 @@ const heroImages = [
     // Versión en tono azul (igual a la paleta de la marca) de la misma
     // foto que se usa más abajo en la sección de Numa Pompilio — el
     // original es muy café y no dejaba leer bien el texto encima.
-    src: '/images/numa-pompilio-azul.jpg',
+    src: '/images/numa-pompilio-gris.jpg',
     alt: 'Numa Pompilio, segundo rey de Roma, símbolo histórico de la mediación y la paz',
   },
   {
