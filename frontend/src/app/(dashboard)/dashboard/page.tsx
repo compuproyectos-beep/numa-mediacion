@@ -179,7 +179,7 @@ const ESTILO_TARJETA: Record<
   string,
   { caja: string; texto: string; sub: string; acento: string; pista: string; icono: string }
 > = {
-  actas_acuerdo: { caja: 'bg-gradient-to-br from-emerald-600 to-emerald-700 border-transparent', texto: 'text-white', sub: 'text-emerald-50', acento: 'bg-gold-300', pista: 'bg-white/25', icono: 'bg-white/15 text-white' },
+  actas_acuerdo: { caja: 'bg-gradient-to-br from-gold-300 to-gold-500 border-transparent', texto: 'text-numa-950', sub: 'text-numa-900', acento: 'bg-numa-900', pista: 'bg-numa-950/15', icono: 'bg-numa-950/15 text-numa-900' },
   actas_no_acuerdo: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-orange-500', pista: 'bg-numa-100', icono: 'bg-orange-100 text-orange-700' },
   en_negociacion: { caja: 'bg-gold-50 border-gold-200', texto: 'text-gold-900', sub: 'text-gold-700', acento: 'bg-gold-500', pista: 'bg-gold-200/70', icono: 'bg-gold-500/20 text-gold-700' },
   cerrado_con_acuerdo: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-emerald-500', pista: 'bg-numa-100', icono: 'bg-emerald-100 text-emerald-700' },
