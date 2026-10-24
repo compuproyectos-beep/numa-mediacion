@@ -49,7 +49,7 @@
   }
 
   .btn-primary {
-    @apply btn-base px-5 py-2.5 bg-gold-400 text-numa-950 font-semibold shadow-sm hover:bg-gold-500 hover:shadow-md disabled:hover:bg-gold-400;
+    @apply btn-base px-5 py-2.5 bg-gold-400 text-numa-950 font-semibold shadow-[0_8px_18px_-10px_rgba(201,154,46,0.9)] hover:bg-gold-500 hover:shadow-[0_12px_22px_-10px_rgba(201,154,46,0.95)] disabled:hover:bg-gold-400;
   }
 
   .btn-secondary {
@@ -96,15 +96,15 @@
   }
 
   .card {
-    @apply bg-white border border-numa-300/70 rounded-md;
-    box-shadow: 0 1px 2px rgba(14, 35, 56, 0.05), 0 4px 12px -6px rgba(14, 35, 56, 0.10);
+    @apply bg-white border border-numa-200/70 rounded-2xl;
+    box-shadow: 0 1px 2px rgba(14, 35, 56, 0.04), 0 14px 30px -20px rgba(14, 35, 56, 0.30);
   }
 
   /* Más compactos (menos alto, letra más chica) y con más contraste al
      enfocar (anillo dorado más visible), para que no se vean tan grandes
      y vacíos. */
   .input-field {
-    @apply w-full px-3 py-2 border border-numa-300 rounded-md text-[13px] text-numa-900 bg-white placeholder-numa-500 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200;
+    @apply w-full px-3 py-2 border border-numa-300 rounded-xl text-[13px] text-numa-900 bg-white placeholder-numa-500 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200;
   }
 
   /* Más chica y en mayúsculas, para distinguirse claramente del texto que
@@ -118,7 +118,7 @@
   }
 
   .table-header {
-    @apply text-left text-xs font-bold text-numa-700 uppercase tracking-wider py-2.5 px-3;
+    @apply text-left text-xs font-bold text-numa-600 uppercase tracking-wider py-3 px-3 bg-numa-50;
   }
 
   .table-cell {
@@ -197,6 +197,12 @@
   .page-header {
     @apply flex items-center justify-between mb-3;
   }
+
+  /* Banner de título de cada pantalla (mismo lenguaje del Panel General). */
+  .page-banner .btn-ghost { @apply text-white hover:bg-white/15 hover:text-white; }
+  .page-banner .btn-secondary { @apply border-white/30 bg-white/10 text-white hover:bg-white/20 hover:border-white/50; }
+  .page-banner .btn-danger-outline { @apply bg-white/10 text-white border-white/30 hover:bg-white/20; }
+  .page-banner .input-field { @apply bg-white text-numa-900; }
 }
 
 
@@ -355,3 +361,8 @@ html[data-tamano="fijo"] { zoom: 1; --tz: 1; }
   .tarjeta-resumen { transition: none; }
   .tarjeta-resumen:hover { transform: none; }
 }
+
+
+/* Entrada suave de cada pantalla al cambiar de página. */
+.page-enter { animation: tile-in 420ms var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) { .page-enter { animation: none; } }

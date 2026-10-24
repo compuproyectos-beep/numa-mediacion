@@ -411,7 +411,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <div className="px-6 pt-3 pb-5 max-w-7xl mx-auto">
-          {children}
+          <div key={pathname} className="page-enter">{children}</div>
         </div>
       </main>
 

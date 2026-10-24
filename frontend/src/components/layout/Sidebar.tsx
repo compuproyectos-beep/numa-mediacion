@@ -120,9 +120,9 @@ export default function Sidebar() {
               href={href}
               onClick={() => setMobileOpen(false)}
               className={clsx(
-                'flex items-center gap-3 px-3 py-1.5 rounded-sm text-sm transition-all duration-150 group font-sans',
+                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 group font-sans hover:translate-x-0.5',
                 active
-                  ? 'bg-gold-400/10 text-gold-400 font-medium'
+                  ? 'bg-gold-400/15 text-gold-400 font-medium shadow-[inset_3px_0_0_#E0B84A]'
                   : 'text-white hover:text-gold-400 hover:bg-numa-800'
               )}
             >
@@ -215,7 +215,7 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className="hidden lg:flex lg:flex-col w-56 bg-numa-950 fixed left-0 top-0 bottom-0 z-30 border-r border-numa-800">
+      <aside className="hidden lg:flex lg:flex-col w-56 bg-gradient-to-b from-numa-900 to-numa-950 fixed left-0 top-0 bottom-0 z-30 border-r border-numa-800">
         <SidebarContent />
       </aside>
 

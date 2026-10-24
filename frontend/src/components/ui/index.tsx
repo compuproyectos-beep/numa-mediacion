@@ -47,11 +47,11 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute inset-0 bg-numa-950/55 backdrop-blur-sm" onClick={onClose} />
       <div
         ref={ref}
         className={clsx(
-          'relative bg-white rounded-sm shadow-2xl w-full animate-slide-up flex flex-col max-h-[calc(85vh/var(--tz,1))]',
+          'relative bg-white rounded-2xl overflow-hidden shadow-2xl w-full animate-slide-up flex flex-col max-h-[calc(85vh/var(--tz,1))]',
           widths[size]
         )}
       >
@@ -218,12 +218,15 @@ export function PageHeader({ title, subtitle, action }: {
   action?: ReactNode;
 }) {
   return (
-    <div className="page-header">
-      <div>
-        <h1 className="section-title">{title}</h1>
-        {subtitle && <p className="text-sm text-numa-700 mt-0.5">{subtitle}</p>}
+    <div className="page-banner relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0A2A62] via-[#144193] to-[#2358C9] px-5 sm:px-7 py-5 mb-5 text-white shadow-[0_22px_40px_-26px_rgba(11,39,89,0.8)]">
+      <div className="hero-float-a pointer-events-none absolute -top-24 -right-10 w-64 h-64 rounded-full border-[34px] border-white/10" />
+      <div className="relative flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight leading-tight" style={{ fontFamily: '"Jost Variable", system-ui, sans-serif' }}>{title}</h1>
+          {subtitle && <p className="text-sm text-blue-100 mt-1">{subtitle}</p>}
+        </div>
+        {action}
       </div>
-      {action}
     </div>
   );
 }
