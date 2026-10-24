@@ -2855,6 +2855,63 @@ def cambiar_estado_sucursal(
 # CAMBIAR ESTADO USUARIO
 # =========================
 
+@app.post("/usuarios/{id}/desbloquear")
+def desbloquear_usuario(id: int, usuario=Depends(obtener_usuario_actual)):
+    """Quita el bloqueo de ingreso por intentos fallidos y manda a la persona un
+    enlace para que ELLA elija su contraseña nueva (el administrador nunca la
+    conoce). El enlace también se devuelve para compartirlo a mano si el correo
+    no llega."""
+    if usuario["rol"] != "administrador":
+        raise HTTPException(status_code=403, detail="Solo administrador puede realizar esta acción")
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("SELECT id, nombre, apellido, email, activo FROM usuarios WHERE id = %s", (id,))
+        destino = cur.fetchone()
+        if not destino:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        if not destino["activo"]:
+            raise HTTPException(status_code=400, detail="El usuario está inactivo; reactívalo primero")
+
+        _limpiar_intentos(destino["email"])
+
+        token = secrets.token_urlsafe(32)
+        expira_en = datetime.datetime.utcnow() + datetime.timedelta(hours=TOKEN_RESET_EXPIRA_HORAS)
+        cur.execute("""
+            INSERT INTO password_reset_tokens (usuario_id, token, expira_en)
+            VALUES (%s, %s, %s)
+        """, (id, token, expira_en))
+
+        registrar_auditoria(
+            cur, usuario, "usuario_desbloqueado", "usuarios", id,
+            f"Desbloqueó a {destino['nombre']} {destino['apellido']} ({destino['email']}) y generó un enlace para que elija una contraseña nueva"
+        )
+        conn.commit()
+
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+        enlace = f"{frontend_url}/restablecer-password?token={token}"
+
+        correo_enviado = enviar_correo(
+            destinatario=destino["email"],
+            asunto="Sistema NUMA — Crea tu nueva contraseña",
+            cuerpo_html=plantilla_base(
+                titulo=f"Hola, {destino['nombre']}",
+                mensaje_html=(
+                    "Un administrador desbloqueó tu cuenta. Para volver a entrar, elige tu "
+                    f"nueva contraseña (este enlace es válido por {TOKEN_RESET_EXPIRA_HORAS} horas)."
+                ),
+                boton_texto="Crear mi contraseña",
+                boton_url=enlace,
+            )
+        )
+
+        return {"correo_enviado": bool(correo_enviado), "enlace": enlace}
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.put("/usuarios/{id}/estado")
 def cambiar_estado_usuario(
     id: int,

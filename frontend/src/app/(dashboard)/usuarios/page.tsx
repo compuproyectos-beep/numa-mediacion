@@ -19,7 +19,8 @@ import {
   getUsuarios,
   createUsuario,
   updateUsuario,
-  cambiarEstadoUsuario
+  cambiarEstadoUsuario,
+  desbloquearUsuario
 } from '@/lib/services';
 import { getSucursalesCached } from '@/lib/catalogCache';
 import { isAdmin } from '@/lib/auth';
@@ -70,9 +71,29 @@ export default function UsuariosPage() {
     email: string;
     enlace: string | null;
     correoEnviado: boolean;
+    desbloqueo?: boolean;
   } | null>(null);
   const [estadoTarget, setEstadoTarget] = useState<any | null>(null);
   const [changingEstado, setChangingEstado] = useState(false);
+  const [desbloqueando, setDesbloqueando] = useState<number | null>(null);
+
+  const desbloquear = async (u: any) => {
+    setDesbloqueando(u.id);
+    try {
+      const r = await desbloquearUsuario(u.id);
+      setEnlaceActivacion({
+        nombre: `${u.nombre} ${u.apellido}`,
+        email: u.email,
+        enlace: r.enlace,
+        correoEnviado: !!r.correo_enviado,
+        desbloqueo: true
+      });
+    } catch (err: any) {
+      alert(err?.response?.data?.detail || 'No se pudo desbloquear al usuario');
+    } finally {
+      setDesbloqueando(null);
+    }
+  };
   const [search, setSearch] = useState('');
 
   // El atributo "title" (tooltip nativo) solo aparece al pasar el mouse —
@@ -474,6 +495,17 @@ export default function UsuariosPage() {
                             <Pencil className="w-3 h-3" /> Editar
                           </button>
 
+                          {u.activo && (
+                            <button
+                              onClick={() => desbloquear(u)}
+                              disabled={desbloqueando === u.id}
+                              className="btn-ghost btn-sm"
+                              title="Quita el bloqueo y envía un enlace para que la persona cree su contraseña nueva"
+                            >
+                              {desbloqueando === u.id ? 'Enviando…' : 'Desbloquear'}
+                            </button>
+                          )}
+
                           <button
                             onClick={() => setEstadoTarget(u)}
                             className="btn-ghost btn-sm text-red-500 hover:text-red-700"
@@ -684,26 +716,28 @@ export default function UsuariosPage() {
       <Modal
         open={!!enlaceActivacion}
         onClose={() => setEnlaceActivacion(null)}
-        title="Usuario creado"
+        title={enlaceActivacion?.desbloqueo ? 'Usuario desbloqueado' : 'Usuario creado'}
         size="md"
       >
         {enlaceActivacion && (
           <div className="space-y-4">
             <p className="text-sm text-numa-700">
-              Se creó la cuenta de <strong>{enlaceActivacion.nombre}</strong> (
-              {enlaceActivacion.email}).
+              {enlaceActivacion.desbloqueo ? 'Se desbloqueó la cuenta de ' : 'Se creó la cuenta de '}
+              <strong>{enlaceActivacion.nombre}</strong> ({enlaceActivacion.email}).
+              {enlaceActivacion.desbloqueo &&
+                ' La persona elegirá su propia contraseña nueva con el enlace; tú no la conoces.'}
             </p>
 
             {enlaceActivacion.correoEnviado ? (
               <p className="text-sm text-green-700">
-                El correo de bienvenida se envió correctamente.
+                El correo se envió correctamente.
               </p>
             ) : (
               <p className="text-sm text-amber-700">
                 No se pudo confirmar el envío del correo (por ejemplo, si el
                 proveedor de correo aún no tiene un dominio propio verificado).
                 Copia este enlace y compártelo manualmente con la persona para
-                que active su cuenta:
+                que cree su contraseña:
               </p>
             )}
 

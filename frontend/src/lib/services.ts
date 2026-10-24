@@ -311,6 +311,11 @@ export async function updateUsuario(id: number, payload: any): Promise<any> {
   return res.data;
 }
 
+export async function desbloquearUsuario(id: number): Promise<any> {
+  const res = await api.post(`/usuarios/${id}/desbloquear`);
+  return res.data;
+}
+
 export async function cambiarEstadoUsuario(
   id: number,
   activo: boolean
