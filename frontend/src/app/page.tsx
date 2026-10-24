@@ -337,7 +337,7 @@ export default function HomePage() {
               ref={portalRef}
               onMouseMove={inclinarPortal}
               onMouseLeave={enderezarPortal}
-              className="portal relative aspect-[3/4.1]"
+              className="portal relative aspect-[100/117]"
             >
               <span className="portal-aro-a absolute -inset-4 rounded-t-full border border-gold-400/70" />
               <span className="portal-aro-b absolute -inset-9 rounded-t-full border border-white/15" />
@@ -350,14 +350,26 @@ export default function HomePage() {
                       i === heroIndex ? 'opacity-100' : 'opacity-0'
                     }`}
                   >
+                    {/* Relleno desenfocado de la misma foto: llena el arco */}
                     <Image
                       src={img.src}
-                      alt={img.alt}
+                      alt=""
                       fill
-                      priority={i === 0}
+                      aria-hidden="true"
                       sizes="(min-width:1024px) 440px, 80vw"
-                      className={`object-cover ${i === heroIndex ? 'hero-zoom' : ''}`}
+                      className="object-cover scale-125 blur-2xl opacity-70"
                     />
+                    {/* La foto completa, sin recortar, en la parte baja del arco */}
+                    <div className="absolute inset-x-0 bottom-0 h-[57.5%] border-t-2 border-gold-400/80">
+                      <Image
+                        src={img.src}
+                        alt={img.alt}
+                        fill
+                        priority={i === 0}
+                        sizes="(min-width:1024px) 440px, 80vw"
+                        className={`object-contain ${i === heroIndex ? 'hero-zoom' : ''}`}
+                      />
+                    </div>
                   </div>
                 ))}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#071B45]/70 via-transparent to-transparent" />
@@ -459,7 +471,7 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 items-end">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3 sm:gap-4 items-end">
               {[
                 { num: '1,000+', label: 'Casos resueltos' },
                 { num: '10+', label: 'Años de experiencia' },
@@ -471,7 +483,7 @@ export default function HomePage() {
                     className="rounded-t-full rounded-b-2xl bg-gradient-to-b from-[#1B4AAE] via-[#144193] to-[#0A2A62] px-3 pb-6 text-center text-white ring-1 ring-gold-400/50 shadow-[0_28px_44px_-24px_rgba(11,39,89,0.8)]"
                     style={{ paddingTop: ['3.5rem', '5rem', '4.25rem', '6rem'][i] }}
                   >
-                    <div className="text-3xl sm:text-4xl font-extrabold text-gold-300 mb-1.5 tabular-nums" style={{ fontFamily: '"Jost Variable", system-ui, sans-serif' }}>
+                    <div className="text-3xl font-extrabold text-gold-300 mb-1.5 tabular-nums whitespace-nowrap" style={{ fontFamily: '"Jost Variable", system-ui, sans-serif' }}>
                       <CifraAnimada texto={stat.num} />
                     </div>
                     <div className="text-xs sm:text-sm text-blue-100 font-sans leading-snug">
@@ -487,7 +499,7 @@ export default function HomePage() {
 
       {/* MISION */}
       <div className="bg-white px-3 sm:px-6 py-2 sm:py-4">
-      <section id="misión" className="relative py-9 sm:py-14 bg-night overflow-hidden rounded-[1.75rem] sm:rounded-[2.5rem]">
+      <section id="misión" className="relative py-9 sm:py-14 bg-gradient-to-br from-[#0A2A62] via-[#144193] to-[#2358C9] overflow-hidden rounded-[1.75rem] sm:rounded-[2.5rem]">
         <div className="hero-float-a pointer-events-none absolute -top-32 -right-20 w-80 h-80 rounded-full border-[40px] border-white/[0.05]" />
         <div className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-[1fr_1px_1fr] gap-6 md:gap-12 items-start">
@@ -604,7 +616,7 @@ export default function HomePage() {
                     }}
                     className={`absolute inset-x-0 top-0 min-h-full p-4 sm:p-5 rounded-3xl border cursor-pointer transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-gold-400 ${
                       abierto
-                        ? 'z-20 bg-numa-900 border-gold-400/60 shadow-xl'
+                        ? 'z-20 bg-gradient-to-br from-[#144193] to-[#0A2A62] border-gold-400/60 shadow-xl'
                         : 'z-0 bg-white border-numa-100'
                     }`}
                   >
@@ -668,7 +680,7 @@ export default function HomePage() {
               </ul>
             </div>
 
-            <div className="reveal bezel"><div className="bg-numa-900 rounded-[1.6rem] p-10 sm:p-12 text-white shadow-soft inner-hl">
+            <div className="reveal bezel"><div className="bg-gradient-to-br from-[#0A2A62] via-[#144193] to-[#2358C9] rounded-[1.6rem] p-10 sm:p-12 text-white shadow-soft inner-hl">
               <h3 className="text-2xl font-bold mb-3">
                 ¿Necesita ayuda?
               </h3>
@@ -686,7 +698,7 @@ export default function HomePage() {
       </section>
 
       {/* SOLICITA TU ASESORÍA */}
-      <section id="contacto" className="relative overflow-hidden py-14 sm:py-20 bg-night">
+      <section id="contacto" className="relative overflow-hidden py-14 sm:py-20 bg-gradient-to-br from-[#0A2A62] via-[#144193] to-[#2358C9]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="reveal bezel"><div className="bg-white rounded-[1.6rem] shadow-soft inner-hl-light p-10 sm:p-14">
             <div className="flex justify-center mb-4">
@@ -742,7 +754,7 @@ export default function HomePage() {
                   href="https://www.google.com/maps/search/?api=1&query=-0.2527971%2C-79.1692147"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 self-start sm:self-auto px-5 py-2.5 bg-numa-900 text-white text-sm font-semibold rounded-full hover:bg-numa-800 btn-press whitespace-nowrap font-sans"
+                  className="inline-flex items-center gap-2 self-start sm:self-auto px-5 py-2.5 bg-[#144193] text-white text-sm font-semibold rounded-full hover:bg-[#1B4AAE] btn-press whitespace-nowrap font-sans"
                 >
                   <MapPin className="w-4 h-4 text-gold-400" />
                   Cómo llegar
