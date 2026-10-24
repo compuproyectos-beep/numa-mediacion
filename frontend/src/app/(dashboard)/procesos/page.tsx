@@ -889,10 +889,16 @@ export default function ProcesosPage() {
 
                   <p className="text-sm font-semibold text-numa-900 leading-snug">
                     {p.demandante}
+                    {p.demandante_cedula && (
+                      <span className="code-text text-[12px] font-normal text-numa-600"> ({p.demandante_cedula})</span>
+                    )}
                     {p.total_solicitantes > 1 && (
                       <span className="font-normal text-numa-600"> +{p.total_solicitantes - 1} más</span>
                     )}{' '}
                     <span className="font-normal text-numa-600">y</span> {p.demandado}
+                    {p.demandado_cedula && (
+                      <span className="code-text text-[12px] font-normal text-numa-600"> ({p.demandado_cedula})</span>
+                    )}
                     {p.total_invitados > 1 && (
                       <span className="font-normal text-numa-600"> +{p.total_invitados - 1} más</span>
                     )}
@@ -908,9 +914,6 @@ export default function ProcesosPage() {
                       {p.fecha_creacion
                         ? new Date(p.fecha_creacion).toLocaleDateString('es-EC')
                         : '—'}
-                    </span>
-                    <span className="code-text text-[11px] text-numa-600">
-                      {p.demandante_cedula || '—'} · {p.demandado_cedula || '—'}
                     </span>
                   </p>
                 </div>

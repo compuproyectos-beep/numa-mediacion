@@ -16,6 +16,7 @@ import {
 } from '@/lib/services';
 import { conActa, esNoAcuerdo, dinero, saldoPago, fechaDia } from '@/lib/actaProceso';
 import { hoyEcuador } from '@/lib/accionProceso';
+import { getUser } from '@/lib/auth';
 
 interface Props {
   proceso: any;
@@ -422,7 +423,10 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
       )}
 
       {/* Admin: suspender */}
-      {esAdmin && (etapa === 'falta_acta' || etapa === 'falta_firmada') && (
+      {/* Suspender sirve para liberar a un mediador bloqueado por este proceso;
+          el administrador nunca queda bloqueado, así que en sus propios
+          procesos no tiene sentido. */}
+      {esAdmin && proceso.usuario_id !== getUser()?.id && (etapa === 'falta_acta' || etapa === 'falta_firmada') && (
         <div>
           <button
             type="button"

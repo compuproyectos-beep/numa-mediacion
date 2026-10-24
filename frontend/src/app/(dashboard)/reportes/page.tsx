@@ -488,8 +488,8 @@ export default function ReportesPage() {
   // solo "no acuerdo" (así las etiquetas no se cortan).
   const parBarras = (k: string, v: { a: number; n: number }) => {
     const out: { label: string; valor: number; color?: string }[] = [];
-    if (v.a > 0) out.push({ label: k, valor: v.a, color: '#10B981' });
-    if (v.n > 0) out.push({ label: v.a > 0 ? '   ↳ no acuerdo' : `${k} (no acuerdo)`, valor: v.n, color: '#F59E0B' });
+    if (v.a > 0) out.push({ label: `${k} · de acuerdo`, valor: v.a, color: '#10B981' });
+    if (v.n > 0) out.push({ label: `${k} · de no acuerdo`, valor: v.n, color: '#F59E0B' });
     return out;
   };
   const gruposActas: { titulo: string; items: { label: string; valor: number; color?: string }[] }[] =
@@ -851,6 +851,12 @@ export default function ReportesPage() {
 {gruposActas.map((g) => (
             <div key={g.titulo} className="card px-3 py-2.5">
               <p className="text-xs font-semibold text-numa-700 mb-2 uppercase tracking-wide">{g.titulo}</p>
+              {g.titulo !== 'Acuerdo y no acuerdo' && (
+                <p className="text-[11px] text-numa-600 mb-2">
+                  Cada nombre tiene hasta dos barras: <span className="font-semibold text-emerald-700">verde</span> = actas de acuerdo,{' '}
+                  <span className="font-semibold text-amber-700">ámbar</span> = actas de no acuerdo (de ese mismo nombre).
+                </p>
+              )}
               <BarrasResumen items={g.items} />
             </div>
           ))}

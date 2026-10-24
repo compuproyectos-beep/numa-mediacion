@@ -206,7 +206,7 @@ const ciudadesFiltradas = ciudades.filter((c: any) => {
                   <th className="table-header table-cell-sticky !bg-numa-50">Nombre</th>
                   <th className="table-header">Provincia</th>
                   <th className="table-header">Prefijo</th>
-                  <th className="table-header">Acciones</th>
+                  <th className="table-header table-cell-sticky-right !bg-numa-50">Acciones</th>
                 </tr>
               </thead>
 
@@ -245,7 +245,7 @@ const ciudadesFiltradas = ciudades.filter((c: any) => {
                         )}
                       </td>
 
-                      <td className="table-cell">
+                      <td className="table-cell table-cell-sticky-right">
                         {admin && (
                           <button
                             onClick={() => openEdit(c)}

@@ -270,7 +270,7 @@ const handleCambiarEstado = async () => {
                   <th className="table-header">Dirección</th>
                   <th className="table-header">Teléfono</th>
                   <th className="table-header">Estado</th>
-                  <th className="table-header">Acciones</th>
+                  <th className="table-header table-cell-sticky-right !bg-numa-50">Acciones</th>
                 </tr>
               </thead>
 
@@ -325,7 +325,7 @@ const handleCambiarEstado = async () => {
                         </span>
                       </td>
 
-                      <td className="table-cell">
+                      <td className="table-cell table-cell-sticky-right">
                         {admin && (
                           <div className="flex gap-2">
                             <button

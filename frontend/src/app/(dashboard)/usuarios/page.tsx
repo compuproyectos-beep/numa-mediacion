@@ -385,7 +385,7 @@ export default function UsuariosPage() {
                   <th className="table-header">Ciudad</th>
                   <th className="table-header">Estado</th>
                   <th className="table-header">Fecha</th>
-                  {admin && <th className="table-header">Acciones</th>}
+                  {admin && <th className="table-header table-cell-sticky-right !bg-numa-50">Acciones</th>}
                 </tr>
               </thead>
 
@@ -465,7 +465,7 @@ export default function UsuariosPage() {
                     </td>
 
                     {admin && (
-                      <td className="table-cell">
+                      <td className="table-cell table-cell-sticky-right">
                         <div className="flex items-center gap-3">
                           <button
                             onClick={() => openEdit(u)}

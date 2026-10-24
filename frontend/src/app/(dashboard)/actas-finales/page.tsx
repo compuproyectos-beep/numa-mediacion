@@ -524,11 +524,11 @@ const handleExportarZip = async () => {
                   )}
                 </div>
 
-                <p className="text-[13px] text-numa-800">
+                <p className="text-[15px] font-medium text-numa-900">
                   {a.demandante} y {a.demandado}
                 </p>
 
-                <p className="text-[11px] text-numa-600">
+                <p className="text-[13px] text-numa-700">
                   {a.ciudad} · {a.sucursal} · Subido por: {a.usuario || '—'} · Fecha:{' '}
                   {a.fecha_subida
                     ? new Date(a.fecha_subida).toLocaleDateString('es-EC')
@@ -536,7 +536,7 @@ const handleExportarZip = async () => {
                 </p>
 
                 {a.fact_nombre && (
-                  <p className="text-[11px] text-numa-700">
+                  <p className="text-[13px] text-numa-800">
                     Facturar a: <span className="font-medium text-numa-700">{a.fact_nombre}</span>
                     {' · '}
                     {a.fact_tipo_identificacion === 'ruc'
@@ -549,7 +549,7 @@ const handleExportarZip = async () => {
                 )}
 
                 {(formatearPeso(a.tamano_bytes) || formatearPeso(a.tamano_comprobante_bytes)) && (
-                  <p className="text-[11px] text-numa-600">
+                  <p className="text-[13px] text-numa-700">
                     Peso — Acta: {formatearPeso(a.tamano_bytes) || '—'}
                     {a.ruta_comprobante_pago && (
                       <> · Comprobante: {formatearPeso(a.tamano_comprobante_bytes) || '—'}</>

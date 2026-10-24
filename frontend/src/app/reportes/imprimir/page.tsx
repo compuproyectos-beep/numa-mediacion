@@ -307,8 +307,8 @@ function ImprimirReporteContenido() {
 
   const parBarras = (k: string, v: { a: number; n: number }) => {
     const out: { label: string; valor: number; color?: string }[] = [];
-    if (v.a > 0) out.push({ label: k, valor: v.a, color: '#10B981' });
-    if (v.n > 0) out.push({ label: v.a > 0 ? '↳ no acuerdo' : `${k} (no acuerdo)`, valor: v.n, color: '#F59E0B' });
+    if (v.a > 0) out.push({ label: `${k} · de acuerdo`, valor: v.a, color: '#10B981' });
+    if (v.n > 0) out.push({ label: `${k} · de no acuerdo`, valor: v.n, color: '#F59E0B' });
     return out;
   };
 

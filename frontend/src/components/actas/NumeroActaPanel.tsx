@@ -227,14 +227,18 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
   };
 
   if (!datos) return null;
-  if (datos.pendientes.length === 0 && datos.anulados.length === 0) return null;
+  // Solo se listan los que ya pasaron el plazo de 48 horas; los que siguen
+  // dentro del plazo no necesitan atención del administrador todavía.
+  const vencidos = datos.pendientes.filter((n) => (n.dias ?? 0) >= 2);
+  const enPlazo = datos.pendientes.length - vencidos.length;
+  if (vencidos.length === 0 && enPlazo === 0 && datos.anulados.length === 0) return null;
 
   return (
     <div className="card px-5 py-4 mb-4 bg-white border border-slate-300 border-l-4 border-l-gold-500">
       <div className="flex items-center gap-2 mb-2">
         <Hash size={18} className="text-gold-700" />
         <p className="font-semibold text-slate-900">
-          Números de acta pedidos sin completar ({datos.pendientes.length})
+          Números de acta vencidos: pasaron 48 horas sin completar ({vencidos.length})
         </p>
       </div>
 
@@ -244,8 +248,14 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
         </div>
       )}
 
-      {datos.pendientes.length === 0 ? (
-        <p className="text-sm text-slate-900">Ningún mediador tiene un número pendiente.</p>
+      {enPlazo > 0 && (
+        <p className="text-sm text-slate-700 mb-2">
+          Hay {enPlazo} número{enPlazo === 1 ? '' : 's'} más dentro del plazo de 48 horas (no se muestran).
+        </p>
+      )}
+
+      {vencidos.length === 0 ? (
+        <p className="text-sm text-slate-900">Ningún mediador tiene un número vencido.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -260,7 +270,7 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
               </tr>
             </thead>
             <tbody>
-              {datos.pendientes.map((n) => (
+              {vencidos.map((n) => (
                 <tr key={n.id} className="border-t border-slate-200">
                   <td className="py-1.5 pr-3 font-mono font-semibold">
                     {n.codigo}
