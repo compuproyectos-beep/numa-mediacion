@@ -873,7 +873,19 @@ function ImprimirReporteContenido() {
                   datos.map((a: any) => (
                     <tr key={a.id} className="border-b border-numa-300">
                       <td className="py-1.5 pr-2 code-text whitespace-nowrap">{a.codigo_acta}</td>
-                      <td className="py-1.5 pr-2">{a.tipo === 'no_acuerdo' ? 'No acuerdo' : 'Acuerdo'}</td>
+                      <td className="py-1.5 pr-2">
+                        <span
+                          className="px-2 py-0.5 rounded-full text-[11px] font-semibold"
+                          style={{
+                            backgroundColor: a.tipo === 'no_acuerdo' ? '#FEF3C7' : '#D1FAE5',
+                            color: a.tipo === 'no_acuerdo' ? '#92400E' : '#065F46',
+                            WebkitPrintColorAdjust: 'exact',
+                            printColorAdjust: 'exact'
+                          }}
+                        >
+                          {a.tipo === 'no_acuerdo' ? 'No acuerdo' : 'Acuerdo'}
+                        </span>
+                      </td>
                       <td className="py-1.5 pr-2">{a.demandante}</td>
                       <td className="py-1.5 pr-2">{a.demandado}</td>
                       <td className="py-1.5 pr-2">{a.sucursal ? `${a.sucursal}${a.ciudad ? ` (${a.ciudad})` : ''}` : '—'}</td>
