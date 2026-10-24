@@ -20,6 +20,8 @@ const TITULOS_URGENTES = new Set([
   'Proceso suspendido',
   'Número de acta anulado',
   'Número de acta sin completar',
+  'Acta con plazo vencido',
+  'Cuenta bloqueada',
 ]);
 const TITULOS_DESTACADOS = new Set([
   'Nueva invitación asignada',
@@ -198,6 +200,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
     if (n?.referencia_tipo === 'cita' && n.referencia_id) {
       return { texto: 'Ir a la agenda', ruta: `/agenda?cita=${n.referencia_id}` };
+    }
+    if (n?.referencia_tipo === 'numero_acta') {
+      return { texto: 'Ir a Actas finales', ruta: '/actas-finales' };
     }
     return null;
   };

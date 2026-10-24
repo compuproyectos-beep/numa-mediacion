@@ -689,6 +689,18 @@ def iniciar_scheduler():
             coalesce=True,
         )
 
+    # Cada hora se revisa si algún número de acta cumplió sus 48 horas.
+    try:
+        _scheduler.add_job(
+            avisar_plazo_acta_vencido,
+            "interval",
+            hours=1,
+            misfire_grace_time=1800,
+            coalesce=True,
+        )
+    except Exception as e:
+        print("No se pudo programar el aviso de plazo vencido:", e)
+
     _scheduler.start()
 
     try:
@@ -911,6 +923,17 @@ def login(username: str = Form(...), password: str = Form(...)):
             if _registrar_intento_fallido(username):
                 registrar_auditoria(cur, user, "cuenta_bloqueada", "auth", user["id"],
                                     f"Se bloqueó el ingreso por {MAX_INTENTOS_LOGIN} contraseñas incorrectas seguidas. Bloqueo de {BLOQUEO_MINUTOS} minutos.")
+                # Los administradores se enteran: puede ser alguien que olvidó su
+                # clave o alguien tratando de entrar con una cuenta ajena.
+                cur.execute("SELECT id FROM usuarios WHERE rol = 'administrador' AND activo = true")
+                for _adm in cur.fetchall():
+                    crear_notificacion(
+                        cur, _adm["id"], "Cuenta bloqueada",
+                        f"La cuenta {user['email']} quedó bloqueada {BLOQUEO_MINUTOS} minutos por "
+                        f"{MAX_INTENTOS_LOGIN} contraseñas incorrectas seguidas. Si fue la propia persona, "
+                        f"puede volver a intentar pasado ese tiempo; si no, revisa la Auditoría.",
+                        "sistema"
+                    )
             conn.commit()
             raise HTTPException(status_code=401, detail="Contraseña incorrecta")
 
@@ -6686,6 +6709,51 @@ def reactivar_numero_acta(numero_id: int, usuario=Depends(obtener_usuario_actual
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=f"No se pudo reactivar el número: {e}")
+    finally:
+        cur.close()
+        conn.close()
+
+
+def avisar_plazo_acta_vencido():
+    """Una vez por número: cuando se cumplen las 48 horas de un número de acta
+    sin completar, se avisa al mediador (que desde ese momento no puede pedir
+    otro número ni cerrar procesos con acta). El administrador no se bloquea
+    y un proceso suspendido tampoco cuenta."""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT n.id, n.codigo, n.usuario_id, p.codigo_proceso
+            FROM numeros_acta n
+            JOIN usuarios u ON u.id = n.usuario_id
+            LEFT JOIN procesos_mediacion p ON p.id = n.proceso_id
+            WHERE n.estado = 'reservado'
+              AND u.rol = 'mediador'
+              AND n.fecha_solicitud < NOW() - INTERVAL '48 hours'
+              AND COALESCE(p.suspendido, false) = false
+              AND NOT EXISTS (
+                  SELECT 1 FROM notificaciones no
+                  WHERE no.usuario_id = n.usuario_id
+                    AND no.titulo = 'Acta con plazo vencido'
+                    AND no.referencia_tipo = 'numero_acta'
+                    AND no.referencia_id = n.id
+              )
+        """)
+        vencidos = cur.fetchall()
+        for r in vencidos:
+            crear_notificacion(
+                cur, r["usuario_id"], "Acta con plazo vencido",
+                f"El acta {r['codigo']}"
+                + (f" (proceso {r['codigo_proceso']})" if r["codigo_proceso"] else " (invitación rápida)")
+                + " ya pasó el plazo de 48 horas sin completarse. Mientras no la completes, "
+                "no podrás pedir otro número de acta ni cerrar otros procesos con acta. "
+                "Mira «Mis números de acta» en Actas Finales.",
+                "acta", "numero_acta", r["id"]
+            )
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print("No se pudo avisar los plazos de acta vencidos:", e)
     finally:
         cur.close()
         conn.close()
