@@ -232,6 +232,20 @@ export default function HomePage() {
   // no necesita traer la lista de sedes por su cuenta.)
   const [heroIndex, setHeroIndex] = useState(0);
 
+  // El arco de la portada se inclina muy poco siguiendo el mouse.
+  const portalRef = useRef<HTMLDivElement>(null);
+  const inclinarPortal = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = portalRef.current;
+    if (!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const r = el.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5;
+    const y = (e.clientY - r.top) / r.height - 0.5;
+    el.style.transform = `perspective(900px) rotateY(${x * 7}deg) rotateX(${-y * 5}deg)`;
+  };
+  const enderezarPortal = () => {
+    if (portalRef.current) portalRef.current.style.transform = '';
+  };
+
   // Título del beneficio desplegado (hover en escritorio, toque en
   // celular). Solo uno a la vez.
   const [beneficioAbierto, setBeneficioAbierto] = useState<string | null>(null);
@@ -268,7 +282,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white font-brand">
+    <div className="min-h-screen bg-white font-brand font-display-jost">
       <BarraProgreso />
       <PublicNavbar />
 
@@ -279,72 +293,96 @@ export default function HomePage() {
           Cada foto se ve COMPLETA (sin recortar) de fondo desenfocado de
           la misma foto, ampliada, rellena los bordes para que no queden
           franjas vacías — así no se pierde nada de la imagen original. */}
-      <section className="relative min-h-[560px] sm:min-h-[600px] lg:min-h-[640px] flex items-center overflow-hidden">
-        {/* Carrusel de fondo, a todo lo ancho y alto de la sección.
-            Tono oscuro neutro (no el azul intenso de numa-950) para que el
-            fondo no se sienta "muy azulado". */}
-        <div className="absolute inset-0 bg-[#0B141C]">
-          {heroImages.map((img, i) => (
-            <div
-              key={img.src}
-              className={`absolute inset-0 transition-opacity duration-1000 ${
-                i === heroIndex ? 'opacity-100' : 'opacity-0'
-              }`}
-            >
-              {/* Relleno desenfocado — ocupa todo el espacio */}
-              <Image
-                src={img.src}
-                alt=""
-                fill
-                aria-hidden="true"
-                sizes="100vw"
-                className="object-cover opacity-50 sm:scale-110 sm:blur-2xl sm:opacity-60"
-              />
+      <section className="relative min-h-[100svh] flex items-center overflow-hidden bg-[#071B45] text-white">
+        {/* Campo azul profundo con luz detrás del arco */}
+        <div className="absolute inset-0 bg-[radial-gradient(70%_75%_at_72%_42%,#2358C9_0%,#144193_40%,#071B45_78%)]" />
+        <div className="hero-float-a pointer-events-none absolute -bottom-40 -left-32 w-[520px] h-[520px] rounded-full border-[70px] border-white/[0.05]" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-gold-400 to-transparent z-10" />
 
-              {/* Foto completa, sin recortar — con un margen fijo para que
-                  no quede pegada al borde ni se sienta tan grande, aunque
-                  su proporción case casi exacto con la del banner. */}
-              <div className="hidden sm:block absolute inset-x-8 sm:inset-x-16 lg:inset-x-24 inset-y-10 sm:inset-y-14 lg:inset-y-16">
-                <Image
-                  src={img.src}
-                  alt={img.alt}
-                  fill
-                  priority={i === 0}
-                  sizes="100vw"
-                  className={`object-contain ${i === heroIndex ? 'hero-zoom' : ''}`}
-                />
+        <div className="relative z-10 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-32 sm:pt-40 pb-20 grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-14 lg:gap-8 items-center">
+          <div className="max-w-2xl">
+            <div className="hero-rise flex items-center gap-3 mb-7">
+              <div className="h-px w-14 bg-gold-400" />
+              <span className="text-gold-300 text-xs uppercase tracking-[0.3em] font-sans">
+                Desde 2010
+              </span>
+            </div>
+
+            <h1 className="hero-rise hero-d1 hero-titulo text-5xl sm:text-6xl lg:text-7xl text-white mb-7">
+              Centro de
+              <br />
+              <span className="text-gold-400">Mediación</span>
+              <br />
+              NUMA
+            </h1>
+
+            <p className="hero-rise hero-d2 text-lg sm:text-xl text-blue-100 leading-relaxed mb-10 max-w-[24rem]">
+              Promovemos el diálogo, la justicia y el entendimiento entre las
+              partes.
+            </p>
+
+            {/* Un solo botón — Acceso al Sistema y Sedes ya están en el
+                menú de arriba, no hace falta repetirlos aquí. */}
+            <a
+              href="#nosotros"
+              className="hero-rise hero-d3 btn-shine inline-flex items-center gap-3 pl-7 pr-2 py-2.5 bg-gold-400 text-numa-950 text-base font-bold rounded-full group hover:bg-gold-300 btn-press shadow-[0_18px_36px_-14px_rgba(224,184,74,0.95)]"
+            >
+              Conoce más <span className="btn-ico"><ArrowRight className="w-4 h-4" /></span>
+            </a>
+          </div>
+
+          {/* Portal en arco: el símbolo de la marca enmarca las fotos que rotan */}
+          <div className="hero-rise hero-d2 relative mx-auto w-[min(78vw,380px)] lg:w-[min(36vw,440px)]">
+            <div
+              ref={portalRef}
+              onMouseMove={inclinarPortal}
+              onMouseLeave={enderezarPortal}
+              className="portal relative aspect-[3/4.1]"
+            >
+              <span className="portal-aro-a absolute -inset-4 rounded-t-full border border-gold-400/70" />
+              <span className="portal-aro-b absolute -inset-9 rounded-t-full border border-white/15" />
+
+              <div className="relative h-full w-full overflow-hidden rounded-t-full rounded-b-[2rem] ring-4 ring-gold-400/90 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.8)] bg-[#0B141C]">
+                {heroImages.map((img, i) => (
+                  <div
+                    key={img.src}
+                    className={`absolute inset-0 transition-opacity duration-1000 ${
+                      i === heroIndex ? 'opacity-100' : 'opacity-0'
+                    }`}
+                  >
+                    <Image
+                      src={img.src}
+                      alt={img.alt}
+                      fill
+                      priority={i === 0}
+                      sizes="(min-width:1024px) 440px, 80vw"
+                      className={`object-cover ${i === heroIndex ? 'hero-zoom' : ''}`}
+                    />
+                  </div>
+                ))}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#071B45]/70 via-transparent to-transparent" />
+              </div>
+
+              {/* Indicadores del carrusel (el activo se va llenando hasta el siguiente cambio) */}
+              <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-2">
+                {heroImages.map((img, i) => (
+                  <button
+                    key={img.src}
+                    type="button"
+                    onClick={() => setHeroIndex(i)}
+                    aria-label={`Mostrar foto ${i + 1}`}
+                    className={`relative overflow-hidden h-1.5 rounded-full transition-all duration-500 ${
+                      i === heroIndex ? 'w-10 bg-white/30' : 'w-1.5 bg-white/60 hover:bg-white'
+                    }`}
+                  >
+                    {i === heroIndex && (
+                      <span key={heroIndex} className="hero-progress absolute inset-y-0 left-0 rounded-full bg-gold-400" />
+                    )}
+                  </button>
+                ))}
               </div>
             </div>
-          ))}
-
-          {/* Degradado leve, solo para que el texto de la izquierda se lea
-              bien — ya no oscurece toda la foto. Tono neutro, no azulado. */}
-          {/* En celular la foto va de fondo (sin recuadro encima del texto), así que se oscurece un poco más para que el título se lea. */}
-          <div className="absolute inset-0 bg-[#0B141C]/45 sm:hidden" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0B141C]/75 via-[#0B141C]/25 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0B141C]/60 via-transparent to-[#0B141C]/10" />
-        </div>
-
-        {/* Top line */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-numa-800 via-gold-500 to-numa-800 z-10" />
-
-        {/* Indicadores del carrusel (el activo se va llenando hasta el siguiente cambio) */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
-          {heroImages.map((img, i) => (
-            <button
-              key={img.src}
-              type="button"
-              onClick={() => setHeroIndex(i)}
-              aria-label={`Mostrar foto ${i + 1}`}
-              className={`relative overflow-hidden h-1.5 rounded-full transition-all duration-500 ${
-                i === heroIndex ? 'w-10 bg-white/30' : 'w-1.5 bg-white/60 hover:bg-white'
-              }`}
-            >
-              {i === heroIndex && (
-                <span key={heroIndex} className="hero-progress absolute inset-y-0 left-0 rounded-full bg-gold-400" />
-              )}
-            </button>
-          ))}
+          </div>
         </div>
 
         {/* Flecha que invita a bajar */}
@@ -355,50 +393,16 @@ export default function HomePage() {
         >
           <ChevronDown className="w-5 h-5 hero-bounce" />
         </a>
-
-        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-40 pb-20 w-full">
-          <div className="max-w-2xl">
-            <div className="hero-rise flex items-center gap-2 mb-6">
-              <div className="h-px w-12 bg-gold-500" />
-
-              <span className="text-gold-400 text-xs uppercase tracking-[0.3em] font-sans">
-                Desde 2010
-              </span>
-            </div>
-
-            <h1 className="hero-rise hero-d1 text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.08] mb-6">
-              Centro de
-              <br />
-              <span className="text-gold-400">Mediación</span>
-              <br />
-              NUMA
-            </h1>
-
-            <p className="hero-rise hero-d2 text-lg text-numa-100 leading-relaxed mb-8 max-w-[22rem]">
-              Promovemos el diálogo, la justicia y el entendimiento entre las
-              partes.
-            </p>
-
-            {/* Un solo botón — Acceso al Sistema y Sedes ya están en el
-                menú de arriba, no hace falta repetirlos aquí. */}
-            <a
-              href="#nosotros"
-              className="hero-rise hero-d3 btn-shine inline-flex items-center gap-3 pl-6 pr-2 py-2 shadow-[0_14px_28px_-12px_rgba(224,184,74,0.9)] bg-gold-400 text-numa-950 text-sm font-semibold rounded-full group hover:bg-gold-500 btn-press"
-            >
-              Conoce más <span className="btn-ico"><ArrowRight className="w-4 h-4" /></span>
-            </a>
-          </div>
-        </div>
       </section>
 
       {/* NUMA POMPILIO — símbolo histórico detrás del nombre del centro.
           Va justo debajo del banner de fotos (antes de "Quiénes somos"),
           como una franja informativa chica — no una sección a página
           completa — con la foto más reducida. */}
-      <section id="numa-pompilio" className="py-8 bg-numa-50 border-b border-numa-100">
+      <section id="numa-pompilio" className="py-10 sm:py-12 bg-[#E8EFFA] border-b border-numa-100">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 sm:grid-cols-[150px_1fr] gap-5 sm:gap-8 items-center">
-            <div className="relative mx-auto sm:mx-0 w-32 sm:w-full rounded-t-full rounded-b-2xl overflow-hidden shadow-xl border border-numa-200">
+          <div className="grid grid-cols-1 sm:grid-cols-[190px_1fr] gap-6 sm:gap-10 items-center">
+            <div className="relative mx-auto sm:mx-0 w-32 sm:w-full rounded-t-full rounded-b-2xl overflow-hidden shadow-[0_30px_50px_-24px_rgba(11,39,89,0.6)] ring-4 ring-gold-400/80">
               <Image
                 src="/images/numa-pompilio.jpg"
                 alt="Numa Pompilio, segundo rey de Roma, símbolo histórico de la mediación"
@@ -455,23 +459,25 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 items-end">
               {[
                 { num: '1,000+', label: 'Casos resueltos' },
                 { num: '10+', label: 'Años de experiencia' },
                 { num: '5', label: 'Sucursales activas' },
                 { num: '98%', label: 'Satisfacción de clientes' },
-              ].map((stat) => (
-                <div key={stat.label} className="reveal bezel stat-card">
-                <div className="bg-numa-900 rounded-[1.6rem] p-6 shadow-soft inner-hl">
-                  <div className="text-3xl font-bold text-gold-400 mb-1 tabular-nums">
-                    <CifraAnimada texto={stat.num} />
+              ].map((stat, i) => (
+                <div key={stat.label} className="reveal stat-card" style={{ transitionDelay: `${i * 90}ms` }}>
+                  <div
+                    className="rounded-t-full rounded-b-2xl bg-gradient-to-b from-[#1B4AAE] via-[#144193] to-[#0A2A62] px-3 pb-6 text-center text-white ring-1 ring-gold-400/50 shadow-[0_28px_44px_-24px_rgba(11,39,89,0.8)]"
+                    style={{ paddingTop: ['3.5rem', '5rem', '4.25rem', '6rem'][i] }}
+                  >
+                    <div className="text-3xl sm:text-4xl font-extrabold text-gold-300 mb-1.5 tabular-nums" style={{ fontFamily: '"Jost Variable", system-ui, sans-serif' }}>
+                      <CifraAnimada texto={stat.num} />
+                    </div>
+                    <div className="text-xs sm:text-sm text-blue-100 font-sans leading-snug">
+                      {stat.label}
+                    </div>
                   </div>
-
-                  <div className="text-sm text-numa-200 font-sans">
-                    {stat.label}
-                  </div>
-                </div>
                 </div>
               ))}
             </div>
@@ -532,11 +538,11 @@ export default function HomePage() {
               <div
                 key={titulo}
                 className="reveal group valor-card"
-                style={{ transitionDelay: `${idx * 70}ms` }}
+                style={{ transitionDelay: `${idx * 70}ms`, marginTop: idx % 2 ? "1.5rem" : undefined }}
               >
                 
-                <div className="w-10 h-12 sm:w-12 sm:h-14 rounded-t-full rounded-b-xl bg-numa-900 group-hover:bg-numa-800 flex items-center justify-center mb-3 sm:mb-5 transition-colors duration-300">
-                  <Icon className="w-5 h-5 text-gold-400" />
+                <div className="w-14 h-[4.5rem] sm:w-16 sm:h-20 rounded-t-full rounded-b-2xl bg-gradient-to-b from-[#1B4AAE] to-[#0A2A62] ring-2 ring-gold-400/70 flex items-center justify-center mb-4 sm:mb-6 shadow-[0_18px_30px_-16px_rgba(11,39,89,0.8)]">
+                  <Icon className="w-6 h-6 text-gold-300" />
                 </div>
                 <h3 className="text-base sm:text-xl font-bold text-numa-900 mb-1.5 sm:mb-2">{titulo}</h3>
                 <p className="text-[13px] sm:text-sm text-numa-700 leading-relaxed font-sans">{desc}</p>
@@ -649,7 +655,7 @@ export default function HomePage() {
                 Nuestros Servicios
               </h2>
 
-              <ul className="space-y-3">
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {servicios.map((s) => (
                   <li key={s} className="servicio-item flex items-center gap-3">
                     <CheckCircle className="w-5 h-5 text-gold-500 shrink-0" />
