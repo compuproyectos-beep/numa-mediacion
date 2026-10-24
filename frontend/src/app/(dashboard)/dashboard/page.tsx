@@ -380,32 +380,32 @@ export default function DashboardPage() {
 
   return (
     <>
-      <section className="hero-banner relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0A2A62] via-[#144193] to-[#2358C9] px-6 sm:px-10 pt-8 pb-24 text-white shadow-[0_28px_48px_-28px_rgba(11,39,89,.75)]">
+      <section className="hero-banner relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0A2A62] via-[#144193] to-[#2358C9] px-6 sm:px-8 pt-5 pb-14 text-white shadow-[0_28px_48px_-28px_rgba(11,39,89,.75)]">
         <div className="hero-float-a pointer-events-none absolute -top-40 -right-16 w-[420px] h-[420px] rounded-full border-[56px] border-white/10" />
         <div className="hero-float-b pointer-events-none absolute -bottom-40 right-40 w-[340px] h-[340px] rounded-full border-[44px] border-white/[0.08]" />
 
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-gold-300">{fechaLarga()}</p>
-            <h1 className="mt-3 text-3xl sm:text-5xl font-extrabold tracking-tight leading-[1.05]">
+            <h1 className="mt-1.5 text-2xl sm:text-4xl font-extrabold tracking-tight leading-[1.05]">
               {saludoSegunHora()}, {String(user?.nombre || '').split(' ')[0] || 'bienvenido'}.
             </h1>
-            <p className="mt-3 text-base text-blue-100 max-w-xl">
+            <p className="mt-1.5 text-sm sm:text-base text-blue-100 max-w-xl">
               {isAdmin
                 ? 'Resumen práctico del sistema. Lo que toca hoy está justo debajo.'
                 : `${user?.sucursal || 'Sucursal'} · ${user?.ciudad || 'Ciudad'}. Lo que toca hoy está justo debajo.`}
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-4 flex flex-wrap gap-2.5">
               <Link
                 href="/agenda"
-                className="inline-flex items-center gap-2 rounded-xl bg-gold-400 px-5 py-3 text-sm font-bold text-numa-950 shadow-[0_10px_22px_-10px_rgba(224,184,74,.9)] transition hover:bg-gold-300 active:scale-[0.97]"
+                className="inline-flex items-center gap-2 rounded-xl bg-gold-400 px-4 py-2 text-sm font-bold text-numa-950 shadow-[0_10px_22px_-10px_rgba(224,184,74,.9)] transition hover:bg-gold-300 active:scale-[0.97]"
               >
                 Ir a la agenda
               </Link>
               <button
                 type="button"
                 onClick={mostrarGuia ? cerrarGuia : abrirGuia}
-                className="rounded-xl border border-white/30 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/20 active:scale-[0.97]"
+                className="rounded-xl border border-white/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20 active:scale-[0.97]"
               >
                 ¿Cómo funciona?
               </button>
@@ -444,14 +444,9 @@ export default function DashboardPage() {
         <Spinner />
       ) : stats ? (
         <div className="space-y-4 animate-fade-in">
-          {isAdmin && <AlertaActasAtrasadas />}
-
-          {/* Lo que toca hoy (mediador y administrador), antes que las cifras. */}
-          <MiDia esAdmin={isAdmin} miId={user?.id} vista={vista} />
-
           {/* Las cajas van directo sobre el fondo de la página: sus colores
               suaves ya las distinguen, sin franja detrás. */}
-          <div className="relative -mt-16 sm:-mt-20 mx-2 sm:mx-6 grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
+          <div className="relative -mt-9 sm:-mt-10 mx-2 sm:mx-6 grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
             {(
               [
                 ['actas_acuerdo', stats.actas_acuerdo ?? 0, stats.actas_acuerdo === 1 ? 'acta de acuerdo' : 'actas de acuerdo', FileCheck],
@@ -476,6 +471,11 @@ export default function DashboardPage() {
               />
             ))}
           </div>
+
+          {isAdmin && <AlertaActasAtrasadas />}
+
+          {/* Lo que toca hoy (mediador y administrador), antes que las cifras. */}
+          <MiDia esAdmin={isAdmin} miId={user?.id} vista={vista} />
 
           {/* Panel que se despliega al hacer clic en una de las tarjetas de
               arriba: muestra los procesos (o actas) de esa categoría, cada
