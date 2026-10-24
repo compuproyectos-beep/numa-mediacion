@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { CalendarPlus, FileText, Users } from 'lucide-react';
 import {
   PageHeader,
@@ -23,7 +23,24 @@ import {
 } from '@/lib/services';
 import { useAuth } from '@/hooks/useAuth';
 
+// Si ya estás en la Agenda y abres otra invitación desde una notificación,
+// la dirección solo cambia en sus parámetros (?cita=…&mediador=…) y la pantalla
+// no se vuelve a armar sola: se quedaba mostrando la invitación anterior. La
+// clave obliga a reiniciarla cada vez que cambia la invitación o el mediador.
 export default function AgendaPage() {
+  return (
+    <Suspense fallback={null}>
+      <AgendaConClave />
+    </Suspense>
+  );
+}
+
+function AgendaConClave() {
+  const sp = useSearchParams();
+  return <AgendaContenido key={`${sp?.get('cita') || ''}-${sp?.get('mediador') || ''}`} />;
+}
+
+function AgendaContenido() {
   const router = useRouter();
   const { user, isAdmin, isLoading: loadingUser } = useAuth();
   // La secretaria agenda para los mediadores de su sucursal (llama a uno,

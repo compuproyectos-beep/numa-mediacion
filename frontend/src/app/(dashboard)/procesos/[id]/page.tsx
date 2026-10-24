@@ -96,7 +96,14 @@ function fechaLargaEC(iso: string): string {
   });
 }
 
+// Al pasar de un proceso a otro (por ejemplo desde una notificación) la pantalla
+// se reinicia, para que no queden datos ni formularios abiertos del anterior.
 export default function ProcesoDetallePage() {
+  const { id } = useParams();
+  return <ProcesoDetalleContenido key={String(id)} />;
+}
+
+function ProcesoDetalleContenido() {
   const params = useParams();
   const router = useRouter();
   // "Volver" regresa a la pantalla de donde vino la persona (Actas finales, Agenda, etc.); si no hay historial, va a Procesos.
