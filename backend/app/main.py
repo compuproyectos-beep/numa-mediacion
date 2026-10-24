@@ -754,6 +754,21 @@ def obtener_notificaciones(usuario=Depends(obtener_usuario_actual)):
         conn.close()
 
 
+@app.get("/notificaciones/no-leidas")
+def contar_notificaciones_no_leidas(usuario=Depends(obtener_usuario_actual)):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute(
+            "SELECT COUNT(*) AS total FROM notificaciones WHERE usuario_id = %s AND leida = false",
+            (usuario["id"],),
+        )
+        return {"total": cur.fetchone()["total"]}
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.put("/notificaciones/{notificacion_id}/leer")
 def marcar_notificacion_leida(
     notificacion_id: int,
@@ -929,11 +944,22 @@ def login(username: str = Form(...), password: str = Form(...)):
                                     f"Se bloqueó el ingreso por {MAX_INTENTOS_LOGIN} contraseñas incorrectas seguidas. Bloqueo de {BLOQUEO_MINUTOS} minutos.")
                 # Los administradores se enteran: puede ser alguien que olvidó su
                 # clave o alguien tratando de entrar con una cuenta ajena.
+                cur.execute("""
+                    SELECT u.nombre, u.apellido, u.rol, s.nombre AS sucursal, ci.nombre AS ciudad
+                    FROM usuarios u
+                    LEFT JOIN sucursales s ON s.id = u.sucursal_id
+                    LEFT JOIN ciudades ci ON ci.id = s.ciudad_id
+                    WHERE u.id = %s
+                """, (user["id"],))
+                _det = cur.fetchone() or {}
+                _quien = f"{(_det.get('nombre') or '').strip()} {(_det.get('apellido') or '').strip()}".strip()
+                _rol = (_det.get("rol") or user["rol"] or "").capitalize()
+                _donde = f"{_det['sucursal']}" + (f" · {_det['ciudad']}" if _det.get("ciudad") else "") if _det.get("sucursal") else "sin sucursal"
                 cur.execute("SELECT id FROM usuarios WHERE rol = 'administrador' AND activo = true")
                 for _adm in cur.fetchall():
                     crear_notificacion(
                         cur, _adm["id"], "Cuenta bloqueada",
-                        f"La cuenta {user['email']} quedó bloqueada {BLOQUEO_MINUTOS} minutos por "
+                        f"{_quien or 'Usuario'} ({_rol}, sucursal {_donde}) — cuenta {user['email']} — quedó bloqueada {BLOQUEO_MINUTOS} minutos por "
                         f"{MAX_INTENTOS_LOGIN} contraseñas incorrectas seguidas. Si fue la propia persona, "
                         f"puede volver a intentar pasado ese tiempo; si no, revisa la Auditoría.",
                         "sistema"

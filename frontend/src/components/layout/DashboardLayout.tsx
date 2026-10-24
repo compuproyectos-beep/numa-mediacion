@@ -8,6 +8,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import { getToken, getUser } from '@/lib/auth';
 import {
   getNotificaciones,
+  getTotalNoLeidas,
   marcarNotificacionLeida,
   marcarTodasNotificacionesLeidas,
 } from '@/lib/services';
@@ -55,6 +56,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Notificación abierta en la ventana de detalle, avisos emergentes en
   // pantalla y los ids ya vistos (para avisar solo lo que llega nuevo).
   const [detalle, setDetalle] = useState<any | null>(null);
+  // Total real de sin leer (la lista trae solo las 50 más recientes).
+  const [totalNoLeidas, setTotalNoLeidas] = useState<number | null>(null);
   const [avisos, setAvisos] = useState<any[]>([]);
   const idsVistos = useRef<Set<number> | null>(null);
   const tituloBase = useRef<string>('');
@@ -111,6 +114,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     try {
       const data = await getNotificaciones();
       setNotificaciones(data);
+      getTotalNoLeidas().then(setTotalNoLeidas).catch(() => {});
 
       // Lo que llega nuevo y es "destacado" sale como tarjeta emergente. La
       // primera carga solo registra lo que ya existía, sin avisar.
@@ -124,7 +128,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (aMostrar.length > 0) {
           setAvisos((prev) => [...prev, ...aMostrar].slice(-3));
           aMostrar.forEach((n: any) => {
-            setTimeout(() => setAvisos((prev) => prev.filter((x) => x.id !== n.id)), 10000);
+            setTimeout(() => setAvisos((prev) => prev.filter((x) => x.id !== n.id)), 30000);
           });
         }
       }
@@ -172,7 +176,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [open]);
 
   // Número de notificaciones sin leer en el título de la pestaña: "(3) SIGM".
-  const sinLeerTitulo = notificaciones.filter((n) => !n.leida).length;
+  const sinLeerLista = notificaciones.filter((n) => !n.leida).length;
+  const sinLeerTitulo = Math.max(totalNoLeidas ?? 0, sinLeerLista);
   useEffect(() => {
     if (typeof document === 'undefined') return;
 
@@ -194,7 +199,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (checkingAuth || !hasToken) return null;
 
-  const noLeidas = notificaciones.filter((n) => !n.leida).length;
+  const noLeidas = sinLeerTitulo;
   const urgentes = notificaciones.filter((n) => !n.leida && esUrgente(n));
 
   // Al tocar una notificación se abre su detalle (y queda leída); desde ahí
@@ -223,7 +228,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   const marcarUna = async (id: number) => {
+    const yaLeida = notificaciones.find((n) => n.id === id)?.leida;
     await marcarNotificacionLeida(id);
+    if (!yaLeida) setTotalNoLeidas((t) => (t === null ? t : Math.max(0, t - 1)));
 
     setNotificaciones((prev) =>
       prev.map((n) => (n.id === id ? { ...n, leida: true } : n))
@@ -232,6 +239,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const marcarTodas = async () => {
     await marcarTodasNotificacionesLeidas();
+    setTotalNoLeidas(0);
 
     setNotificaciones((prev) =>
       prev.map((n) => ({ ...n, leida: true }))

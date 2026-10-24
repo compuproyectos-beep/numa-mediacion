@@ -422,6 +422,11 @@ export async function getNotificaciones(): Promise<any[]> {
   return res.data;
 }
 
+export async function getTotalNoLeidas(): Promise<number> {
+  const res = await api.get('/notificaciones/no-leidas');
+  return res.data.total;
+}
+
 export async function marcarNotificacionLeida(id: number): Promise<any> {
   const res = await api.put(`/notificaciones/${id}/leer`);
   return res.data;
