@@ -297,7 +297,7 @@ export default function HomePage() {
         {/* Carrusel de fondo, a todo lo ancho y alto de la sección.
             Tono oscuro neutro (no el azul intenso de numa-950) para que el
             fondo no se sienta "muy azulado". */}
-        <div className="absolute inset-0 bg-[#0B141C]">
+        <div className="absolute inset-0 bg-[#144193]">
           {heroImages.map((img, i) => (
             <div
               key={img.src}
@@ -312,7 +312,7 @@ export default function HomePage() {
                 fill
                 aria-hidden="true"
                 sizes="100vw"
-                className="object-cover opacity-50 sm:scale-110 sm:blur-2xl sm:opacity-60"
+                className="object-cover opacity-70 saturate-150 sm:scale-110 sm:blur-2xl sm:opacity-85"
               />
 
               {/* Foto completa, sin recortar — con un margen fijo para que
@@ -325,7 +325,7 @@ export default function HomePage() {
                   fill
                   priority={i === 0}
                   sizes="100vw"
-                  className="object-contain"
+                  className="object-contain saturate-[1.35] contrast-105 brightness-110"
                 />
               </div>
             </div>
@@ -334,9 +334,9 @@ export default function HomePage() {
           {/* Degradado leve, solo para que el texto de la izquierda se lea
               bien — ya no oscurece toda la foto. Tono neutro, no azulado. */}
           {/* En celular la foto va de fondo (sin recuadro encima del texto), así que se oscurece un poco más para que el título se lea. */}
-          <div className="absolute inset-0 bg-[#0B141C]/45 sm:hidden" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0B141C]/75 via-[#0B141C]/25 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0B141C]/60 via-transparent to-[#0B141C]/10" />
+          <div className="absolute inset-0 bg-[#0A2A62]/30 sm:hidden" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0A2A62]/80 via-[#144193]/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0A2A62]/45 via-transparent to-transparent" />
         </div>
 
         {/* Top line */}
