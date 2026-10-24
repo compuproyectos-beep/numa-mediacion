@@ -195,13 +195,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   const destinoDe = (n: any): { texto: string; ruta: string } | null => {
-    if (n?.referencia_tipo === 'proceso_mediacion' && n.referencia_id) {
+    // La secretaria solo entra a Agenda y Clientes: a lo demás no la llevamos
+    // (la pantalla la regresaría a la Agenda sin explicación).
+    const esSecretariaActual = getUser()?.rol === 'secretaria';
+    if (!esSecretariaActual && n?.referencia_tipo === 'proceso_mediacion' && n.referencia_id) {
       return { texto: 'Ir al proceso', ruta: `/procesos/${n.referencia_id}` };
     }
     if (n?.referencia_tipo === 'cita' && n.referencia_id) {
       return { texto: 'Ir a la agenda', ruta: `/agenda?cita=${n.referencia_id}${n.cita_usuario_id ? `&mediador=${n.cita_usuario_id}` : ''}` };
     }
-    if (n?.referencia_tipo === 'numero_acta') {
+    if (!esSecretariaActual && n?.referencia_tipo === 'numero_acta') {
       return { texto: 'Ir a Actas finales', ruta: '/actas-finales' };
     }
     return null;
