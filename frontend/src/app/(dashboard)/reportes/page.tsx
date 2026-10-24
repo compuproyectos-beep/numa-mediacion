@@ -527,7 +527,11 @@ export default function ReportesPage() {
                 }
               ]
             : [])
-        ].filter((g) => g.items.length > 0)
+        ]
+          // "Actas por mes" solo aporta algo si hay más de un mes; con un solo
+          // mes repetiría exactamente el gráfico de acuerdo / no acuerdo.
+          .filter((g) => g.titulo !== 'Actas por mes' || barrasActasPor((a) => mesDeActa(a.fecha_subida)).length > 1)
+          .filter((g) => g.items.length > 0)
       : [];
 
   const barrasActas: { label: string; valor: number; color?: string }[] | null =
