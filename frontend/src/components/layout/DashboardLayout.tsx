@@ -175,9 +175,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const sinLeerTitulo = notificaciones.filter((n) => !n.leida).length;
   useEffect(() => {
     if (typeof document === 'undefined') return;
-    const actual = document.title.replace(/^\(\d+\)\s*/, '');
-    if (actual) tituloBase.current = actual;
-    document.title = sinLeerTitulo > 0 ? `(${sinLeerTitulo}) ${tituloBase.current}` : tituloBase.current;
+
+    const poner = () => {
+      const actual = document.title.replace(/^\(\d+\)\s*/, '');
+      if (actual) tituloBase.current = actual;
+      const deseado = sinLeerTitulo > 0 ? `(${sinLeerTitulo}) ${tituloBase.current}` : tituloBase.current;
+      if (document.title !== deseado) document.title = deseado;
+    };
+    poner();
+
+    // Next.js vuelve a escribir el título al cambiar de dirección (por ejemplo
+    // al abrir otra invitación en la Agenda) y borraba el número: se vuelve a poner.
+    const el = document.querySelector('title');
+    const observador = el ? new MutationObserver(poner) : null;
+    if (el && observador) observador.observe(el, { childList: true, characterData: true, subtree: true });
+    return () => observador?.disconnect();
   }, [sinLeerTitulo, pathname]);
 
   if (checkingAuth || !hasToken) return null;
