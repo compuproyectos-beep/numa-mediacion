@@ -6861,6 +6861,7 @@ def avisar_numeros_pendientes():
             SELECT n.id, n.codigo, u.nombre || ' ' || u.apellido AS mediador
             FROM numeros_acta n JOIN usuarios u ON u.id = n.usuario_id
             WHERE n.estado = 'reservado' AND n.aviso_fecha IS NULL
+              AND u.rol = 'mediador'
               AND n.fecha_solicitud < NOW() - INTERVAL '5 days'
         """)
         pendientes = cur.fetchall()
