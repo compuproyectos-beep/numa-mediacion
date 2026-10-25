@@ -63,20 +63,25 @@ function RestablecerPasswordForm() {
   };
 
   return (
-    <div className="relative min-h-screen bg-white flex items-center justify-center px-6 py-12 overflow-hidden">
-      <div className="absolute -bottom-40 -left-24 w-96 h-96 bg-numa-50 rounded-full blur-3xl opacity-90" />
-      <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-gold-400/10 rounded-full blur-3xl" />
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-numa-800 via-gold-500 to-numa-800" />
+    <div className="relative min-h-screen bg-gradient-to-br from-[#0A2A62] via-[#144193] to-[#2358C9] flex items-center justify-center px-6 py-8 overflow-hidden font-brand font-display-jost font-todo-jost">
+      <div className="hero-float-a pointer-events-none absolute -top-44 -right-24 w-[520px] h-[520px] rounded-full border-[70px] border-white/10" />
+      <div className="hero-float-b pointer-events-none absolute -bottom-48 -left-20 w-[460px] h-[460px] rounded-full border-[56px] border-white/[0.08]" />
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-gold-400 to-transparent" />
 
       <div className="relative w-full max-w-md">
-        <div className="bg-white border border-numa-200 shadow-2xl rounded-3xl p-10">
+        <div className="flex justify-center mb-5">
+          <Link href="/login" title="Ir al inicio de sesión" className="inline-flex bg-numa-950 rounded-xl p-2 border border-gold-500/30 shadow-xl hover:opacity-90 transition-opacity">
+            <img src="/images/logo-numa-oscuro.jpg" alt="NUMA Centro de Mediación" className="w-24 object-contain rounded-md" />
+          </Link>
+        </div>
+        <div className="tile-in bg-white border border-numa-100 border-t-4 border-t-gold-400 shadow-[0_30px_60px_-30px_rgba(3,12,35,0.7)] rounded-3xl p-8 sm:p-9">
           {!token ? (
             <div className="text-center">
               <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
                 <AlertCircle className="w-7 h-7 text-red-600" />
               </div>
 
-              <h2 className="text-2xl font-bold text-numa-900 mb-3">
+              <h2 className="text-2xl font-extrabold text-numa-900 mb-3">
                 Enlace inválido
               </h2>
 
@@ -90,7 +95,7 @@ function RestablecerPasswordForm() {
                 <CheckCircle className="w-7 h-7 text-green-600" />
               </div>
 
-              <h2 className="text-2xl font-bold text-numa-900 mb-3">
+              <h2 className="text-2xl font-extrabold text-numa-900 mb-3">
                 ¡Contraseña actualizada!
               </h2>
 
@@ -101,8 +106,8 @@ function RestablecerPasswordForm() {
             </div>
           ) : (
             <>
-              <div className="mb-8 text-center">
-                <h2 className="text-2xl font-bold text-numa-900 mb-2">
+              <div className="mb-6 text-center">
+                <h2 className="text-2xl font-extrabold text-numa-900 mb-2">
                   Establece tu contraseña
                 </h2>
 
@@ -161,7 +166,7 @@ function RestablecerPasswordForm() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-12 rounded-xl bg-gradient-to-r from-gold-400 to-yellow-500 hover:from-gold-500 hover:to-yellow-600 text-numa-950 font-semibold transition shadow-lg disabled:opacity-60"
+                  className="w-full h-12 rounded-xl bg-gold-400 hover:bg-gold-500 text-numa-950 font-bold transition shadow-[0_12px_24px_-12px_rgba(201,154,46,0.95)] hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-60 disabled:hover:translate-y-0"
                 >
                   {isLoading ? 'Guardando...' : 'Guardar contraseña'}
                 </button>
@@ -169,10 +174,10 @@ function RestablecerPasswordForm() {
             </>
           )}
 
-          <div className="mt-8 pt-6 border-t border-numa-100">
+          <div className="mt-6 pt-5 border-t border-numa-100">
             <Link
               href="/login"
-              className="flex items-center justify-center gap-2 text-sm font-semibold text-numa-800 hover:text-gold-600 border border-numa-200 hover:border-gold-400 hover:bg-gold-50 rounded-lg py-2.5 transition-colors"
+              className="flex items-center justify-center gap-2 text-sm font-bold text-white bg-[#144193] hover:bg-[#1B4AAE] shadow-[0_12px_24px_-14px_rgba(10,42,98,0.9)] rounded-xl py-2.5 transition hover:-translate-y-0.5 active:scale-[0.98]"
             >
               <ArrowLeft className="w-4 h-4" />
               Volver al inicio de sesión
