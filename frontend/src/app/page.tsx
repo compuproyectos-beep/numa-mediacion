@@ -411,7 +411,7 @@ export default function HomePage() {
 
             <div className="text-center sm:text-left">
               <div className="flex justify-center sm:justify-start mb-2">
-                <span className="inline-block rounded-full border border-gold-400/40 bg-gold-400/10 px-3.5 py-1 text-[11px] uppercase tracking-[0.2em] text-gold-600 font-sans">El origen de nuestro nombre</span>
+                <span className="inline-block rounded-full border border-gold-400 bg-[#144193] px-4 py-1.5 text-xs sm:text-[13px] font-bold uppercase tracking-[0.18em] text-gold-300 shadow-[0_8px_18px_-10px_rgba(10,42,98,0.8)] font-sans">El origen de nuestro nombre</span>
               </div>
 
               <h2 className="text-xl sm:text-2xl font-bold text-numa-900 mb-2 leading-tight">
@@ -437,7 +437,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 items-center">
             <div>
               <div className="flex mb-4">
-                <span className="inline-block rounded-full border border-gold-400/40 bg-gold-400/10 px-3.5 py-1 text-[11px] uppercase tracking-[0.2em] text-gold-600 font-sans">Quiénes Somos</span>
+                <span className="inline-block rounded-full border border-gold-400 bg-[#144193] px-4 py-1.5 text-xs sm:text-[13px] font-bold uppercase tracking-[0.18em] text-gold-300 shadow-[0_8px_18px_-10px_rgba(10,42,98,0.8)] font-sans">Quiénes Somos</span>
               </div>
 
               <h2 className="title-accent text-3xl sm:text-4xl font-bold text-numa-900 mb-6 leading-tight">
@@ -555,7 +555,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8 sm:mb-7">
             <div className="flex justify-center mb-4">
-                <span className="inline-block rounded-full border border-gold-400/40 bg-gold-400/10 px-3.5 py-1 text-[11px] uppercase tracking-[0.2em] text-gold-600 font-sans">¿Por qué mediar?</span>
+                <span className="inline-block rounded-full border border-gold-400 bg-[#144193] px-4 py-1.5 text-xs sm:text-[13px] font-bold uppercase tracking-[0.18em] text-gold-300 shadow-[0_8px_18px_-10px_rgba(10,42,98,0.8)] font-sans">¿Por qué mediar?</span>
               </div>
 
             <h2 className="title-accent title-accent-center text-3xl sm:text-4xl font-bold text-numa-900">
@@ -687,7 +687,7 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="reveal bezel"><div className="bg-white rounded-[1.6rem] shadow-soft inner-hl-light p-10 sm:p-14">
             <div className="flex justify-center mb-4">
-                <span className="inline-block rounded-full border border-gold-400/40 bg-gold-400/10 px-3.5 py-1 text-[11px] uppercase tracking-[0.2em] text-gold-600 font-sans">¿Tienes un conflicto que resolver?</span>
+                <span className="inline-block rounded-full border border-gold-400 bg-[#144193] px-4 py-1.5 text-xs sm:text-[13px] font-bold uppercase tracking-[0.18em] text-gold-300 shadow-[0_8px_18px_-10px_rgba(10,42,98,0.8)] font-sans">¿Tienes un conflicto que resolver?</span>
               </div>
 
             <h2 className="title-accent title-accent-center text-3xl sm:text-4xl font-bold text-numa-900 mb-6">
@@ -776,7 +776,7 @@ export default function HomePage() {
 
           <Link
             href="/login"
-            className="inline-flex items-center gap-3 pl-8 pr-2.5 py-2.5 group bg-numa-950 text-white text-sm font-semibold rounded-full hover:bg-numa-800 btn-press"
+            className="inline-flex items-center gap-3 pl-8 pr-2.5 py-2.5 group bg-[#144193] text-white text-sm font-bold rounded-full shadow-[0_14px_28px_-12px_rgba(10,42,98,0.9)] hover:bg-[#1B4AAE] btn-press"
           >
             Acceso al Sistema <span className="btn-ico btn-ico-light"><ArrowRight className="w-4 h-4" /></span>
           </Link>
