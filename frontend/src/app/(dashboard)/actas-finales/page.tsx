@@ -318,6 +318,11 @@ const handleExportarZip = async () => {
       <NumeroActaPanel esAdmin={isAdmin} />
 
       <div className="card px-3 py-2.5 mb-3">
+        {isAdmin && (
+          <p className="text-sm text-slate-700 mb-2">
+            Aquí puedes ver todas las actas finales. Para ver solo las tuyas o las de otro mediador, elígelo en el filtro <span className="font-semibold">Mediador</span>.
+          </p>
+        )}
         <form
           onSubmit={(e) => {
             e.preventDefault();

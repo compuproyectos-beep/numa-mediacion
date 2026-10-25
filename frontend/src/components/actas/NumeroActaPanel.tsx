@@ -34,8 +34,13 @@ export default function NumeroActaPanel({ esAdmin }: { esAdmin: boolean }) {
   const refrescar = () => setVersion((v) => v + 1);
   return (
     <>
-      <PanelMediador version={version} onCambio={refrescar} />
-      {esAdmin && <PanelAdmin version={version} onCambio={refrescar} />}
+      {/* El administrador ve un solo cuadro (vencidos de todos, incluidos los suyos);
+          los mediadores, el suyo. Así no se repite la misma información. */}
+      {esAdmin ? (
+        <PanelAdmin version={version} onCambio={refrescar} />
+      ) : (
+        <PanelMediador version={version} onCambio={refrescar} />
+      )}
     </>
   );
 }
@@ -182,6 +187,8 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
   const [verAnulados, setVerAnulados] = useState(false);
   const [reactivar, setReactivar] = useState<any | null>(null);
   const [reactivando, setReactivando] = useState(false);
+  const [propios, setPropios] = useState<any[]>([]);
+  const [copiado, setCopiado] = useState<number | null>(null);
 
   const confirmarReactivar = async () => {
     if (!reactivar) return;
@@ -199,8 +206,23 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
     }
   };
 
-  const cargar = () =>
+  const cargar = () => {
     getNumerosActaAdmin().then(setDatos).catch(() => setDatos(null));
+    // Los números propios que aún están dentro del plazo (no salen en la tabla de vencidos).
+    getMiNumeroActa()
+      .then((e: any) => setPropios((e?.reservados || []).filter((x: any) => !x.vencido)))
+      .catch(() => setPropios([]));
+  };
+
+  const copiar = async (id: number, texto: string) => {
+    try {
+      await navigator.clipboard.writeText(texto);
+      setCopiado(id);
+      setTimeout(() => setCopiado(null), 2000);
+    } catch {
+      /* si el navegador no deja copiar, el número sigue visible */
+    }
+  };
 
   useEffect(() => {
     cargar();
@@ -230,8 +252,9 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
   // Solo se listan los que ya pasaron el plazo de 48 horas; los que siguen
   // dentro del plazo no necesitan atención del administrador todavía.
   const vencidos = datos.pendientes.filter((n) => (n.dias ?? 0) >= 2);
-  const enPlazo = datos.pendientes.length - vencidos.length;
-  if (vencidos.length === 0 && enPlazo === 0 && datos.anulados.length === 0) return null;
+  const codigosPropios = new Set(propios.map((x) => x.codigo));
+  const enPlazo = datos.pendientes.filter((n) => (n.dias ?? 0) < 2 && !codigosPropios.has(n.codigo)).length;
+  if (vencidos.length === 0 && enPlazo === 0 && datos.anulados.length === 0 && propios.length === 0) return null;
 
   return (
     <div className="card px-5 py-4 mb-4 bg-white border border-[#C5D2E6] border-t-4 border-t-gold-400 shadow-[0_14px_30px_-22px_rgba(10,42,98,0.5)]">
@@ -248,9 +271,28 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
         </div>
       )}
 
+      {propios.length > 0 && (
+        <div className="mb-3 rounded-xl border border-[#C5D2E6] bg-[#F4F7FC] px-3.5 py-2.5">
+          <p className="text-xs font-semibold text-slate-800 mb-1.5">
+            Tus números dentro del plazo de 48 horas ({propios.length})
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {propios.map((r) => (
+              <span key={r.id} className="inline-flex items-center gap-2 rounded-lg bg-white border border-[#C5D2E6] pl-2.5 pr-1 py-1">
+                <span className="font-mono text-sm font-bold text-slate-900">{r.codigo}</span>
+                <button type="button" className="btn-secondary btn-sm" onClick={() => copiar(r.id, r.codigo)}>
+                  {copiado === r.id ? <Check size={14} /> : <Copy size={14} />}
+                  {copiado === r.id ? 'Copiado' : 'Copiar'}
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {enPlazo > 0 && (
         <p className="text-sm text-slate-700 mb-2">
-          Hay {enPlazo} número{enPlazo === 1 ? '' : 's'} más dentro del plazo de 48 horas (no se muestran).
+          Hay {enPlazo} número{enPlazo === 1 ? '' : 's'} de otros mediadores dentro del plazo de 48 horas (no se muestran).
         </p>
       )}
 
