@@ -364,7 +364,7 @@ html[data-tamano="fijo"] { zoom: 1; --tz: 1; }
 
 
 /* Entrada suave de cada pantalla al cambiar de página. */
-.page-enter { animation: tile-in 420ms var(--ease-out) both; }
+.page-enter { animation: tile-in 420ms var(--ease-out) backwards; }
 @media (prefers-reduced-motion: reduce) { .page-enter { animation: none; } }
 
 
