@@ -6,7 +6,6 @@ import Link from 'next/link';
 import {
   MapPin,
   Phone,
-  ArrowLeft,
   Building2,
   ArrowRight,
 } from 'lucide-react';
@@ -49,14 +48,6 @@ export default function SedePage() {
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-gold-400 to-transparent" />
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm font-bold text-white bg-[#144193] hover:bg-[#1B4AAE] rounded-full px-4 py-2 mb-10 btn-press shadow-[0_12px_24px_-12px_rgba(10,42,98,0.9)]"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Volver al inicio
-          </Link>
-
           {loading ? (
             <p className="text-numa-600">Cargando sede...</p>
           ) : error ? (

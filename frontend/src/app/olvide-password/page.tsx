@@ -32,10 +32,10 @@ export default function OlvidePasswordPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-[#0A2A62] via-[#144193] to-[#2358C9] flex items-center justify-center px-6 py-4 overflow-hidden font-brand font-display-jost font-todo-jost">
+    <div className="relative min-h-screen bg-gradient-to-br from-[#F4F7FC] via-white to-gold-50 flex items-center justify-center px-6 py-4 overflow-hidden font-brand font-display-jost font-todo-jost">
       <BotonInicio />
-      <div className="hero-float-a pointer-events-none absolute -top-44 -right-24 w-[520px] h-[520px] rounded-full border-[70px] border-white/10" />
-      <div className="hero-float-b pointer-events-none absolute -bottom-48 -left-20 w-[460px] h-[460px] rounded-full border-[56px] border-white/[0.08]" />
+      <div className="hero-float-a pointer-events-none absolute -top-44 -right-24 w-[520px] h-[520px] rounded-full border-[70px] border-[#144193]/[0.06]" />
+      <div className="hero-float-b pointer-events-none absolute -bottom-48 -left-20 w-[460px] h-[460px] rounded-full border-[56px] border-gold-400/[0.12]" />
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-gold-400 to-transparent" />
 
       <div className="relative w-full max-w-md">
@@ -44,7 +44,7 @@ export default function OlvidePasswordPage() {
             <img src="/images/logo-numa-oscuro.jpg" alt="NUMA Centro de Mediación" className="w-16 object-contain rounded-md" />
           </Link>
         </div>
-        <div className="tile-in bg-white border border-numa-100 border-t-4 border-t-gold-400 shadow-[0_30px_60px_-30px_rgba(3,12,35,0.7)] rounded-3xl p-6 sm:p-7">
+        <div className="tile-in bg-white border border-numa-100 border-t-4 border-t-gold-400 shadow-[0_30px_60px_-30px_rgba(10,42,98,0.35)] rounded-3xl p-6 sm:p-7">
           {enviado ? (
             <div className="text-center">
               <div className="w-11 h-11 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-5">
