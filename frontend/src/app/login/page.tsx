@@ -3,7 +3,7 @@
 import { Suspense, useState, FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Eye, EyeOff, ArrowLeft, AlertCircle, CheckCircle, CalendarCheck, FileCheck, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, AlertCircle, CheckCircle, CalendarCheck, FileCheck, ShieldCheck, User, Lock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getUser } from '@/lib/auth';
 
@@ -133,12 +133,13 @@ return (
           </Link>
         </div>
 
-        <div className="tile-in bg-white border border-numa-100 shadow-[0_30px_60px_-30px_rgba(11,39,89,0.45)] rounded-3xl p-6 sm:p-8">
+        <div className="tile-in bg-white border border-numa-100 shadow-[0_30px_60px_-30px_rgba(11,39,89,0.45)] rounded-3xl p-6 sm:p-8 border-t-4 border-t-gold-400">
 
           <div className="mb-5">
             <h2 className="text-3xl font-extrabold tracking-tight text-numa-900 mb-2">
               Bienvenido
             </h2>
+            <div className="h-1 w-12 rounded-full bg-gold-400 mb-3" />
 
             <p className="text-numa-500">
               Ingrese sus credenciales para acceder al sistema
@@ -172,15 +173,18 @@ return (
                 Usuario
               </label>
 
+              <div className="relative">
+              <User className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-numa-400" />
               <input
                 type="text"
                 autoComplete="username"
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full h-11 px-4 rounded-xl border border-numa-300 bg-numa-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-gold-400 focus:border-transparent transition"
+                className="w-full h-11 pl-11 pr-4 rounded-xl border border-numa-300 bg-numa-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-gold-400 focus:border-transparent transition"
                 placeholder="Ingrese su usuario"
               />
+              </div>
             </div>
 
             <div>
@@ -189,13 +193,14 @@ return (
               </label>
 
               <div className="relative">
+                <Lock className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-numa-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-11 px-4 rounded-xl border border-numa-300 bg-numa-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-gold-400 focus:border-transparent transition pr-12"
+                  className="w-full h-11 pl-11 pr-12 rounded-xl border border-numa-300 bg-numa-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-gold-400 focus:border-transparent transition"
                   placeholder="••••••••"
                 />
 
@@ -237,7 +242,7 @@ return (
           <div className="mt-5 pt-4 border-t border-numa-100">
             <Link
               href="/"
-              className="flex items-center justify-center gap-2 text-sm font-semibold text-numa-800 hover:text-gold-600 border border-numa-200 hover:border-gold-400 hover:bg-gold-50 rounded-xl py-2 transition-colors"
+              className="flex items-center justify-center gap-2 text-sm font-bold text-white bg-[#144193] hover:bg-[#1B4AAE] shadow-[0_12px_24px_-14px_rgba(10,42,98,0.9)] rounded-xl py-2.5 transition hover:-translate-y-0.5 active:scale-[0.98]"
             >
               <ArrowLeft className="w-4 h-4" />
               Volver al sitio institucional
