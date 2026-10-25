@@ -89,15 +89,15 @@ return (
             return (
               <div
                 key={titulo as string}
-                className="tile-in flex items-center gap-4 rounded-2xl bg-white/10 border border-white/15 px-4 py-3 backdrop-blur-sm transition duration-200 hover:bg-white/15 hover:translate-x-1"
+                className="tile-in flex items-center gap-4 rounded-2xl bg-[#071B45] border border-gold-400/50 px-4 py-3 shadow-[0_14px_28px_-16px_rgba(3,12,35,0.9)] transition duration-200 hover:bg-[#0A2A62] hover:border-gold-400 hover:translate-x-1"
                 style={{ animationDelay: `${0.3 + i * 0.1}s` }}
               >
-                <span className="w-10 h-10 rounded-xl bg-gold-400/20 text-gold-300 flex items-center justify-center shrink-0">
+                <span className="w-10 h-10 rounded-xl bg-gold-400 text-[#0A2A62] flex items-center justify-center shrink-0">
                   <I className="w-5 h-5" />
                 </span>
                 <div>
-                  <p className="font-semibold text-sm">{titulo as string}</p>
-                  <p className="text-blue-100 text-xs">{texto as string}</p>
+                  <p className="font-bold text-sm text-white">{titulo as string}</p>
+                  <p className="text-gold-100 text-xs">{texto as string}</p>
                 </div>
               </div>
             );
