@@ -332,7 +332,7 @@ export function BarrasResumen({
     <div className={compacto ? 'grid grid-cols-2 gap-x-8 gap-y-1' : 'space-y-1.5'}>
       {items.map((it) => (
         <div key={it.label} className="flex items-center gap-2">
-          <span className={`${compacto ? 'w-40' : 'w-36'} shrink-0 text-xs text-numa-600 truncate`}>
+          <span title={it.label} className={`${compacto ? 'w-40' : 'w-44'} shrink-0 text-xs text-numa-700 truncate`}>
             {it.label}
           </span>
           <div
@@ -353,6 +353,91 @@ export function BarrasResumen({
           </span>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ── DONA ACUERDO / NO ACUERDO ───────────────────────────────────────────────
+// Dona en SVG (sin librerías): verde = acuerdo, ámbar = no acuerdo, con el
+// total al centro y la leyenda al lado. Sirve para mostrar de un vistazo la
+// proporción entre actas de acuerdo y de no acuerdo.
+export function DonaActas({ acuerdo, noAcuerdo }: { acuerdo: number; noAcuerdo: number }) {
+  const total = acuerdo + noAcuerdo;
+  const R = 42;
+  const C = 2 * Math.PI * R;
+  const largoA = total > 0 ? (acuerdo / total) * C : 0;
+  const largoN = total > 0 ? (noAcuerdo / total) * C : 0;
+  const pct = (v: number) => (total > 0 ? Math.round((v / total) * 100) : 0);
+  const forzarColor = { WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' } as React.CSSProperties;
+  return (
+    <div className="flex items-center gap-5">
+      <div className="relative w-28 h-28 shrink-0">
+        <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90" style={forzarColor}>
+          <circle cx="50" cy="50" r={R} fill="none" stroke="#E6ECF5" strokeWidth="12" />
+          {total > 0 && (
+            <>
+              <circle cx="50" cy="50" r={R} fill="none" stroke="#10B981" strokeWidth="12" strokeDasharray={`${largoA} ${C}`} strokeLinecap="butt" />
+              <circle cx="50" cy="50" r={R} fill="none" stroke="#F59E0B" strokeWidth="12" strokeDasharray={`${largoN} ${C}`} strokeDashoffset={-largoA} strokeLinecap="butt" />
+            </>
+          )}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-2xl font-extrabold text-numa-900 tabular-nums leading-none">{total}</span>
+          <span className="text-[10px] uppercase tracking-wide text-numa-500 mt-0.5">actas</span>
+        </div>
+      </div>
+      <ul className="space-y-2 text-sm">
+        <li className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-emerald-500" style={forzarColor} />
+          <span className="text-numa-700">De acuerdo</span>
+          <span className="font-bold text-numa-900 tabular-nums">{acuerdo}</span>
+          <span className="text-xs text-numa-500">({pct(acuerdo)}%)</span>
+        </li>
+        <li className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-amber-500" style={forzarColor} />
+          <span className="text-numa-700">De no acuerdo</span>
+          <span className="font-bold text-numa-900 tabular-nums">{noAcuerdo}</span>
+          <span className="text-xs text-numa-500">({pct(noAcuerdo)}%)</span>
+        </li>
+      </ul>
+    </div>
+  );
+}
+
+// ── BARRAS EN PAR (acuerdo / no acuerdo por nombre) ─────────────────────────
+// Cada fila lleva el nombre completo UNA sola vez (sin cortarse) y debajo dos
+// barras finas: verde = de acuerdo, ámbar = de no acuerdo. Reemplaza a las
+// etiquetas largas "Nombre · de acuerdo" que se cortaban con "…".
+export function BarrasPares({ filas }: { filas: { label: string; a: number; n: number }[] }) {
+  const max = Math.max(...filas.flatMap((f) => [f.a, f.n]), 1);
+  const forzarColor = { WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' } as React.CSSProperties;
+  const ancho = (v: number) => `${v > 0 ? Math.max((v / max) * 100, 3) : 0}%`;
+  return (
+    <div>
+      <div className="flex items-center gap-4 mb-2.5 text-[11px] text-numa-600">
+        <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" style={forzarColor} />De acuerdo</span>
+        <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500" style={forzarColor} />De no acuerdo</span>
+      </div>
+      <ul className="space-y-3">
+        {filas.map((f) => (
+          <li key={f.label}>
+            <div className="flex items-baseline justify-between gap-3 mb-1">
+              <span className="text-[13px] font-semibold text-numa-800 leading-tight break-words">{f.label}</span>
+              <span className="text-[11px] text-numa-500 tabular-nums shrink-0">{f.a + f.n} en total</span>
+            </div>
+            <div className="space-y-1">
+              {[{ v: f.a, c: '#10B981' }, { v: f.n, c: '#F59E0B' }].map((b, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="flex-1 h-2 bg-numa-100 rounded-full overflow-hidden" style={forzarColor}>
+                    <div className="h-full rounded-full" style={{ ...forzarColor, width: ancho(b.v), backgroundColor: b.c }} />
+                  </div>
+                  <span className="w-6 shrink-0 text-xs font-semibold text-numa-800 text-right tabular-nums">{b.v}</span>
+                </div>
+              ))}
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

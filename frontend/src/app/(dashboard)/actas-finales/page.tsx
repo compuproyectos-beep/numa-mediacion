@@ -568,7 +568,7 @@ const handleExportarZip = async () => {
                 </p>
                 <div className="grid grid-cols-[1fr_auto_2rem] items-center gap-x-2 gap-y-1 text-[13px]">
                   <span className="text-numa-800 font-medium whitespace-nowrap">Documentos del acta</span>
-                  <button type="button" onClick={() => handleVerPdf(a.id)} className="btn-sm w-[6rem] inline-flex items-center justify-center gap-1.5 rounded-md bg-numa-900 text-white font-semibold hover:bg-numa-800 transition-colors">
+                  <button type="button" onClick={() => handleVerPdf(a.id)} className="btn-sm w-[6rem] inline-flex items-center justify-center gap-1.5 rounded-md bg-[#144193] text-white font-semibold hover:bg-[#1B4AAE] transition-colors">
                     <Eye className="w-3.5 h-3.5" /> Ver
                   </button>
                   {isAdmin ? (
@@ -590,7 +590,7 @@ const handleExportarZip = async () => {
                       <span className="text-numa-800 font-medium whitespace-nowrap">
                         {a.comprobante_final_id ? 'Comprobante 1.er pago' : 'Comprobante de pago'}
                       </span>
-                      <button type="button" onClick={() => handleVerComprobante(a.id)} className="btn-sm w-[6rem] inline-flex items-center justify-center gap-1.5 rounded-md bg-numa-900 text-white font-semibold hover:bg-numa-800 transition-colors">
+                      <button type="button" onClick={() => handleVerComprobante(a.id)} className="btn-sm w-[6rem] inline-flex items-center justify-center gap-1.5 rounded-md bg-[#144193] text-white font-semibold hover:bg-[#1B4AAE] transition-colors">
                         <Eye className="w-3.5 h-3.5" /> Ver
                       </button>
                       {isAdmin ? (
@@ -617,7 +617,7 @@ const handleExportarZip = async () => {
                       <button
                         type="button"
                         onClick={() => handleVerComprobanteFinal(a.proceso_id)}
-                        className="btn-sm w-[6rem] inline-flex items-center justify-center gap-1.5 rounded-md bg-numa-900 text-white font-semibold hover:bg-numa-800 transition-colors"
+                        className="btn-sm w-[6rem] inline-flex items-center justify-center gap-1.5 rounded-md bg-[#144193] text-white font-semibold hover:bg-[#1B4AAE] transition-colors"
                       >
                         <Eye className="w-3.5 h-3.5" /> Ver
                       </button>
@@ -649,7 +649,7 @@ const handleExportarZip = async () => {
                         <button
                           type="button"
                           onClick={() => handleVerFirmada(a.proceso_id)}
-                          className="btn-sm w-[6rem] inline-flex items-center justify-center gap-1.5 rounded-md bg-numa-900 text-white font-semibold hover:bg-numa-800 transition-colors"
+                          className="btn-sm w-[6rem] inline-flex items-center justify-center gap-1.5 rounded-md bg-[#144193] text-white font-semibold hover:bg-[#1B4AAE] transition-colors"
                         >
                           <Eye className="w-3.5 h-3.5" /> Ver
                         </button>

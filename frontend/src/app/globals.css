@@ -279,7 +279,7 @@ html {
 /* Fondos de sección de la página pública (dan profundidad sin usar fotos) */
 .bg-soft{background:linear-gradient(180deg,#F3F6FA 0%,#E9EFF6 100%)}
 .bg-glow-white{background:radial-gradient(50% 50% at 0% 100%,rgba(109,137,172,.14),transparent 70%),#fff}
-.bg-night{background:radial-gradient(70% 80% at 15% 0%,rgba(224,184,74,.14),transparent 60%),radial-gradient(60% 70% at 100% 100%,rgba(74,103,137,.35),transparent 65%),#0E2338}
+.bg-night{background:radial-gradient(70% 80% at 15% 0%,rgba(224,184,74,.14),transparent 60%),linear-gradient(135deg,#0A2A62,#144193 55%,#2358C9)}
 .bg-dots{background-color:#EEF3F9;background-image:radial-gradient(rgba(35,64,91,.16) 1.2px,transparent 1.3px);background-size:22px 22px}
 
 /* Aparición al hacer scroll: visible por defecto; solo se oculta si el script está activo */

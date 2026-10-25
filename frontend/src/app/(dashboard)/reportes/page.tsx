@@ -13,7 +13,9 @@ import {
   InputField,
   ErrorAlert,
   Badge,
-  BarrasResumen
+  BarrasResumen,
+  BarrasPares,
+  DonaActas
 } from '@/components/ui';
 import {
   getProcesos,
@@ -482,69 +484,63 @@ export default function ReportesPage() {
     });
     return Array.from(m.entries());
   };
-  // Cada grupo trae sus barras de "acuerdo" y "no acuerdo" por separado
-  // (mismos colores en todos los gráficos: verde = acuerdo, ámbar = no acuerdo).
-  // Un nombre por grupo: la barra verde lleva el nombre y la ámbar, debajo,
-  // solo "no acuerdo" (así las etiquetas no se cortan).
-  const parBarras = (k: string, v: { a: number; n: number }) => {
-    const out: { label: string; valor: number; color?: string }[] = [];
-    if (v.a > 0) out.push({ label: `${k} · de acuerdo`, valor: v.a, color: '#10B981' });
-    if (v.n > 0) out.push({ label: `${k} · de no acuerdo`, valor: v.n, color: '#F59E0B' });
-    return out;
-  };
-  const gruposActas: { titulo: string; items: { label: string; valor: number; color?: string }[] }[] =
+  // Cada grupo trae una fila por nombre, con sus dos valores (acuerdo / no
+  // acuerdo). El nombre sale completo, una sola vez, sin cortarse.
+  const filasPares = (e: [string, { a: number; n: number }][]) =>
+    e.map(([k, v]) => ({ label: k, a: v.a, n: v.n }));
+  const gruposActas: { titulo: string; filas: { label: string; a: number; n: number }[] }[] =
     tipo === 'actas'
       ? [
           {
-            titulo: 'Acuerdo y no acuerdo',
-            items: [
-              { label: 'Actas de acuerdo', valor: actasDeAcuerdo, color: '#10B981' },
-              { label: 'Actas de no acuerdo', valor: actasNoAcuerdo, color: '#F59E0B' }
-            ]
-          },
-          {
             titulo: 'Actas por mes',
-            items: barrasActasPor((a) => mesDeActa(a.fecha_subida))
-              .sort((x, y) => x[0].localeCompare(y[0]))
-              .flatMap(([k, v]) => {
-                const [y, mm] = k.split('-');
-                return parBarras(`${MESES_CORTOS[Number(mm) - 1]} ${y}`, v);
-              })
+            filas: filasPares(
+              barrasActasPor((a) => mesDeActa(a.fecha_subida))
+                .sort((x, y) => x[0].localeCompare(y[0]))
+                .map(([k, v]) => {
+                  const [y, mm] = k.split('-');
+                  return [`${MESES_CORTOS[Number(mm) - 1]} ${y}`, v] as [string, { a: number; n: number }];
+                })
+            )
           },
           ...(admin
             ? [
                 {
                   titulo: 'Actas por mediador',
-                  items: barrasActasPor((a) => a.mediador || a.usuario)
-                    .sort((x, y) => y[1].a + y[1].n - (x[1].a + x[1].n))
-                    .flatMap(([k, v]) => parBarras(k, v))
+                  filas: filasPares(
+                    barrasActasPor((a) => a.mediador || a.usuario).sort(
+                      (x, y) => y[1].a + y[1].n - (x[1].a + x[1].n)
+                    )
+                  )
                 },
                 {
                   titulo: 'Actas por sucursal',
-                  items: barrasActasPor((a) => (a.sucursal ? labelSucursal(a) : null))
-                    .sort((x, y) => y[1].a + y[1].n - (x[1].a + x[1].n))
-                    .flatMap(([k, v]) => parBarras(k, v))
+                  filas: filasPares(
+                    barrasActasPor((a) => (a.sucursal ? labelSucursal(a) : null)).sort(
+                      (x, y) => y[1].a + y[1].n - (x[1].a + x[1].n)
+                    )
+                  )
                 }
               ]
             : [])
         ]
-          // "Actas por mes" solo aporta algo si hay más de un mes; con un solo
-          // mes repetiría exactamente el gráfico de acuerdo / no acuerdo.
+          // "Actas por mes" solo aporta algo si hay más de un mes.
           .filter((g) => g.titulo !== 'Actas por mes' || barrasActasPor((a) => mesDeActa(a.fecha_subida)).length > 1)
-          .filter((g) => g.items.length > 0)
+          .filter((g) => g.filas.length > 0)
       : [];
 
-  const barrasActas: { label: string; valor: number; color?: string }[] | null =
-    tipo === 'procesos'
-      ? null
-      : tipo === 'productividad'
-      ? datos.flatMap((m: any) =>
-          parBarras(m.mediador, { a: (m.actas_subidas || 0) - (m.actas_no_acuerdo || 0), n: m.actas_no_acuerdo || 0 })
-        )
+  const barrasActas: { label: string; a: number; n: number }[] | null =
+    tipo === 'productividad'
+      ? datos.map((m: any) => ({
+          label: m.mediador,
+          a: (m.actas_subidas || 0) - (m.actas_no_acuerdo || 0),
+          n: m.actas_no_acuerdo || 0
+        }))
       : tipo === 'sucursales'
-      ? datos.flatMap((s: any) =>
-          parBarras(labelSucursal(s), { a: (s.actas_subidas || 0) - (s.actas_no_acuerdo || 0), n: s.actas_no_acuerdo || 0 })
-        )
+      ? datos.map((s: any) => ({
+          label: labelSucursal(s),
+          a: (s.actas_subidas || 0) - (s.actas_no_acuerdo || 0),
+          n: s.actas_no_acuerdo || 0
+        }))
       : null;
 
   // Barritas para que los reportes no sean solo números: por estado en
@@ -816,7 +812,7 @@ export default function ReportesPage() {
                     onClick={() => setFiltroTipoActa(v)}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                       filtroTipoActa === v
-                        ? 'bg-numa-900 text-white'
+                        ? 'bg-[#144193] text-white'
                         : 'bg-white border border-numa-200 text-numa-600 hover:border-gold-400'
                     }`}
                   >
@@ -839,7 +835,7 @@ export default function ReportesPage() {
             </div>
           )}
 
-          {((gruposActas.length > 0) ||
+          {((gruposActas.length > 0 || (tipo === 'actas' && actasDeAcuerdo + actasNoAcuerdo > 0)) ||
             (barrasActas && barrasActas.length > 0) ||
             (barrasResumen && barrasResumen.length > 0) ||
             (barrasActasPendientes && barrasActasPendientes.length > 0)) && (
@@ -852,16 +848,16 @@ export default function ReportesPage() {
           {/* El gráfico de actas va primero: es el corazón del sistema,
               antes que el desglose general de procesos. */}
           <div className="grid gap-3 md:grid-cols-2 items-start">
+{tipo === 'actas' && (actasDeAcuerdo + actasNoAcuerdo > 0) && (
+            <div className="card px-4 py-3.5">
+              <p className="text-xs font-bold text-numa-700 mb-3 uppercase tracking-wide">Acuerdo y no acuerdo</p>
+              <DonaActas acuerdo={actasDeAcuerdo} noAcuerdo={actasNoAcuerdo} />
+            </div>
+          )}
 {gruposActas.map((g) => (
-            <div key={g.titulo} className="card px-3 py-2.5">
-              <p className="text-xs font-semibold text-numa-700 mb-2 uppercase tracking-wide">{g.titulo}</p>
-              {g.titulo !== 'Acuerdo y no acuerdo' && (
-                <p className="text-[11px] text-numa-600 mb-2">
-                  Cada nombre tiene hasta dos barras: <span className="font-semibold text-emerald-700">verde</span> = actas de acuerdo,{' '}
-                  <span className="font-semibold text-amber-700">ámbar</span> = actas de no acuerdo (de ese mismo nombre).
-                </p>
-              )}
-              <BarrasResumen items={g.items} />
+            <div key={g.titulo} className="card px-4 py-3.5">
+              <p className="text-xs font-bold text-numa-700 mb-3 uppercase tracking-wide">{g.titulo}</p>
+              <BarrasPares filas={g.filas} />
             </div>
           ))}
 {barrasActas && barrasActas.length > 0 && (
@@ -871,7 +867,7 @@ export default function ReportesPage() {
                   ? 'Actas'
                   : 'Actas de acuerdo y no acuerdo por ' + (tipo === 'productividad' ? 'mediador' : 'sucursal')}
               </p>
-              <BarrasResumen items={barrasActas} />
+              <BarrasPares filas={barrasActas} />
             </div>
           )}
 

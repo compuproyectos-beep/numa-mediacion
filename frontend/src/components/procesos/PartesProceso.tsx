@@ -367,7 +367,7 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
                   setNuevo(VACIO);
                 }}
                 className={`px-3 py-1 rounded ${
-                  tipoParte === clave ? 'bg-numa-800 text-white' : 'text-numa-600 hover:bg-numa-50'
+                  tipoParte === clave ? 'bg-[#144193] text-white' : 'text-numa-600 hover:bg-numa-50'
                 }`}
               >
                 {texto}

@@ -445,7 +445,7 @@ export default function ClientesPage() {
                 }}
                 className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
                   form.tipo === t
-                    ? 'bg-numa-900 text-white border-numa-900'
+                    ? 'bg-[#144193] text-white border-[#144193]'
                     : 'bg-white text-numa-600 border-numa-200 hover:border-gold-400'
                 }`}
               >

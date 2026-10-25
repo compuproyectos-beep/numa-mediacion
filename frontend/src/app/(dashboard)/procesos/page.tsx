@@ -690,7 +690,7 @@ export default function ProcesosPage() {
                   aria-pressed={activo}
                   className={`min-h-[32px] px-3 rounded-full border text-[13px] font-medium transition-colors ${
                     activo
-                      ? 'bg-numa-900 border-numa-900 text-white'
+                      ? 'bg-[#144193] border-[#144193] text-white'
                       : 'bg-white border-numa-200 text-numa-700 hover:border-gold-400'
                   }`}
                 >
@@ -1282,7 +1282,7 @@ export default function ProcesosPage() {
               </div>
             </div>
 
-            <div className="bg-numa-900 rounded-md p-3.5">
+            <div className="bg-[#144193] rounded-md p-3.5">
               <p className="text-[13px] leading-snug text-numa-50">
                 Al crear el proceso irás directo a su pantalla, donde podrás agendar invitaciones,
                 registrar resultados y, cuando se cierre, subir los documentos del acta.

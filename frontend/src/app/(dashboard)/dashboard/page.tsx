@@ -181,7 +181,7 @@ const ESTILO_TARJETA: Record<
 > = {
   actas_acuerdo: { caja: 'bg-gradient-to-br from-gold-300 to-gold-500 border-transparent', texto: 'text-numa-950', sub: 'text-numa-900', acento: 'bg-numa-900', pista: 'bg-numa-950/15', icono: 'bg-numa-950/15 text-numa-900' },
   actas_no_acuerdo: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-orange-500', pista: 'bg-numa-100', icono: 'bg-orange-100 text-orange-700' },
-  en_negociacion: { caja: 'bg-gold-50 border-gold-200', texto: 'text-gold-900', sub: 'text-gold-700', acento: 'bg-gold-500', pista: 'bg-gold-200/70', icono: 'bg-gold-500/20 text-gold-700' },
+  en_negociacion: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-amber-500', pista: 'bg-numa-100', icono: 'bg-amber-100 text-amber-700' },
   cerrado_con_acuerdo: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-emerald-500', pista: 'bg-numa-100', icono: 'bg-emerald-100 text-emerald-700' },
   cerrado_sin_acuerdo: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-slate-500', pista: 'bg-numa-100', icono: 'bg-slate-100 text-slate-600' },
   archivado: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-numa-400', pista: 'bg-numa-100', icono: 'bg-numa-100 text-numa-600' },

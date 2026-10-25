@@ -658,7 +658,7 @@ export default function CalendarioAgendaMediador({
                     : colorPorEstado[event.resource.estado] || '#4A6789',
                 color:
                   event.resource.estado === 'pendiente' && event.start >= new Date()
-                    ? '#0E2338'
+                    ? '#144193'
                     : '#fff',
                 border: 'none',
                 fontSize: '11px',
