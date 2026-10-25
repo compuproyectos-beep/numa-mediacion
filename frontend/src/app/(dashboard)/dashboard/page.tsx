@@ -209,8 +209,8 @@ function TarjetaResumen({
   porDefecto: boolean;
   orden: number;
 }) {
-  // La tarjeta elegida (o, si no hay ninguna, "actas de acuerdo") se pinta dorada.
-  const e = active || porDefecto ? ESTILO_TARJETA.actas_acuerdo : ESTILO_TARJETA[clave];
+  // Solo la tarjeta elegida se pinta dorada; al abrir el panel ninguna lo está.
+  const e = active ? ESTILO_TARJETA.actas_acuerdo : ESTILO_TARJETA[clave];
   const mostrado = useContador(value);
   const porcentaje = maximo > 0 ? Math.max(value > 0 ? 8 : 0, (value / maximo) * 100) : 0;
   return (
@@ -470,7 +470,7 @@ export default function DashboardPage() {
                 icon={icono}
                 onClick={() => toggleCategoria(clave)}
                 active={categoriaAbierta === clave}
-                porDefecto={!categoriaAbierta && clave === 'actas_acuerdo'}
+                porDefecto={false}
                 orden={i}
               />
             ))}

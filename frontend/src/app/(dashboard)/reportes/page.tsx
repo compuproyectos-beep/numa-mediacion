@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { ESTADO_COLOR_GRAFICO } from '@/lib/estados';
 import { conActa } from '@/lib/actaProceso';
 import { mayusInicial } from '@/lib/texto';
@@ -464,6 +464,38 @@ export default function ReportesPage() {
       ? datos.filter((a: any) => (filtroTipoActa === 'no_acuerdo' ? esNoAcuerdo(a) : !esNoAcuerdo(a)))
       : datos;
 
+  // Elegir "Todas / De acuerdo / De no acuerdo" también lleva directo al
+  // detalle, para no tener que bajar y subir por las gráficas cada vez.
+  const detalleRef = useRef<HTMLDivElement>(null);
+  const elegirTipoActa = (v: '' | 'acuerdo' | 'no_acuerdo', irAlDetalle = true) => {
+    setFiltroTipoActa(v);
+    if (irAlDetalle) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          detalleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      });
+    }
+  };
+  const chipsTipoActa = (irAlDetalle: boolean) => (
+    <div className="flex flex-wrap gap-1.5">
+      {([['', 'Todas'], ['acuerdo', 'De acuerdo'], ['no_acuerdo', 'De no acuerdo']] as const).map(([v, t]) => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => elegirTipoActa(v, irAlDetalle)}
+          className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+            filtroTipoActa === v
+              ? 'bg-[#144193] text-white'
+              : 'bg-white border border-numa-200 text-numa-600 hover:border-gold-400'
+          }`}
+        >
+          {t}
+        </button>
+      ))}
+    </div>
+  );
+
   const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   const mesDeActa = (v: any) => {
     if (!v) return null;
@@ -709,14 +741,14 @@ export default function ReportesPage() {
                 type="button"
                 onClick={handleExportarExcel}
                 disabled={exportando}
-                className="btn-secondary"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-[0_10px_20px_-12px_rgba(5,150,105,0.9)] transition hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-60"
               >
                 <FileSpreadsheet className="w-4 h-4" />
                 {exportando ? 'Descargando...' : 'Descargar Excel'}
               </button>
 
               {tipo !== 'facturas-pendientes' && (
-                <button type="button" onClick={handleImprimir} className="btn-secondary">
+                <button type="button" onClick={handleImprimir} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#144193] hover:bg-[#1B4AAE] text-white text-sm font-bold shadow-[0_10px_20px_-12px_rgba(10,42,98,0.9)] transition hover:-translate-y-0.5 active:scale-[0.98]">
                   <Printer className="w-4 h-4" />
                   Imprimir / PDF
                 </button>
@@ -804,22 +836,7 @@ export default function ReportesPage() {
                 <p className="text-2xl font-bold text-amber-700 leading-none tabular-nums">{actasNoAcuerdo}</p>
                 <p className="text-xs text-numa-700 mt-1">de no acuerdo</p>
               </div>
-              <div className="ml-auto flex gap-1.5">
-                {([['', 'Todas'], ['acuerdo', 'De acuerdo'], ['no_acuerdo', 'De no acuerdo']] as const).map(([v, t]) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => setFiltroTipoActa(v)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                      filtroTipoActa === v
-                        ? 'bg-[#144193] text-white'
-                        : 'bg-white border border-numa-200 text-numa-600 hover:border-gold-400'
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
+              <div className="ml-auto">{chipsTipoActa(true)}</div>
             </div>
           )}
 
@@ -890,9 +907,10 @@ export default function ReportesPage() {
           )}
           </div>
 
-          <div className="flex items-center gap-3 pt-1">
+          <div ref={detalleRef} className="scroll-mt-4 flex flex-wrap items-center gap-3 pt-1">
             <span className="text-[11px] font-bold text-numa-700 uppercase tracking-[0.14em] whitespace-nowrap">Detalle</span>
             <span className="h-px flex-1 bg-numa-300" aria-hidden="true" />
+            {tipo === 'actas' && chipsTipoActa(false)}
           </div>
 
           <div className="card overflow-hidden">
