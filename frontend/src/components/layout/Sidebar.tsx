@@ -92,7 +92,7 @@ export default function Sidebar() {
       <Link
         href={inicio}
         onClick={() => setMobileOpen(false)}
-        className="flex items-center justify-center px-3 py-3 border-b border-numa-800 shrink-0"
+        className="flex items-center justify-center px-3 py-3 border-b border-white/10 shrink-0"
       >
         <img
           src="/logo-numa.png"
@@ -112,7 +112,7 @@ export default function Sidebar() {
           return (
             <div key={href}>
             {inicioAdmin && (
-              <p className="mt-2 mb-1 pt-2.5 px-3 border-t border-numa-800 text-[10px] uppercase tracking-wider text-white/40 font-sans">
+              <p className="mt-2 mb-1 pt-2.5 px-3 border-t border-white/10 text-[10px] uppercase tracking-wider text-white/55 font-sans">
                 Administración
               </p>
             )}
@@ -123,7 +123,7 @@ export default function Sidebar() {
                 'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 group font-sans hover:translate-x-0.5',
                 active
                   ? 'bg-gold-400/15 text-gold-400 font-medium shadow-[inset_3px_0_0_#E0B84A]'
-                  : 'text-white hover:text-gold-400 hover:bg-numa-800'
+                  : 'text-white hover:text-gold-400 hover:bg-white/10'
               )}
             >
               <Icon
@@ -142,16 +142,16 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div ref={userMenuRef} data-user-menu className="relative px-3 pb-3 border-t border-numa-800 pt-3 shrink-0">
+      <div ref={userMenuRef} data-user-menu className="relative px-3 pb-3 border-t border-white/10 pt-3 shrink-0">
         {userMenuOpen && (
-          <div className="absolute bottom-full left-3 right-3 mb-2 bg-numa-900 border border-numa-800 rounded-sm shadow-xl overflow-hidden">
+          <div className="absolute bottom-full left-3 right-3 mb-2 bg-[#0A2A62] border border-white/15 rounded-lg shadow-xl overflow-hidden">
             <Link
               href="/cambiar-password"
               onClick={() => {
                 setUserMenuOpen(false);
                 setMobileOpen(false);
               }}
-              className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-white hover:text-gold-400 hover:bg-numa-800 transition-colors font-sans"
+              className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-white hover:text-gold-400 hover:bg-white/10 transition-colors font-sans"
             >
               <KeyRound className="w-4 h-4" />
               Cambiar contraseña
@@ -172,10 +172,10 @@ export default function Sidebar() {
           onClick={() => setUserMenuOpen((v) => !v)}
           className={clsx(
             'flex items-center gap-2.5 w-full px-3 py-2 rounded-sm transition-colors',
-            userMenuOpen ? 'bg-numa-800' : 'hover:bg-numa-800'
+            userMenuOpen ? 'bg-white/10' : 'hover:bg-white/10'
           )}
         >
-          <div className="w-8 h-8 rounded-full bg-numa-700 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center shrink-0">
             <span className="text-xs font-bold text-white font-sans">
               {(user?.nombre?.charAt(0) ?? user?.username?.charAt(0) ?? 'U').toUpperCase()}
             </span>
@@ -195,7 +195,7 @@ export default function Sidebar() {
               {user?.rol}
             </span>
             <p
-              className="text-[11px] text-white/40 truncate font-sans"
+              className="text-[11px] text-white/55 truncate font-sans"
               title={user?.email}
             >
               {user?.email}
@@ -204,7 +204,7 @@ export default function Sidebar() {
 
           <ChevronUp
             className={clsx(
-              'w-3.5 h-3.5 text-white/40 shrink-0 transition-transform',
+              'w-3.5 h-3.5 text-white/55 shrink-0 transition-transform',
               userMenuOpen && 'rotate-180'
             )}
           />
@@ -215,11 +215,11 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className="hidden lg:flex lg:flex-col w-56 bg-gradient-to-b from-numa-900 to-numa-950 fixed left-0 top-0 bottom-0 z-30 border-r border-numa-800">
+      <aside className="hidden lg:flex lg:flex-col w-56 bg-gradient-to-b from-[#1B4AAE] via-[#144193] to-[#0A2A62] fixed left-0 top-0 bottom-0 z-30 border-r border-white/10 shadow-[6px_0_24px_-12px_rgba(10,42,98,0.5)]">
         <SidebarContent />
       </aside>
 
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-numa-950 border-b border-numa-800 flex items-center justify-between px-4 h-14">
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-[#144193] border-b border-white/10 flex items-center justify-between px-4 h-14">
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
           className="p-2 -ml-2 text-white hover:text-gold-400"
@@ -247,7 +247,7 @@ export default function Sidebar() {
             onClick={() => setMobileOpen(false)}
           />
 
-          <aside className="absolute left-0 top-0 bottom-0 w-56 bg-numa-950 flex flex-col border-r border-numa-800">
+          <aside className="absolute left-0 top-0 bottom-0 w-56 bg-gradient-to-b from-[#1B4AAE] via-[#144193] to-[#0A2A62] flex flex-col border-r border-white/10">
             <SidebarContent />
           </aside>
         </div>
