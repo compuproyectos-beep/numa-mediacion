@@ -215,11 +215,11 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className="hidden lg:flex lg:flex-col w-56 bg-gradient-to-b from-[#1B4AAE] via-[#144193] to-[#0A2A62] fixed left-0 top-0 bottom-0 z-30 border-r border-white/10 shadow-[6px_0_24px_-12px_rgba(10,42,98,0.5)]">
+      <aside className="hidden lg:flex lg:flex-col w-56 bg-gradient-to-b from-[#16397A] via-[#112F6A] to-[#0B2250] fixed left-0 top-0 bottom-0 z-30 border-r border-white/10 shadow-[6px_0_24px_-12px_rgba(10,42,98,0.5)]">
         <SidebarContent />
       </aside>
 
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-[#144193] border-b border-white/10 flex items-center justify-between px-4 h-14">
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-[#112F6A] border-b border-white/10 flex items-center justify-between px-4 h-14">
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
           className="p-2 -ml-2 text-white hover:text-gold-400"
@@ -247,7 +247,7 @@ export default function Sidebar() {
             onClick={() => setMobileOpen(false)}
           />
 
-          <aside className="absolute left-0 top-0 bottom-0 w-56 bg-gradient-to-b from-[#1B4AAE] via-[#144193] to-[#0A2A62] flex flex-col border-r border-white/10">
+          <aside className="absolute left-0 top-0 bottom-0 w-56 bg-gradient-to-b from-[#16397A] via-[#112F6A] to-[#0B2250] flex flex-col border-r border-white/10">
             <SidebarContent />
           </aside>
         </div>

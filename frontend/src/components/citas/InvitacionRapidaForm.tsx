@@ -126,7 +126,7 @@ function LadoEditor({
   const puedeAgregar = !!ultima && !!ultima.nombre.trim() && cedulaValida(ultima.cedula);
 
   return (
-    <div className={`bg-white border border-numa-200 border-l-4 ${acento} rounded-md p-4 shadow-sm`}>
+    <div className={`bg-white border border-[#144193]/15 border-l-4 ${acento} rounded-xl p-4 shadow-sm`}>
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <h4 className="text-sm font-semibold text-numa-900">{titulo}</h4>
         <div className="inline-flex rounded-sm border border-numa-200 overflow-hidden text-xs">
@@ -389,21 +389,21 @@ export default function InvitacionRapidaForm({
   const fechaTexto = fechaTextoBase.charAt(0).toUpperCase() + fechaTextoBase.slice(1);
 
   return (
-    <div className="mt-5 rounded-md border border-numa-200 overflow-hidden bg-numa-50 shadow-sm">
-      <div className="bg-numa-900 text-white px-5 py-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+    <div className="mt-5 rounded-2xl border border-[#144193]/20 overflow-hidden bg-[#F4F7FC] shadow-[0_20px_40px_-26px_rgba(10,42,98,0.5)]">
+      <div className="bg-gradient-to-r from-[#0A2A62] via-[#144193] to-[#1B4AAE] border-b-2 border-gold-400 text-white px-5 py-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
         <div>
           <h3 className="text-base font-semibold flex items-center gap-2">
             <Zap className="w-4 h-4 text-gold-400" aria-hidden="true" />
             Invitación rápida
           </h3>
-          <p className="text-xs text-white/70 mt-1 max-w-md">
+          <p className="text-xs text-blue-100 mt-1 max-w-md">
             No crea el proceso: la reunión queda en la Agenda. El proceso se crea después y se
             enlaza a esta invitación.
           </p>
         </div>
-        <p className="text-sm text-white/80 sm:text-right">
+        <p className="text-sm text-blue-50 sm:text-right">
           <span className="block">{fechaTexto}</span>
-          <span className="block text-2xl font-semibold text-gold-400 leading-tight">{hora}</span>
+          <span className="block text-2xl font-bold text-gold-300 leading-tight">{hora}</span>
         </p>
       </div>
 
@@ -423,7 +423,7 @@ export default function InvitacionRapidaForm({
           onChange={setInvitados}
         />
 
-        <div className="bg-white border border-numa-200 rounded-md p-4 shadow-sm space-y-4">
+        <div className="bg-white border border-[#144193]/15 rounded-xl p-4 shadow-sm space-y-4">
           <InputField
             label={temaObligatorio ? 'Tema a tratar' : 'Tema (opcional, el mediador puede completarlo)'}
             value={tema}

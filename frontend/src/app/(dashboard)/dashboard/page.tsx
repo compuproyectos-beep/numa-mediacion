@@ -196,6 +196,7 @@ function TarjetaResumen({
   icon: Icon,
   onClick,
   active,
+  porDefecto,
   orden
 }: {
   clave: string;
@@ -205,9 +206,11 @@ function TarjetaResumen({
   icon: React.ComponentType<{ className?: string }>;
   onClick: () => void;
   active: boolean;
+  porDefecto: boolean;
   orden: number;
 }) {
-  const e = ESTILO_TARJETA[clave];
+  // La tarjeta elegida (o, si no hay ninguna, "actas de acuerdo") se pinta dorada.
+  const e = active || porDefecto ? ESTILO_TARJETA.actas_acuerdo : ESTILO_TARJETA[clave];
   const mostrado = useContador(value);
   const porcentaje = maximo > 0 ? Math.max(value > 0 ? 8 : 0, (value / maximo) * 100) : 0;
   return (
@@ -215,17 +218,17 @@ function TarjetaResumen({
       type="button"
       onClick={onClick}
       style={{ animationDelay: `${0.08 + orden * 0.06}s` }}
-      className={`tarjeta-resumen tile-in group w-full text-left rounded-2xl border p-4 shadow-[0_14px_30px_-18px_rgba(11,39,89,.55)] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400 focus-visible:ring-offset-2 ${e.caja} ${
-        active ? 'ring-4 ring-gold-400 ring-offset-2' : ''
+      className={`tarjeta-resumen tile-in group w-full text-left rounded-2xl border p-3.5 shadow-[0_10px_22px_-16px_rgba(11,39,89,.45)] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400 focus-visible:ring-offset-2 ${e.caja} ${
+        active ? 'ring-2 ring-gold-500/60 ring-offset-2 -translate-y-0.5' : ''
       }`}
     >
       <div className="flex items-start justify-between">
-        <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${e.icono}`}>
+        <span className={`w-8 h-8 rounded-xl flex items-center justify-center ${e.icono}`}>
           <Icon className="w-5 h-5" />
         </span>
         <ArrowRight className={`w-4 h-4 opacity-0 -translate-x-2 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 ${e.sub}`} />
       </div>
-      <p className={`mt-3 text-4xl font-extrabold tracking-tight tabular-nums leading-none ${e.texto}`}>{mostrado}</p>
+      <p className={`mt-2.5 text-3xl font-extrabold tracking-tight tabular-nums leading-none ${e.texto}`}>{mostrado}</p>
       <div className={`mt-3 h-1.5 rounded-full ${e.pista}`}>
         <div className={`h-1.5 rounded-full transition-all duration-1000 ease-out ${e.acento}`} style={{ width: `${porcentaje}%` }} />
       </div>
@@ -467,6 +470,7 @@ export default function DashboardPage() {
                 icon={icono}
                 onClick={() => toggleCategoria(clave)}
                 active={categoriaAbierta === clave}
+                porDefecto={!categoriaAbierta && clave === 'actas_acuerdo'}
                 orden={i}
               />
             ))}
