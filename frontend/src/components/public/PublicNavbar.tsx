@@ -175,14 +175,14 @@ export default function PublicNavbar() {
               </button>
 
               {openSedes && (
-                <div className="absolute top-full right-0 mt-4 w-80 max-h-[min(26rem,70vh)] overflow-y-auto overscroll-contain rounded-3xl bg-white ring-1 ring-numa-100 border-t-4 border-gold-400 shadow-[0_30px_60px_-20px_rgba(10,42,98,0.55)] z-[9999] pb-2">
-                  <div className="px-5 py-3.5 bg-white/95 backdrop-blur border-b border-numa-100 sticky top-0 z-10">
+                <div className="absolute top-full right-0 mt-4 w-72 max-h-[min(26rem,70vh)] overflow-y-auto overscroll-contain rounded-3xl bg-white ring-1 ring-numa-100 border-t-4 border-gold-400 shadow-[0_30px_60px_-20px_rgba(10,42,98,0.55)] z-[9999] pb-2">
+                  <div className="px-5 py-2.5 bg-white/95 backdrop-blur border-b border-numa-100 sticky top-0 z-10">
                     <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-gold-600">
                       Nuestras sedes
                     </span>
                   </div>
 
-                  <div className="">
+                  <div className="pb-1">
                     {sedes.length === 0 ? (
                       <div className="px-4 py-6 text-sm text-numa-500 text-center">
                         No hay sedes disponibles
@@ -190,7 +190,7 @@ export default function PublicNavbar() {
                     ) : (
                       Object.entries(sedesPorProvincia).map(([provincia, ciudades]) => (
                         <div key={provincia}>
-                          <div className="px-5 pt-5 pb-1">
+                          <div className="px-5 pt-3 pb-0.5">
                             <span className="text-xs font-bold uppercase tracking-[0.18em] text-numa-900">
                               {provincia}
                             </span>
@@ -198,7 +198,7 @@ export default function PublicNavbar() {
 
                           {Object.entries(ciudades).map(([ciudad, listaSedes]) => (
                             <div key={ciudad}>
-                              <div className="px-5 pt-2.5 pb-1">
+                              <div className="px-5 pt-1 pb-0">
                                 <span className="text-[11px] font-medium text-numa-500 tracking-wide">
                                   {ciudad}
                                 </span>
@@ -209,7 +209,7 @@ export default function PublicNavbar() {
                                   key={sede.id}
                                   href={`/sedes/${sede.slug}`}
                                   onClick={() => setOpenSedes(false)}
-                                  className="flex items-center gap-3 mx-3 pl-4 pr-3 py-2.5 rounded-xl hover:bg-gold-50 transition-colors group"
+                                  className="flex items-center gap-3 mx-3 pl-3 pr-3 py-1 rounded-lg hover:bg-gold-50 transition-colors group"
                                 >
                                   <MapPin className="w-3.5 h-3.5 text-gold-600 shrink-0" />
 
