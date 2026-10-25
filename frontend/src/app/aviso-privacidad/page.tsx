@@ -1,3 +1,4 @@
+import BotonInicio from '@/components/public/BotonInicio';
 import PublicNavbar from '@/components/public/PublicNavbar';
 import PublicFooter from '@/components/public/PublicFooter';
 
@@ -5,45 +6,35 @@ export default function AvisoPrivacidadPage() {
   return (
     <div className="min-h-screen bg-white font-display">
       <PublicNavbar />
+      <BotonInicio soloAncho />
 
-      <section className="relative pt-40 sm:pt-48 pb-24 bg-white overflow-hidden">
-        {/* Formas azules decorativas */}
-        <div className="absolute -bottom-40 -left-24 w-96 h-96 bg-numa-50 rounded-full blur-3xl opacity-90" />
-        <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-gold-400/10 rounded-full blur-3xl" />
-
-        {/* Patrón sutil */}
-        <div className="absolute inset-0 opacity-[0.08] pointer-events-none">
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage:
-                'repeating-linear-gradient(45deg, #C9D6E5 0, #C9D6E5 1px, transparent 0, transparent 50%)',
-              backgroundSize: '22px 22px',
-            }}
-          />
-        </div>
-
-        {/* Top line */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-numa-800 via-gold-500 to-numa-800" />
+      <section className="relative pt-40 sm:pt-48 pb-14 bg-gradient-to-br from-[#0A2A62] via-[#144193] to-[#2358C9] text-white overflow-hidden">
+        <div className="hero-float-a pointer-events-none absolute -top-40 -right-24 w-[480px] h-[480px] rounded-full border-[64px] border-white/10" />
+        <div className="hero-float-b pointer-events-none absolute -bottom-44 -left-20 w-[420px] h-[420px] rounded-full border-[52px] border-white/[0.08]" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-gold-400 to-transparent" />
 
         <div className="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2 mb-6">
-            <div className="h-px w-12 bg-gold-500" />
-            <span className="text-gold-600 text-xs uppercase tracking-[0.3em]">
+            <div className="h-px w-12 bg-gold-400" />
+            <span className="text-gold-300 text-xs uppercase tracking-[0.3em]">
               Centro de Mediación NUMA
             </span>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl font-bold text-numa-900 leading-tight mb-3">
+          <h1 className="text-4xl sm:text-5xl font-bold text-white leading-tight mb-3">
             Aviso de Privacidad y Protección de Datos (LOPDP)
           </h1>
 
-          <p className="text-numa-400 text-sm mb-12">
+          <p className="text-blue-100 text-sm">
             Última actualización: 4 de octubre de 2026
           </p>
+        </div>
+      </section>
 
+      <section className="relative pt-12 pb-24 bg-white overflow-hidden">
+        <div className="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="space-y-10 text-numa-700 leading-relaxed">
-            <div className="bg-gold-50 border-l-4 border-gold-400 rounded-r-sm p-5 text-sm text-numa-600">
+            <div className="bg-gold-50 ring-1 ring-gold-400/40 rounded-xl p-5 text-sm text-numa-600">
               Este aviso describe qué datos personales recolecta el Centro de
               Mediación NUMA, para qué los usa, y cómo puedes ejercer tus
               derechos sobre ellos, de acuerdo con la Ley Orgánica de

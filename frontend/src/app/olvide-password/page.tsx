@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import BotonInicio from '@/components/public/BotonInicio';
 import { ArrowLeft, Mail, CheckCircle } from 'lucide-react';
 import { solicitarRecuperacion } from '@/lib/services';
 
@@ -32,6 +33,7 @@ export default function OlvidePasswordPage() {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-[#0A2A62] via-[#144193] to-[#2358C9] flex items-center justify-center px-6 py-4 overflow-hidden font-brand font-display-jost font-todo-jost">
+      <BotonInicio />
       <div className="hero-float-a pointer-events-none absolute -top-44 -right-24 w-[520px] h-[520px] rounded-full border-[70px] border-white/10" />
       <div className="hero-float-b pointer-events-none absolute -bottom-48 -left-20 w-[460px] h-[460px] rounded-full border-[56px] border-white/[0.08]" />
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-gold-400 to-transparent" />

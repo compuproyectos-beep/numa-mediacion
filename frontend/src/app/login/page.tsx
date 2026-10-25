@@ -3,6 +3,7 @@
 import { Suspense, useState, FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import BotonInicio from '@/components/public/BotonInicio';
 import { Eye, EyeOff, ArrowLeft, AlertCircle, CheckCircle, CalendarCheck, FileCheck, ShieldCheck, User, Lock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getUser } from '@/lib/auth';
@@ -48,6 +49,7 @@ function LoginForm() {
 
 return (
   <div className="relative min-h-screen lg:h-screen lg:overflow-hidden flex bg-[#F2F5FB] font-brand font-display-jost font-todo-jost">
+    <BotonInicio />
     {/* Panel izquierdo: azul con degradado y círculos que flotan */}
     <div className="hidden lg:flex lg:w-[48%] relative overflow-hidden bg-gradient-to-br from-[#0A2A62] via-[#144193] to-[#2358C9] p-6 xl:p-8 flex-col justify-between gap-3 text-white">
       <div className="hero-float-a pointer-events-none absolute -top-44 -right-24 w-[520px] h-[520px] rounded-full border-[70px] border-white/10" />

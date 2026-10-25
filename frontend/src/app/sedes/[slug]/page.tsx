@@ -13,6 +13,7 @@ import {
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
 import FacebookIcon from '@/components/icons/FacebookIcon';
 
+import BotonInicio from '@/components/public/BotonInicio';
 import PublicNavbar from '@/components/public/PublicNavbar';
 import PublicFooter from '@/components/public/PublicFooter';
 import api from '@/lib/api';
@@ -39,47 +40,50 @@ export default function SedePage() {
   return (
     <div className="min-h-screen bg-white font-brand">
       <PublicNavbar />
+      <BotonInicio soloAncho />
 
-      <section className="relative pt-40 sm:pt-44 pb-16 sm:pb-20 bg-soft overflow-hidden">
+      <section className="relative pt-40 sm:pt-44 pb-16 sm:pb-20 bg-gradient-to-br from-[#0A2A62] via-[#144193] to-[#2358C9] text-white overflow-hidden">
         {/* Línea dorada superior (la misma de la portada) */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-numa-800 via-gold-500 to-numa-800" />
+        <div className="hero-float-a pointer-events-none absolute -top-40 -right-24 w-[480px] h-[480px] rounded-full border-[64px] border-white/10" />
+        <div className="hero-float-b pointer-events-none absolute -bottom-44 -left-20 w-[420px] h-[420px] rounded-full border-[52px] border-white/[0.08]" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-gold-400 to-transparent" />
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-numa-800 hover:text-gold-600 border border-numa-200 hover:border-gold-400 hover:bg-white rounded-full px-4 py-2 mb-10 btn-press"
+            className="inline-flex items-center gap-2 text-sm font-bold text-[#0A2A62] bg-gold-400 hover:bg-gold-300 rounded-full px-4 py-2 mb-10 btn-press shadow-[0_12px_24px_-12px_rgba(224,184,74,0.9)]"
           >
             <ArrowLeft className="w-4 h-4" />
             Volver al inicio
           </Link>
 
           {loading ? (
-            <p className="text-numa-600">Cargando sede...</p>
+            <p className="text-blue-100">Cargando sede...</p>
           ) : error ? (
             <div>
-              <h1 className="text-4xl font-bold mb-4 text-numa-900">Sede no encontrada</h1>
-              <p className="text-numa-600">{error}</p>
+              <h1 className="text-4xl font-bold mb-4 text-white">Sede no encontrada</h1>
+              <p className="text-blue-100">{error}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-10 lg:gap-14 items-center">
               <div>
-                <span className="inline-block rounded-full border border-gold-400/40 bg-gold-400/10 px-3.5 py-1 text-[11px] uppercase tracking-[0.2em] text-gold-600 font-sans mb-5">
+                <span className="inline-block rounded-full border border-gold-400 bg-[#0A2A62] px-4 py-1.5 text-xs sm:text-[13px] font-bold uppercase tracking-[0.18em] text-gold-300 font-sans mb-5">
                   Sede NUMA
                 </span>
 
-                <h1 className="text-4xl sm:text-5xl font-bold leading-tight mb-4 text-numa-900">
+                <h1 className="text-4xl sm:text-5xl font-bold leading-tight mb-4 text-white">
                   Centro de Mediación
-                  <span className="block text-gold-600">{sede.nombre}</span>
+                  <span className="block text-gold-300">{sede.nombre}</span>
                 </h1>
 
                 <div className="flex items-center gap-2 mb-6">
-                  <MapPin className="w-4 h-4 text-gold-600" />
-                  <span className="text-numa-600 font-medium">
+                  <MapPin className="w-4 h-4 text-gold-300" />
+                  <span className="text-blue-100 font-medium">
                     {sede.ciudad}, {sede.provincia}
                   </span>
                 </div>
 
-                <p className="text-numa-600 text-lg leading-relaxed max-w-xl">
+                <p className="text-blue-100 text-lg leading-relaxed max-w-xl">
                   Atención profesional en procesos de mediación, diálogo y
                   resolución pacífica de conflictos en {sede.ciudad}.
                 </p>
@@ -99,7 +103,7 @@ export default function SedePage() {
 
                   <Link
                     href="/login"
-                    className="inline-flex items-center gap-2 px-6 py-3 border border-numa-300 text-numa-700 text-sm font-medium rounded-full hover:border-gold-500 hover:text-gold-600 hover:bg-white btn-press"
+                    className="inline-flex items-center gap-2 px-6 py-3 border border-white/40 text-white text-sm font-semibold rounded-full hover:border-gold-400 hover:text-gold-300 hover:bg-white/10 btn-press"
                   >
                     Acceso al sistema
                   </Link>
@@ -171,7 +175,7 @@ export default function SedePage() {
       </section>
 
       <div className="bg-white px-3 sm:px-6 py-2 sm:py-4">
-        <section className="relative py-12 sm:py-16 bg-night overflow-hidden rounded-[1.75rem] sm:rounded-[2.5rem]">
+        <section className="relative py-12 sm:py-16 bg-gradient-to-br from-[#0A2A62] via-[#144193] to-[#2358C9] overflow-hidden rounded-[1.75rem] sm:rounded-[2.5rem]">
           <div className="max-w-3xl mx-auto px-5 text-center">
             <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
               Mediación cercana, profesional y confiable
