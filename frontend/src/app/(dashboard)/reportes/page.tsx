@@ -747,12 +747,10 @@ export default function ReportesPage() {
                 {exportando ? 'Descargando...' : 'Descargar Excel'}
               </button>
 
-              {tipo !== 'facturas-pendientes' && (
-                <button type="button" onClick={handleImprimir} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#144193] hover:bg-[#1B4AAE] text-white text-sm font-bold shadow-[0_10px_20px_-12px_rgba(10,42,98,0.9)] transition hover:-translate-y-0.5 active:scale-[0.98]">
+              <button type="button" onClick={handleImprimir} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#144193] hover:bg-[#1B4AAE] text-white text-sm font-bold shadow-[0_10px_20px_-12px_rgba(10,42,98,0.9)] transition hover:-translate-y-0.5 active:scale-[0.98]">
                   <Printer className="w-4 h-4" />
                   Imprimir / PDF
                 </button>
-              )}
             </>
           )}
         </div>
