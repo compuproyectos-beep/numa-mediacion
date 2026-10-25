@@ -69,12 +69,12 @@ return (
       </div>
 
       <div className="relative z-10 max-w-xl">
-        <h1 className="tile-in text-3xl xl:text-5xl font-extrabold tracking-tight leading-[1.05]" style={{ animationDelay: '0.1s' }}>
+        <h1 className="tile-in text-3xl xl:text-4xl font-extrabold tracking-tight leading-[1.05]" style={{ animationDelay: '0.1s' }}>
           Gestión jurídica
           <span className="block text-gold-300">moderna y confiable</span>
         </h1>
 
-        <p className="tile-in mt-2 text-blue-100 text-sm xl:text-lg leading-relaxed max-w-md" style={{ animationDelay: '0.2s' }}>
+        <p className="tile-in mt-2 text-blue-100 text-[15px] xl:text-base leading-relaxed max-w-md" style={{ animationDelay: '0.2s' }}>
           Audiencias, actas, clientes y mediadores en un solo lugar, con
           trazabilidad de cada paso.
         </p>
@@ -96,8 +96,8 @@ return (
                   <I className="w-5 h-5" />
                 </span>
                 <div>
-                  <p className="font-bold text-sm text-white">{titulo as string}</p>
-                  <p className="text-blue-50 text-xs">{texto as string}</p>
+                  <p className="font-bold text-[15px] leading-tight text-white">{titulo as string}</p>
+                  <p className="text-blue-50 text-[13px] leading-snug">{texto as string}</p>
                 </div>
               </div>
             );
@@ -106,10 +106,10 @@ return (
       </div>
 
       <div className="relative z-10 tile-in" style={{ animationDelay: '0.6s' }}>
-        <p className="italic text-blue-100 text-xs xl:text-sm">
+        <p className="italic text-blue-100 text-[13px]">
           “Priorizando la diplomacia sobre el conflicto.” · Inspirado en Numa Pompilio
         </p>
-        <p className="mt-1 text-xs text-blue-200/70">NUMA · Sistema Integral de Mediación</p>
+        <p className="mt-1 text-xs text-blue-200/80">NUMA · Sistema Integral de Mediación</p>
       </div>
     </div>
 
