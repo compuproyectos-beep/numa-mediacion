@@ -49,14 +49,14 @@ function LoginForm() {
 
 return (
   <div className="relative min-h-screen lg:h-screen lg:overflow-hidden flex bg-[#F2F5FB] font-brand font-display-jost font-todo-jost">
-    <BotonInicio className="lg:left-[calc(48%+1rem)]" />
+    <BotonInicio />
     {/* Panel izquierdo: azul con degradado y círculos que flotan */}
     <div className="hidden lg:flex lg:w-[48%] relative overflow-hidden bg-gradient-to-br from-[#0A2A62] via-[#144193] to-[#2358C9] p-6 xl:p-8 flex-col justify-between gap-3 text-white">
       <div className="hero-float-a pointer-events-none absolute -top-44 -right-24 w-[520px] h-[520px] rounded-full border-[70px] border-white/10" />
       <div className="hero-float-b pointer-events-none absolute -bottom-48 -left-20 w-[460px] h-[460px] rounded-full border-[56px] border-white/[0.08]" />
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-gold-400 to-transparent" />
 
-      <div className="relative z-10 tile-in">
+      <div className="relative z-10 tile-in pl-14">
         <Link
           href="/"
           className="inline-flex bg-numa-950 rounded-xl shadow-xl p-2 border border-gold-500/30 hover:opacity-90 transition-opacity"
