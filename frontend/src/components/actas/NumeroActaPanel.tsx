@@ -92,7 +92,7 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
   const anulados: any[] = estado.anulados || [];
 
   return (
-    <div className="card px-5 py-4 mb-4 bg-white border border-slate-300 border-l-4 border-l-gold-500">
+    <div className="card px-5 py-4 mb-4 bg-white border border-[#C5D2E6] border-t-4 border-t-gold-400 shadow-[0_14px_30px_-22px_rgba(10,42,98,0.5)]">
       <div className="flex items-start gap-3">
         <div className="mt-0.5 text-gold-700">
           <Hash size={20} />
@@ -113,9 +113,9 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
           {reservados.length === 0 ? (
             <p className="text-sm text-slate-900 font-medium mt-1">No tienes números de acta pendientes.</p>
           ) : (
-            <ul className="mt-1 space-y-2">
+            <ul className="mt-2 space-y-2.5">
               {reservados.map((r) => (
-                <li key={r.id} className="flex flex-col gap-0.5">
+                <li key={r.id} className={`flex flex-col gap-0.5 rounded-xl border px-3.5 py-2.5 ${r.vencido ? 'border-red-200 bg-red-50/60' : 'border-[#C5D2E6] bg-[#F4F7FC]'}`}>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-mono text-lg font-bold text-slate-900">{r.codigo}</span>
                     <button
@@ -142,18 +142,18 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
           <div className="mt-3">
             <button
               type="button"
-              className="text-sm text-slate-900 font-medium underline"
+              className="inline-flex items-center rounded-full border border-[#144193]/40 bg-[#F4F7FC] px-3.5 py-1.5 text-sm font-semibold text-[#144193] hover:bg-[#144193] hover:text-white transition-colors"
               onClick={() => setVerAnulados(!verAnulados)}
             >
               {verAnulados ? 'Ocultar' : 'Ver'} números anulados por el administrador ({anulados.length})
             </button>
             {verAnulados && (
-              <ul className="mt-2 space-y-2">
+              <ul className="mt-3 space-y-2.5">
                 {anulados.length === 0 && (
                   <li className="text-sm text-slate-900">No tienes números anulados.</li>
                 )}
                 {anulados.map((r) => (
-                  <li key={r.id} className="flex flex-col gap-0.5">
+                  <li key={r.id} className="flex flex-col gap-0.5 rounded-xl border border-rose-200 bg-rose-50/70 px-3.5 py-2.5">
                     <span className="font-mono font-bold text-slate-900">{r.codigo}</span>
                     <Ligado n={r} />
                     <span className="text-xs text-slate-900">
@@ -234,7 +234,7 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
   if (vencidos.length === 0 && enPlazo === 0 && datos.anulados.length === 0) return null;
 
   return (
-    <div className="card px-5 py-4 mb-4 bg-white border border-slate-300 border-l-4 border-l-gold-500">
+    <div className="card px-5 py-4 mb-4 bg-white border border-[#C5D2E6] border-t-4 border-t-gold-400 shadow-[0_14px_30px_-22px_rgba(10,42,98,0.5)]">
       <div className="flex items-center gap-2 mb-2">
         <Hash size={18} className="text-gold-700" />
         <p className="font-semibold text-slate-900">
@@ -260,19 +260,19 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-slate-900">
-                <th className="py-1 pr-3">Número</th>
-                <th className="py-1 pr-3">Mediador</th>
-                <th className="py-1 pr-3">Sucursal</th>
-                <th className="py-1 pr-3">Pedido</th>
-                <th className="py-1 pr-3">Días</th>
-                <th className="py-1" />
+              <tr className="text-left text-slate-900 bg-[#F4F7FC]">
+                <th className="py-2 pl-3 pr-3 rounded-l-lg">Número</th>
+                <th className="py-2 pr-3">Mediador</th>
+                <th className="py-2 pr-3">Sucursal</th>
+                <th className="py-2 pr-3">Pedido</th>
+                <th className="py-2 pr-3">Días</th>
+                <th className="py-2 rounded-r-lg" />
               </tr>
             </thead>
             <tbody>
               {vencidos.map((n) => (
-                <tr key={n.id} className="border-t border-slate-200">
-                  <td className="py-1.5 pr-3 font-mono font-semibold">
+                <tr key={n.id} className="border-t border-[#C5D2E6] odd:bg-white even:bg-[#F8FAFD]">
+                  <td className="py-2.5 pl-3 pr-3 font-mono font-semibold">
                     {n.codigo}
                     {n.ligado_a && (
                       <span className="block font-sans text-xs font-normal text-slate-700">
@@ -290,16 +290,16 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
                       </span>
                     )}
                   </td>
-                  <td className="py-1.5 pr-3">{n.mediador}</td>
-                  <td className="py-1.5 pr-3">
+                  <td className="py-2.5 pr-3">{n.mediador}</td>
+                  <td className="py-2.5 pr-3">
                     {n.ciudad} · {n.sucursal}
                   </td>
-                  <td className="py-1.5 pr-3">{fechaEC(n.fecha_solicitud)}</td>
+                  <td className="py-2.5 pr-3">{fechaEC(n.fecha_solicitud)}</td>
                   <td className={`py-1.5 pr-3 ${(n.dias ?? 0) >= 2 ? 'text-red-600 font-semibold' : ''}`}>
                     {n.dias ?? 0}
                     {(n.dias ?? 0) >= 2 ? ' · vencido' : ''}
                   </td>
-                  <td className="py-1.5 text-right">
+                  <td className="py-2.5 pr-2 text-right">
                     <button
                       type="button"
                       className="btn-danger btn-sm"
@@ -323,22 +323,22 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
         <div className="mt-2">
           <button
             type="button"
-            className="text-xs text-slate-900 underline"
+            className="inline-flex items-center rounded-full border border-[#144193]/40 bg-[#F4F7FC] px-3.5 py-1.5 text-sm font-semibold text-[#144193] hover:bg-[#144193] hover:text-white transition-colors"
             onClick={() => setVerAnulados(!verAnulados)}
           >
             {verAnulados ? 'Ocultar' : 'Ver'} números anulados ({datos.anulados.length})
           </button>
           {verAnulados && (
-            <ul className="mt-1 text-sm text-slate-900 space-y-1.5">
+            <ul className="mt-3 text-sm text-slate-900 space-y-2.5">
               {datos.anulados.map((n) => (
-                <li key={n.id} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <li key={n.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl border border-rose-200 bg-rose-50/70 px-3.5 py-2.5">
                   <span>
                     <span className="font-mono">{n.codigo}</span> · {n.mediador} ·{' '}
                     {fechaEC(n.fecha_anulacion)} · {n.motivo_anulacion}
                   </span>
                   <button
                     type="button"
-                    className="btn-secondary btn-sm"
+                    className="btn-sm inline-flex items-center gap-1.5 rounded-lg bg-[#144193] px-3 py-1.5 font-bold text-white shadow-[0_8px_16px_-10px_rgba(10,42,98,0.9)] hover:bg-[#1B4AAE] active:scale-[0.98] transition"
                     onClick={() => {
                       setError('');
                       setReactivar(n);

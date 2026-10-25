@@ -179,13 +179,13 @@ const ESTILO_TARJETA: Record<
   string,
   { caja: string; texto: string; sub: string; acento: string; pista: string; icono: string }
 > = {
-  actas_acuerdo: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-numa-700', pista: 'bg-numa-100', icono: 'bg-numa-100 text-numa-700' },
-  actas_no_acuerdo: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-orange-500', pista: 'bg-numa-100', icono: 'bg-orange-100 text-orange-700' },
-  en_negociacion: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-amber-500', pista: 'bg-numa-100', icono: 'bg-amber-100 text-amber-700' },
-  cerrado_con_acuerdo: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-emerald-500', pista: 'bg-numa-100', icono: 'bg-emerald-100 text-emerald-700' },
-  cerrado_sin_acuerdo: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-slate-500', pista: 'bg-numa-100', icono: 'bg-slate-100 text-slate-600' },
-  archivado: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-numa-400', pista: 'bg-numa-100', icono: 'bg-numa-100 text-numa-600' },
-  suspendido: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-rose-500', pista: 'bg-numa-100', icono: 'bg-rose-100 text-rose-700' }
+  actas_acuerdo: { caja: 'bg-white border-[#CBD6E8]', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-numa-700', pista: 'bg-numa-100', icono: 'bg-numa-100 text-numa-700' },
+  actas_no_acuerdo: { caja: 'bg-white border-[#CBD6E8]', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-orange-500', pista: 'bg-numa-100', icono: 'bg-orange-100 text-orange-700' },
+  en_negociacion: { caja: 'bg-white border-[#CBD6E8]', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-amber-500', pista: 'bg-numa-100', icono: 'bg-amber-100 text-amber-700' },
+  cerrado_con_acuerdo: { caja: 'bg-white border-[#CBD6E8]', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-emerald-500', pista: 'bg-numa-100', icono: 'bg-emerald-100 text-emerald-700' },
+  cerrado_sin_acuerdo: { caja: 'bg-white border-[#CBD6E8]', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-slate-500', pista: 'bg-numa-100', icono: 'bg-slate-100 text-slate-600' },
+  archivado: { caja: 'bg-white border-[#CBD6E8]', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-numa-400', pista: 'bg-numa-100', icono: 'bg-numa-100 text-numa-600' },
+  suspendido: { caja: 'bg-white border-[#CBD6E8]', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-rose-500', pista: 'bg-numa-100', icono: 'bg-rose-100 text-rose-700' }
 };
 
 // Estilo de la tarjeta que se elige (dorada); las demás van en blanco.
