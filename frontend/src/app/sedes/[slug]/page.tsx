@@ -42,27 +42,27 @@ export default function SedePage() {
       <PublicNavbar />
       <BotonInicio soloAncho />
 
-      <section className="relative pt-40 sm:pt-44 pb-16 sm:pb-20 bg-gradient-to-br from-[#0A2A62] via-[#144193] to-[#2358C9] text-white overflow-hidden">
+      <section className="relative pt-40 sm:pt-44 pb-16 sm:pb-20 bg-gradient-to-br from-gold-50 via-white to-[#EAF0FB] text-numa-900 overflow-hidden">
         {/* Línea dorada superior (la misma de la portada) */}
-        <div className="hero-float-a pointer-events-none absolute -top-40 -right-24 w-[480px] h-[480px] rounded-full border-[64px] border-white/10" />
-        <div className="hero-float-b pointer-events-none absolute -bottom-44 -left-20 w-[420px] h-[420px] rounded-full border-[52px] border-white/[0.08]" />
+        <div className="hero-float-a pointer-events-none absolute -top-40 -right-24 w-[480px] h-[480px] rounded-full border-[64px] border-gold-400/15" />
+        <div className="hero-float-b pointer-events-none absolute -bottom-44 -left-20 w-[420px] h-[420px] rounded-full border-[52px] border-[#144193]/[0.07]" />
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-gold-400 to-transparent" />
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm font-bold text-[#0A2A62] bg-gold-400 hover:bg-gold-300 rounded-full px-4 py-2 mb-10 btn-press shadow-[0_12px_24px_-12px_rgba(224,184,74,0.9)]"
+            className="inline-flex items-center gap-2 text-sm font-bold text-white bg-[#144193] hover:bg-[#1B4AAE] rounded-full px-4 py-2 mb-10 btn-press shadow-[0_12px_24px_-12px_rgba(10,42,98,0.9)]"
           >
             <ArrowLeft className="w-4 h-4" />
             Volver al inicio
           </Link>
 
           {loading ? (
-            <p className="text-blue-100">Cargando sede...</p>
+            <p className="text-numa-600">Cargando sede...</p>
           ) : error ? (
             <div>
-              <h1 className="text-4xl font-bold mb-4 text-white">Sede no encontrada</h1>
-              <p className="text-blue-100">{error}</p>
+              <h1 className="text-4xl font-bold mb-4 text-numa-900">Sede no encontrada</h1>
+              <p className="text-numa-600">{error}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-10 lg:gap-14 items-center">
@@ -71,19 +71,19 @@ export default function SedePage() {
                   Sede NUMA
                 </span>
 
-                <h1 className="text-4xl sm:text-5xl font-bold leading-tight mb-4 text-white">
+                <h1 className="text-4xl sm:text-5xl font-bold leading-tight mb-4 text-numa-900">
                   Centro de Mediación
-                  <span className="block text-gold-300">{sede.nombre}</span>
+                  <span className="block text-gold-600">{sede.nombre}</span>
                 </h1>
 
                 <div className="flex items-center gap-2 mb-6">
-                  <MapPin className="w-4 h-4 text-gold-300" />
-                  <span className="text-blue-100 font-medium">
+                  <MapPin className="w-4 h-4 text-gold-600" />
+                  <span className="text-numa-700 font-medium">
                     {sede.ciudad}, {sede.provincia}
                   </span>
                 </div>
 
-                <p className="text-blue-100 text-lg leading-relaxed max-w-xl">
+                <p className="text-numa-600 text-lg leading-relaxed max-w-xl">
                   Atención profesional en procesos de mediación, diálogo y
                   resolución pacífica de conflictos en {sede.ciudad}.
                 </p>
@@ -103,7 +103,7 @@ export default function SedePage() {
 
                   <Link
                     href="/login"
-                    className="inline-flex items-center gap-2 px-6 py-3 border border-white/40 text-white text-sm font-semibold rounded-full hover:border-gold-400 hover:text-gold-300 hover:bg-white/10 btn-press"
+                    className="inline-flex items-center gap-2 px-6 py-3 border-2 border-[#144193] text-[#144193] text-sm font-bold rounded-full hover:bg-[#144193] hover:text-white btn-press"
                   >
                     Acceso al sistema
                   </Link>
@@ -111,36 +111,36 @@ export default function SedePage() {
               </div>
 
               <div className="bezel">
-                <div className="bg-white rounded-[1.6rem] shadow-soft inner-hl-light p-7 sm:p-9">
-                  <div className="w-12 h-14 rounded-t-full rounded-b-xl bg-numa-900 flex items-center justify-center mb-6">
-                    <Building2 className="w-5 h-5 text-gold-400" />
+                <div className="bg-gradient-to-br from-[#0A2A62] via-[#144193] to-[#1B4AAE] rounded-[1.6rem] shadow-[0_30px_60px_-28px_rgba(10,42,98,0.85)] p-7 sm:p-9 text-white">
+                  <div className="w-12 h-14 rounded-t-full rounded-b-xl bg-gold-400 flex items-center justify-center mb-6">
+                    <Building2 className="w-5 h-5 text-[#0A2A62]" />
                   </div>
 
-                  <h2 className="text-2xl font-bold mb-6 text-numa-900">
+                  <h2 className="text-2xl font-bold mb-6 text-white">
                     Información de la sede
                   </h2>
 
-                  <dl className="divide-y divide-numa-100">
+                  <dl className="divide-y divide-white/15">
                     <div className="flex gap-4 py-4 first:pt-0">
-                      <MapPin className="w-5 h-5 text-gold-600 shrink-0 mt-0.5" />
+                      <MapPin className="w-5 h-5 text-gold-300 shrink-0 mt-0.5" />
                       <div className="min-w-0">
-                        <dt className="font-semibold text-numa-900">Dirección</dt>
-                        <dd className="text-numa-600">
+                        <dt className="font-semibold text-gold-200">Dirección</dt>
+                        <dd className="text-white">
                           {sede.direccion || 'Dirección no registrada'}
                         </dd>
-                        <dd className="text-numa-400 text-sm">
+                        <dd className="text-blue-100 text-sm">
                           {sede.ciudad}, {sede.provincia}
                         </dd>
                       </div>
                     </div>
 
                     <div className="flex gap-4 py-4">
-                      <Phone className="w-5 h-5 text-gold-600 shrink-0 mt-0.5" />
+                      <Phone className="w-5 h-5 text-gold-300 shrink-0 mt-0.5" />
                       <div className="min-w-0">
-                        <dt className="font-semibold text-numa-900">Teléfono</dt>
-                        <dd className="text-numa-600">
+                        <dt className="font-semibold text-gold-200">Teléfono</dt>
+                        <dd className="text-white">
                           {telefonoSede ? (
-                            <a href={`tel:${telefonoLimpio}`} className="hover:text-gold-600">
+                            <a href={`tel:${telefonoLimpio}`} className="hover:text-gold-300 underline-offset-2 hover:underline">
                               {telefonoSede}
                             </a>
                           ) : (
@@ -151,15 +151,15 @@ export default function SedePage() {
                     </div>
 
                     <div className="flex gap-4 py-4 last:pb-0">
-                      <FacebookIcon className="w-5 h-5 text-gold-600 shrink-0 mt-0.5" />
+                      <FacebookIcon className="w-5 h-5 text-gold-300 shrink-0 mt-0.5" />
                       <div className="min-w-0">
-                        <dt className="font-semibold text-numa-900">Facebook</dt>
+                        <dt className="font-semibold text-gold-200">Facebook</dt>
                         <dd>
                           <a
                             href="https://www.facebook.com/profile.php?id=61594906720744"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-numa-600 hover:text-gold-600"
+                            className="text-white hover:text-gold-300 underline-offset-2 hover:underline"
                           >
                             NUMA Centro de Mediación
                           </a>
@@ -175,13 +175,13 @@ export default function SedePage() {
       </section>
 
       <div className="bg-white px-3 sm:px-6 py-2 sm:py-4">
-        <section className="relative py-12 sm:py-16 bg-gradient-to-br from-[#0A2A62] via-[#144193] to-[#2358C9] overflow-hidden rounded-[1.75rem] sm:rounded-[2.5rem]">
+        <section className="relative py-12 sm:py-16 bg-gradient-to-br from-gold-300 via-gold-400 to-gold-500 overflow-hidden rounded-[1.75rem] sm:rounded-[2.5rem]">
           <div className="max-w-3xl mx-auto px-5 text-center">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
+            <h2 className="text-2xl sm:text-3xl font-bold text-numa-950 mb-4">
               Mediación cercana, profesional y confiable
             </h2>
 
-            <p className="text-numa-100 leading-relaxed">
+            <p className="text-numa-900 leading-relaxed font-medium">
               En NUMA promovemos soluciones pacíficas mediante procesos de
               mediación eficientes, confidenciales y orientados al
               entendimiento entre las partes.
