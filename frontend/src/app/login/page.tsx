@@ -47,7 +47,7 @@ function LoginForm() {
   };
 
 return (
-  <div className="relative min-h-screen lg:h-screen lg:overflow-hidden flex bg-[#F2F5FB]">
+  <div className="relative min-h-screen lg:h-screen lg:overflow-hidden flex bg-[#F2F5FB] font-brand font-display-jost">
     {/* Panel izquierdo: azul con degradado y círculos que flotan */}
     <div className="hidden lg:flex lg:w-[48%] relative overflow-hidden bg-gradient-to-br from-[#0A2A62] via-[#144193] to-[#2358C9] p-8 xl:p-10 flex-col justify-between gap-4 text-white">
       <div className="hero-float-a pointer-events-none absolute -top-44 -right-24 w-[520px] h-[520px] rounded-full border-[70px] border-white/10" />
