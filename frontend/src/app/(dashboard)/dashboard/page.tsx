@@ -179,7 +179,7 @@ const ESTILO_TARJETA: Record<
   string,
   { caja: string; texto: string; sub: string; acento: string; pista: string; icono: string }
 > = {
-  actas_acuerdo: { caja: 'bg-gradient-to-br from-gold-300 to-gold-500 border-transparent', texto: 'text-numa-950', sub: 'text-numa-900', acento: 'bg-numa-900', pista: 'bg-numa-950/15', icono: 'bg-numa-950/15 text-numa-900' },
+  actas_acuerdo: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-numa-700', pista: 'bg-numa-100', icono: 'bg-numa-100 text-numa-700' },
   actas_no_acuerdo: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-orange-500', pista: 'bg-numa-100', icono: 'bg-orange-100 text-orange-700' },
   en_negociacion: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-amber-500', pista: 'bg-numa-100', icono: 'bg-amber-100 text-amber-700' },
   cerrado_con_acuerdo: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-emerald-500', pista: 'bg-numa-100', icono: 'bg-emerald-100 text-emerald-700' },
@@ -187,6 +187,9 @@ const ESTILO_TARJETA: Record<
   archivado: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-numa-400', pista: 'bg-numa-100', icono: 'bg-numa-100 text-numa-600' },
   suspendido: { caja: 'bg-white border-numa-100', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-rose-500', pista: 'bg-numa-100', icono: 'bg-rose-100 text-rose-700' }
 };
+
+// Estilo de la tarjeta que se elige (dorada); las demás van en blanco.
+const ESTILO_ELEGIDA = { caja: 'bg-gradient-to-br from-gold-300 to-gold-500 border-transparent', texto: 'text-numa-950', sub: 'text-numa-900', acento: 'bg-numa-900', pista: 'bg-numa-950/15', icono: 'bg-numa-950/15 text-numa-900' };
 
 function TarjetaResumen({
   clave,
@@ -210,7 +213,7 @@ function TarjetaResumen({
   orden: number;
 }) {
   // Solo la tarjeta elegida se pinta dorada; al abrir el panel ninguna lo está.
-  const e = active ? ESTILO_TARJETA.actas_acuerdo : ESTILO_TARJETA[clave];
+  const e = active ? ESTILO_ELEGIDA : ESTILO_TARJETA[clave];
   const mostrado = useContador(value);
   const porcentaje = maximo > 0 ? Math.max(value > 0 ? 8 : 0, (value / maximo) * 100) : 0;
   return (
