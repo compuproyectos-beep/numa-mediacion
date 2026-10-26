@@ -214,7 +214,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const noLeidas = sinLeerTitulo;
   // Los "persistentes" (proceso suspendido, acta sin completar o vencida) siguen
   // en el banner hasta que se resuelve el problema; el resto, hasta que se lee.
-  const urgentes = urgentesServidor ?? notificaciones.filter((n) => !n.leida && esUrgente(n));
+  const urgentesTodos = urgentesServidor ?? notificaciones.filter((n) => !n.leida && esUrgente(n));
+  // El banner rojo solo se muestra donde le sirve a la persona, para no estorbar en
+  // todo el sistema (en la campana siempre se pueden ver). "Cuenta bloqueada" es de
+  // seguridad y sale en todas las pantallas.
+  const rolActual = getUser()?.rol;
+  const rutasBanner =
+    rolActual === 'administrador'
+      ? ['/dashboard', '/actas-finales']
+      : ['/dashboard', '/procesos', '/actas-finales', '/agenda'];
+  const enRutaBanner = rutasBanner.some((r) => pathname === r || pathname.startsWith(r + '/'));
+  const urgentes = urgentesTodos.filter((n) => n.titulo === 'Cuenta bloqueada' || enRutaBanner);
   const esPersistente = (n: any) =>
     ['Proceso suspendido', 'Número de acta sin completar', 'Acta con plazo vencido'].includes(n?.titulo);
 
