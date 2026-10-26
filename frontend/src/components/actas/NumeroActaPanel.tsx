@@ -95,83 +95,86 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
 
   const reservados: any[] = estado.reservados || [];
   const anulados: any[] = estado.anulados || [];
+  const vencidos = reservados.filter((r) => r.vencido).length;
 
   return (
     <div className="card px-5 py-4 mb-4 bg-white border border-[#C5D2E6] border-t-4 border-t-gold-400 shadow-[0_14px_30px_-22px_rgba(10,42,98,0.5)]">
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 text-gold-700">
-          <Hash size={20} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-lg font-bold text-slate-900">Mis números de acta</p>
-          <p className="text-sm text-slate-800 mt-0.5">
-            El número se asigna solo cuando cierras un proceso con acuerdo o con no acuerdo, o lo
-            pides desde la Agenda en una invitación rápida. Tienes 48 horas para completar cada acta;
-            pasado ese plazo, no podrás cerrar otros procesos con acta.
-          </p>
+      <div className="flex items-center gap-2 mb-1">
+        <Hash size={18} className="text-gold-700" />
+        <p className="font-semibold text-slate-900">
+          Mis números de acta pendientes por completar ({reservados.length})
+          {vencidos > 0 && <span className="text-red-600"> · {vencidos} vencido{vencidos === 1 ? '' : 's'}</span>}
+        </p>
+      </div>
+      <p className="text-sm text-slate-700 mb-2">
+        Tienes 48 horas para completar cada acta; pasado ese plazo, no podrás cerrar otros procesos con acta.
+        El número se asigna al cerrar un proceso o al pedirlo en una invitación rápida de la Agenda.
+      </p>
 
-          {estado.motivo && <p className="text-sm text-amber-700 mt-2">{estado.motivo}</p>}
+      {estado.motivo && <p className="text-sm text-amber-700 mb-2">{estado.motivo}</p>}
 
-          <p className="text-sm font-semibold text-slate-900 mt-3">
-            Pendientes por completar ({reservados.length})
-          </p>
-          {reservados.length === 0 ? (
-            <p className="text-sm text-slate-900 font-medium mt-1">No tienes números de acta pendientes.</p>
-          ) : (
-            <ul className="mt-2 space-y-2.5">
+      {reservados.length === 0 ? (
+        <p className="text-sm text-slate-900">No tienes números de acta pendientes.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-slate-900 bg-[#F4F7FC]">
+                <th className="py-2 pl-3 pr-3 rounded-l-lg">Número</th>
+                <th className="py-2 pr-3">Pedido</th>
+                <th className="py-2 pr-3">Plazo</th>
+                <th className="py-2 rounded-r-lg" />
+              </tr>
+            </thead>
+            <tbody>
               {reservados.map((r) => (
-                <li key={r.id} className={`flex flex-col gap-0.5 rounded-xl border px-3.5 py-2.5 ${r.vencido ? 'border-red-200 bg-red-50/60' : 'border-[#C5D2E6] bg-[#F4F7FC]'}`}>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-lg font-bold text-slate-900">{r.codigo}</span>
-                    <button
-                      type="button"
-                      className="btn-secondary btn-sm"
-                      onClick={() => copiar(r.id, r.codigo)}
-                    >
+                <tr key={r.id} className="border-t border-[#C5D2E6] odd:bg-white even:bg-[#F8FAFD]">
+                  <td className="py-2.5 pl-3 pr-3 font-mono font-semibold">
+                    {r.codigo}
+                    <span className="block font-sans text-xs font-normal text-slate-700">
+                      <Ligado n={r} />
+                    </span>
+                  </td>
+                  <td className="py-2.5 pr-3">{fechaEC(r.fecha_solicitud)}</td>
+                  <td className={`py-2.5 pr-3 ${r.vencido ? 'text-red-600 font-semibold' : ''}`}>
+                    {r.vencido ? 'Vencido · completa esta acta' : `Hasta ${fechaEC(r.vence_en)}`}
+                  </td>
+                  <td className="py-2.5 pr-2 text-right">
+                    <button type="button" className="btn-secondary btn-sm" onClick={() => copiar(r.id, r.codigo)}>
                       {copiado === r.id ? <Check size={14} /> : <Copy size={14} />}
                       {copiado === r.id ? 'Copiado' : 'Copiar'}
                     </button>
-                  </div>
-                  <Ligado n={r} />
-                  <span className={`text-xs ${r.vencido ? 'text-red-600 font-semibold' : 'text-slate-900'}`}>
-                    Asignado el {fechaEC(r.fecha_solicitud)}
-                    {r.vencido
-                      ? ' · ya pasaron 48 horas, completa esta acta'
-                      : ` · plazo hasta ${fechaEC(r.vence_en)}`}
-                  </span>
-                </li>
+                  </td>
+                </tr>
               ))}
-            </ul>
-          )}
-
-          <div className="mt-3">
-            <button
-              type="button"
-              className="inline-flex items-center rounded-full border border-[#144193]/40 bg-[#F4F7FC] px-3.5 py-1.5 text-sm font-semibold text-[#144193] hover:bg-[#144193] hover:text-white transition-colors"
-              onClick={() => setVerAnulados(!verAnulados)}
-            >
-              {verAnulados ? 'Ocultar' : 'Ver'} números anulados por el administrador ({anulados.length})
-            </button>
-            {verAnulados && (
-              <ul className="mt-3 space-y-2.5">
-                {anulados.length === 0 && (
-                  <li className="text-sm text-slate-900">No tienes números anulados.</li>
-                )}
-                {anulados.map((r) => (
-                  <li key={r.id} className="flex flex-col gap-0.5 rounded-xl border border-rose-200 bg-rose-50/70 px-3.5 py-2.5">
-                    <span className="font-mono font-bold text-slate-900">{r.codigo}</span>
-                    <Ligado n={r} />
-                    <span className="text-xs text-slate-900">
-                      Anulado el {fechaEC(r.fecha_anulacion)}
-                      {r.motivo_anulacion ? ` · Motivo: ${r.motivo_anulacion}` : ''}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
+            </tbody>
+          </table>
         </div>
+      )}
+
+      <div className="mt-3">
+        <button
+          type="button"
+          className="inline-flex items-center rounded-full border border-[#144193]/40 bg-[#F4F7FC] px-3.5 py-1.5 text-sm font-semibold text-[#144193] hover:bg-[#144193] hover:text-white transition-colors"
+          onClick={() => setVerAnulados(!verAnulados)}
+        >
+          {verAnulados ? 'Ocultar' : 'Ver'} números anulados por el administrador ({anulados.length})
+        </button>
+        {verAnulados && (
+          <ul className="mt-3 space-y-2.5">
+            {anulados.length === 0 && <li className="text-sm text-slate-900">No tienes números anulados.</li>}
+            {anulados.map((r) => (
+              <li key={r.id} className="flex flex-col gap-0.5 rounded-xl border border-rose-200 bg-rose-50/70 px-3.5 py-2.5">
+                <span className="font-mono font-bold text-slate-900">{r.codigo}</span>
+                <Ligado n={r} />
+                <span className="text-xs text-slate-900">
+                  Anulado el {fechaEC(r.fecha_anulacion)}
+                  {r.motivo_anulacion ? ` · Motivo: ${r.motivo_anulacion}` : ''}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );
