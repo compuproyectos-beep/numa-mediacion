@@ -9,6 +9,7 @@ import { getToken, getUser } from '@/lib/auth';
 import {
   getNotificaciones,
   getTotalNoLeidas,
+  getNotificacionesUrgentes,
   marcarNotificacionLeida,
   marcarTodasNotificacionesLeidas,
 } from '@/lib/services';
@@ -55,7 +56,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [hasToken, setHasToken] = useState(false);
   // Notificación abierta en la ventana de detalle, avisos emergentes en
   // pantalla y los ids ya vistos (para avisar solo lo que llega nuevo).
-  const [detalle, setDetalle] = useState<any | null>(null);
+  // Ventana de detalle: puede traer varias notificaciones (las del banner rojo)
+  // para pasarlas con "Anterior / Siguiente" sin cerrar y abrir cada una.
+  const [detalleLista, setDetalleLista] = useState<any[]>([]);
+  const [detalleIdx, setDetalleIdx] = useState(0);
+  const detalle = detalleLista[detalleIdx] ?? null;
+  const setDetalle = (n: any | null) => {
+    setDetalleLista(n ? [n] : []);
+    setDetalleIdx(0);
+  };
+  // Avisos urgentes vigentes (los pide el servidor: no se quitan por abrirlos).
+  const [urgentesServidor, setUrgentesServidor] = useState<any[] | null>(null);
   // Total real de sin leer (la lista trae solo las 50 más recientes).
   const [totalNoLeidas, setTotalNoLeidas] = useState<number | null>(null);
   const [avisos, setAvisos] = useState<any[]>([]);
@@ -115,6 +126,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const data = await getNotificaciones();
       setNotificaciones(data);
       getTotalNoLeidas().then(setTotalNoLeidas).catch(() => {});
+      getNotificacionesUrgentes().then(setUrgentesServidor).catch(() => setUrgentesServidor(null));
 
       // Lo que llega nuevo y es "destacado" sale como tarjeta emergente. La
       // primera carga solo registra lo que ya existía, sin avisar.
@@ -200,7 +212,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (checkingAuth || !hasToken) return null;
 
   const noLeidas = sinLeerTitulo;
-  const urgentes = notificaciones.filter((n) => !n.leida && esUrgente(n));
+  // Los "persistentes" (proceso suspendido, acta sin completar o vencida) siguen
+  // en el banner hasta que se resuelve el problema; el resto, hasta que se lee.
+  const urgentes = urgentesServidor ?? notificaciones.filter((n) => !n.leida && esUrgente(n));
+  const esPersistente = (n: any) =>
+    ['Proceso suspendido', 'Número de acta sin completar', 'Acta con plazo vencido'].includes(n?.titulo);
+
+  // Abre la ventana con todos los avisos urgentes, empezando por el primero.
+  const abrirUrgentes = () => {
+    setOpen(false);
+    setDetalleLista(urgentes);
+    setDetalleIdx(0);
+    urgentes.slice(0, 1).forEach((n) => { if (!n.leida) marcarUna(n.id); });
+  };
+  const irA = (i: number) => {
+    const n = detalleLista[i];
+    setDetalleIdx(i);
+    if (n && !n.leida) marcarUna(n.id);
+  };
 
   // Al tocar una notificación se abre su detalle (y queda leída); desde ahí
   // la persona decide si va al proceso o a la agenda.
@@ -234,6 +263,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     setNotificaciones((prev) =>
       prev.map((n) => (n.id === id ? { ...n, leida: true } : n))
+    );
+    // Un urgente "normal" sale del banner al leerlo; los persistentes se quedan.
+    setUrgentesServidor((prev) =>
+      prev ? prev.filter((x) => x.id !== id || ['Proceso suspendido', 'Número de acta sin completar', 'Acta con plazo vencido'].includes(x.titulo)) : prev
     );
   };
 
@@ -362,20 +395,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
                 <button
                   type="button"
-                  onClick={() => abrirNotificacion(urgentes[0])}
+                  onClick={abrirUrgentes}
                   className="btn-secondary btn-sm shrink-0"
                 >
-                  Ver detalle
+                  {urgentes.length > 1 ? `Ver los ${urgentes.length}` : 'Ver detalle'}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => marcarUna(urgentes[0].id)}
-                  className="p-1 text-red-700 hover:text-red-900 shrink-0"
-                  aria-label="Cerrar aviso"
-                  title="Cerrar aviso (queda como leído)"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                {!esPersistente(urgentes[0]) && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await marcarUna(urgentes[0].id);
+                      setUrgentesServidor((prev) => (prev ? prev.filter((x) => x.id !== urgentes[0].id) : prev));
+                    }}
+                    className="p-1 text-red-700 hover:text-red-900 shrink-0"
+                    aria-label="Cerrar aviso"
+                    title="Cerrar aviso (queda como leído)"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -415,14 +453,50 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </main>
 
-      <Modal open={!!detalle} onClose={() => setDetalle(null)} title={detalle?.titulo || 'Notificación'}>
+      <Modal open={!!detalle} onClose={() => setDetalle(null)} title={detalle ? (detalleLista.length > 1 ? `${detalle.titulo} (${detalleIdx + 1}/${detalleLista.length})` : detalle.titulo) : 'Notificación'}>
         {detalle && (
           <div>
             <p className="text-xs text-numa-700 mb-3">{fechaNotificacion(detalle.fecha_creacion)}</p>
             <p className="text-[15px] text-numa-900 whitespace-pre-line break-words leading-relaxed">
               {detalle.mensaje}
             </p>
-            <div className="flex justify-end gap-3 mt-6">
+            {detalleLista.length > 1 && (
+              <div className="mt-5 flex items-center justify-between gap-2 rounded-xl border border-[#C5D2E6] bg-[#F4F7FC] px-2 py-1.5">
+                <button
+                  type="button"
+                  className="btn-secondary btn-sm"
+                  disabled={detalleIdx === 0}
+                  onClick={() => irA(detalleIdx - 1)}
+                >
+                  ‹ Anterior
+                </button>
+                <div className="flex items-center gap-1.5" aria-label={`Aviso ${detalleIdx + 1} de ${detalleLista.length}`}>
+                  <span className="text-sm font-bold text-numa-900 tabular-nums">
+                    {detalleIdx + 1} de {detalleLista.length}
+                  </span>
+                  <span className="flex gap-1">
+                    {detalleLista.map((_, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        aria-label={`Ir al aviso ${i + 1}`}
+                        onClick={() => irA(i)}
+                        className={`h-2 rounded-full transition-all ${i === detalleIdx ? 'w-5 bg-[#144193]' : 'w-2 bg-numa-300 hover:bg-numa-400'}`}
+                      />
+                    ))}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="btn-secondary btn-sm"
+                  disabled={detalleIdx === detalleLista.length - 1}
+                  onClick={() => irA(detalleIdx + 1)}
+                >
+                  Siguiente ›
+                </button>
+              </div>
+            )}
+            <div className="flex justify-end gap-3 mt-4">
               <button type="button" className="btn-secondary" onClick={() => setDetalle(null)}>
                 Cerrar
               </button>

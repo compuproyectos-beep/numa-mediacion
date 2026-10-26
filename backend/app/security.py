@@ -43,7 +43,7 @@ def crear_token(data: dict):
 # (procesos, actas, reportes, usuarios...) se le niega aunque conozca la URL.
 _RUTAS_SECRETARIA = [
     ("GET", r"^/me$"),
-    ("GET", r"^/notificaciones(/no-leidas)?$"),
+    ("GET", r"^/notificaciones(/no-leidas|/urgentes)?$"),
     ("PUT", r"^/notificaciones/(\d+/leer|leer-todas)$"),
     ("PUT", r"^/usuarios/cambiar-password$"),
     ("GET", r"^/citas$"),

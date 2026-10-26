@@ -721,6 +721,43 @@ def iniciar_scheduler():
 # NOTIFICACIONES
 # =========================
 
+# Avisos urgentes que siguen vigentes (los del banner rojo). Los de "proceso
+# suspendido" y de actas sin completar NO se quitan al abrirlos o leerlos:
+# se quitan solo cuando se resuelve lo que avisan (el proceso se reactiva o
+# el número de acta se completa/anula). Los demás urgentes (número anulado,
+# cuenta bloqueada) siguen la regla de siempre: dejan de ser urgentes al leerlos.
+@app.get("/notificaciones/urgentes")
+def obtener_notificaciones_urgentes(usuario=Depends(obtener_usuario_actual)):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT DISTINCT ON (n.titulo, n.referencia_tipo, n.referencia_id)
+                n.id, n.titulo, n.mensaje, n.tipo, n.leida,
+                n.referencia_tipo, n.referencia_id, n.fecha_creacion,
+                NULL::int AS cita_usuario_id
+            FROM notificaciones n
+            LEFT JOIN procesos_mediacion p
+                ON n.referencia_tipo = 'proceso_mediacion' AND p.id = n.referencia_id
+            LEFT JOIN numeros_acta na
+                ON n.referencia_tipo = 'numero_acta' AND na.id = n.referencia_id
+            WHERE n.usuario_id = %s
+              AND (
+                (n.titulo = 'Proceso suspendido' AND COALESCE(p.suspendido, false) = true)
+                OR (n.titulo IN ('Número de acta sin completar', 'Acta con plazo vencido')
+                    AND COALESCE(na.estado, '') = 'reservado')
+                OR (n.titulo IN ('Número de acta anulado', 'Cuenta bloqueada') AND n.leida = false)
+              )
+            ORDER BY n.titulo, n.referencia_tipo, n.referencia_id, n.fecha_creacion DESC
+        """, (usuario["id"],))
+        filas = cur.fetchall()
+        filas.sort(key=lambda r: r["fecha_creacion"], reverse=True)
+        return filas
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.get("/notificaciones")
 def obtener_notificaciones(usuario=Depends(obtener_usuario_actual)):
     conn = get_db()
