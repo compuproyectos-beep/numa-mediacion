@@ -9757,6 +9757,14 @@ def _facturas_pagos_filas(usuario, q=None, tipo=None, usuario_id=None,
         filas = cur.fetchall()
         for f in filas:
             f["tipo_etiqueta"] = TIPOS_FACTURAS_PAGOS.get(f["tipo"], f["tipo"])
+            # El comprobante del acta es el primer pago: su monto vive en el
+            # proceso (abono 1 si se paga en abonos; si no, el total).
+            if f["tipo"] == "pago_acta":
+                if f.get("pago_en_abonos"):
+                    f["tipo_etiqueta"] = "Comprobante del primer pago"
+                    f["monto"] = f.get("abono1_monto")
+                else:
+                    f["monto"] = f.get("monto_total")
         return filas
     finally:
         cur.close()
