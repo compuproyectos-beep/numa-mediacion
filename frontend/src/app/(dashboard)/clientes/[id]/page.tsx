@@ -218,7 +218,7 @@ export default function FichaClientePage() {
                       <button
                         type="button"
                         onClick={() => abrirActa(a, false)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-[#CBD6E8] px-2.5 py-1.5 text-xs font-semibold text-[#144193] hover:bg-[#F4F7FC]"
+                        className="inline-flex items-center gap-1 rounded-lg bg-[#144193] px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#0A2A62]"
                       >
                         <Eye size={14} /> Acta
                       </button>
@@ -226,7 +226,7 @@ export default function FichaClientePage() {
                         <button
                           type="button"
                           onClick={() => abrirActa(a, true)}
-                          className="ml-2 inline-flex items-center gap-1 rounded-lg border border-[#CBD6E8] px-2.5 py-1.5 text-xs font-semibold text-[#144193] hover:bg-[#F4F7FC]"
+                          className="ml-2 inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-700"
                         >
                           <Eye size={14} /> Firmada
                         </button>
