@@ -130,6 +130,17 @@ export default function FacturasPagosPage() {
     }
     g.items.push(f);
   });
+  // Montos en orden: primer abono, segundo abono (si hay) y monto final.
+  const ORDEN: Record<string, number> = { pago_acta: 0, pago_final: 1, factura_cliente: 2, factura_mediador: 3 };
+  grupos.forEach((g) => {
+    g.items.sort((a: any, b: any) => (ORDEN[a.tipo] ?? 9) - (ORDEN[b.tipo] ?? 9));
+    const segundo = g.items.find((i: any) => i.tipo === 'pago_final' && i.monto != null);
+    g.chips = [
+      g.pago_en_abonos && g.abono1_monto != null ? { label: '1.er abono', valor: g.abono1_monto } : null,
+      segundo ? { label: '2.º abono', valor: segundo.monto } : null,
+      g.monto_total != null ? { label: 'Monto final', valor: g.monto_total, final: true } : null,
+    ].filter(Boolean);
+  });
 
   return (
     <>
@@ -270,18 +281,20 @@ export default function FacturasPagosPage() {
                   <p><span className="text-[#6B7C99]">Invitado: </span><span className="font-medium text-[#0A2A62]">{g.demandado || '—'}</span></p>
                   <p><span className="text-[#6B7C99]">Mediador: </span><span className="font-medium text-[#0A2A62]">{g.mediador}</span></p>
                 </div>
-                {(g.monto_total != null || (g.pago_en_abonos && g.abono1_monto != null)) && (
+                {(g.chips || []).length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                    {g.monto_total != null && (
-                      <span className="rounded-md bg-white px-2 py-1 font-semibold text-[#0A2A62] ring-1 ring-[#CBD6E8]">
-                        Monto total: {dinero(g.monto_total)}
+                    {g.chips.map((c: any) => (
+                      <span
+                        key={c.label}
+                        className={
+                          c.final
+                            ? 'rounded-md bg-[#144193] px-2 py-1 font-semibold text-white'
+                            : 'rounded-md bg-white px-2 py-1 font-semibold text-[#0A2A62] ring-1 ring-[#CBD6E8]'
+                        }
+                      >
+                        {c.label}: {dinero(c.valor)}
                       </span>
-                    )}
-                    {g.pago_en_abonos && g.abono1_monto != null && (
-                      <span className="rounded-md bg-white px-2 py-1 font-semibold text-[#0A2A62] ring-1 ring-[#CBD6E8]">
-                        1.er abono: {dinero(g.abono1_monto)}
-                      </span>
-                    )}
+                    ))}
                   </div>
                 )}
               </div>
