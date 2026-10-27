@@ -203,7 +203,7 @@ export default function Sidebar() {
               {compacto ? (
                 <span
                   className={clsx(
-                    'flex h-10 w-10 items-center justify-center rounded-xl transition-all',
+                    'flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200 ease-out group-hover:scale-110 group-hover:-translate-y-0.5 group-hover:shadow-lg group-active:scale-95 motion-reduce:transition-none motion-reduce:transform-none',
                     COLOR_ICONO[href] ?? 'bg-white/10 text-white',
                     active
                       ? 'ring-2 ring-gold-400 shadow-[0_0_0_3px_rgba(224,184,74,0.15)]'
@@ -215,7 +215,7 @@ export default function Sidebar() {
               ) : (
                 <Icon
                   className={clsx(
-                    'w-4 h-4 shrink-0',
+                    'w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-125 motion-reduce:transform-none',
                     active
                       ? 'text-gold-400'
                       : 'text-white/80 group-hover:text-gold-400'
