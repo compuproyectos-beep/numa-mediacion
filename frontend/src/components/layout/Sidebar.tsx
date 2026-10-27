@@ -20,6 +20,7 @@ import {
   CalendarDays,
   BarChart3,
   ClipboardList,
+  Receipt,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import clsx from 'clsx';
@@ -30,6 +31,7 @@ const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Panel General' },
   { href: '/procesos', icon: FileText, label: 'Procesos' },
   { href: '/actas-finales', icon: FileCheck, label: 'Actas Finales' },
+  { href: '/facturas-pagos', icon: Receipt, label: 'Facturas y pagos' },
   { href: '/agenda', icon: CalendarDays, label: 'Agenda' },
   { href: '/clientes', icon: Users, label: 'Clientes' },
   { href: '/reportes', icon: BarChart3, label: 'Reportes' },

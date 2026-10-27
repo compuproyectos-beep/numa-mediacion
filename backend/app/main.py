@@ -9665,6 +9665,135 @@ def exportar_reporte_excel(
 
 
 # =========================
+# FACTURAS Y PAGOS (lista central, solo lectura)
+# =========================
+# Reúne en una sola lista lo que ya se subió dentro de cada proceso: las dos
+# facturas, el comprobante de pago del acta y el comprobante del segundo pago.
+# No sube ni borra nada; abrir un archivo usa los endpoints de cada proceso.
+TIPOS_FACTURAS_PAGOS = {
+    "factura_cliente": "Factura de NUMA al cliente",
+    "factura_mediador": "Factura del mediador a NUMA",
+    "pago_acta": "Comprobante de pago",
+    "pago_final": "Comprobante del segundo pago",
+}
+
+
+def _facturas_pagos_filas(usuario, q=None, tipo=None, usuario_id=None,
+                          sucursal_id=None, fecha_desde=None, fecha_hasta=None):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT * FROM (
+                SELECT 'factura-' || f.id AS clave,
+                       'factura_' || f.tipo AS tipo,
+                       f.id AS archivo_id, NULL::int AS acta_id,
+                       f.proceso_id, f.nombre, f.tamano_bytes,
+                       f.fecha_subida AS fecha, NULL::numeric AS monto,
+                       f.usuario_id AS subido_por_id
+                FROM proceso_facturas f
+                WHERE f.vigente = true
+                UNION ALL
+                SELECT 'acta-' || ap.id, 'pago_acta', ap.id, ap.id,
+                       ap.proceso_id, ap.nombre_comprobante_pago,
+                       ap.tamano_comprobante_bytes,
+                       ap.fecha_subida, NULL::numeric, ap.usuario_id
+                FROM actas_proceso ap
+                WHERE ap.ruta_comprobante_pago IS NOT NULL
+                UNION ALL
+                SELECT * FROM (
+                    SELECT DISTINCT ON (cx.proceso_id)
+                           'abono-' || cx.id, 'pago_final', cx.id, cx.acta_id,
+                           cx.proceso_id, cx.nombre, cx.tamano_bytes,
+                           cx.fecha_subida, cx.monto, cx.usuario_id
+                    FROM comprobantes_pago_extra cx
+                    ORDER BY cx.proceso_id, cx.id DESC
+                ) ult
+            ) t
+            JOIN procesos_mediacion p ON p.id = t.proceso_id
+            JOIN sucursales s ON s.id = p.sucursal_id
+            JOIN usuarios um ON um.id = p.usuario_id
+            LEFT JOIN usuarios us ON us.id = t.subido_por_id
+            WHERE 1=1
+              AND (%s OR p.usuario_id = %s)
+              AND (%s::text IS NULL OR t.tipo = %s)
+              AND (%s::int IS NULL OR p.usuario_id = %s)
+              AND (%s::int IS NULL OR p.sucursal_id = %s)
+              AND (%s::date IS NULL OR t.fecha::date >= %s::date)
+              AND (%s::date IS NULL OR t.fecha::date <= %s::date)
+              AND (%s::text IS NULL OR p.codigo_proceso ILIKE %s
+                   OR COALESCE(t.nombre, '') ILIKE %s
+                   OR (um.nombre || ' ' || um.apellido) ILIKE %s)
+            ORDER BY t.fecha DESC NULLS LAST
+            LIMIT 1000
+        """.replace(
+            "SELECT * FROM (\n                SELECT 'factura-'",
+            "SELECT t.clave, t.tipo, t.archivo_id, t.acta_id, t.proceso_id, t.nombre,\n"
+            "       t.tamano_bytes, t.fecha, t.monto, p.codigo_proceso,\n"
+            "       s.nombre AS sucursal, um.nombre || ' ' || um.apellido AS mediador,\n"
+            "       us.nombre || ' ' || us.apellido AS subida_por\n"
+            "FROM (\n                SELECT 'factura-'", 1
+        ), (
+            usuario["rol"] == "administrador", usuario["id"],
+            tipo or None, tipo or None,
+            usuario_id, usuario_id,
+            sucursal_id, sucursal_id,
+            fecha_desde or None, fecha_desde or None,
+            fecha_hasta or None, fecha_hasta or None,
+            (q or None), f"%{q}%", f"%{q}%", f"%{q}%",
+        ))
+        filas = cur.fetchall()
+        for f in filas:
+            f["tipo_etiqueta"] = TIPOS_FACTURAS_PAGOS.get(f["tipo"], f["tipo"])
+        return filas
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/facturas-pagos")
+def listar_facturas_pagos(
+    q: str = None, tipo: str = None, usuario_id: int = None,
+    sucursal_id: int = None, fecha_desde: str = None, fecha_hasta: str = None,
+    usuario=Depends(obtener_usuario_actual)
+):
+    if usuario["rol"] not in ("administrador", "mediador"):
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver esta lista")
+    if tipo and tipo not in TIPOS_FACTURAS_PAGOS:
+        raise HTTPException(status_code=400, detail="Tipo inválido")
+    return _facturas_pagos_filas(usuario, q, tipo, usuario_id, sucursal_id, fecha_desde, fecha_hasta)
+
+
+@app.get("/facturas-pagos/exportar-excel")
+def exportar_facturas_pagos_excel(
+    q: str = None, tipo: str = None, usuario_id: int = None,
+    sucursal_id: int = None, fecha_desde: str = None, fecha_hasta: str = None,
+    usuario=Depends(obtener_usuario_actual)
+):
+    if usuario["rol"] not in ("administrador", "mediador"):
+        raise HTTPException(status_code=403, detail="No tienes permiso para exportar esta lista")
+    if tipo and tipo not in TIPOS_FACTURAS_PAGOS:
+        raise HTTPException(status_code=400, detail="Tipo inválido")
+    filas = _facturas_pagos_filas(usuario, q, tipo, usuario_id, sucursal_id, fecha_desde, fecha_hasta)
+    encabezados = ["Proceso", "Tipo", "Archivo", "Mediador", "Sucursal", "Subido por", "Fecha", "Monto"]
+    filas_excel = [
+        [f["codigo_proceso"], f["tipo_etiqueta"], f["nombre"] or "", f["mediador"],
+         f["sucursal"], f["subida_por"] or "", _fecha_excel_ec(f["fecha"]),
+         float(f["monto"]) if f.get("monto") is not None else ""]
+        for f in filas
+    ]
+    wb = _excel_con_formato("Facturas y pagos", encabezados, filas_excel)
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="facturas_y_pagos_numa.xlsx"'}
+    )
+
+
+# =========================
 # EXPEDIENTE COMPLETO DEL PROCESO
 # =========================
 @app.get("/procesos/{proceso_id}/expediente")

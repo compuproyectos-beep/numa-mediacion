@@ -1041,3 +1041,26 @@ export async function anularNumeroActa(id: number, motivo: string): Promise<any>
   });
   return res.data;
 }
+
+// Lista central de facturas y comprobantes de pago ya subidos en los procesos.
+export interface FiltrosFacturasPagos {
+  q?: string;
+  tipo?: string;
+  usuario_id?: number | string;
+  sucursal_id?: number | string;
+  fecha_desde?: string;
+  fecha_hasta?: string;
+}
+
+export async function getFacturasPagos(filters?: FiltrosFacturasPagos): Promise<any[]> {
+  const res = await api.get('/facturas-pagos', { params: filters });
+  return res.data;
+}
+
+export async function descargarFacturasPagosExcel(filters?: FiltrosFacturasPagos): Promise<Blob> {
+  const res = await api.get('/facturas-pagos/exportar-excel', {
+    params: filters,
+    responseType: 'blob',
+  });
+  return res.data;
+}
