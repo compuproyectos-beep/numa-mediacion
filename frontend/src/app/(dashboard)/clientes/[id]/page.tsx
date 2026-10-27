@@ -11,12 +11,15 @@ import {
   verFacturaProceso,
   descargarComprobantePagoActaFinal,
   descargarComprobanteFinal,
+  descargarPdfActaFinal,
+  descargarActaFirmada,
 } from '@/lib/services';
 import { estadoLabelProceso, estadoPill } from '@/lib/estados';
 
 const TABS = [
   { id: 'datos', label: 'Datos' },
   { id: 'procesos', label: 'Procesos' },
+  { id: 'actas', label: 'Actas' },
   { id: 'invitaciones', label: 'Invitaciones' },
   { id: 'facturas', label: 'Facturas y pagos' },
 ] as const;
@@ -74,6 +77,15 @@ export default function FichaClientePage() {
     }
   };
 
+  const abrirActa = async (a: any, firmada: boolean) => {
+    try {
+      const blob = firmada ? await descargarActaFirmada(a.proceso_id) : await descargarPdfActaFinal(a.id);
+      window.open(window.URL.createObjectURL(blob), '_blank');
+    } catch {
+      setError('No se pudo abrir el acta');
+    }
+  };
+
   if (loading) return <Spinner />;
 
   if (!ficha) {
@@ -92,6 +104,7 @@ export default function FichaClientePage() {
   const nombre = esEmpresa ? c.razon_social || c.nombre : `${c.nombre} ${c.apellido || ''}`.trim();
   const conteo: Record<string, number> = {
     procesos: ficha.procesos.length,
+    actas: (ficha.actas || []).length,
     invitaciones: ficha.citas.length,
     facturas: pagos.length,
   };
@@ -172,13 +185,18 @@ export default function FichaClientePage() {
                 href={`/procesos/${p.id}`}
                 className="block rounded-xl border border-[#CBD6E8] bg-white px-4 py-3 transition-colors hover:bg-[#F4F7FC]"
               >
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <span className="font-bold text-[#0A2A62]">{p.codigo_proceso}</span>
-                  {p.numero_acta && (
-                    <span className="rounded-full bg-[#144193] px-2.5 py-0.5 text-xs font-semibold text-white">
-                      Acta {p.numero_acta}
-                    </span>
-                  )}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <span className="text-sm text-[#6B7C99]">
+                    Proceso <span className="font-bold text-[#0A2A62]">{p.codigo_proceso}</span>
+                  </span>
+                  <span className="text-sm text-[#6B7C99]">
+                    N.º de acta{' '}
+                    {p.numero_acta ? (
+                      <span className="rounded-full bg-[#144193] px-2.5 py-0.5 text-xs font-semibold text-white">{p.numero_acta}</span>
+                    ) : (
+                      <span className="font-medium text-[#6B7C99]">aún sin acta</span>
+                    )}
+                  </span>
                   <Pill
                     label={p.suspendido ? 'Suspendido' : estadoLabelProceso(p.estado)}
                     {...estadoPill(p.estado)}
@@ -193,55 +211,152 @@ export default function FichaClientePage() {
           </div>
         ))}
 
+      {tab === 'actas' &&
+        ((ficha.actas || []).length === 0 ? (
+          <EmptyState icon="📄" message="Este cliente no tiene actas finales." />
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-[#CBD6E8] bg-white">
+            <table className="w-full text-sm">
+              <thead className="bg-[#F4F7FC] text-left text-xs uppercase tracking-wide text-[#144193]">
+                <tr>
+                  <th className="px-4 py-3">N.º de acta</th>
+                  <th className="px-4 py-3">Resultado</th>
+                  <th className="px-4 py-3">Proceso</th>
+                  <th className="px-4 py-3">Su papel</th>
+                  <th className="px-4 py-3">Mediador</th>
+                  <th className="px-4 py-3">Fecha</th>
+                  <th className="px-4 py-3 text-right">Documentos</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E3EAF5]">
+                {ficha.actas.map((a: any) => (
+                  <tr key={a.id}>
+                    <td className="px-4 py-3 font-bold text-[#0A2A62]">{a.codigo_acta}</td>
+                    <td className="px-4 py-3">
+                      <Badge
+                        label={a.tipo === 'no_acuerdo' ? 'No acuerdo' : 'Acuerdo'}
+                        variant={a.tipo === 'no_acuerdo' ? 'rechazado' : 'aprobado'}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <Link href={`/procesos/${a.proceso_id}`} className="font-semibold text-[#144193] hover:underline">
+                        {a.codigo_proceso}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-[#4A5B78]">{a.rol}</td>
+                    <td className="px-4 py-3 text-[#4A5B78]">{a.mediador}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-[#4A5B78]">{fecha(a.fecha_subida)}</td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => abrirActa(a, false)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-[#CBD6E8] px-2.5 py-1.5 text-xs font-semibold text-[#144193] hover:bg-[#F4F7FC]"
+                      >
+                        <Eye size={14} /> Acta
+                      </button>
+                      {a.tiene_firmada && (
+                        <button
+                          type="button"
+                          onClick={() => abrirActa(a, true)}
+                          className="ml-2 inline-flex items-center gap-1 rounded-lg border border-[#CBD6E8] px-2.5 py-1.5 text-xs font-semibold text-[#144193] hover:bg-[#F4F7FC]"
+                        >
+                          <Eye size={14} /> Firmada
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
+
       {tab === 'invitaciones' &&
         (ficha.citas.length === 0 ? (
           <EmptyState icon="✉️" message="Este cliente no tiene citas ni invitaciones." />
         ) : (
-          <ul className="divide-y divide-[#E3EAF5] overflow-hidden rounded-xl border border-[#CBD6E8] bg-white">
-            {ficha.citas.map((ct: any) => (
-              <li key={ct.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-sm">
-                <span className="w-28 font-semibold text-[#0A2A62]">{fecha(ct.fecha)}</span>
-                <span className="w-14 text-[#4A5B78]">{String(ct.hora || '').slice(0, 5)}</span>
-                <span className="min-w-0 flex-1 truncate text-[#4A5B78]">{ct.tema || 'Sin tema'}</span>
-                {ct.codigo_proceso && (
-                  <Link href={`/procesos/${ct.proceso_id}`} className="font-semibold text-[#144193] hover:underline">
-                    {ct.codigo_proceso}
-                  </Link>
-                )}
-                <span className="rounded-full border border-[#CBD6E8] px-2 py-0.5 text-xs text-[#4A5B78]">{ct.rol}</span>
-                <Badge label={String(ct.estado || '').replace(/_/g, ' ')} />
-                {ct.tiene_invitacion && <span className="text-xs text-[#6B7C99]">Con invitación</span>}
-              </li>
-            ))}
-          </ul>
+          <div className="overflow-x-auto rounded-xl border border-[#CBD6E8] bg-white">
+            <table className="w-full text-sm">
+              <thead className="bg-[#F4F7FC] text-left text-xs uppercase tracking-wide text-[#144193]">
+                <tr>
+                  <th className="px-4 py-3">Fecha</th>
+                  <th className="px-4 py-3">Hora</th>
+                  <th className="px-4 py-3">Proceso</th>
+                  <th className="px-4 py-3">N.º de acta</th>
+                  <th className="px-4 py-3">Tema</th>
+                  <th className="px-4 py-3">Su papel</th>
+                  <th className="px-4 py-3">Estado de la cita</th>
+                  <th className="px-4 py-3">Invitación</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E3EAF5]">
+                {ficha.citas.map((ct: any) => (
+                  <tr key={ct.id}>
+                    <td className="px-4 py-3 whitespace-nowrap font-semibold text-[#0A2A62]">{fecha(ct.fecha)}</td>
+                    <td className="px-4 py-3 text-[#4A5B78]">{String(ct.hora || '').slice(0, 5)}</td>
+                    <td className="px-4 py-3">
+                      {ct.codigo_proceso ? (
+                        <Link href={`/procesos/${ct.proceso_id}`} className="font-semibold text-[#144193] hover:underline">
+                          {ct.codigo_proceso}
+                        </Link>
+                      ) : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-[#0A2A62] font-medium">{ct.numero_acta || '—'}</td>
+                    <td className="px-4 py-3 max-w-[240px] truncate text-[#4A5B78]">{ct.tema || 'Sin tema'}</td>
+                    <td className="px-4 py-3 text-[#4A5B78]">{ct.rol}</td>
+                    <td className="px-4 py-3"><Badge label={String(ct.estado || '').replace(/_/g, ' ')} /></td>
+                    <td className="px-4 py-3 text-[#4A5B78]">{ct.tiene_invitacion ? 'Con invitación' : 'Sin invitación'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ))}
 
       {tab === 'facturas' &&
         (pagos.length === 0 ? (
           <EmptyState icon="🧾" message="Aún no hay facturas ni comprobantes de este cliente." />
         ) : (
-          <ul className="divide-y divide-[#E3EAF5] overflow-hidden rounded-xl border border-[#CBD6E8] bg-white">
-            {pagos.map((f) => (
-              <li key={f.clave} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
-                <Link href={`/procesos/${f.proceso_id}`} className="w-28 font-semibold text-[#144193] hover:underline">
-                  {f.codigo_proceso}
-                </Link>
-                <span className="w-56 shrink-0">
-                  <Badge label={f.tipo_etiqueta} variant={f.tipo.startsWith('factura') ? 'enviado' : 'aprobado'} />
-                </span>
-                <span className="min-w-0 flex-1 truncate text-[#4A5B78]">{f.nombre || '—'}</span>
-                {f.monto != null && <span className="font-semibold text-[#0A2A62]">{dinero(f.monto)}</span>}
-                <span className="text-xs text-[#6B7C99]">{fecha(f.fecha)}</span>
-                <button
-                  type="button"
-                  onClick={() => abrir(f)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-[#CBD6E8] px-2.5 py-1.5 text-xs font-semibold text-[#144193] hover:bg-[#F4F7FC]"
-                >
-                  <Eye size={14} /> Abrir
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div className="overflow-x-auto rounded-xl border border-[#CBD6E8] bg-white">
+            <table className="w-full text-sm">
+              <thead className="bg-[#F4F7FC] text-left text-xs uppercase tracking-wide text-[#144193]">
+                <tr>
+                  <th className="px-4 py-3">Proceso</th>
+                  <th className="px-4 py-3">Tipo</th>
+                  <th className="px-4 py-3">Archivo</th>
+                  <th className="px-4 py-3 text-right">Monto</th>
+                  <th className="px-4 py-3">Fecha</th>
+                  <th className="px-4 py-3 text-right">Ver</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E3EAF5]">
+                {pagos.map((f) => (
+                  <tr key={f.clave}>
+                    <td className="px-4 py-3">
+                      <Link href={`/procesos/${f.proceso_id}`} className="font-semibold text-[#144193] hover:underline">
+                        {f.codigo_proceso}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge label={f.tipo_etiqueta} variant={f.tipo.startsWith('factura') ? 'enviado' : 'aprobado'} />
+                    </td>
+                    <td className="px-4 py-3 max-w-[260px] truncate text-[#4A5B78]" title={f.nombre || ''}>{f.nombre || '—'}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-[#0A2A62]">{f.monto != null ? dinero(f.monto) : '—'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-[#4A5B78]">{fecha(f.fecha)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => abrir(f)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-[#CBD6E8] px-2.5 py-1.5 text-xs font-semibold text-[#144193] hover:bg-[#F4F7FC]"
+                      >
+                        <Eye size={14} /> Abrir
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ))}
     </>
   );

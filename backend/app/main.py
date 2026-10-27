@@ -1366,6 +1366,8 @@ def ficha_cliente(cliente_id: int, usuario=Depends(obtener_usuario_actual)):
         cur.execute("""
             SELECT c.id, c.fecha, c.hora, c.estado, c.tema, c.proceso_id,
                    p.codigo_proceso,
+                   (SELECT ax.codigo_acta FROM actas_proceso ax WHERE ax.proceso_id = c.proceso_id
+                    ORDER BY ax.id DESC LIMIT 1) AS numero_acta,
                    CASE WHEN c.cliente_demandante_id = %s THEN 'Solicitante' ELSE 'Invitado' END AS rol,
                    um.nombre || ' ' || um.apellido AS mediador,
                    (c.documento IS NOT NULL) AS tiene_invitacion
@@ -1378,7 +1380,23 @@ def ficha_cliente(cliente_id: int, usuario=Depends(obtener_usuario_actual)):
         """, (cliente_id, cliente_id, cliente_id, es_admin, usuario["id"]))
         citas = cur.fetchall()
 
-        return {"cliente": cliente, "procesos": procesos, "citas": citas}
+        cur.execute("""
+            SELECT ap.id, ap.codigo_acta, ap.tipo, ap.fecha_subida, ap.proceso_id,
+                   p.codigo_proceso,
+                   (p.acta_firmada_ruta IS NOT NULL) AS tiene_firmada,
+                   CASE WHEN p.cliente_demandante_id = %s THEN 'Solicitante' ELSE 'Invitado' END AS rol,
+                   um.nombre || ' ' || um.apellido AS mediador
+            FROM actas_proceso ap
+            JOIN procesos_mediacion p ON p.id = ap.proceso_id
+            JOIN usuarios um ON um.id = p.usuario_id
+            WHERE (p.cliente_demandante_id = %s OR p.cliente_demandado_id = %s)
+              AND (%s OR p.usuario_id = %s)
+              AND NOT EXISTS (SELECT 1 FROM actas_proceso r WHERE r.reemplaza_acta_id = ap.id)
+            ORDER BY ap.fecha_subida DESC
+        """, (cliente_id, cliente_id, cliente_id, es_admin, usuario["id"]))
+        actas = cur.fetchall()
+
+        return {"cliente": cliente, "procesos": procesos, "citas": citas, "actas": actas}
     finally:
         cur.close()
         conn.close()

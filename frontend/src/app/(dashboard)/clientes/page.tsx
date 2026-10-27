@@ -400,12 +400,12 @@ export default function ClientesPage() {
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => openEdit(c)}
-                          className="btn-ghost btn-sm"
+                          className="inline-flex items-center gap-1 rounded-lg bg-gold-400/20 px-2.5 py-1 text-xs font-semibold text-gold-700 ring-1 ring-gold-400/50 transition-colors hover:bg-gold-400/30"
                         >
                           <Pencil className="w-3 h-3" /> Editar
                         </button>
                         {getUser()?.rol !== 'secretaria' && (
-                          <Link href={`/clientes/${c.id}`} className="btn-ghost btn-sm">
+                          <Link href={`/clientes/${c.id}`} className="inline-flex items-center gap-1 rounded-lg bg-[#144193] px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-[#0A2A62]">
                             <FolderOpen className="w-3 h-3" /> Ver ficha
                           </Link>
                         )}
