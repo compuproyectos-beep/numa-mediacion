@@ -1318,6 +1318,72 @@ def obtener_clientes(usuario=Depends(obtener_usuario_actual)):
         conn.close()
 
 
+
+# =========================
+# FICHA DEL CLIENTE (solo lectura)
+# =========================
+# Reúne en un solo lugar lo de un cliente: sus datos, los procesos donde
+# participa (como solicitante o invitado) y sus citas/invitaciones. El
+# administrador ve todo; un mediador solo lo de sus propios procesos.
+@app.get("/clientes/{cliente_id}/ficha")
+def ficha_cliente(cliente_id: int, usuario=Depends(obtener_usuario_actual)):
+    if usuario["rol"] not in ("administrador", "mediador"):
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver la ficha del cliente")
+    es_admin = usuario["rol"] == "administrador"
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT cl.id, cl.cedula, cl.nombre, cl.apellido, cl.tipo, cl.razon_social,
+                   cl.ruc, cl.representante_nombre, cl.representante_cedula,
+                   cl.telefono, cl.email, cl.direccion, cl.fecha_creacion,
+                   c.nombre AS ciudad, pr.nombre AS provincia
+            FROM clientes cl
+            LEFT JOIN ciudades c ON c.id = cl.ciudad_id
+            LEFT JOIN provincias pr ON pr.id = c.provincia_id
+            WHERE cl.id = %s
+        """, (cliente_id,))
+        cliente = cur.fetchone()
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+        cur.execute("""
+            SELECT p.id, p.codigo_proceso, p.tema, p.estado, p.suspendido, p.fecha_creacion,
+                   CASE WHEN p.cliente_demandante_id = %s THEN 'Solicitante' ELSE 'Invitado' END AS rol,
+                   (SELECT ax.codigo_acta FROM actas_proceso ax WHERE ax.proceso_id = p.id
+                    ORDER BY ax.id DESC LIMIT 1) AS numero_acta,
+                   um.nombre || ' ' || um.apellido AS mediador,
+                   s.nombre AS sucursal
+            FROM procesos_mediacion p
+            JOIN usuarios um ON um.id = p.usuario_id
+            JOIN sucursales s ON s.id = p.sucursal_id
+            WHERE (p.cliente_demandante_id = %s OR p.cliente_demandado_id = %s)
+              AND (%s OR p.usuario_id = %s)
+            ORDER BY p.fecha_creacion DESC
+        """, (cliente_id, cliente_id, cliente_id, es_admin, usuario["id"]))
+        procesos = cur.fetchall()
+
+        cur.execute("""
+            SELECT c.id, c.fecha, c.hora, c.estado, c.tema, c.proceso_id,
+                   p.codigo_proceso,
+                   CASE WHEN c.cliente_demandante_id = %s THEN 'Solicitante' ELSE 'Invitado' END AS rol,
+                   um.nombre || ' ' || um.apellido AS mediador,
+                   (c.documento IS NOT NULL) AS tiene_invitacion
+            FROM citas c
+            LEFT JOIN procesos_mediacion p ON p.id = c.proceso_id
+            LEFT JOIN usuarios um ON um.id = c.usuario_id
+            WHERE (c.cliente_demandante_id = %s OR c.cliente_demandado_id = %s)
+              AND (%s OR c.usuario_id = %s)
+            ORDER BY c.fecha DESC, c.hora DESC
+        """, (cliente_id, cliente_id, cliente_id, es_admin, usuario["id"]))
+        citas = cur.fetchall()
+
+        return {"cliente": cliente, "procesos": procesos, "citas": citas}
+    finally:
+        cur.close()
+        conn.close()
+
+
 # =========================
 # ACTUALIZAR CLIENTES
 # =========================
@@ -9679,7 +9745,8 @@ TIPOS_FACTURAS_PAGOS = {
 
 
 def _facturas_pagos_filas(usuario, q=None, tipo=None, usuario_id=None,
-                          sucursal_id=None, fecha_desde=None, fecha_hasta=None):
+                          sucursal_id=None, fecha_desde=None, fecha_hasta=None,
+                          cliente_id=None):
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
@@ -9722,6 +9789,7 @@ def _facturas_pagos_filas(usuario, q=None, tipo=None, usuario_id=None,
               AND (%s::text IS NULL OR t.tipo = %s)
               AND (%s::int IS NULL OR p.usuario_id = %s)
               AND (%s::int IS NULL OR p.sucursal_id = %s)
+              AND (%s::int IS NULL OR p.cliente_demandante_id = %s OR p.cliente_demandado_id = %s)
               AND (%s::date IS NULL OR t.fecha::date >= %s::date)
               AND (%s::date IS NULL OR t.fecha::date <= %s::date)
               AND (%s::text IS NULL OR p.codigo_proceso ILIKE %s
@@ -9750,6 +9818,7 @@ def _facturas_pagos_filas(usuario, q=None, tipo=None, usuario_id=None,
             tipo or None, tipo or None,
             usuario_id, usuario_id,
             sucursal_id, sucursal_id,
+            cliente_id, cliente_id, cliente_id,
             fecha_desde or None, fecha_desde or None,
             fecha_hasta or None, fecha_hasta or None,
             (q or None), f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%",
@@ -9775,13 +9844,14 @@ def _facturas_pagos_filas(usuario, q=None, tipo=None, usuario_id=None,
 def listar_facturas_pagos(
     q: str = None, tipo: str = None, usuario_id: int = None,
     sucursal_id: int = None, fecha_desde: str = None, fecha_hasta: str = None,
+    cliente_id: int = None,
     usuario=Depends(obtener_usuario_actual)
 ):
     if usuario["rol"] not in ("administrador", "mediador"):
         raise HTTPException(status_code=403, detail="No tienes permiso para ver esta lista")
     if tipo and tipo not in TIPOS_FACTURAS_PAGOS:
         raise HTTPException(status_code=400, detail="Tipo inválido")
-    return _facturas_pagos_filas(usuario, q, tipo, usuario_id, sucursal_id, fecha_desde, fecha_hasta)
+    return _facturas_pagos_filas(usuario, q, tipo, usuario_id, sucursal_id, fecha_desde, fecha_hasta, cliente_id)
 
 
 @app.get("/facturas-pagos/exportar-excel")

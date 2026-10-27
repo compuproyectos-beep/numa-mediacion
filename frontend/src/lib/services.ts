@@ -1050,6 +1050,7 @@ export interface FiltrosFacturasPagos {
   sucursal_id?: number | string;
   fecha_desde?: string;
   fecha_hasta?: string;
+  cliente_id?: number | string;
 }
 
 export async function getFacturasPagos(filters?: FiltrosFacturasPagos): Promise<any[]> {
@@ -1062,5 +1063,11 @@ export async function descargarFacturasPagosExcel(filters?: FiltrosFacturasPagos
     params: filters,
     responseType: 'blob',
   });
+  return res.data;
+}
+
+// Ficha del cliente: datos, procesos donde participa y sus citas.
+export async function getFichaCliente(id: number | string): Promise<any> {
+  const res = await api.get(`/clientes/${id}/ficha`);
   return res.data;
 }
