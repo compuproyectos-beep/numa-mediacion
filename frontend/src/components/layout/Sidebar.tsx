@@ -29,6 +29,21 @@ import clsx from 'clsx';
 
 // Orden del trabajo diario: el proceso nace, se agenda, termina en acta.
 // Lo de configuración (solo admin) va aparte, abajo.
+// Color propio de cada ícono cuando el menú está encogido (sobre fondo azul oscuro).
+const COLOR_ICONO: Record<string, string> = {
+  '/dashboard': 'bg-sky-400/20 text-sky-300',
+  '/procesos': 'bg-emerald-400/20 text-emerald-300',
+  '/actas-finales': 'bg-amber-400/20 text-amber-300',
+  '/agenda': 'bg-violet-400/25 text-violet-300',
+  '/facturas-pagos': 'bg-teal-400/20 text-teal-300',
+  '/clientes': 'bg-pink-400/20 text-pink-300',
+  '/reportes': 'bg-orange-400/20 text-orange-300',
+  '/usuarios': 'bg-indigo-400/25 text-indigo-300',
+  '/sucursales': 'bg-cyan-400/20 text-cyan-300',
+  '/ciudades': 'bg-lime-400/20 text-lime-300',
+  '/auditoria': 'bg-rose-400/20 text-rose-300',
+};
+
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Panel General' },
   { href: '/procesos', icon: FileText, label: 'Procesos' },
@@ -147,9 +162,9 @@ export default function Sidebar() {
             onClick={alternarMenu}
             title="Encoger menú"
             aria-label="Encoger menú"
-            className="hidden lg:flex absolute right-1.5 top-1.5 h-9 w-9 items-center justify-center rounded-lg bg-gold-400/20 text-gold-400 ring-1 ring-gold-400/50 hover:bg-gold-400 hover:text-[#0A2A62] active:scale-95 transition-all"
+            className="hidden lg:flex absolute right-1.5 top-1.5 h-11 w-11 items-center justify-center rounded-xl bg-gold-400/20 text-gold-400 ring-1 ring-gold-400/50 hover:bg-gold-400 hover:text-[#0A2A62] active:scale-95 transition-all"
           >
-            <PanelLeftClose className="w-5 h-5" />
+            <PanelLeftClose className="w-6 h-6" />
           </button>
         </div>
       )}
@@ -177,20 +192,36 @@ export default function Sidebar() {
               aria-label={label}
               className={clsx(
                 'flex items-center rounded-lg text-sm transition-all duration-200 group font-sans',
-                compacto ? 'justify-center py-2.5' : 'gap-3 px-3 py-2 hover:translate-x-0.5',
-                active
+                compacto ? 'justify-center py-1.5' : 'gap-3 px-3 py-2 hover:translate-x-0.5',
+                compacto
+                  ? 'hover:bg-white/10'
+                  : active
                   ? 'bg-gold-400/15 text-gold-400 font-medium shadow-[inset_3px_0_0_#E0B84A]'
                   : 'text-white hover:text-gold-400 hover:bg-white/10'
               )}
             >
-              <Icon
-                className={clsx(
-                  compacto ? 'w-5 h-5 shrink-0' : 'w-4 h-4 shrink-0',
-                  active
-                    ? 'text-gold-400'
-                    : 'text-white/80 group-hover:text-gold-400'
-                )}
-              />
+              {compacto ? (
+                <span
+                  className={clsx(
+                    'flex h-10 w-10 items-center justify-center rounded-xl transition-all',
+                    COLOR_ICONO[href] ?? 'bg-white/10 text-white',
+                    active
+                      ? 'ring-2 ring-gold-400 shadow-[0_0_0_3px_rgba(224,184,74,0.15)]'
+                      : 'group-hover:brightness-125'
+                  )}
+                >
+                  <Icon className="w-5 h-5" />
+                </span>
+              ) : (
+                <Icon
+                  className={clsx(
+                    'w-4 h-4 shrink-0',
+                    active
+                      ? 'text-gold-400'
+                      : 'text-white/80 group-hover:text-gold-400'
+                  )}
+                />
+              )}
               {!compacto && <span className="flex-1 uppercase tracking-wide text-[11px]">{label}</span>}
               {!compacto && active && <ChevronRight className="w-3 h-3 text-gold-400" />}
             </Link>
