@@ -124,9 +124,9 @@ export default function Sidebar() {
             onClick={alternarMenu}
             title="Ampliar menú"
             aria-label="Ampliar menú"
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 hover:bg-white/10 hover:text-gold-400 transition-colors"
+            className="flex h-11 w-11 items-center justify-center rounded-xl bg-gold-400 text-[#0A2A62] shadow-md ring-1 ring-gold-400/60 hover:bg-gold-300 active:scale-95 transition-all"
           >
-            <PanelLeftOpen className="w-5 h-5" />
+            <PanelLeftOpen className="w-6 h-6" />
           </button>
         </div>
       ) : (
@@ -147,9 +147,9 @@ export default function Sidebar() {
             onClick={alternarMenu}
             title="Encoger menú"
             aria-label="Encoger menú"
-            className="hidden lg:flex absolute right-1.5 top-1.5 h-7 w-7 items-center justify-center rounded-md text-white/60 hover:bg-white/10 hover:text-gold-400 transition-colors"
+            className="hidden lg:flex absolute right-1.5 top-1.5 h-9 w-9 items-center justify-center rounded-lg bg-gold-400/20 text-gold-400 ring-1 ring-gold-400/50 hover:bg-gold-400 hover:text-[#0A2A62] active:scale-95 transition-all"
           >
-            <PanelLeftClose className="w-4 h-4" />
+            <PanelLeftClose className="w-5 h-5" />
           </button>
         </div>
       )}
