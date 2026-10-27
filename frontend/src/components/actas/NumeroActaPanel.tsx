@@ -342,7 +342,7 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
                   <td className="py-2.5 pr-3">{fechaEC(n.fecha_solicitud)}</td>
                   <td className={`py-1.5 pr-3 ${(n.dias ?? 0) >= 2 ? 'text-red-600 font-semibold' : ''}`}>
                     {n.dias ?? 0}
-                    {(n.dias ?? 0) >= 2 ? ' · vencido' : ''}
+                    {(n.dias ?? 0) >= 2 ? ' · vencidos' : ''}
                   </td>
                   <td className="py-2.5 pr-2 text-right">
                     <button

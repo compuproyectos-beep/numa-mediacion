@@ -162,7 +162,7 @@ export default function Sidebar() {
             onClick={alternarMenu}
             title="Encoger menú"
             aria-label="Encoger menú"
-            className="hidden lg:flex absolute right-1.5 top-1.5 h-11 w-11 items-center justify-center rounded-xl bg-gold-400/20 text-gold-400 ring-1 ring-gold-400/50 hover:bg-gold-400 hover:text-[#0A2A62] active:scale-95 transition-all"
+            className="hidden lg:flex absolute right-1.5 top-1.5 h-11 w-11 items-center justify-center rounded-xl bg-gold-400 text-[#0A2A62] shadow-md ring-1 ring-gold-400/60 hover:bg-gold-300 active:scale-95 transition-all"
           >
             <PanelLeftClose className="w-6 h-6" />
           </button>

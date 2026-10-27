@@ -89,16 +89,17 @@ function BarraCalendario({ date, onNavigate }: any) {
   // Mes y año en grande, como el título de la agenda, y a la derecha los
   // controles: "Hoy" y las dos flechas pegadas en un solo bloque.
   const estiloSelector =
-    'text-xl font-bold text-numa-900 capitalize bg-transparent border-none ' +
-    'rounded-sm px-1 py-0.5 cursor-pointer hover:bg-gold-400/10 ' +
-    'focus:outline-none focus:ring-1 focus:ring-gold-400';
+    'text-lg font-bold text-[#0A2A62] capitalize bg-white border border-[#CBD6E8] ' +
+    'rounded-lg px-3 py-1.5 cursor-pointer shadow-sm transition-colors ' +
+    'hover:bg-[#F4F7FC] hover:border-[#144193] ' +
+    'focus:outline-none focus:ring-2 focus:ring-[#144193]/30 focus:border-[#144193]';
 
   const estiloBotonNav =
-    'px-3 py-1.5 text-numa-700 hover:bg-numa-50 transition-colors';
+    'px-3 py-2 text-[#144193] hover:bg-[#F4F7FC] transition-colors';
 
   return (
     <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2">
         <select
           value={mesActual}
           onChange={(e) => irA(Number(e.target.value), anioActual)}
@@ -135,7 +136,7 @@ function BarraCalendario({ date, onNavigate }: any) {
           Hoy
         </button>
 
-        <div className="inline-flex rounded-sm border border-numa-200 overflow-hidden divide-x divide-numa-200 bg-white">
+        <div className="inline-flex rounded-lg border border-[#CBD6E8] overflow-hidden divide-x divide-[#CBD6E8] bg-white shadow-sm">
           <button
             type="button"
             onClick={() => onNavigate('PREV')}
