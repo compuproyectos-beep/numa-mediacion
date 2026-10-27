@@ -391,39 +391,46 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           {urgentes.length > 0 && (
-            <div className="bg-red-50 border-t border-red-200" role="alert">
-              <div className="max-w-7xl mx-auto px-6 py-2 flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-red-800">
-                    {urgentes[0].titulo}
-                    {urgentes.length > 1 && (
-                      <span className="font-normal text-red-700"> · y {urgentes.length - 1} aviso{urgentes.length - 1 === 1 ? '' : 's'} urgente{urgentes.length - 1 === 1 ? '' : 's'} más</span>
-                    )}
-                  </p>
-                  <p className="text-sm text-red-800 line-clamp-2 break-words">{urgentes[0].mensaje}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={abrirUrgentes}
-                  className="btn-secondary btn-sm shrink-0"
-                >
-                  {urgentes.length > 1 ? `Ver los ${urgentes.length}` : 'Ver detalle'}
-                </button>
-                {!esPersistente(urgentes[0]) && (
+            <div className="bg-[#F4F7FC] border-t border-[#DCE5F3]" role="alert">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5">
+                <div className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-[#CBD6E8] bg-white pl-4 pr-3 py-2.5 shadow-[0_8px_20px_-16px_rgba(11,39,89,0.7)]">
+                  <span className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-[#E5484D] to-[#B42318]" aria-hidden />
+                  <span className="ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FDECEC] text-[#C0262D]">
+                    <AlertTriangle className="w-[18px] h-[18px]" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-[#0A2A62] leading-tight">
+                      {urgentes[0].titulo}
+                      {urgentes.length > 1 && (
+                        <span className="ml-2 inline-flex items-center rounded-full bg-[#FDECEC] px-2 py-0.5 align-middle text-[11px] font-semibold text-[#B42318]">
+                          +{urgentes.length - 1} más
+                        </span>
+                      )}
+                    </p>
+                    <p className="mt-0.5 text-[13px] text-[#4A5B78] line-clamp-2 break-words">{urgentes[0].mensaje}</p>
+                  </div>
                   <button
                     type="button"
-                    onClick={async () => {
-                      await marcarUna(urgentes[0].id);
-                      setUrgentesServidor((prev) => (prev ? prev.filter((x) => x.id !== urgentes[0].id) : prev));
-                    }}
-                    className="p-1 text-red-700 hover:text-red-900 shrink-0"
-                    aria-label="Cerrar aviso"
-                    title="Cerrar aviso (queda como leído)"
+                    onClick={abrirUrgentes}
+                    className="shrink-0 rounded-lg bg-[#144193] px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#0A2A62] active:scale-[0.98]"
                   >
-                    <X className="w-4 h-4" />
+                    {urgentes.length > 1 ? `Ver los ${urgentes.length}` : 'Ver detalle'}
                   </button>
-                )}
+                  {!esPersistente(urgentes[0]) && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await marcarUna(urgentes[0].id);
+                        setUrgentesServidor((prev) => (prev ? prev.filter((x) => x.id !== urgentes[0].id) : prev));
+                      }}
+                      className="shrink-0 rounded-md p-1 text-[#6B7C99] transition-colors hover:bg-[#F4F7FC] hover:text-[#0A2A62]"
+                      aria-label="Cerrar aviso"
+                      title="Cerrar aviso (queda como leído)"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
