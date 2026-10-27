@@ -9712,8 +9712,11 @@ def _facturas_pagos_filas(usuario, q=None, tipo=None, usuario_id=None,
             ) t
             JOIN procesos_mediacion p ON p.id = t.proceso_id
             JOIN sucursales s ON s.id = p.sucursal_id
+            LEFT JOIN ciudades ci ON ci.id = s.ciudad_id
             JOIN usuarios um ON um.id = p.usuario_id
             LEFT JOIN usuarios us ON us.id = t.subido_por_id
+            LEFT JOIN clientes cd ON cd.id = p.cliente_demandante_id
+            LEFT JOIN clientes cdd ON cdd.id = p.cliente_demandado_id
             WHERE 1=1
               AND (%s OR p.usuario_id = %s)
               AND (%s::text IS NULL OR t.tipo = %s)
@@ -9723,15 +9726,24 @@ def _facturas_pagos_filas(usuario, q=None, tipo=None, usuario_id=None,
               AND (%s::date IS NULL OR t.fecha::date <= %s::date)
               AND (%s::text IS NULL OR p.codigo_proceso ILIKE %s
                    OR COALESCE(t.nombre, '') ILIKE %s
-                   OR (um.nombre || ' ' || um.apellido) ILIKE %s)
+                   OR (um.nombre || ' ' || um.apellido) ILIKE %s
+                   OR EXISTS (SELECT 1 FROM actas_proceso ay WHERE ay.proceso_id = p.id AND ay.codigo_acta ILIKE %s)
+                   OR (COALESCE(cd.nombre,'') || ' ' || COALESCE(cd.apellido,'')) ILIKE %s
+                   OR (COALESCE(cdd.nombre,'') || ' ' || COALESCE(cdd.apellido,'')) ILIKE %s)
             ORDER BY t.fecha DESC NULLS LAST
             LIMIT 1000
         """.replace(
             "SELECT * FROM (\n                SELECT 'factura-'",
             "SELECT t.clave, t.tipo, t.archivo_id, t.acta_id, t.proceso_id, t.nombre,\n"
             "       t.tamano_bytes, t.fecha, t.monto, p.codigo_proceso,\n"
-            "       s.nombre AS sucursal, um.nombre || ' ' || um.apellido AS mediador,\n"
-            "       us.nombre || ' ' || us.apellido AS subida_por\n"
+            "       s.nombre AS sucursal, ci.nombre AS ciudad,\n"
+            "       um.nombre || ' ' || um.apellido AS mediador,\n"
+            "       us.nombre || ' ' || us.apellido AS subida_por,\n"
+            "       (SELECT ax.codigo_acta FROM actas_proceso ax WHERE ax.proceso_id = p.id\n"
+            "        ORDER BY ax.id DESC LIMIT 1) AS numero_acta,\n"
+            "       TRIM(cd.nombre || ' ' || COALESCE(cd.apellido, '')) AS demandante,\n"
+            "       TRIM(cdd.nombre || ' ' || COALESCE(cdd.apellido, '')) AS demandado,\n"
+            "       p.monto_total, p.abono1_monto, p.pago_en_abonos\n"
             "FROM (\n                SELECT 'factura-'", 1
         ), (
             usuario["rol"] == "administrador", usuario["id"],
@@ -9740,7 +9752,7 @@ def _facturas_pagos_filas(usuario, q=None, tipo=None, usuario_id=None,
             sucursal_id, sucursal_id,
             fecha_desde or None, fecha_desde or None,
             fecha_hasta or None, fecha_hasta or None,
-            (q or None), f"%{q}%", f"%{q}%", f"%{q}%",
+            (q or None), f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%",
         ))
         filas = cur.fetchall()
         for f in filas:
@@ -9775,10 +9787,12 @@ def exportar_facturas_pagos_excel(
     if tipo and tipo not in TIPOS_FACTURAS_PAGOS:
         raise HTTPException(status_code=400, detail="Tipo inválido")
     filas = _facturas_pagos_filas(usuario, q, tipo, usuario_id, sucursal_id, fecha_desde, fecha_hasta)
-    encabezados = ["Proceso", "Tipo", "Archivo", "Mediador", "Sucursal", "Subido por", "Fecha", "Monto"]
+    encabezados = ["Proceso", "N.º de acta", "Solicitante", "Invitado", "Mediador",
+                   "Sucursal", "Ciudad", "Tipo", "Archivo", "Fecha", "Monto"]
     filas_excel = [
-        [f["codigo_proceso"], f["tipo_etiqueta"], f["nombre"] or "", f["mediador"],
-         f["sucursal"], f["subida_por"] or "", _fecha_excel_ec(f["fecha"]),
+        [f["codigo_proceso"], f.get("numero_acta") or "", f.get("demandante") or "",
+         f.get("demandado") or "", f["mediador"], f["sucursal"], f.get("ciudad") or "",
+         f["tipo_etiqueta"], f["nombre"] or "", _fecha_excel_ec(f["fecha"]),
          float(f["monto"]) if f.get("monto") is not None else ""]
         for f in filas
     ]

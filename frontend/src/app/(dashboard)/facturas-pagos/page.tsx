@@ -31,6 +31,11 @@ function formatearFecha(v?: string | null) {
   });
 }
 
+function dinero(v: any) {
+  const n = Number(v);
+  return Number.isFinite(n) ? `$${n.toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—';
+}
+
 function limpiar(f: typeof VACIO) {
   return {
     q: f.q || undefined,
@@ -113,6 +118,19 @@ export default function FacturasPagosPage() {
     cargar(VACIO);
   };
 
+  // Un cuadro por proceso, con sus documentos adentro (el orden sale del más reciente).
+  const grupos: any[] = [];
+  const porProceso = new Map<number, any>();
+  filas.forEach((f) => {
+    let g = porProceso.get(f.proceso_id);
+    if (!g) {
+      g = { ...f, items: [] };
+      porProceso.set(f.proceso_id, g);
+      grupos.push(g);
+    }
+    g.items.push(f);
+  });
+
   return (
     <>
       <PageHeader
@@ -139,7 +157,7 @@ export default function FacturasPagosPage() {
               label="Buscar"
               value={filters.q}
               onChange={(e) => setFilters({ ...filters, q: e.target.value })}
-              placeholder="Proceso, archivo o mediador..."
+              placeholder="Proceso, N.º de acta, parte, mediador o archivo..."
             />
           </div>
           <SelectField
@@ -223,37 +241,61 @@ export default function FacturasPagosPage() {
           message="Aún no hay facturas ni comprobantes con estos filtros. Aparecerán aquí cuando se suban dentro de los procesos."
         />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-[#CBD6E8] bg-white">
-          <table className="w-full text-sm">
-            <thead className="bg-[#F4F7FC] text-left text-xs uppercase tracking-wide text-[#144193]">
-              <tr>
-                <th className="px-4 py-3">Proceso</th>
-                <th className="px-4 py-3">Tipo</th>
-                <th className="px-4 py-3">Archivo</th>
-                {isAdmin && <th className="px-4 py-3">Mediador</th>}
-                {isAdmin && <th className="px-4 py-3">Sucursal</th>}
-                <th className="px-4 py-3">Subido por</th>
-                <th className="px-4 py-3">Fecha</th>
-                <th className="px-4 py-3 text-right">Ver</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E3EAF5]">
-              {filas.map((f) => (
-                <tr key={f.clave} className="hover:bg-[#F4F7FC]/60">
-                  <td className="px-4 py-3 font-semibold">
-                    <Link href={`/procesos/${f.proceso_id}`} className="text-[#144193] hover:underline">
-                      {f.codigo_proceso}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge label={f.tipo_etiqueta} variant={f.tipo.startsWith('factura') ? 'enviado' : 'aprobado'} />
-                  </td>
-                  <td className="px-4 py-3 max-w-[260px] truncate" title={f.nombre || ''}>{f.nombre || '—'}</td>
-                  {isAdmin && <td className="px-4 py-3">{f.mediador}</td>}
-                  {isAdmin && <td className="px-4 py-3">{f.sucursal}</td>}
-                  <td className="px-4 py-3">{f.subida_por || '—'}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">{formatearFecha(f.fecha)}</td>
-                  <td className="px-4 py-3 text-right">
+        <div className="space-y-4">
+          {grupos.map((g) => (
+            <section
+              key={g.proceso_id}
+              className="overflow-hidden rounded-xl border border-[#CBD6E8] bg-white shadow-[0_8px_20px_-18px_rgba(11,39,89,0.7)]"
+            >
+              <div className="border-b border-[#DCE5F3] bg-[#F4F7FC] px-4 py-3">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <Link href={`/procesos/${g.proceso_id}`} className="text-base font-bold text-[#0A2A62] hover:underline">
+                    {g.codigo_proceso}
+                  </Link>
+                  {g.numero_acta ? (
+                    <span className="rounded-full bg-[#144193] px-2.5 py-0.5 text-xs font-semibold text-white">
+                      Acta {g.numero_acta}
+                    </span>
+                  ) : (
+                    <span className="rounded-full border border-[#CBD6E8] bg-white px-2.5 py-0.5 text-xs font-medium text-[#6B7C99]">
+                      Sin número de acta
+                    </span>
+                  )}
+                  <span className="text-xs text-[#4A5B78] sm:ml-auto">
+                    {g.sucursal}{g.ciudad ? ` · ${g.ciudad}` : ''}
+                  </span>
+                </div>
+                <div className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
+                  <p><span className="text-[#6B7C99]">Solicitante: </span><span className="font-medium text-[#0A2A62]">{g.demandante || '—'}</span></p>
+                  <p><span className="text-[#6B7C99]">Invitado: </span><span className="font-medium text-[#0A2A62]">{g.demandado || '—'}</span></p>
+                  <p><span className="text-[#6B7C99]">Mediador: </span><span className="font-medium text-[#0A2A62]">{g.mediador}</span></p>
+                </div>
+                {(g.monto_total != null || (g.pago_en_abonos && g.abono1_monto != null)) && (
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                    {g.monto_total != null && (
+                      <span className="rounded-md bg-white px-2 py-1 font-semibold text-[#0A2A62] ring-1 ring-[#CBD6E8]">
+                        Monto total: {dinero(g.monto_total)}
+                      </span>
+                    )}
+                    {g.pago_en_abonos && g.abono1_monto != null && (
+                      <span className="rounded-md bg-white px-2 py-1 font-semibold text-[#0A2A62] ring-1 ring-[#CBD6E8]">
+                        1.er abono: {dinero(g.abono1_monto)}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+              <ul className="divide-y divide-[#E3EAF5]">
+                {g.items.map((f: any) => (
+                  <li key={f.clave} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
+                    <span className="w-56 shrink-0">
+                      <Badge label={f.tipo_etiqueta} variant={f.tipo.startsWith('factura') ? 'enviado' : 'aprobado'} />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[#4A5B78]" title={f.nombre || ''}>{f.nombre || '—'}</span>
+                    {f.monto != null && (
+                      <span className="font-semibold text-[#0A2A62]">{dinero(f.monto)}</span>
+                    )}
+                    <span className="whitespace-nowrap text-xs text-[#6B7C99]">{formatearFecha(f.fecha)}</span>
                     <button
                       type="button"
                       onClick={() => abrir(f)}
@@ -261,11 +303,11 @@ export default function FacturasPagosPage() {
                     >
                       <Eye size={14} /> Abrir
                     </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
         </div>
       )}
     </>
