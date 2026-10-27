@@ -21,6 +21,8 @@ import {
   BarChart3,
   ClipboardList,
   Receipt,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import clsx from 'clsx';
@@ -51,6 +53,30 @@ export default function Sidebar() {
   // no hace falta distinguir el tamaño de pantalla aquí.
   const [mobileOpen, setMobileOpen] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  // Menú angosto (solo íconos) en pantallas grandes; se recuerda en el navegador.
+  const [compacto, setCompacto] = useState(false);
+
+  useEffect(() => {
+    try {
+      setCompacto(localStorage.getItem('numa_menu_compacto') === '1');
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (compacto) document.documentElement.setAttribute('data-menu', 'compacto');
+    else document.documentElement.removeAttribute('data-menu');
+    return () => document.documentElement.removeAttribute('data-menu');
+  }, [compacto]);
+
+  const alternarMenu = () => {
+    setCompacto((v) => {
+      try {
+        localStorage.setItem('numa_menu_compacto', v ? '0' : '1');
+      } catch {}
+      return !v;
+    });
+    setUserMenuOpen(false);
+  };
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Tamaño de letra fijo para todos (el valor está en globals.css). Se aplica
@@ -89,31 +115,57 @@ export default function Sidebar() {
     return true;
   });
 
-  const SidebarContent = () => (
+  const SidebarContent = ({ compacto = false }: { compacto?: boolean }) => (
     <>
-      <Link
-        href={inicio}
-        onClick={() => setMobileOpen(false)}
-        className="flex items-center justify-center px-3 py-3 border-b border-white/10 shrink-0"
-      >
-        <img
-          src="/logo-numa.png"
-          alt="NUMA"
-          className="max-h-16 w-full object-contain"
-        />
-      </Link>
+      {compacto ? (
+        <div className="flex items-center justify-center py-3 border-b border-white/10 shrink-0">
+          <button
+            type="button"
+            onClick={alternarMenu}
+            title="Ampliar menú"
+            aria-label="Ampliar menú"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 hover:bg-white/10 hover:text-gold-400 transition-colors"
+          >
+            <PanelLeftOpen className="w-5 h-5" />
+          </button>
+        </div>
+      ) : (
+        <div className="relative border-b border-white/10 shrink-0">
+          <Link
+            href={inicio}
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center justify-center px-3 py-3"
+          >
+            <img
+              src="/logo-numa.png"
+              alt="NUMA"
+              className="max-h-16 w-full object-contain"
+            />
+          </Link>
+          <button
+            type="button"
+            onClick={alternarMenu}
+            title="Encoger menú"
+            aria-label="Encoger menú"
+            className="hidden lg:flex absolute right-1.5 top-1.5 h-7 w-7 items-center justify-center rounded-md text-white/60 hover:bg-white/10 hover:text-gold-400 transition-colors"
+          >
+            <PanelLeftClose className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Scroll propio: si el menú no cabe en pantallas más bajas, se
           desplaza solo aquí en vez de empujar el bloque de usuario (abajo)
           fuera de la vista sin poder llegar a él. */}
-      <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-0.5">
+      <nav className={clsx('flex-1 min-h-0 overflow-y-auto py-3 space-y-0.5', compacto ? 'px-2' : 'px-3')}>
         {visibleNavItems.map(({ href, icon: Icon, label, adminOnly }, i) => {
           const active = pathname === href || pathname.startsWith(href + '/');
           const inicioAdmin = adminOnly && !visibleNavItems[i - 1]?.adminOnly;
 
           return (
             <div key={href}>
-            {inicioAdmin && (
+            {inicioAdmin && compacto && <div className="my-2 border-t border-white/10" />}
+            {inicioAdmin && !compacto && (
               <p className="mt-2 mb-1 pt-2.5 px-3 border-t border-white/10 text-[10px] uppercase tracking-wider text-white/55 font-sans">
                 Administración
               </p>
@@ -121,8 +173,11 @@ export default function Sidebar() {
             <Link
               href={href}
               onClick={() => setMobileOpen(false)}
+              title={compacto ? label : undefined}
+              aria-label={label}
               className={clsx(
-                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 group font-sans hover:translate-x-0.5',
+                'flex items-center rounded-lg text-sm transition-all duration-200 group font-sans',
+                compacto ? 'justify-center py-2.5' : 'gap-3 px-3 py-2 hover:translate-x-0.5',
                 active
                   ? 'bg-gold-400/15 text-gold-400 font-medium shadow-[inset_3px_0_0_#E0B84A]'
                   : 'text-white hover:text-gold-400 hover:bg-white/10'
@@ -130,23 +185,23 @@ export default function Sidebar() {
             >
               <Icon
                 className={clsx(
-                  'w-4 h-4 shrink-0',
+                  compacto ? 'w-5 h-5 shrink-0' : 'w-4 h-4 shrink-0',
                   active
                     ? 'text-gold-400'
                     : 'text-white/80 group-hover:text-gold-400'
                 )}
               />
-              <span className="flex-1 uppercase tracking-wide text-[11px]">{label}</span>
-              {active && <ChevronRight className="w-3 h-3 text-gold-400" />}
+              {!compacto && <span className="flex-1 uppercase tracking-wide text-[11px]">{label}</span>}
+              {!compacto && active && <ChevronRight className="w-3 h-3 text-gold-400" />}
             </Link>
             </div>
           );
         })}
       </nav>
 
-      <div ref={userMenuRef} data-user-menu className="relative px-3 pb-3 border-t border-white/10 pt-3 shrink-0">
+      <div ref={userMenuRef} data-user-menu className={clsx('relative pb-3 border-t border-white/10 pt-3 shrink-0', compacto ? 'px-2' : 'px-3')}>
         {userMenuOpen && (
-          <div className="absolute bottom-full left-3 right-3 mb-2 bg-[#0A2A62] border border-white/15 rounded-lg shadow-xl overflow-hidden">
+          <div className={clsx('absolute bg-[#0A2A62] border border-white/15 rounded-lg shadow-xl overflow-hidden z-50', compacto ? 'left-full bottom-2 ml-2 w-56' : 'bottom-full left-3 right-3 mb-2')}>
             <Link
               href="/cambiar-password"
               onClick={() => {
@@ -173,7 +228,8 @@ export default function Sidebar() {
           type="button"
           onClick={() => setUserMenuOpen((v) => !v)}
           className={clsx(
-            'flex items-center gap-2.5 w-full px-3 py-2 rounded-sm transition-colors',
+            'flex items-center w-full rounded-sm transition-colors',
+            compacto ? 'justify-center py-2' : 'gap-2.5 px-3 py-2',
             userMenuOpen ? 'bg-white/10' : 'hover:bg-white/10'
           )}
         >
@@ -183,7 +239,7 @@ export default function Sidebar() {
             </span>
           </div>
 
-          <div className="min-w-0 flex-1 text-left">
+          <div className={clsx('min-w-0 flex-1 text-left', compacto && 'hidden')}>
             {/* Nombre solo en su línea para que se lea completo; el rol va debajo. */}
             <p
               className="text-sm font-medium text-white truncate font-sans leading-tight"
@@ -206,6 +262,7 @@ export default function Sidebar() {
 
           <ChevronUp
             className={clsx(
+              compacto && 'hidden',
               'w-3.5 h-3.5 text-white/55 shrink-0 transition-transform',
               userMenuOpen && 'rotate-180'
             )}
@@ -217,8 +274,8 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className="hidden lg:flex lg:flex-col w-56 bg-gradient-to-b from-[#16397A] via-[#112F6A] to-[#0B2250] fixed left-0 top-0 bottom-0 z-30 border-r border-white/10 shadow-[6px_0_24px_-12px_rgba(10,42,98,0.5)]">
-        <SidebarContent />
+      <aside className="menu-aside hidden lg:flex lg:flex-col bg-gradient-to-b from-[#16397A] via-[#112F6A] to-[#0B2250] fixed left-0 top-0 bottom-0 z-30 border-r border-white/10 shadow-[6px_0_24px_-12px_rgba(10,42,98,0.5)]">
+        <SidebarContent compacto={compacto} />
       </aside>
 
       <header className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-[#112F6A] border-b border-white/10 flex items-center justify-between px-4 h-14">
