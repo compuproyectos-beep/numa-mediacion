@@ -1064,6 +1064,23 @@ function ProcesoDetalleContenido() {
         </div>
       )}
 
+      {(proceso as any).acta_renumerada_desde && proceso.numero_acta_codigo && proceso.numero_acta_estado === 'reservado' && !proceso.bloqueo_acta_id && (
+        <div className="mb-4 rounded-xl border-2 border-gold-400 bg-gold-50 px-5 py-4 shadow-[0_14px_30px_-22px_rgba(10,42,98,0.5)]">
+          <div className="flex items-start gap-3">
+            <Hash className="w-7 h-7 text-gold-700 shrink-0 mt-0.5" aria-hidden="true" />
+            <div>
+              <p className="text-base font-bold text-numa-900">Acta desbloqueada: este proceso tiene un número de acta nuevo</p>
+              <p className="text-2xl font-mono font-extrabold text-numa-900 my-1">{proceso.numero_acta_codigo}</p>
+              <p className="text-sm text-numa-800">
+                El número anterior ({(proceso as any).acta_renumerada_desde}) quedó libre para otros mediadores.
+                Rehaz el acta con este número nuevo y vuelve a firmarla. Tienes 48 horas desde el desbloqueo
+                para subir toda la documentación y el comprobante de pago.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {proceso.bloqueo_acta_id && (
         <div className="mb-4 rounded-xl border-2 border-red-400 bg-red-50 px-5 py-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
