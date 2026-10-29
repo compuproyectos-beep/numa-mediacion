@@ -192,6 +192,7 @@ const ESTILO_TARJETA: Record<
   string,
   { caja: string; texto: string; sub: string; acento: string; pista: string; icono: string }
 > = {
+  actas_bloqueadas: { caja: 'bg-white border-[#CBD6E8]', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-red-500', pista: 'bg-numa-100', icono: 'bg-red-100 text-red-700' },
   actas_acuerdo: { caja: 'bg-white border-[#CBD6E8]', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-numa-700', pista: 'bg-numa-100', icono: 'bg-numa-100 text-numa-700' },
   actas_no_acuerdo: { caja: 'bg-white border-[#CBD6E8]', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-orange-500', pista: 'bg-numa-100', icono: 'bg-orange-100 text-orange-700' },
   en_negociacion: { caja: 'bg-white border-[#CBD6E8]', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-amber-500', pista: 'bg-numa-100', icono: 'bg-amber-100 text-amber-700' },
