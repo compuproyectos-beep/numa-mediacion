@@ -6,7 +6,7 @@ import { conActa } from '@/lib/actaProceso';
 import { estadoLabelProceso, estadoPill, estadoFranja } from '@/lib/estados';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus, Check, ChevronRight, ChevronDown, FilePlus2, CalendarPlus } from 'lucide-react';
+import { Plus, Check, ChevronRight, FilePlus2, CalendarPlus } from 'lucide-react';
 import AgendaPanel from '@/components/citas/AgendaPanel';
 import {
   PageHeader,
@@ -684,63 +684,10 @@ export default function ProcesosPage() {
         title="Procesos de Mediación"
         subtitle="Gestión de procesos, invitaciones y resultados"
         action={
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setMenuNuevo((v) => !v)}
-              aria-haspopup="menu"
-              aria-expanded={menuNuevo}
-              className="btn-primary"
-            >
-              <Plus className="w-4 h-4" />
-              Nuevo
-              <ChevronDown className="w-4 h-4" />
-            </button>
-            {menuNuevo && (
-              <>
-                <div className="fixed inset-0 z-30" onClick={() => setMenuNuevo(false)} aria-hidden="true" />
-                <div
-                  role="menu"
-                  className="absolute right-0 z-40 mt-2 w-80 rounded-xl border border-[#CBD6E8] bg-white p-2 shadow-xl"
-                >
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      setMenuNuevo(false);
-                      abrirCrear();
-                    }}
-                    className="flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-numa-50"
-                  >
-                    <FilePlus2 className="w-5 h-5 text-gold-600 shrink-0 mt-0.5" aria-hidden="true" />
-                    <span>
-                      <span className="block text-sm font-bold text-numa-900">Proceso desde cero</span>
-                      <span className="block text-xs text-numa-700">
-                        Ya tengo los datos de las partes y creo el proceso ahora.
-                      </span>
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      setMenuNuevo(false);
-                      setShowAgendaRapida(true);
-                    }}
-                    className="flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-numa-50"
-                  >
-                    <CalendarPlus className="w-5 h-5 text-gold-600 shrink-0 mt-0.5" aria-hidden="true" />
-                    <span>
-                      <span className="block text-sm font-bold text-numa-900">Invitación rápida</span>
-                      <span className="block text-xs text-numa-700">
-                        Primero agendo la reunión; el proceso se crea después.
-                      </span>
-                    </span>
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+          <button type="button" onClick={() => setMenuNuevo(true)} className="btn-primary">
+            <Plus className="w-4 h-4" />
+            Nuevo
+          </button>
         }
       />
 
@@ -1026,6 +973,43 @@ export default function ProcesosPage() {
           ))
         )}
       </div>
+
+      <Modal open={menuNuevo} onClose={() => setMenuNuevo(false)} title="¿Cómo empieza este caso?" size="md">
+        <div className="grid gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setMenuNuevo(false);
+              abrirCrear();
+            }}
+            className="flex w-full items-start gap-3 rounded-xl border border-[#CBD6E8] px-4 py-3 text-left hover:border-gold-500 hover:bg-numa-50 transition"
+          >
+            <FilePlus2 className="w-6 h-6 text-gold-600 shrink-0 mt-0.5" aria-hidden="true" />
+            <span>
+              <span className="block text-base font-bold text-numa-900">Proceso desde cero</span>
+              <span className="block text-sm text-numa-700">
+                Ya tengo los datos de las partes y creo el proceso ahora.
+              </span>
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMenuNuevo(false);
+              setShowAgendaRapida(true);
+            }}
+            className="flex w-full items-start gap-3 rounded-xl border border-[#CBD6E8] px-4 py-3 text-left hover:border-gold-500 hover:bg-numa-50 transition"
+          >
+            <CalendarPlus className="w-6 h-6 text-gold-600 shrink-0 mt-0.5" aria-hidden="true" />
+            <span>
+              <span className="block text-base font-bold text-numa-900">Invitación rápida</span>
+              <span className="block text-sm text-numa-700">
+                Primero agendo la reunión; el proceso se crea después.
+              </span>
+            </span>
+          </button>
+        </div>
+      </Modal>
 
       <Modal
         open={showAgendaRapida}
