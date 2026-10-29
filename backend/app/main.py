@@ -6602,7 +6602,7 @@ def _reservar_numero_acta(cur, sucursal_id, usuario_id, proceso_id=None, estado=
     """Entrega el siguiente número de acta de la sucursal. El bloqueo por
     sucursal (vale hasta el commit) hace que dos mediadores que lo pidan a
     la vez nunca reciban el mismo; además la base lo impide con un índice
-    único. Un número anulado no se vuelve a entregar."""
+    único. Un número anulado o bloqueado se reutiliza durante un mes."""
     cur.execute("SELECT pg_advisory_xact_lock(%s)", (7300000 + int(sucursal_id),))
     cur.execute("""
         SELECT c.prefijo AS prefijo_ciudad, s.codigo_corto
@@ -6612,11 +6612,17 @@ def _reservar_numero_acta(cur, sucursal_id, usuario_id, proceso_id=None, estado=
     suc = cur.fetchone()
     if not suc:
         raise HTTPException(status_code=400, detail="La sucursal no existe")
-    # Un número bloqueado (pasaron 48 h sin completar su acta) queda libre para
-    # cualquier mediador de la misma sucursal: se entrega primero el más bajo.
+    # Un número bloqueado (pasaron 48 h sin completar su acta) o anulado queda
+    # libre para cualquier mediador de la misma sucursal durante un mes: se
+    # entrega primero el más bajo, para no dejar números en blanco. Pasado el
+    # mes sin que nadie lo tome, queda anulado de forma definitiva.
     cur.execute("""
         SELECT id FROM numeros_acta
-        WHERE sucursal_id = %s AND estado = 'bloqueado'
+        WHERE sucursal_id = %s
+          AND (
+            (estado = 'bloqueado' AND COALESCE(fecha_liberado, NOW()) > NOW() - INTERVAL '30 days')
+            OR (estado = 'anulado' AND reutilizable AND fecha_anulacion > NOW() - INTERVAL '30 days')
+          )
         ORDER BY secuencial ASC LIMIT 1 FOR UPDATE
     """, (sucursal_id,))
     libre = cur.fetchone()
@@ -6626,7 +6632,7 @@ def _reservar_numero_acta(cur, sucursal_id, usuario_id, proceso_id=None, estado=
             SET estado = %s, usuario_id = %s, proceso_id = %s, cita_id = %s,
                 fecha_solicitud = NOW(), fecha_uso = CASE WHEN %s = 'usado' THEN NOW() ELSE NULL END,
                 aviso_fecha = NULL, anulado_por = NULL, motivo_anulacion = NULL, fecha_anulacion = NULL,
-                fecha_reactivacion = NULL, reactivado_por = NULL
+                fecha_reactivacion = NULL, reactivado_por = NULL, fecha_liberado = NULL
             WHERE id = %s
             RETURNING id, codigo, secuencial
         """, (estado, usuario_id, proceso_id, cita_id, estado, libre["id"]))
@@ -6683,7 +6689,7 @@ def _bloquear_actas_vencidas(cur):
     cur.execute("SELECT id FROM usuarios WHERE rol = 'administrador' AND activo = true")
     admins = cur.fetchall()
     for r in filas:
-        cur.execute("UPDATE numeros_acta SET estado = 'bloqueado' WHERE id = %s", (r["id"],))
+        cur.execute("UPDATE numeros_acta SET estado = 'bloqueado', fecha_liberado = NOW() WHERE id = %s", (r["id"],))
         cur.execute("""
             INSERT INTO bloqueos_acta (numero_id, codigo, sucursal_id, usuario_id, proceso_id, cita_id, fecha_solicitud_numero)
             VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
@@ -7235,6 +7241,17 @@ def avisar_plazo_acta_vencido():
     cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
         _bloquear_actas_vencidas(cur)
+        # Un mes sin que nadie tome un número libre: queda anulado para siempre.
+        cur.execute("""
+            UPDATE numeros_acta
+            SET estado = 'anulado', reutilizable = false, fecha_anulacion = NOW(),
+                motivo_anulacion = 'Pasó un mes sin que ningún mediador tomara este número'
+            WHERE estado = 'bloqueado' AND fecha_liberado <= NOW() - INTERVAL '30 days'
+        """)
+        cur.execute("""
+            UPDATE numeros_acta SET reutilizable = false
+            WHERE estado = 'anulado' AND reutilizable AND fecha_anulacion <= NOW() - INTERVAL '30 days'
+        """)
         conn.commit()
     except Exception as e:
         conn.rollback()

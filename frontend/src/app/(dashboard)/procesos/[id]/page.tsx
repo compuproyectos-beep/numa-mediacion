@@ -590,7 +590,7 @@ function ProcesoDetalleContenido() {
       setMotivoAnulacion('');
       const p = await cargarProceso();
       if (p) await cargarSeguimiento(p);
-      setSuccessMessage('Proceso anulado. Su número queda bloqueado y no se vuelve a usar.');
+      setSuccessMessage('Proceso anulado. Su número de acta queda libre para otro mediador de la sucursal.');
     } catch (err: any) {
       setError(err?.response?.data?.detail || 'No se pudo anular el proceso');
     } finally {
@@ -1690,9 +1690,9 @@ function ProcesoDetalleContenido() {
                 <TextareaField
                   label={
                     avanceForm.resultado === 'cerrado_con_acuerdo'
-                      ? 'Detalle del acuerdo (se imprimirá tal cual en el acta)'
+                      ? 'Detalle del acuerdo'
                       : avanceForm.resultado === 'cerrado_no_acuerdo'
-                        ? 'Detalle del no acuerdo (se imprimirá tal cual en el acta)'
+                        ? 'Detalle del no acuerdo'
                         : avanceForm.resultado === 'no_realizada'
                         ? 'Constancia: quién no asistió y el motivo'
                         : 'Observación / registro de reunión'
@@ -1720,17 +1720,9 @@ function ProcesoDetalleContenido() {
 
                 {avanceForm.resultado === 'cerrado_no_acuerdo' && !confirmandoCierre && (
                   <div className="mb-3 p-3 border border-gold-200 bg-gold-50 rounded-sm text-xs text-gold-800">
-                    Úsalo cuando las partes asistieron y no llegaron a un acuerdo. Este texto
-                    sale tal cual en el acta de no acuerdo, después de la constancia del
-                    mediador: revísalo bien. El proceso pasa a tu fila de actas pendientes:
-                    deberás subir la documentación y el comprobante de pago.
-                  </div>
-                )}
-
-                {avanceForm.resultado === 'cerrado_con_acuerdo' && !confirmandoCierre && (
-                  <div className="mb-3 p-3 border border-gold-200 bg-gold-50 rounded-sm text-xs text-gold-800">
-                    Este texto es el acuerdo oficial y saldrá en el acta que firmarán
-                    las partes. Revísalo bien antes de guardar.
+                    Úsalo cuando las partes asistieron y no llegaron a un acuerdo. Se emite el
+                    acta de no acuerdo: tendrás 48 horas para subir la documentación y el
+                    comprobante de pago.
                   </div>
                 )}
 
@@ -1755,7 +1747,7 @@ function ProcesoDetalleContenido() {
                         {avanceForm.resultado === 'cerrado_no_acuerdo' ? (
                           <>
                             Vas a cerrar este proceso con <strong>no acuerdo</strong> y a pedir su
-                            acta de no acuerdo: entrará a tu fila de actas pendientes. Después de
+                            acta de no acuerdo, y tendrás 48 horas para completarla. Después de
                             esto ya no podrás cambiar el resultado. ¿Confirmas?
                             <span className="block mt-3 px-3 py-2 rounded-sm border-2 border-amber-500 bg-white font-semibold">
                               {proceso.numero_acta_codigo
