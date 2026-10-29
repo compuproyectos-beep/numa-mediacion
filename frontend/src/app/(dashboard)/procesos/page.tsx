@@ -7,7 +7,6 @@ import { estadoLabelProceso, estadoPill, estadoFranja } from '@/lib/estados';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus, Check, ChevronRight, FilePlus2, CalendarPlus } from 'lucide-react';
-import AgendaPanel from '@/components/citas/AgendaPanel';
 import {
   PageHeader,
   Spinner,
@@ -159,12 +158,9 @@ export default function ProcesosPage() {
   const [error, setError] = useState('');
 
   const [showCreate, setShowCreate] = useState(false);
-  // Botón "Nuevo": menú con "Proceso desde cero" e "Invitación rápida". La
-  // invitación rápida se arma en una ventana grande con la misma agenda, sin
-  // salir de Procesos.
+  // Botón "Nuevo": ventana con "Proceso desde cero" e "Invitación rápida"
+  // (esta última abre su propia página, con la agenda).
   const [menuNuevo, setMenuNuevo] = useState(false);
-  const [showAgendaRapida, setShowAgendaRapida] = useState(false);
-  const primeraCargaUrl = useRef(true);
 
   // El formulario de "Nuevo Proceso" se muestra como flujo por pasos, para
   // que un mediador nuevo no se enfrente a un formulario largo de una sola
@@ -437,34 +433,6 @@ export default function ProcesosPage() {
     elegirCitaRapida(citaDesdeUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [citasRapidas, clientes, citaDesdeUrl]);
-
-  const recargarCitasRapidas = () => {
-    const yo = getUser();
-    if (!yo) return;
-    getCitas({ usuario_id: yo.id })
-      .then((cs) =>
-        setCitasRapidas(
-          cs.filter((c: any) => !c.proceso_id && c.partes_rapidas && c.estado !== 'cancelada')
-        )
-      )
-      .catch(() => {});
-  };
-
-  // Desde la ventana de invitación rápida, "Crear el proceso" cambia la
-  // dirección a /procesos?crear=1&cita=ID estando ya en esta pantalla: se
-  // cierra la agenda y se abre el formulario con esa invitación elegida.
-  useEffect(() => {
-    if (primeraCargaUrl.current) {
-      primeraCargaUrl.current = false;
-      return;
-    }
-    if (!crearDesdeUrl) return;
-    setShowAgendaRapida(false);
-    citaAplicada.current = false;
-    recargarCitasRapidas();
-    abrirCrear();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [crearDesdeUrl, citaDesdeUrl]);
 
   const cerrarCrear = () => {
     setShowCreate(false);
@@ -996,7 +964,7 @@ export default function ProcesosPage() {
             type="button"
             onClick={() => {
               setMenuNuevo(false);
-              setShowAgendaRapida(true);
+              router.push('/procesos/invitacion-rapida');
             }}
             className="flex w-full items-start gap-3 rounded-xl border border-[#CBD6E8] px-4 py-3 text-left hover:border-gold-500 hover:bg-numa-50 transition"
           >
@@ -1009,18 +977,6 @@ export default function ProcesosPage() {
             </span>
           </button>
         </div>
-      </Modal>
-
-      <Modal
-        open={showAgendaRapida}
-        onClose={() => {
-          setShowAgendaRapida(false);
-          recargarCitasRapidas();
-        }}
-        title="Nueva invitación rápida"
-        size="xl"
-      >
-        <AgendaPanel embebido />
       </Modal>
 
       <Modal open={showCreate} onClose={cerrarCrear} title="Nuevo Proceso de Mediación" size="lg">
