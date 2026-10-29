@@ -22,6 +22,7 @@ import {
   ErrorAlert,
   SuccessAlert,
   Modal,
+  ConfirmDialog,
   Pill
 } from '@/components/ui';
 import { estadoLabel, estadoLabelProceso, estadoPill } from '@/lib/estados';
@@ -241,7 +242,9 @@ function ProcesoDetalleContenido() {
   const [avisoNumero, setAvisoNumero] = useState<string | null>(null);
   const [desbloqueandoActa, setDesbloqueandoActa] = useState(false);
   const [confirmoActaFinal, setConfirmoActaFinal] = useState(false);
+  const [confirmDesbloqueo, setConfirmDesbloqueo] = useState(false);
   const desbloquearDesdeProceso = async () => {
+    setConfirmDesbloqueo(false);
     if (!proceso?.bloqueo_acta_id) return;
     setDesbloqueandoActa(true);
     setError('');
@@ -1081,6 +1084,15 @@ function ProcesoDetalleContenido() {
         </div>
       )}
 
+      <ConfirmDialog
+        open={confirmDesbloqueo}
+        onClose={() => setConfirmDesbloqueo(false)}
+        onConfirm={desbloquearDesdeProceso}
+        loading={desbloqueandoActa}
+        confirmLabel="Sí, desbloquear"
+        message={`¿Desbloquear el acta ${proceso.bloqueo_acta_codigo ?? ''} de ${proceso.mediador ?? 'el mediador'}? Ese número quedó libre para otros mediadores: recibirá el número libre más bajo de la sucursal (puede ser el mismo si nadie lo tomó). Si el número cambia, deberá rehacer y volver a firmar el acta. Tendrá 48 horas nuevas.`}
+      />
+
       {proceso.bloqueo_acta_id && (
         <div className="mb-4 rounded-xl border-2 border-red-400 bg-red-50 px-5 py-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -1101,7 +1113,7 @@ function ProcesoDetalleContenido() {
             {esAdminSesion() && (
               <button
                 type="button"
-                onClick={desbloquearDesdeProceso}
+                onClick={() => setConfirmDesbloqueo(true)}
                 disabled={desbloqueandoActa}
                 className="btn-primary shrink-0 disabled:opacity-50"
               >
