@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Hash, Copy, Check, Ban } from 'lucide-react';
+import { Hash, Copy, Check, Ban, Lock, Clock } from 'lucide-react';
 import { ConfirmDialog, ErrorAlert, Modal, TextareaField } from '@/components/ui';
 import {
   getMiNumeroActa,
   getNumerosActaAdmin,
   anularNumeroActa,
-  reactivarNumeroActa
+  reactivarNumeroActa,
+  desbloquearActa
 } from '@/lib/services';
 
 // Las fechas vienen del servidor en UTC: se muestran en hora de Ecuador.
@@ -25,6 +26,30 @@ const fechaEC = (v: any) => {
     minute: '2-digit'
   });
 };
+
+// Convierte la fecha límite en "23 h 10 min" (o null si ya pasó).
+export function tiempoRestante(venceEn: any, ahora: number): { texto: string; urgente: boolean } | null {
+  if (!venceEn) return null;
+  const iso = String(venceEn).replace(' ', 'T');
+  const d = new Date(/(Z|[+-]\d\d:?\d\d)$/.test(iso) ? iso : `${iso}Z`);
+  if (isNaN(d.getTime())) return null;
+  const ms = d.getTime() - ahora;
+  if (ms <= 0) return null;
+  const totalMin = Math.floor(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return { texto: `${h} h ${String(m).padStart(2, '0')} min`, urgente: h < 6 };
+}
+
+// Reloj que se actualiza solo cada medio minuto para las cuentas regresivas.
+export function useAhora(): number {
+  const [ahora, setAhora] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setAhora(Date.now()), 30000);
+    return () => clearInterval(t);
+  }, []);
+  return ahora;
+}
 
 export default function NumeroActaPanel({ esAdmin }: { esAdmin: boolean }) {
   // El administrador es un mediador más: pide sus números igual que ellos
@@ -73,6 +98,7 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
   const [estado, setEstado] = useState<any | null>(null);
   const [copiado, setCopiado] = useState<number | null>(null);
   const [verAnulados, setVerAnulados] = useState(false);
+  const ahora = useAhora();
 
   const cargar = () =>
     getMiNumeroActa().then(setEstado).catch(() => setEstado(null));
@@ -95,6 +121,7 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
 
   const reservados: any[] = estado.reservados || [];
   const anulados: any[] = estado.anulados || [];
+  const bloqueados: any[] = estado.bloqueados || [];
   const vencidos = reservados.filter((r) => r.vencido).length;
 
   return (
@@ -107,11 +134,33 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
         </p>
       </div>
       <p className="text-sm text-slate-700 mb-2">
-        Tienes 48 horas para completar cada acta; pasado ese plazo, no podrás cerrar otros procesos con acta.
-        El número se asigna al cerrar un proceso o al pedirlo en una invitación rápida de la Agenda.
+        Tienes 48 horas desde que se te da el número para subir todos los documentos del acta. Pasado ese plazo,
+        el acta se bloquea y solo el administrador puede desbloquearla. El número se asigna al cerrar un proceso
+        o al pedirlo en una invitación rápida de la Agenda.
       </p>
 
-      {estado.motivo && <p className="text-sm text-amber-700 mb-2">{estado.motivo}</p>}
+      {bloqueados.length > 0 && (
+        <div className="mb-3 rounded-xl border border-red-300 bg-red-50 px-3.5 py-3">
+          <p className="flex items-center gap-2 text-sm font-bold text-red-800">
+            <Lock size={16} /> Tienes {bloqueados.length} acta{bloqueados.length === 1 ? '' : 's'} bloqueada{bloqueados.length === 1 ? '' : 's'}
+          </p>
+          <p className="text-sm text-red-900 mt-1">
+            Pasaron 48 horas sin completarla. Mientras tanto no puedes pedir números de acta ni subir otras actas.
+            Pide al administrador que la desbloquee.
+          </p>
+          <ul className="mt-2 space-y-1.5">
+            {bloqueados.map((b) => (
+              <li key={b.id} className="rounded-lg bg-white border border-red-200 px-3 py-2">
+                <span className="font-mono font-bold text-slate-900">{b.codigo}</span>
+                <span className="block"><Ligado n={b} /></span>
+                <span className="block text-xs text-red-800">Bloqueada el {fechaEC(b.fecha_bloqueo)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {estado.motivo && bloqueados.length === 0 && <p className="text-sm text-amber-700 mb-2">{estado.motivo}</p>}
 
       {reservados.length === 0 ? (
         <p className="text-sm text-slate-900">No tienes números de acta pendientes.</p>
@@ -136,8 +185,17 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
                     </span>
                   </td>
                   <td className="py-2.5 pr-3">{fechaEC(r.fecha_solicitud)}</td>
-                  <td className={`py-2.5 pr-3 ${r.vencido ? 'text-red-600 font-semibold' : ''}`}>
-                    {r.vencido ? 'Vencido · completa esta acta' : `Hasta ${fechaEC(r.vence_en)}`}
+                  <td className="py-2.5 pr-3">
+                    {(() => {
+                      const t = tiempoRestante(r.vence_en, ahora);
+                      if (!t) return <span className="text-red-600 font-semibold">Plazo cumplido · se bloquea en breve</span>;
+                      return (
+                        <span className={`inline-flex items-center gap-1.5 font-semibold ${t.urgente ? 'text-red-600' : 'text-[#144193]'}`}>
+                          <Clock size={14} /> Te faltan {t.texto}
+                          <span className="block font-normal text-xs text-slate-700 ml-1">hasta {fechaEC(r.vence_en)}</span>
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="py-2.5 pr-2 text-right">
                     <button type="button" className="btn-secondary btn-sm" onClick={() => copiar(r.id, r.codigo)}>
@@ -182,7 +240,10 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
 
 /* ───────────────────────── Administrador ───────────────────────── */
 function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => void }) {
-  const [datos, setDatos] = useState<{ pendientes: any[]; anulados: any[] } | null>(null);
+  const [datos, setDatos] = useState<{ pendientes: any[]; anulados: any[]; bloqueados: any[] } | null>(null);
+  const [desbloq, setDesbloq] = useState<any | null>(null);
+  const [desbloqueando, setDesbloqueando] = useState(false);
+  const [msgDesbloq, setMsgDesbloq] = useState('');
   const [anular, setAnular] = useState<any | null>(null);
   const [motivo, setMotivo] = useState('');
   const [guardando, setGuardando] = useState(false);
@@ -206,6 +267,27 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
       setError(e?.response?.data?.detail || 'No se pudo reactivar el número');
     } finally {
       setReactivando(false);
+    }
+  };
+
+  const confirmarDesbloqueo = async () => {
+    if (!desbloq) return;
+    setDesbloqueando(true);
+    setError('');
+    try {
+      const r = await desbloquearActa(desbloq.id);
+      setMsgDesbloq(
+        r?.mismo_numero
+          ? `Acta desbloqueada: el mediador conserva el número ${r.codigo}.`
+          : `Acta desbloqueada: el número anterior ya lo tomó otro mediador, así que recibió el número nuevo ${r?.codigo}. Debe rehacer y volver a firmar el acta.`
+      );
+      setDesbloq(null);
+      onCambio();
+    } catch (e: any) {
+      setDesbloq(null);
+      setError(e?.response?.data?.detail || 'No se pudo desbloquear el acta');
+    } finally {
+      setDesbloqueando(false);
     }
   };
 
@@ -257,7 +339,8 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
   const vencidos = datos.pendientes.filter((n) => (n.dias ?? 0) >= 2);
   const codigosPropios = new Set(propios.map((x) => x.codigo));
   const enPlazo = datos.pendientes.filter((n) => (n.dias ?? 0) < 2 && !codigosPropios.has(n.codigo)).length;
-  if (vencidos.length === 0 && enPlazo === 0 && datos.anulados.length === 0 && propios.length === 0) return null;
+  const bloqueados = datos.bloqueados || [];
+  if (bloqueados.length === 0 && vencidos.length === 0 && enPlazo === 0 && datos.anulados.length === 0 && propios.length === 0 && !msgDesbloq) return null;
 
   return (
     <div className="card px-5 py-4 mb-4 bg-white border border-[#C5D2E6] border-t-4 border-t-gold-400 shadow-[0_14px_30px_-22px_rgba(10,42,98,0.5)]">
@@ -271,6 +354,48 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
       {error && !anular && (
         <div className="mb-2">
           <ErrorAlert message={error} />
+        </div>
+      )}
+
+      {msgDesbloq && (
+        <div className="mb-3 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2.5 text-sm font-medium text-emerald-900 flex items-start justify-between gap-3">
+          <span>{msgDesbloq}</span>
+          <button type="button" className="text-emerald-800 underline font-semibold shrink-0" onClick={() => setMsgDesbloq('')}>
+            Cerrar
+          </button>
+        </div>
+      )}
+
+      {bloqueados.length > 0 && (
+        <div className="mb-4 rounded-xl border border-red-300 bg-red-50 px-3.5 py-3">
+          <p className="flex items-center gap-2 text-sm font-bold text-red-800 mb-2">
+            <Lock size={16} /> Actas bloqueadas: pasaron 48 horas sin completar ({bloqueados.length})
+          </p>
+          <ul className="space-y-2">
+            {bloqueados.map((b) => (
+              <li key={b.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-lg bg-white border border-red-200 px-3 py-2.5">
+                <span className="text-sm text-slate-900">
+                  <span className="font-mono font-bold">{b.codigo}</span> · {b.mediador} · {b.ciudad} · {b.sucursal}
+                  <span className="block text-xs text-slate-700">
+                    <Ligado n={b} />
+                    {' · '}Bloqueada el {fechaEC(b.fecha_bloqueo)}
+                    {' · '}
+                    {b.numero_libre ? 'Número libre para la sucursal' : 'Otro mediador ya tomó este número'}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  className="btn-sm inline-flex items-center gap-1.5 rounded-lg bg-[#144193] px-3 py-1.5 font-bold text-white shadow-[0_8px_16px_-10px_rgba(10,42,98,0.9)] hover:bg-[#1B4AAE] active:scale-[0.98] transition"
+                  onClick={() => {
+                    setError('');
+                    setDesbloq(b);
+                  }}
+                >
+                  Desbloquear
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -397,6 +522,19 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!desbloq}
+        onClose={() => setDesbloq(null)}
+        onConfirm={confirmarDesbloqueo}
+        loading={desbloqueando}
+        confirmLabel="Sí, desbloquear"
+        message={
+          desbloq?.numero_libre
+            ? `¿Desbloquear el acta ${desbloq?.codigo ?? ''} de ${desbloq?.mediador ?? 'el mediador'}? Conserva el mismo número y tiene 48 horas nuevas para completarla.`
+            : `¿Desbloquear el acta ${desbloq?.codigo ?? ''} de ${desbloq?.mediador ?? 'el mediador'}? Ese número ya lo tomó otro mediador: recibirá un número nuevo, deberá rehacer y volver a firmar el acta, y tendrá 48 horas nuevas.`
+        }
+      />
 
       <ConfirmDialog
         open={!!reactivar}

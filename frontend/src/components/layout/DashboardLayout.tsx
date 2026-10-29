@@ -23,6 +23,8 @@ const TITULOS_URGENTES = new Set([
   'Número de acta anulado',
   'Número de acta sin completar',
   'Acta con plazo vencido',
+  'Acta bloqueada',
+  'Acta bloqueada por plazo',
   'Cuenta bloqueada',
 ]);
 const TITULOS_DESTACADOS = new Set([
@@ -33,6 +35,7 @@ const TITULOS_DESTACADOS = new Set([
   'Acta de no acuerdo pedida',
   'Proceso reactivado',
   'Número de acta reactivado',
+  'Acta desbloqueada',
 ]);
 const esUrgente = (n: any) => TITULOS_URGENTES.has(n?.titulo);
 const esDestacada = (n: any) => TITULOS_DESTACADOS.has(n?.titulo);
@@ -226,7 +229,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const enRutaBanner = rutasBanner.some((r) => pathname === r || pathname.startsWith(r + '/'));
   const urgentes = urgentesTodos.filter((n) => n.titulo === 'Cuenta bloqueada' || enRutaBanner);
   const esPersistente = (n: any) =>
-    ['Proceso suspendido', 'Número de acta sin completar', 'Acta con plazo vencido'].includes(n?.titulo);
+    ['Proceso suspendido', 'Número de acta sin completar', 'Acta con plazo vencido', 'Acta bloqueada', 'Acta bloqueada por plazo'].includes(n?.titulo);
 
   // Abre la ventana con todos los avisos urgentes, empezando por el primero.
   const abrirUrgentes = () => {
@@ -260,7 +263,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (n?.referencia_tipo === 'cita' && n.referencia_id) {
       return { texto: 'Ir a la agenda', ruta: `/agenda?cita=${n.referencia_id}${n.cita_usuario_id ? `&mediador=${n.cita_usuario_id}` : ''}` };
     }
-    if (!esSecretariaActual && n?.referencia_tipo === 'numero_acta') {
+    if (!esSecretariaActual && (n?.referencia_tipo === 'numero_acta' || n?.referencia_tipo === 'bloqueo_acta')) {
       return { texto: 'Ir a Actas finales', ruta: '/actas-finales' };
     }
     return null;
@@ -276,7 +279,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
     // Un urgente "normal" sale del banner al leerlo; los persistentes se quedan.
     setUrgentesServidor((prev) =>
-      prev ? prev.filter((x) => x.id !== id || ['Proceso suspendido', 'Número de acta sin completar', 'Acta con plazo vencido'].includes(x.titulo)) : prev
+      prev ? prev.filter((x) => x.id !== id || ['Proceso suspendido', 'Número de acta sin completar', 'Acta con plazo vencido', 'Acta bloqueada', 'Acta bloqueada por plazo'].includes(x.titulo)) : prev
     );
   };
 

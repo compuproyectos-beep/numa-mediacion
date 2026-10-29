@@ -197,14 +197,15 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
   };
 
   const subir = async () => {
-    if (!archivoFirmada) return;
+    // Con pago en abonos solo se sube el comprobante del saldo: el acta firmada ya viene en la documentación.
+    if (!proceso.pago_pendiente && !archivoFirmada) return;
     if (proceso.pago_pendiente && !archivoSegundoPago) return;
     setSubiendo(true);
     setError('');
     try {
       await subirActaFirmada(
         proceso.id,
-        archivoFirmada,
+        proceso.pago_pendiente ? null : archivoFirmada,
         proceso.pago_pendiente && archivoSegundoPago
           ? { comprobante: archivoSegundoPago, fecha: fechaSegundoPago || undefined }
           : null
@@ -213,7 +214,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
       setArchivoFirmada(null);
       setArchivoSegundoPago(null);
       setConfirmoFirmada(false);
-      setOk('Acta firmada subida. El proceso quedó completo.');
+      setOk(proceso.pago_pendiente ? 'Comprobante del saldo subido. El proceso quedó completo.' : 'Acta firmada subida. El proceso quedó completo.');
       onCambio();
     } catch (e: any) {
       setError(msg(e, 'No se pudo subir el acta firmada'));
@@ -325,7 +326,8 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
           {proceso.pago_pendiente ? (
             <p className="text-sm text-amber-800 mt-1">
               Saldo pendiente: <strong>{dinero(saldo)}</strong> (valor total {dinero(proceso.monto_total)}).
-              Se paga al subir el acta firmada, junto con su comprobante.
+              El proceso queda con pago incompleto: sube el comprobante del saldo cuando se complete el pago.
+              {!esAdmin && ' Mientras tanto no podrás subir otras actas.'}
             </p>
           ) : (
             <>
@@ -348,12 +350,15 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
       {/* Falta el acta firmada */}
       {etapa === 'falta_firmada' && (
         <div className="card p-4">
-          <p className="text-sm text-numa-700 mb-1 font-semibold">Falta el acta firmada</p>
+          <p className="text-sm text-numa-700 mb-1 font-semibold">
+            {proceso.pago_pendiente ? 'Falta el comprobante del saldo' : 'Falta el acta firmada'}
+          </p>
           <p className="text-sm text-numa-600 mb-3">
-            {noAcuerdo
+            {proceso.pago_pendiente
+              ? 'La documentación con el acta firmada ya está subida. Falta el comprobante del segundo pago (el saldo) para completar el proceso.'
+              : noAcuerdo
               ? 'Haz que firmen el acta el solicitante responsable y el mediador y súbela en PDF (no se aceptan fotos).'
               : 'Haz que firmen el acta las partes y el mediador y súbela en PDF (no se aceptan fotos).'}
-            {proceso.pago_pendiente && ' Debes subir también el comprobante del segundo pago.'}
             {/* El bloqueo solo aplica al mediador; el admin no lo tiene. */}
             {!esAdmin && ' Mientras falte, no podrás subir las actas de tus otros procesos.'}
           </p>
@@ -377,7 +382,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
               }}
               className="btn-primary btn-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Upload className="w-4 h-4" /> Subir acta firmada
+              <Upload className="w-4 h-4" /> {proceso.pago_pendiente ? 'Subir comprobante del saldo' : 'Subir acta firmada'}
             </button>
           </div>
           {!esAdmin && !yaImprimio && (
@@ -445,7 +450,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
       <Modal
         open={showFirmada}
         onClose={() => setShowFirmada(false)}
-        title={`Subir acta firmada — ${proceso.numero_acta_codigo || proceso.codigo_proceso}`}
+        title={`${proceso.pago_pendiente ? 'Subir comprobante del saldo' : 'Subir acta firmada'} — ${proceso.numero_acta_codigo || proceso.codigo_proceso}`}
       >
         {error && (
           <div className="mb-4">
@@ -453,20 +458,22 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
           </div>
         )}
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-numa-700 mb-1">Acta firmada (PDF)</label>
-            <input
-              type="file"
-              accept="application/pdf"
-              onChange={(e) => setArchivoFirmada(e.target.files?.[0] || null)}
-              className="input-field"
-            />
-          </div>
+          {!proceso.pago_pendiente && (
+            <div>
+              <label className="block text-sm font-medium text-numa-700 mb-1">Acta firmada (PDF)</label>
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => setArchivoFirmada(e.target.files?.[0] || null)}
+                className="input-field"
+              />
+            </div>
+          )}
           {proceso.pago_pendiente && (
             <div className="space-y-3 border border-amber-200 bg-amber-50 rounded-sm p-3">
               <p className="text-sm text-amber-800">
                 Saldo pendiente: <strong>{dinero(saldo)}</strong>. Sube el comprobante del segundo
-                pago para poder cerrar el proceso.
+                pago para completar el proceso.
               </p>
               <div>
                 <label className="block text-sm font-medium text-numa-700 mb-1">
@@ -500,8 +507,8 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
               className="mt-1"
             />
             {proceso.pago_pendiente
-              ? 'Confirmo que estos documentos son reales y legales, avalados por el mediador.'
-              : 'Confirmo que este documento es real y legal, avalado por el mediador.'}
+              ? 'Confirmo que este comprobante es real y legal. Entiendo que solo se puede subir una vez y no podré cambiarlo después.'
+              : 'Confirmo que este documento es real y legal, avalado por el mediador. Entiendo que solo se puede subir una vez y no podré cambiarlo después.'}
           </label>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setShowFirmada(false)} className="btn-secondary">
@@ -511,12 +518,12 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
               type="button"
               onClick={subir}
               disabled={
-                subiendo || !archivoFirmada || !confirmoFirmada ||
+                subiendo || (!proceso.pago_pendiente && !archivoFirmada) || !confirmoFirmada ||
                 (!!proceso.pago_pendiente && !archivoSegundoPago)
               }
               className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {subiendo ? 'Subiendo...' : 'Subir acta firmada'}
+              {subiendo ? 'Subiendo...' : proceso.pago_pendiente ? 'Subir comprobante' : 'Subir acta firmada'}
             </button>
           </div>
         </div>

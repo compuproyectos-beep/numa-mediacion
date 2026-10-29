@@ -652,6 +652,7 @@ export async function subirActaFinalProceso(
   const formData = new FormData();
   formData.append('archivo', file);
   formData.append('comprobante_pago', comprobantePago);
+  formData.append('confirmo', 'true');
   if (numeroActaId) formData.append('numero_acta_id', String(numeroActaId));
   formData.append('pago_modo', pago?.modo || 'completo');
   if (pago?.fecha) formData.append('fecha_pago', pago.fecha);
@@ -860,11 +861,11 @@ export async function getExpedienteProceso(
 // ── ACTA FIRMADA / ACUERDO / SUSPENSIÓN (Fase 3) ─────────────────────────────
 export async function subirActaFirmada(
   procesoId: number,
-  file: File,
+  file: File | null,
   segundoPago?: { comprobante: File; fecha?: string } | null
 ): Promise<any> {
   const formData = new FormData();
-  formData.append('archivo', file);
+  if (file) formData.append('archivo', file);
   formData.append('confirmo', 'true');
   if (segundoPago?.comprobante) {
     formData.append('comprobante_final', segundoPago.comprobante);
@@ -1028,7 +1029,13 @@ export async function reactivarNumeroActa(id: number): Promise<any> {
   return res.data;
 }
 
-export async function getNumerosActaAdmin(): Promise<{ pendientes: any[]; anulados: any[] }> {
+// Solo administrador: desbloquea un acta que pasó las 48 horas.
+export async function desbloquearActa(bloqueoId: number): Promise<any> {
+  const res = await api.post(`/bloqueos-acta/${bloqueoId}/desbloquear`);
+  return res.data;
+}
+
+export async function getNumerosActaAdmin(): Promise<{ pendientes: any[]; anulados: any[]; bloqueados: any[] }> {
   const res = await api.get('/numeros-acta');
   return res.data;
 }

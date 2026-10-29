@@ -4,7 +4,8 @@ import { mayusInicial } from '@/lib/texto';
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import PasosProceso from '@/components/procesos/PasosProceso';
-import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon, Eye, Download, Receipt, FileText, PlayCircle, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon, Eye, Download, Receipt, FileText, PlayCircle, CheckCircle2, Lock, Clock, Hash } from 'lucide-react';
+import { tiempoRestante, useAhora } from '@/components/actas/NumeroActaPanel';
 import { isAdmin as esAdminSesion } from '@/lib/auth';
 import PartesProceso from '@/components/procesos/PartesProceso';
 import FacturacionProceso from '@/components/procesos/FacturacionProceso';
@@ -44,6 +45,7 @@ import {
   descargarPdfActaFinal,
   descargarComprobantePagoActaFinal,
   pedirNumeroActaProceso,
+  desbloquearActa,
 } from '@/lib/services';
 
 // Mismos colores que ya se usan en la Agenda (ver colorPorEstado en
@@ -234,6 +236,29 @@ function ProcesoDetalleContenido() {
     } catch {}
   }, [claveBorrador]);
 
+  const ahoraReloj = useAhora();
+  // Aviso grande cuando el sistema acaba de dar un número de acta nuevo.
+  const [avisoNumero, setAvisoNumero] = useState<string | null>(null);
+  const [desbloqueandoActa, setDesbloqueandoActa] = useState(false);
+  const [confirmoActaFinal, setConfirmoActaFinal] = useState(false);
+  const desbloquearDesdeProceso = async () => {
+    if (!proceso?.bloqueo_acta_id) return;
+    setDesbloqueandoActa(true);
+    setError('');
+    try {
+      const r = await desbloquearActa(proceso.bloqueo_acta_id);
+      await cargarProceso();
+      setSuccessMessage(
+        r?.mismo_numero
+          ? `Acta desbloqueada. El mediador conserva el número ${r.codigo} y tiene 48 horas nuevas.`
+          : `Acta desbloqueada. El número anterior ya lo tomó otro mediador: recibió el número nuevo ${r?.codigo}, debe rehacer y volver a firmar el acta, y tiene 48 horas nuevas.`
+      );
+    } catch (e: any) {
+      setError(e?.response?.data?.detail || 'No se pudo desbloquear el acta');
+    } finally {
+      setDesbloqueandoActa(false);
+    }
+  };
   const [showActaFinal, setShowActaFinal] = useState(false);
   const [archivoActaFinal, setArchivoActaFinal] = useState<File | null>(null);
   const [archivoComprobantePago, setArchivoComprobantePago] = useState<File | null>(null);
@@ -511,10 +536,13 @@ function ProcesoDetalleContenido() {
     const conActaNoAcuerdo = avanceForm.resultado === 'cerrado_no_acuerdo';
 
     try {
-      await crearAvanceProceso(proceso.id, {
+      const respAvance = await crearAvanceProceso(proceso.id, {
         resultado: avanceForm.resultado,
         observacion: avanceForm.observacion
       });
+      if (respAvance?.numero_acta_nuevo && respAvance?.numero_acta_asignado) {
+        setAvisoNumero(respAvance.numero_acta_asignado);
+      }
 
       const avances = await getAvancesProceso(proceso.id);
       setAvancesProceso(avances);
@@ -623,6 +651,7 @@ function ProcesoDetalleContenido() {
       const p = await cargarProceso();
       if (p) await cargarSeguimiento(p);
 
+      setConfirmoActaFinal(false);
       setSuccessMessage(`${esNoAcuerdo(proceso) ? 'Documentos del acta de no acuerdo' : 'Documentos del acta'} y comprobante de pago subidos correctamente: ${data.codigo_acta}`);
     } catch (err: any) {
       setError(err?.response?.data?.detail || 'Error al subir los documentos del acta y el comprobante de pago');
@@ -719,7 +748,7 @@ function ProcesoDetalleContenido() {
 
     if (proceso.etapa_acta === 'falta_firmada') {
       return proceso.pago_pendiente
-        ? 'Haz que firmen el acta y sube el acta firmada junto con el comprobante del segundo pago para completar el proceso.'
+        ? 'Falta el comprobante del segundo pago (el saldo). Súbelo para completar el proceso; mientras tanto no puedes subir otras actas.'
         : 'Haz que firmen el acta las partes y el mediador y sube el acta firmada en PDF para completar el proceso.';
     }
 
@@ -891,6 +920,17 @@ function ProcesoDetalleContenido() {
               )}
             </p>
           )}
+          {proceso.numero_acta_codigo && proceso.numero_acta_estado === 'reservado' && (() => {
+            const t = tiempoRestante(proceso.numero_acta_vence_en, ahoraReloj);
+            return (
+              <p className={`mt-1 inline-flex items-center gap-1.5 text-sm font-semibold ${!t || t.urgente ? 'text-red-700' : 'text-numa-700'}`}>
+                <Clock className="w-4 h-4" aria-hidden="true" />
+                {t
+                  ? `Te faltan ${t.texto} para subir toda la documentación y el comprobante de pago`
+                  : 'Plazo de 48 horas cumplido: el acta se bloquea en breve'}
+              </p>
+            );
+          })()}
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
@@ -991,6 +1031,58 @@ function ProcesoDetalleContenido() {
       {successMessage && (
         <div className="mb-4">
           <SuccessAlert message={successMessage} />
+        </div>
+      )}
+
+      {avisoNumero && (
+        <div className="mb-4 rounded-xl border-2 border-gold-400 bg-gold-50 px-5 py-4 shadow-[0_14px_30px_-22px_rgba(10,42,98,0.5)]">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <Hash className="w-7 h-7 text-gold-700 shrink-0 mt-0.5" aria-hidden="true" />
+              <div>
+                <p className="text-base font-bold text-numa-900">Se creó el número de acta de este proceso</p>
+                <p className="text-2xl font-mono font-extrabold text-numa-900 my-1">{avisoNumero}</p>
+                <p className="text-sm text-numa-800">
+                  Escribe este número en el acta. Desde ahora tienes 48 horas para subir toda la documentación
+                  y el comprobante de pago; si no, el acta se bloquea.
+                </p>
+              </div>
+            </div>
+            <button type="button" onClick={() => setAvisoNumero(null)} className="text-sm font-semibold text-numa-700 underline shrink-0">
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
+
+      {proceso.bloqueo_acta_id && (
+        <div className="mb-4 rounded-xl border-2 border-red-400 bg-red-50 px-5 py-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <Lock className="w-7 h-7 text-red-700 shrink-0 mt-0.5" aria-hidden="true" />
+              <div>
+                <p className="text-base font-bold text-red-900">
+                  Acta bloqueada · {proceso.bloqueo_acta_codigo}
+                </p>
+                <p className="text-sm text-red-900">
+                  Pasaron 48 horas desde que se dio el número sin completar la documentación.
+                  {esAdminSesion()
+                    ? ' Al desbloquearla, el mediador conserva el número si sigue libre; si otro mediador ya lo tomó, recibe uno nuevo y debe rehacer y volver a firmar el acta.'
+                    : ' Mientras esté bloqueada no puedes pedir números de acta ni subir otras actas. Pide al administrador que la desbloquee.'}
+                </p>
+              </div>
+            </div>
+            {esAdminSesion() && (
+              <button
+                type="button"
+                onClick={desbloquearDesdeProceso}
+                disabled={desbloqueandoActa}
+                className="btn-primary shrink-0 disabled:opacity-50"
+              >
+                {desbloqueandoActa ? 'Desbloqueando…' : 'Desbloquear acta'}
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -1713,7 +1805,7 @@ function ProcesoDetalleContenido() {
             </div>
           )}
 
-        {conActa(proceso) && !proceso.finalizado && !proceso.suspendido && (
+        {conActa(proceso) && !proceso.finalizado && !proceso.suspendido && !proceso.bloqueo_acta_id && (
           <div className="card p-4">
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <p className="text-sm text-numa-600">
@@ -1785,6 +1877,7 @@ function ProcesoDetalleContenido() {
                       })
                       .catch(() => setNumerosPedidos([]));
                     setArchivoActaFinal(null);
+                    setConfirmoActaFinal(false);
                     setPagoModo('completo');
                     setMontoTotal('');
                     setMontoAbono('');
@@ -1839,11 +1932,10 @@ function ProcesoDetalleContenido() {
 
         <div className="space-y-4">
           <p className="text-sm text-numa-600">
-            Debes subir la documentación y el comprobante de pago juntos. Después
-            subirás el acta firmada.
-            Tienes 48 horas desde el acuerdo para completar este proceso sin
-            que bloquee tus otras actas; pasado ese plazo no podrás subir actas
-            de tus otros procesos hasta completarlo.
+            Sube en un solo PDF la documentación del acta, incluida el acta ya firmada, y por
+            separado el comprobante de pago. Tienes 48 horas desde que se te dio el número
+            de acta; pasado ese plazo el acta se bloquea y no podrás pedir números ni subir
+            otras actas hasta que se desbloquee.
           </p>
 
           {numerosPedidos.length > 0 && (
@@ -1876,7 +1968,9 @@ function ProcesoDetalleContenido() {
 
           <div>
             <label className="block text-sm font-medium text-numa-700 mb-1">
-              {esNoAcuerdo(proceso) ? 'Documentos del acta de no acuerdo (PDF)' : 'Documentos del acta (PDF)'}
+              {esNoAcuerdo(proceso)
+                ? 'Documentos del acta de no acuerdo con el acta firmada (un solo PDF)'
+                : 'Documentos del acta con el acta firmada (un solo PDF)'}
             </label>
             <input
               type="file"
@@ -1975,12 +2069,25 @@ function ProcesoDetalleContenido() {
               {Number(montoTotal) > 0 && Number(montoAbono) > 0 && Number(montoAbono) < Number(montoTotal) && (
                 <p className="text-sm text-gold-800">
                   Saldo pendiente: <strong>{dinero(Number(montoTotal) - Number(montoAbono))}</strong>. El
-                  proceso quedará pendiente hasta que subas el acta firmada junto con el comprobante
-                  del segundo pago.
+                  proceso quedará con pago incompleto y no podrás subir otras actas hasta que subas
+                  el comprobante del saldo.
                 </p>
               )}
             </div>
           )}
+
+          <label className="flex items-start gap-2 text-sm text-numa-700 border border-gold-200 bg-gold-50 rounded-sm p-3">
+            <input
+              type="checkbox"
+              checked={confirmoActaFinal}
+              onChange={(e) => setConfirmoActaFinal(e.target.checked)}
+              className="mt-1"
+            />
+            <span>
+              Confirmo que estos documentos son reales y legales, avalados por el mediador. Entiendo que
+              solo se pueden subir una sola vez y no podré cambiarlos después.
+            </span>
+          </label>
 
           <div className="flex justify-end gap-3 pt-4">
             <button
@@ -1989,6 +2096,7 @@ function ProcesoDetalleContenido() {
                 setShowActaFinal(false);
                 setArchivoActaFinal(null);
                 setArchivoComprobantePago(null);
+                setConfirmoActaFinal(false);
               }}
               className="btn-secondary"
             >
@@ -1998,7 +2106,7 @@ function ProcesoDetalleContenido() {
             <button
               type="button"
               onClick={handleSubirActaFinal}
-              disabled={subiendoActaFinal || !archivoActaFinal || !archivoComprobantePago}
+              disabled={subiendoActaFinal || !archivoActaFinal || !archivoComprobantePago || !confirmoActaFinal}
               className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {subiendoActaFinal ? 'Subiendo...' : 'Subir documentación y comprobante de pago'}
