@@ -9,6 +9,7 @@ import {
   Archive,
   FileCheck,
   PauseCircle,
+  Lock,
   LayoutDashboard,
   HardDrive,
   ChevronDown,
@@ -18,7 +19,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Spinner, ErrorAlert, Badge, EmptyState, Pill } from '@/components/ui';
-import { getDashboard, getUsoAlmacenamiento, getProcesos, getActasFinales, enviarRespaldoManual } from '@/lib/services';
+import { getDashboard, getUsoAlmacenamiento, getProcesos, getActasFinales, enviarRespaldoManual, getNumerosActaAdmin, getMiNumeroActa } from '@/lib/services';
 import { useAuth } from '@/hooks/useAuth';
 import { GuiaBienvenida, useGuiaBienvenida } from '@/components/dashboard/GuiaBienvenida';
 import ResumenActasMes from '@/components/dashboard/ResumenActasMes';
@@ -74,6 +75,14 @@ const TEMA_CATEGORIA: Record<
     item: 'border-rose-200 border-t-4 border-t-rose-500 hover:border-rose-300',
     titulo: 'text-rose-800'
   },
+  actas_bloqueadas: {
+    caja: 'bg-red-100 border-red-300',
+    icono: 'bg-red-600 text-white',
+    texto: 'text-red-900',
+    panel: 'bg-red-50 border-red-200',
+    item: 'border-red-200 border-t-4 border-t-red-500 hover:border-red-300',
+    titulo: 'text-red-800'
+  },
   actas_acuerdo: {
     caja: 'bg-amber-100 border-amber-300',
     icono: 'bg-numa-900 text-gold-400',
@@ -122,6 +131,10 @@ const CATEGORIAS: Record<
   suspendido: {
     titulo: 'Procesos suspendidos',
     verTodoHref: '/procesos'
+  },
+  actas_bloqueadas: {
+    titulo: 'Actas bloqueadas (pasaron 48 horas sin completar)',
+    verTodoHref: '/actas-finales'
   },
   actas_acuerdo: {
     titulo: 'Actas finales de acuerdo',
@@ -328,7 +341,16 @@ export default function DashboardPage() {
     try {
       const info = CATEGORIAS[clave];
       let data: any[];
-      if (clave === 'suspendido') {
+      if (clave === 'actas_bloqueadas') {
+        if (isAdmin) {
+          const r = await getNumerosActaAdmin();
+          data = (r.bloqueados || []).filter(
+            (b: any) => !(vista === 'mios' && b.usuario_id !== user?.id)
+          );
+        } else {
+          data = (await getMiNumeroActa()).bloqueados || [];
+        }
+      } else if (clave === 'suspendido') {
         data = await getProcesos({
           suspendido: true,
           ...(isAdmin && vista === 'mios' ? { usuario_id: user?.id } : {})
@@ -452,9 +474,10 @@ export default function DashboardPage() {
         <div className="space-y-4 animate-fade-in">
           {/* Las cajas van directo sobre el fondo de la página: sus colores
               suaves ya las distinguen, sin franja detrás. */}
-          <div className="relative -mt-9 sm:-mt-10 mx-2 sm:mx-6 grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
+          <div className="relative -mt-9 sm:-mt-10 mx-2 sm:mx-6 grid grid-cols-2 md:grid-cols-4 gap-3">
             {(
               [
+                ['actas_bloqueadas', stats.actas_bloqueadas ?? 0, stats.actas_bloqueadas === 1 ? 'acta bloqueada' : 'actas bloqueadas', Lock],
                 ['actas_acuerdo', stats.actas_acuerdo ?? 0, stats.actas_acuerdo === 1 ? 'acta de acuerdo' : 'actas de acuerdo', FileCheck],
                 ['actas_no_acuerdo', stats.actas_no_acuerdo ?? 0, stats.actas_no_acuerdo === 1 ? 'acta de no acuerdo' : 'actas de no acuerdo', FileCheck],
                 ['en_negociacion', procesos.en_negociacion ?? 0, procesos.en_negociacion === 1 ? 'proceso en negociación' : 'procesos en negociación', Clock],
@@ -518,6 +541,32 @@ export default function DashboardPage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {listaCategoria.slice(0, 10).map((item: any) => (
+                    categoriaAbierta === 'actas_bloqueadas' ? (
+                    <div
+                      key={item.id}
+                      onClick={() => router.push(item.proceso_id ? `/procesos/${item.proceso_id}` : '/actas-finales')}
+                      className={`px-3 py-2 border rounded-md bg-white cursor-pointer card-lift shadow-sm hover:shadow-md ${TEMA_CATEGORIA[categoriaAbierta].item}`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-semibold text-numa-900 code-text">{item.codigo}</p>
+                        <span className="text-xs text-numa-600 shrink-0">
+                          Bloqueada el {item.fecha_bloqueo ? new Date(item.fecha_bloqueo).toLocaleDateString('es-EC') : '—'}
+                        </span>
+                      </div>
+                      <p className="text-sm font-medium text-numa-800 mt-0.5 line-clamp-1">
+                        {item.ligado_a === 'proceso'
+                          ? `Proceso ${item.proceso_codigo}${item.ligado_detalle ? ` · ${item.ligado_detalle}` : ''}`
+                          : item.ligado_a === 'invitacion'
+                          ? `Invitación rápida · ${item.ligado_detalle}`
+                          : 'Sin proceso ni invitación'}
+                      </p>
+                      {isAdmin && (
+                        <p className="text-xs text-numa-700 mt-0.5">
+                          Mediador: {item.mediador || '—'} · {item.ciudad || '—'} · {item.sucursal || '—'}
+                        </p>
+                      )}
+                    </div>
+                    ) : (
                     <div
                       key={item.id}
                       onClick={() =>
@@ -566,6 +615,7 @@ export default function DashboardPage() {
                         </p>
                       )}
                     </div>
+                    )
                   ))}
 
                   {listaCategoria.length > 10 && (

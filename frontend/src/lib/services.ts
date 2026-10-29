@@ -361,6 +361,12 @@ export async function getCitas(filters?: {
   return res.data;
 }
 
+// Todas las invitaciones del proceso al que pertenece esta (historial).
+export async function getHistorialInvitaciones(citaId: number): Promise<any[]> {
+  const res = await api.get(`/citas/${citaId}/historial`);
+  return res.data;
+}
+
 export async function cambiarEstadoCita(
   id: number,
   estado: string,

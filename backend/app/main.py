@@ -1211,6 +1211,13 @@ def dashboard(solo_mios: bool = False, usuario=Depends(obtener_usuario_actual)):
         actas_no_acuerdo = conteo_actas["no_acuerdo"]
         actas_acuerdo = actas_finales - actas_no_acuerdo
 
+        cur.execute(
+            "SELECT COUNT(*) AS n FROM bloqueos_acta WHERE estado = 'activo'"
+            + (" AND usuario_id = %s" if filtrar else ""),
+            tuple(params)
+        )
+        actas_bloqueadas = cur.fetchone()["n"]
+
         cur.execute(f"""
             SELECT
                 p.id,
@@ -1272,6 +1279,7 @@ def dashboard(solo_mios: bool = False, usuario=Depends(obtener_usuario_actual)):
             "actas_finales": actas_finales,
             "actas_acuerdo": actas_acuerdo,
             "actas_no_acuerdo": actas_no_acuerdo,
+            "actas_bloqueadas": actas_bloqueadas,
             "procesos_recientes": procesos_recientes,
             "actas_recientes": actas_recientes
         }
@@ -5044,6 +5052,50 @@ def crear_invitacion_rapida(datos: dict, usuario=Depends(obtener_usuario_actual)
         conn.close()
 
 
+@app.get("/citas/{cita_id}/historial")
+def historial_invitaciones_cita(cita_id: int, usuario=Depends(obtener_usuario_actual)):
+    """Todas las invitaciones del proceso al que pertenece esta (la primera,
+    la segunda...), con su resultado y las observaciones del mediador."""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute(
+            "SELECT id, usuario_id, sucursal_id, proceso_id FROM citas WHERE id = %s",
+            (cita_id,)
+        )
+        c = cur.fetchone()
+        if not c:
+            raise HTTPException(status_code=404, detail="Invitación no encontrada")
+        if usuario["rol"] == "secretaria":
+            permitido = c["sucursal_id"] == usuario["sucursal_id"]
+        elif usuario["rol"] != "administrador":
+            permitido = c["usuario_id"] == usuario["id"]
+        else:
+            permitido = True
+        if not permitido:
+            raise HTTPException(status_code=403, detail="No puedes ver esta invitación")
+        if not c["proceso_id"]:
+            return []
+        cur.execute("""
+            SELECT
+                ci.id, ci.fecha, ci.hora, ci.estado, ci.observaciones, ci.motivo_cancelacion,
+                av.resultado, av.observacion AS observacion_resultado
+            FROM citas ci
+            LEFT JOIN LATERAL (
+                SELECT a.resultado, a.observacion
+                FROM avances_mediacion a
+                WHERE a.cita_id = ci.id
+                ORDER BY a.id DESC LIMIT 1
+            ) av ON true
+            WHERE ci.proceso_id = %s
+            ORDER BY ci.fecha ASC, ci.hora ASC, ci.id ASC
+        """, (c["proceso_id"],))
+        return cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.get("/citas/{cita_id}/invitacion-datos")
 def datos_invitacion_rapida(cita_id: int, usuario=Depends(obtener_usuario_actual)):
     """Datos para el documento imprimible de una invitación rápida (misma
@@ -7054,7 +7106,7 @@ def listar_numeros_acta(sucursal_id: int = None, usuario=Depends(obtener_usuario
         cur.execute(base + "n.estado = 'anulado'" + filtro + " ORDER BY n.fecha_anulacion DESC LIMIT 30", {"s": sucursal_id})
         anulados = cur.fetchall()
         cur.execute("""
-            SELECT b.id, b.codigo, b.fecha_bloqueo, b.proceso_id, b.cita_id, b.numero_id,
+            SELECT b.id, b.codigo, b.fecha_bloqueo, b.proceso_id, b.cita_id, b.numero_id, b.usuario_id,
                    (nn.estado = 'bloqueado') AS numero_libre,
                    u.nombre || ' ' || u.apellido AS mediador,
                    s.nombre AS sucursal, c.nombre AS ciudad

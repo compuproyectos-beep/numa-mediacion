@@ -13,6 +13,7 @@ import { getCitas, cambiarEstadoCita, getReuniones, cancelarReunion } from '@/li
 import ReunionModal from '@/components/citas/ReunionModal';
 import { useAuth } from '@/hooks/useAuth';
 import PedirNumeroActaBoton from '@/components/actas/PedirNumeroActaBoton';
+import HistorialInvitaciones from '@/components/citas/HistorialInvitaciones';
 
 // Las fechas vienen del servidor en UTC: se muestran en hora de Ecuador.
 const fechaCreacionEC = (v: any) => {
@@ -866,6 +867,8 @@ export default function CalendarioAgendaMediador({
               </p>
             )}
           </div>
+
+          <HistorialInvitaciones citaId={citaActiva.id} procesoId={citaActiva.proceso_id} />
 
           {/* Línea de pasos de una invitación rápida pendiente: solo está activo
               lo que corresponde en cada momento. */}
