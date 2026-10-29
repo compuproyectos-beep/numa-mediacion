@@ -903,7 +903,19 @@ function ProcesoDetalleContenido() {
           vuelven a ir lado a lado como antes. */}
       <div className="page-header items-start flex-col gap-3 sm:flex-row sm:gap-0">
         <div>
-          <h1 className="section-title whitespace-nowrap">{proceso.codigo_proceso}</h1>
+          {proceso.numero_acta_codigo ? (
+            <>
+              <h1 className="section-title whitespace-nowrap font-mono text-3xl sm:text-4xl">
+                Acta: {proceso.numero_acta_codigo}
+                {proceso.numero_acta_estado === 'anulado' && (
+                  <span className="text-red-700 text-xl font-sans"> (anulado)</span>
+                )}
+              </h1>
+              <p className="text-sm text-numa-600 mt-1">Proceso {proceso.codigo_proceso}</p>
+            </>
+          ) : (
+            <h1 className="section-title whitespace-nowrap">{proceso.codigo_proceso}</h1>
+          )}
           <p className="text-numa-700 mt-1">
             {proceso.demandante}
             {proceso.total_solicitantes > 1 && (
@@ -917,15 +929,6 @@ function ProcesoDetalleContenido() {
           <p className="text-xs text-numa-600 mt-1">
             {proceso.demandante_cedula || '—'} · {proceso.demandado_cedula || '—'}
           </p>
-          {proceso.numero_acta_codigo && (
-            <p className="text-base text-numa-800 mt-2">
-              Número de acta:{' '}
-              <strong className="font-mono text-lg">{proceso.numero_acta_codigo}</strong>
-              {proceso.numero_acta_estado === 'anulado' && (
-                <span className="text-red-700"> (anulado)</span>
-              )}
-            </p>
-          )}
           {proceso.numero_acta_codigo && proceso.numero_acta_estado === 'reservado' && (() => {
             const t = tiempoRestante(proceso.numero_acta_vence_en, ahoraReloj);
             return (
