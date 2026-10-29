@@ -7155,6 +7155,13 @@ def desbloquear_acta(bloqueo_id: int, usuario=Depends(obtener_usuario_actual)):
         # El número bloqueado quedó libre para la sucursal: el mediador entra a la
         # cola como cualquiera y recibe el número libre más bajo. Solo recibe el
         # mismo si, por coincidencia, nadie más lo tomó y sigue siendo el menor.
+        # Se sueltan los enlaces del número bloqueado (proceso/invitación) para que
+        # el número que se asigne pueda quedar ligado a ellos (hay índices únicos).
+        # Si el bloqueado vuelve a salir elegido, _reservar_numero_acta lo religa.
+        cur.execute("""
+            UPDATE numeros_acta SET proceso_id = NULL, cita_id = NULL
+            WHERE id = %s AND estado = 'bloqueado'
+        """, (b["numero_id"],))
         nuevo = _reservar_numero_acta(
             cur, b["sucursal_id"], b["usuario_id"], proceso_id=b["proceso_id"], cita_id=b["cita_id"]
         )
