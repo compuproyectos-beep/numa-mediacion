@@ -6,7 +6,8 @@ import { conActa } from '@/lib/actaProceso';
 import { estadoLabelProceso, estadoPill, estadoFranja } from '@/lib/estados';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus, Check, ChevronRight } from 'lucide-react';
+import { Plus, Check, ChevronRight, ChevronDown, FilePlus2, CalendarPlus } from 'lucide-react';
+import AgendaPanel from '@/components/citas/AgendaPanel';
 import {
   PageHeader,
   Spinner,
@@ -158,6 +159,12 @@ export default function ProcesosPage() {
   const [error, setError] = useState('');
 
   const [showCreate, setShowCreate] = useState(false);
+  // Botón "Nuevo": menú con "Proceso desde cero" e "Invitación rápida". La
+  // invitación rápida se arma en una ventana grande con la misma agenda, sin
+  // salir de Procesos.
+  const [menuNuevo, setMenuNuevo] = useState(false);
+  const [showAgendaRapida, setShowAgendaRapida] = useState(false);
+  const primeraCargaUrl = useRef(true);
 
   // El formulario de "Nuevo Proceso" se muestra como flujo por pasos, para
   // que un mediador nuevo no se enfrente a un formulario largo de una sola
@@ -425,13 +432,43 @@ export default function ProcesosPage() {
   useEffect(() => {
     if (!citaDesdeUrl || citaAplicada.current) return;
     if (!citasRapidas.length || !clientes.length) return;
+    if (!citasRapidas.some((c: any) => String(c.id) === String(citaDesdeUrl))) return;
     citaAplicada.current = true;
     elegirCitaRapida(citaDesdeUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [citasRapidas, clientes, citaDesdeUrl]);
 
+  const recargarCitasRapidas = () => {
+    const yo = getUser();
+    if (!yo) return;
+    getCitas({ usuario_id: yo.id })
+      .then((cs) =>
+        setCitasRapidas(
+          cs.filter((c: any) => !c.proceso_id && c.partes_rapidas && c.estado !== 'cancelada')
+        )
+      )
+      .catch(() => {});
+  };
+
+  // Desde la ventana de invitación rápida, "Crear el proceso" cambia la
+  // dirección a /procesos?crear=1&cita=ID estando ya en esta pantalla: se
+  // cierra la agenda y se abre el formulario con esa invitación elegida.
+  useEffect(() => {
+    if (primeraCargaUrl.current) {
+      primeraCargaUrl.current = false;
+      return;
+    }
+    if (!crearDesdeUrl) return;
+    setShowAgendaRapida(false);
+    citaAplicada.current = false;
+    recargarCitasRapidas();
+    abrirCrear();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [crearDesdeUrl, citaDesdeUrl]);
+
   const cerrarCrear = () => {
     setShowCreate(false);
+    if (crearDesdeUrl || citaDesdeUrl) router.replace('/procesos');
     setError('');
     setPaso(1);
   };
@@ -647,10 +684,63 @@ export default function ProcesosPage() {
         title="Procesos de Mediación"
         subtitle="Gestión de procesos, invitaciones y resultados"
         action={
-          <button onClick={abrirCrear} className="btn-primary">
-            <Plus className="w-4 h-4" />
-            Nuevo Proceso
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setMenuNuevo((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={menuNuevo}
+              className="btn-primary"
+            >
+              <Plus className="w-4 h-4" />
+              Nuevo
+              <ChevronDown className="w-4 h-4" />
+            </button>
+            {menuNuevo && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setMenuNuevo(false)} aria-hidden="true" />
+                <div
+                  role="menu"
+                  className="absolute right-0 z-40 mt-2 w-80 rounded-xl border border-[#CBD6E8] bg-white p-2 shadow-xl"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setMenuNuevo(false);
+                      abrirCrear();
+                    }}
+                    className="flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-numa-50"
+                  >
+                    <FilePlus2 className="w-5 h-5 text-gold-600 shrink-0 mt-0.5" aria-hidden="true" />
+                    <span>
+                      <span className="block text-sm font-bold text-numa-900">Proceso desde cero</span>
+                      <span className="block text-xs text-numa-700">
+                        Ya tengo los datos de las partes y creo el proceso ahora.
+                      </span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setMenuNuevo(false);
+                      setShowAgendaRapida(true);
+                    }}
+                    className="flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-numa-50"
+                  >
+                    <CalendarPlus className="w-5 h-5 text-gold-600 shrink-0 mt-0.5" aria-hidden="true" />
+                    <span>
+                      <span className="block text-sm font-bold text-numa-900">Invitación rápida</span>
+                      <span className="block text-xs text-numa-700">
+                        Primero agendo la reunión; el proceso se crea después.
+                      </span>
+                    </span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         }
       />
 
@@ -936,6 +1026,18 @@ export default function ProcesosPage() {
           ))
         )}
       </div>
+
+      <Modal
+        open={showAgendaRapida}
+        onClose={() => {
+          setShowAgendaRapida(false);
+          recargarCitasRapidas();
+        }}
+        title="Nueva invitación rápida"
+        size="xl"
+      >
+        <AgendaPanel embebido />
+      </Modal>
 
       <Modal open={showCreate} onClose={cerrarCrear} title="Nuevo Proceso de Mediación" size="lg">
         {/* Indicador de pasos: le muestra al mediador dónde está y qué falta,
