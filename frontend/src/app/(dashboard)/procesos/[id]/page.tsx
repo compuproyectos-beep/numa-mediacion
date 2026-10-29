@@ -250,8 +250,8 @@ function ProcesoDetalleContenido() {
       await cargarProceso();
       setSuccessMessage(
         r?.mismo_numero
-          ? `Acta desbloqueada. El mediador conserva el número ${r.codigo} y tiene 48 horas nuevas.`
-          : `Acta desbloqueada. El número anterior ya lo tomó otro mediador: recibió el número nuevo ${r?.codigo}, debe rehacer y volver a firmar el acta, y tiene 48 horas nuevas.`
+          ? `Acta desbloqueada. El mediador recibió el número ${r.codigo} (nadie más lo había tomado) y tiene 48 horas nuevas.`
+          : `Acta desbloqueada. El mediador recibió el número nuevo ${r?.codigo}: debe rehacer y volver a firmar el acta con ese número, y tiene 48 horas nuevas.`
       );
     } catch (e: any) {
       setError(e?.response?.data?.detail || 'No se pudo desbloquear el acta');
@@ -1076,7 +1076,7 @@ function ProcesoDetalleContenido() {
                 <p className="text-sm text-red-900">
                   Pasaron 48 horas desde que se dio el número sin completar la documentación.
                   {esAdminSesion()
-                    ? ' Al desbloquearla, el mediador conserva el número si sigue libre; si otro mediador ya lo tomó, recibe uno nuevo y debe rehacer y volver a firmar el acta.'
+                    ? ' Su número quedó libre para otros mediadores. Al desbloquearla, el mediador recibe el número libre más bajo de la sucursal (puede ser el mismo si nadie lo tomó) y, si cambia, debe rehacer y volver a firmar el acta.'
                     : ' Mientras esté bloqueada no puedes pedir números de acta ni subir otras actas. Pide al administrador que la desbloquee.'}
                 </p>
               </div>

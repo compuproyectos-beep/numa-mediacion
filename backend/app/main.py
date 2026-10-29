@@ -7131,9 +7131,9 @@ def listar_numeros_acta(sucursal_id: int = None, usuario=Depends(obtener_usuario
 
 @app.post("/bloqueos-acta/{bloqueo_id}/desbloquear")
 def desbloquear_acta(bloqueo_id: int, usuario=Depends(obtener_usuario_actual)):
-    """Solo el administrador. Si el número sigue libre, el mediador lo conserva;
-    si otro mediador de la sucursal ya lo tomó, recibe uno nuevo y debe rehacer
-    y volver a firmar el acta. En ambos casos arranca un plazo nuevo de 48 horas."""
+    """Solo el administrador. Al bloquearse, el número queda libre; al desbloquear
+    el mediador recibe el número libre más bajo de la sucursal (solo coincide con
+    el anterior si nadie más lo tomó). Arranca un plazo nuevo de 48 horas."""
     if usuario["rol"] != "administrador":
         raise HTTPException(status_code=403, detail="Solo el administrador puede desbloquear un acta")
     conn = get_db()
@@ -7146,25 +7146,15 @@ def desbloquear_acta(bloqueo_id: int, usuario=Depends(obtener_usuario_actual)):
         if b["estado"] != "activo":
             raise HTTPException(status_code=400, detail="Esta acta ya fue desbloqueada")
         cur.execute("SELECT pg_advisory_xact_lock(%s)", (7300000 + int(b["sucursal_id"]),))
-        cur.execute("SELECT id, estado FROM numeros_acta WHERE id = %s FOR UPDATE", (b["numero_id"],))
-        n = cur.fetchone()
-        if n and n["estado"] == "bloqueado":
-            cur.execute("""
-                UPDATE numeros_acta
-                SET estado = 'reservado', usuario_id = %s, proceso_id = %s, cita_id = %s,
-                    fecha_solicitud = NOW(), aviso_fecha = NULL
-                WHERE id = %s
-            """, (b["usuario_id"], b["proceso_id"], b["cita_id"], n["id"]))
-            mismo = True
-            codigo_nuevo = b["codigo"]
-            numero_nuevo_id = n["id"]
-        else:
-            nuevo = _reservar_numero_acta(
-                cur, b["sucursal_id"], b["usuario_id"], proceso_id=b["proceso_id"], cita_id=b["cita_id"]
-            )
-            mismo = False
-            codigo_nuevo = nuevo["codigo"]
-            numero_nuevo_id = nuevo["id"]
+        # El número bloqueado quedó libre para la sucursal: el mediador entra a la
+        # cola como cualquiera y recibe el número libre más bajo. Solo recibe el
+        # mismo si, por coincidencia, nadie más lo tomó y sigue siendo el menor.
+        nuevo = _reservar_numero_acta(
+            cur, b["sucursal_id"], b["usuario_id"], proceso_id=b["proceso_id"], cita_id=b["cita_id"]
+        )
+        codigo_nuevo = nuevo["codigo"]
+        numero_nuevo_id = nuevo["id"]
+        mismo = codigo_nuevo == b["codigo"]
         cur.execute("""
             UPDATE bloqueos_acta
             SET estado = 'desbloqueado', fecha_desbloqueo = NOW(), desbloqueado_por = %s,
@@ -7173,15 +7163,15 @@ def desbloquear_acta(bloqueo_id: int, usuario=Depends(obtener_usuario_actual)):
         """, (usuario["id"], mismo, codigo_nuevo, bloqueo_id))
         registrar_auditoria(
             cur, usuario, "desbloquear_acta", "numero_acta", numero_nuevo_id,
-            f"Acta {b['codigo']} desbloqueada. " + ("Conserva el mismo número." if mismo else f"Recibió el número nuevo {codigo_nuevo}.")
+            f"Acta {b['codigo']} desbloqueada. " + ("Recibió el mismo número (seguía libre)." if mismo else f"Recibió el número nuevo {codigo_nuevo}.")
         )
         if b["usuario_id"]:
             if mismo:
-                msg = (f"El administrador desbloqueó tu acta {b['codigo']}. Conservas el mismo número y "
+                msg = (f"El administrador desbloqueó tu acta. Tu número de acta es {codigo_nuevo} y "
                        f"tienes 48 horas desde ahora para completarla.")
             else:
-                msg = (f"El administrador desbloqueó tu acta, pero el número {b['codigo']} ya lo tomó otro mediador. "
-                       f"Tu nuevo número de acta es {codigo_nuevo}: debes rehacer el acta con ese número y "
+                msg = (f"El administrador desbloqueó tu acta. El número {b['codigo']} quedó libre para otros: "
+                       f"tu nuevo número de acta es {codigo_nuevo}. Debes rehacer el acta con ese número y "
                        f"volver a firmarla. Tienes 48 horas desde ahora.")
             crear_notificacion(cur, b["usuario_id"], "Acta desbloqueada", msg, "acta", "bloqueo_acta", bloqueo_id)
         conn.commit()

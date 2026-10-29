@@ -278,8 +278,8 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
       const r = await desbloquearActa(desbloq.id);
       setMsgDesbloq(
         r?.mismo_numero
-          ? `Acta desbloqueada: el mediador conserva el número ${r.codigo}.`
-          : `Acta desbloqueada: el número anterior ya lo tomó otro mediador, así que recibió el número nuevo ${r?.codigo}. Debe rehacer y volver a firmar el acta.`
+          ? `Acta desbloqueada: el mediador recibió el número ${r.codigo} (nadie más lo había tomado).`
+          : `Acta desbloqueada: el mediador recibió el número nuevo ${r?.codigo}. Debe rehacer y volver a firmar el acta con ese número.`
       );
       setDesbloq(null);
       onCambio();
@@ -380,7 +380,7 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
                     <Ligado n={b} />
                     {' · '}Bloqueada el {fechaEC(b.fecha_bloqueo)}
                     {' · '}
-                    {b.numero_libre ? 'Número libre para la sucursal' : 'Otro mediador ya tomó este número'}
+                    {b.numero_libre ? 'Su número está libre para la sucursal' : 'Su número ya lo tomó otro mediador'}
                   </span>
                 </span>
                 <button
@@ -530,9 +530,7 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
         loading={desbloqueando}
         confirmLabel="Sí, desbloquear"
         message={
-          desbloq?.numero_libre
-            ? `¿Desbloquear el acta ${desbloq?.codigo ?? ''} de ${desbloq?.mediador ?? 'el mediador'}? Conserva el mismo número y tiene 48 horas nuevas para completarla.`
-            : `¿Desbloquear el acta ${desbloq?.codigo ?? ''} de ${desbloq?.mediador ?? 'el mediador'}? Ese número ya lo tomó otro mediador: recibirá un número nuevo, deberá rehacer y volver a firmar el acta, y tendrá 48 horas nuevas.`
+          `¿Desbloquear el acta ${desbloq?.codigo ?? ''} de ${desbloq?.mediador ?? 'el mediador'}? Ese número quedó libre para otros mediadores: recibirá el número libre más bajo de la sucursal (puede ser el mismo si nadie lo tomó). Si el número cambia, deberá rehacer y volver a firmar el acta. Tendrá 48 horas nuevas.`
         }
       />
 
