@@ -746,6 +746,12 @@ function ProcesoDetalleContenido() {
       return 'Este proceso está suspendido por el administrador.';
     }
 
+    if (proceso.bloqueo_acta_id) {
+      return esAdminSesion()
+        ? 'El acta está bloqueada por pasar 48 horas. Desbloquéala para que el mediador pueda continuar.'
+        : 'El acta está bloqueada por pasar 48 horas. Pide al administrador que la desbloquee.';
+    }
+
     if (proceso.etapa_acta === 'falta_firmada') {
       return proceso.pago_pendiente
         ? 'Falta el comprobante del segundo pago (el saldo). Súbelo para completar el proceso; mientras tanto no puedes subir otras actas.'
