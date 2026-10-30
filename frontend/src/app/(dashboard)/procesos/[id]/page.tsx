@@ -931,9 +931,9 @@ function ProcesoDetalleContenido() {
             const t = tiempoRestante(proceso.numero_acta_vence_en, ahoraReloj);
             return (
               <div className="mt-3 inline-flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5">
-                <div className="flex items-start gap-2.5 max-w-md">
+                <div className="flex items-start gap-2.5">
                   <Clock className="w-5 h-5 text-red-700 shrink-0 mt-0.5" aria-hidden="true" />
-                  <p className="text-sm font-semibold text-numa-900">
+                  <p className="text-sm font-semibold sm:whitespace-nowrap text-numa-900">
                     {t
                       ? 'Tiempo para subir toda la documentación y el comprobante de pago'
                       : 'Plazo de 48 horas cumplido: el acta se bloquea en breve'}
