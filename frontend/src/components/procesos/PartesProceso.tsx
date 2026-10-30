@@ -242,7 +242,7 @@ export default function PartesProceso({ procesoId, editable, onCambio, resumen }
             return (
               <li
                 key={p.id}
-                className="border border-numa-200 rounded-lg px-3 py-2.5 bg-numa-50 flex items-start gap-2"
+                className="rounded-lg px-3.5 py-3 bg-numa-100/70 flex items-start gap-2"
               >
                 <span className="mt-0.5 text-numa-700 shrink-0">
                   {esEmpresa ? <Building2 className="w-4 h-4" /> : <User className="w-4 h-4" />}

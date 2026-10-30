@@ -187,7 +187,7 @@
   }
 
   .code-text {
-    @apply font-mono text-[13px] tracking-tight;
+    @apply font-mono text-[13px] tracking-tight tabular-nums;
   }
 
   .section-title {

@@ -1222,7 +1222,7 @@ function ProcesoDetalleContenido() {
                 return (
                   <div
                     key={cita.id}
-                    className={`card p-4 border-l-4 ${getEstadoCitaBorderClass(cita.estado)}`}
+                    className={`card p-5`}
                   >
                     <div className="flex justify-between gap-3">
                       <div>
@@ -1295,7 +1295,7 @@ function ProcesoDetalleContenido() {
                     </div>
 
                     {cita.observaciones && (
-                      <div className="mt-3 rounded-lg bg-numa-50 border border-numa-200 px-3 py-2.5">
+                      <div className="mt-3 rounded-lg bg-numa-100/70 px-3.5 py-3">
                         <p className="text-[11px] font-bold uppercase tracking-wide text-numa-700">
                           Observación de invitación
                         </p>
@@ -1319,7 +1319,7 @@ function ProcesoDetalleContenido() {
                     )}
 
                     {avance?.resultado ? (
-                      <div className="mt-3 rounded-lg bg-numa-50 border border-numa-200 border-l-4 border-l-gold-400 px-3 py-2.5">
+                      <div className="mt-3 rounded-lg bg-numa-100/70 px-3.5 py-3">
                         <p className="text-[11px] font-bold uppercase tracking-wide text-numa-700">
                           Resultado
                         </p>
@@ -1374,7 +1374,7 @@ function ProcesoDetalleContenido() {
         </div>
 
         {proceso.finalizado && proceso.etapa_acta !== 'falta_firmada' && proceso.etapa_acta !== 'completa' && (
-          <div className="flex items-start gap-3 px-4 py-3 bg-white border border-numa-200 border-l-4 border-l-green-600 rounded-sm text-sm">
+          <div className="flex items-start gap-3 px-4 py-3 bg-white border border-numa-200 rounded-sm text-sm">
             <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" aria-hidden="true" />
             <p className="text-numa-800">
               <span className="font-semibold text-numa-900">Proceso finalizado.</span>{' '}
@@ -1847,7 +1847,7 @@ function ProcesoDetalleContenido() {
         />
 
         {expedienteProceso?.acta_final && (
-          <div className="card p-4 border-l-4 border-l-green-600">
+          <div className="card p-4">
             <h3 className="text-sm font-semibold text-numa-900 mb-3">
               Documentos del acta y comprobante de pago
             </h3>
@@ -1868,7 +1868,7 @@ function ProcesoDetalleContenido() {
             {/* Admin y mediador ven el acta y el comprobante; solo el
                 administrador puede descargarlos. */}
             {(
-              <div className="mt-3 space-y-2 rounded-lg bg-numa-50 border border-numa-200 p-3">
+              <div className="mt-3 space-y-2 rounded-lg bg-numa-100/70 p-3.5">
                 <DocFila
                   etiqueta="Documentos del acta"
                   textoVer="Ver documentos"
