@@ -446,3 +446,41 @@ html[data-tamano="fijo"] { zoom: 1; --tz: 1; }
   border-top: 3px solid #23405B;
   box-shadow: 0 1px 2px rgba(14, 35, 56, 0.10), 0 16px 28px -18px rgba(14, 35, 56, 0.50);
 }
+
+/* Etiqueta instantánea del menú lateral encogido: aparece al instante, con el estilo
+   de la marca (azul muy oscuro, texto blanco, filete dorado y una flechita a la izquierda). */
+.etiqueta-menu {
+  position: fixed;
+  z-index: 60;
+  transform: translateY(-50%) translateX(-4px);
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: #081524;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 0 0 1px rgba(224, 184, 74, 0.55), 0 10px 24px -8px rgba(8, 21, 36, 0.6);
+  opacity: 0;
+  transition: opacity 90ms var(--ease-out), transform 120ms var(--ease-out);
+}
+.etiqueta-menu[data-visible='true'] {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+.etiqueta-menu::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  background: #081524;
+  box-shadow: -1px 1px 0 0 rgba(224, 184, 74, 0.55);
+  transform: translateY(-50%) rotate(45deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .etiqueta-menu { transition: none; }
+}

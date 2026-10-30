@@ -83,6 +83,23 @@ export default function Sidebar() {
     return () => document.documentElement.removeAttribute('data-menu');
   }, [compacto]);
 
+  // Etiqueta instantánea al pasar el mouse sobre los íconos del menú encogido. El "title" nativo
+  // del navegador tarda casi un segundo y no se puede darle formato. Se maneja sin estado de
+  // React para no repintar el menú al pasar el mouse.
+  const tipRef = useRef<HTMLDivElement>(null);
+  const mostrarTip = (e: React.SyntheticEvent<HTMLElement>, texto: string) => {
+    const el = tipRef.current;
+    if (!el) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    el.textContent = texto;
+    el.style.top = `${r.top + r.height / 2}px`;
+    el.style.left = `${r.right + 12}px`;
+    el.dataset.visible = 'true';
+  };
+  const ocultarTip = () => {
+    if (tipRef.current) tipRef.current.dataset.visible = 'false';
+  };
+
   const alternarMenu = () => {
     setCompacto((v) => {
       try {
@@ -137,7 +154,10 @@ export default function Sidebar() {
           <button
             type="button"
             onClick={alternarMenu}
-            title="Ampliar menú"
+            onMouseEnter={(e) => mostrarTip(e, 'Ampliar menú')}
+            onMouseLeave={ocultarTip}
+            onFocus={(e) => mostrarTip(e, 'Ampliar menú')}
+            onBlur={ocultarTip}
             aria-label="Ampliar menú"
             className="flex h-11 w-11 items-center justify-center rounded-xl bg-gold-400 text-[#0A2A62] shadow-md ring-1 ring-gold-400/60 hover:bg-gold-300 active:scale-95 transition-all"
           >
@@ -188,7 +208,10 @@ export default function Sidebar() {
             <Link
               href={href}
               onClick={() => setMobileOpen(false)}
-              title={compacto ? label : undefined}
+              onMouseEnter={compacto ? (e) => mostrarTip(e, label) : undefined}
+              onMouseLeave={compacto ? ocultarTip : undefined}
+              onFocus={compacto ? (e) => mostrarTip(e, label) : undefined}
+              onBlur={compacto ? ocultarTip : undefined}
               aria-label={label}
               className={clsx(
                 'flex items-center rounded-lg text-sm transition-all duration-200 group font-sans',
@@ -305,6 +328,15 @@ export default function Sidebar() {
 
   return (
     <>
+      {/* Etiqueta flotante de los íconos del menú encogido (ver mostrarTip). */}
+      <div
+        ref={tipRef}
+        role="tooltip"
+        data-visible="false"
+        className="etiqueta-menu"
+        aria-hidden="true"
+      />
+
       <aside className="menu-aside hidden lg:flex lg:flex-col bg-gradient-to-b from-[#16397A] via-[#112F6A] to-[#0B2250] fixed left-0 top-0 bottom-0 z-30 border-r border-white/10 shadow-[6px_0_24px_-12px_rgba(10,42,98,0.5)]">
         <SidebarContent compacto={compacto} />
       </aside>
