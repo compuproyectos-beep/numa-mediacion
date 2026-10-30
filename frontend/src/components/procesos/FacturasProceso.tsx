@@ -112,7 +112,7 @@ export default function FacturasProceso({ proceso, esAdmin, onCambio }: Props) {
     <div className="card p-4">
       <div className="flex flex-wrap items-center gap-2 mb-1">
         <FileText className="w-4 h-4 text-numa-800" />
-        <h2 className="text-sm font-semibold text-numa-800">Facturas del acta</h2>
+        <h2 className="text-base font-bold text-numa-900">Facturas del acta</h2>
         {!cargando && faltan.length > 0 && (
           <span className="pill bg-amber-50 text-amber-800">
             <span className="pill-dot bg-amber-500" aria-hidden="true" />
@@ -137,7 +137,7 @@ export default function FacturasProceso({ proceso, esAdmin, onCambio }: Props) {
           const vigente = lista.find((f) => f.vigente);
                     return (
             <div key={t.tipo} className="border border-numa-200 rounded-sm p-3 bg-white">
-              <p className="text-sm font-semibold text-numa-800">{t.titulo}</p>
+              <p className="text-base font-bold text-numa-900">{t.titulo}</p>
               <p className="text-xs text-numa-700 mb-2">{t.ayuda}</p>
 
               {cargando ? null : vigente ? (

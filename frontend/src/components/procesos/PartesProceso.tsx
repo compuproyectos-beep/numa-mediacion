@@ -316,7 +316,7 @@ export default function PartesProceso({ procesoId, editable, onCambio, resumen }
     <div className="card p-4 mb-4">
       {resumen}
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-numa-800">Partes del proceso</h2>
+        <h2 className="text-base font-bold text-numa-900">Partes del proceso</h2>
         {!editable && (
           <span className="text-[11px] text-numa-700">
             Ya no se pueden modificar (el proceso no está en negociación)

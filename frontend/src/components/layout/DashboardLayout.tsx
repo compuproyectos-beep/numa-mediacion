@@ -217,13 +217,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const noLeidas = sinLeerTitulo;
   // Los "persistentes" (acta sin completar, vencida o bloqueada) siguen
   // en el banner hasta que se resuelve el problema; el resto, hasta que se lee.
-  // Mientras el servidor no responde, los avisos de acta (bloqueada, sin completar…)
-  // no se muestran: la lista local puede traer avisos ya resueltos que aparecerían un
-  // instante y luego desaparecerían.
-  const TITULOS_DE_ACTA = ['Número de acta sin completar', 'Acta con plazo vencido', 'Acta bloqueada', 'Acta bloqueada por plazo'];
+  // Mientras el servidor no responde no se muestra ningún aviso (salvo "Cuenta bloqueada"):
+  // la lista local puede traer avisos ya resueltos que aparecerían un instante y luego
+  // desaparecerían.
   const urgentesTodos =
-    urgentesServidor ??
-    notificaciones.filter((n) => !n.leida && esUrgente(n) && !TITULOS_DE_ACTA.includes(n?.titulo));
+    urgentesServidor ?? notificaciones.filter((n) => !n.leida && n?.titulo === 'Cuenta bloqueada');
   // El banner rojo solo se muestra donde le sirve a la persona, para no estorbar en
   // todo el sistema (en la campana siempre se pueden ver). "Cuenta bloqueada" es de
   // seguridad y sale en todas las pantallas.
@@ -299,11 +297,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <div className="min-h-screen bg-numa-50 font-sans">
+    <div className="min-h-screen bg-[#E8EEF6] font-sans">
       <Sidebar />
 
       <main className="menu-pad pt-14 lg:pt-0 min-h-screen">
-        <div className="sticky top-0 z-20 bg-numa-50/90 backdrop-blur border-b border-numa-100">
+        <div className="sticky top-0 z-20 bg-[#E8EEF6]/90 backdrop-blur border-b border-numa-100">
           <div className="max-w-7xl mx-auto px-6 py-1.5 flex justify-end">
             <div className="relative" ref={dropdownRef}>
               <button

@@ -225,7 +225,7 @@ export default function FacturacionProceso({ procesoId, editable, onEstado, fina
   return (
     <div className="card p-4 mb-4">
       <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
-        <h3 className="text-sm font-semibold text-numa-800 inline-flex items-center gap-2">
+        <h3 className="text-base font-bold text-numa-900 inline-flex items-center gap-2">
           <Receipt className="w-4 h-4 text-numa-800" /> Datos de facturación
         </h3>
         {editable && (

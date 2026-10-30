@@ -1055,7 +1055,7 @@ function ProcesoDetalleContenido() {
                 </p>
               </div>
             </div>
-            <button type="button" onClick={() => setAvisoNumero(null)} className="text-sm font-semibold text-numa-800 underline shrink-0">
+            <button type="button" onClick={() => setAvisoNumero(null)} className="text-base font-bold text-numa-900 underline shrink-0">
               Entendido
             </button>
           </div>
@@ -1201,7 +1201,7 @@ function ProcesoDetalleContenido() {
 
       <div className="space-y-6">
         <div>
-          <h3 className="text-sm font-semibold text-numa-800 mb-3">
+          <h3 className="text-base font-bold text-numa-900 mb-3">
             Línea de tiempo del proceso
           </h3>
 
@@ -1389,7 +1389,7 @@ function ProcesoDetalleContenido() {
           !citaPendiente && (
           <div className="card p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-numa-800">
+              <h3 className="text-base font-bold text-numa-900">
                 {citasProceso.length === 0
                   ? 'Primera invitación'
                   : 'Programar siguiente invitación'}
@@ -1574,7 +1574,7 @@ function ProcesoDetalleContenido() {
           citaPendiente &&
           !reunionYaLlego && (
             <div className="card p-4">
-              <h3 className="text-sm font-semibold text-numa-800 mb-1">
+              <h3 className="text-base font-bold text-numa-900 mb-1">
                 Registrar resultado de la invitación pendiente
               </h3>
               <p className="text-xs text-numa-800">
@@ -1590,7 +1590,7 @@ function ProcesoDetalleContenido() {
           citaPendiente &&
           reunionYaLlego && (
             <div className="card p-4">
-              <h3 className="text-sm font-semibold text-numa-800 mb-3">
+              <h3 className="text-base font-bold text-numa-900 mb-3">
                 Registrar resultado de la invitación pendiente
               </h3>
 

@@ -101,7 +101,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
 
     return (
       <div className="card p-4">
-        <h3 className="text-sm font-semibold text-numa-800 mb-1">Acta de no acuerdo</h3>
+        <h3 className="text-base font-bold text-numa-900 mb-1">Acta de no acuerdo</h3>
         <p className="text-sm text-numa-700 mb-3">
           Este proceso cerró sin acuerdo. El acta de no acuerdo es opcional: si la emites, funciona
           como cualquier otra acta (con número, facturación, comprobante de pago y acta firmada).
@@ -301,7 +301,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
       {!noAcuerdo && proceso.acuerdo_texto && etapa !== 'completa' && (
         <div className="card p-4">
           <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
-            <h3 className="text-sm font-semibold text-numa-800">Acuerdo</h3>
+            <h3 className="text-base font-bold text-numa-900">Acuerdo</h3>
             {esAdmin && (
               <button type="button" onClick={abrirCorregir} className="btn-ghost btn-sm">
                 <Pencil className="w-3 h-3" /> Corregir acuerdo
@@ -319,7 +319,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
             proceso.pago_pendiente ? 'border-amber-200 bg-amber-50' : 'border-l-4 border-l-green-600'
           }`}
         >
-          <p className="text-sm font-semibold text-numa-800 mb-1">Pago en abonos</p>
+          <p className="text-base font-bold text-numa-900 mb-1">Pago en abonos</p>
           <p className="text-sm text-numa-800">
             Primer abono: <strong>{dinero(proceso.abono1_monto)}</strong> el {fechaDia(proceso.pago_fecha)}.
           </p>
