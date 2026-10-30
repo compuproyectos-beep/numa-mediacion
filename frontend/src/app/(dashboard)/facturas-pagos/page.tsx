@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Eye, FileSpreadsheet } from 'lucide-react';
+import { Eye, FileSpreadsheet, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { PageHeader, Spinner, EmptyState, Badge, InputField, SelectField, ErrorAlert } from '@/components/ui';
 import {
   getFacturasPagos,
+  getFacturasPagosFaltantes,
   descargarFacturasPagosExcel,
   verFacturaProceso,
   descargarComprobantePagoActaFinal,
@@ -50,6 +51,9 @@ function limpiar(f: typeof VACIO) {
 export default function FacturasPagosPage() {
   const { isAdmin } = useAuth();
   const [filas, setFilas] = useState<any[]>([]);
+  // Lo que falta por subir (facturas y comprobantes), en una pestaña aparte.
+  const [faltantes, setFaltantes] = useState<any[]>([]);
+  const [vista, setVista] = useState<'subidos' | 'faltan'>('subidos');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [exportando, setExportando] = useState(false);
@@ -60,7 +64,16 @@ export default function FacturasPagosPage() {
   const cargar = async (f = filters) => {
     setLoading(true);
     try {
-      setFilas(await getFacturasPagos(limpiar(f)));
+      const [subidos, faltan] = await Promise.all([
+        getFacturasPagos(limpiar(f)),
+        getFacturasPagosFaltantes({
+          q: f.q || undefined,
+          sucursal_id: f.sucursal_id || undefined,
+          usuario_id: f.usuario_id || undefined,
+        }).catch(() => [] as any[]),
+      ]);
+      setFilas(subidos);
+      setFaltantes(faltan);
     } catch {
       setFilas([]);
       setError('No se pudo cargar la lista');
@@ -155,6 +168,33 @@ export default function FacturasPagosPage() {
         </div>
       )}
 
+      {/* Dos vistas: lo que ya se subió y lo que todavía falta. */}
+      <div role="tablist" className="mb-4 inline-flex rounded-xl border border-[#CBD6E8] bg-white p-1 shadow-sm">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={vista === 'subidos'}
+          onClick={() => setVista('subidos')}
+          className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+            vista === 'subidos' ? 'bg-[#144193] text-white' : 'text-[#144193] hover:bg-[#F4F7FC]'
+          }`}
+        >
+          Subidos <span className="opacity-80">({filas.length})</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={vista === 'faltan'}
+          onClick={() => setVista('faltan')}
+          className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+            vista === 'faltan' ? 'bg-red-700 text-white' : 'text-red-800 hover:bg-red-50'
+          }`}
+        >
+          <AlertTriangle size={15} aria-hidden="true" />
+          Faltan <span className="opacity-90">({faltantes.length})</span>
+        </button>
+      </div>
+
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -171,6 +211,7 @@ export default function FacturasPagosPage() {
               placeholder="Proceso, N.º de acta, parte, mediador o archivo..."
             />
           </div>
+          {vista === 'subidos' && (
           <SelectField
             label="Tipo"
             value={filters.tipo}
@@ -181,6 +222,7 @@ export default function FacturasPagosPage() {
               <option key={t.value} value={t.value}>{t.label}</option>
             ))}
           </SelectField>
+          )}
           {isAdmin && (
             <SelectField
               label="Sucursal"
@@ -205,18 +247,22 @@ export default function FacturasPagosPage() {
               ))}
             </SelectField>
           )}
-          <InputField
-            label="Desde"
-            type="date"
-            value={filters.fecha_desde}
-            onChange={(e) => setFilters({ ...filters, fecha_desde: e.target.value })}
-          />
-          <InputField
-            label="Hasta"
-            type="date"
-            value={filters.fecha_hasta}
-            onChange={(e) => setFilters({ ...filters, fecha_hasta: e.target.value })}
-          />
+          {vista === 'subidos' && (
+            <>
+              <InputField
+                label="Desde"
+                type="date"
+                value={filters.fecha_desde}
+                onChange={(e) => setFilters({ ...filters, fecha_desde: e.target.value })}
+              />
+              <InputField
+                label="Hasta"
+                type="date"
+                value={filters.fecha_hasta}
+                onChange={(e) => setFilters({ ...filters, fecha_hasta: e.target.value })}
+              />
+            </>
+          )}
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <button
@@ -232,6 +278,7 @@ export default function FacturasPagosPage() {
           >
             Limpiar
           </button>
+          {vista === 'subidos' && (
           <button
             type="button"
             onClick={exportar}
@@ -241,11 +288,75 @@ export default function FacturasPagosPage() {
             <FileSpreadsheet size={16} />
             {exportando ? 'Exportando...' : 'Exportar Excel'}
           </button>
+          )}
         </div>
       </form>
 
       {loading ? (
         <Spinner />
+      ) : vista === 'faltan' ? (
+        faltantes.length === 0 ? (
+          <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm font-semibold text-emerald-900">
+            <CheckCircle2 size={20} aria-hidden="true" />
+            No falta ninguna factura ni comprobante con estos filtros.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-[#4A5B78]">
+              Procesos a los que todavía les falta algún documento. Las facturas se esperan una vez
+              subida el acta firmada. Entra al proceso para subir lo que falta.
+            </p>
+            {faltantes.map((g) => (
+              <section
+                key={g.proceso_id}
+                className="rounded-xl border border-red-200 bg-white px-4 py-3 shadow-[0_8px_20px_-18px_rgba(127,29,29,0.7)]"
+              >
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <Link href={`/procesos/${g.proceso_id}`} className="text-base font-bold text-[#0A2A62] hover:underline">
+                    {g.codigo_proceso}
+                  </Link>
+                  {g.numero_acta && (
+                    <span className="rounded-full bg-[#144193] px-2.5 py-0.5 text-xs font-semibold text-white">
+                      Acta {g.numero_acta}
+                    </span>
+                  )}
+                  {g.dias_desde_acta_firmada != null && (
+                    <span className="text-xs font-semibold text-red-800">
+                      {g.dias_desde_acta_firmada === 0
+                        ? 'Acta firmada hoy'
+                        : `${g.dias_desde_acta_firmada} día${g.dias_desde_acta_firmada === 1 ? '' : 's'} desde el acta firmada`}
+                    </span>
+                  )}
+                  <span className="text-xs text-[#4A5B78] sm:ml-auto">
+                    {g.sucursal}{g.ciudad ? ` · ${g.ciudad}` : ''}
+                  </span>
+                </div>
+                <div className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
+                  <p><span className="text-[#6B7C99]">Solicitante: </span><span className="font-medium text-[#0A2A62]">{g.demandante || '—'}</span></p>
+                  <p><span className="text-[#6B7C99]">Invitado: </span><span className="font-medium text-[#0A2A62]">{g.demandado || '—'}</span></p>
+                  <p><span className="text-[#6B7C99]">Mediador: </span><span className="font-medium text-[#0A2A62]">{g.mediador}</span></p>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {(g.faltan || []).map((t: string) => (
+                    <span
+                      key={t}
+                      className="inline-flex items-center gap-1.5 rounded-md bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-800 ring-1 ring-red-200"
+                    >
+                      <AlertTriangle size={13} aria-hidden="true" />
+                      Falta: {t}
+                    </span>
+                  ))}
+                  <Link
+                    href={`/procesos/${g.proceso_id}`}
+                    className="ml-auto inline-flex items-center gap-1 rounded-lg border border-[#CBD6E8] px-2.5 py-1.5 text-xs font-semibold text-[#144193] hover:bg-[#F4F7FC]"
+                  >
+                    <Eye size={14} /> Ir al proceso
+                  </Link>
+                </div>
+              </section>
+            ))}
+          </div>
+        )
       ) : filas.length === 0 ? (
         <EmptyState
           icon="🧾"

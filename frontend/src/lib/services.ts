@@ -1071,6 +1071,11 @@ export async function getFacturasPagos(filters?: FiltrosFacturasPagos): Promise<
   return res.data;
 }
 
+export async function getFacturasPagosFaltantes(filters?: { q?: string; sucursal_id?: string; usuario_id?: string }): Promise<any[]> {
+  const res = await api.get('/facturas-pagos/faltantes', { params: filters });
+  return res.data;
+}
+
 export async function descargarFacturasPagosExcel(filters?: FiltrosFacturasPagos): Promise<Blob> {
   const res = await api.get('/facturas-pagos/exportar-excel', {
     params: filters,

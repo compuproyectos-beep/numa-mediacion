@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import BotonVolver from '@/components/layout/BotonVolver';
 import { PageHeader } from '@/components/ui';
 import AgendaPanel from '@/components/citas/AgendaPanel';
 
@@ -13,14 +13,7 @@ export default function InvitacionRapidaPage() {
   const router = useRouter();
   return (
     <>
-      <button
-        type="button"
-        onClick={() => router.push('/procesos')}
-        className="mb-3 inline-flex items-center gap-1.5 text-sm font-semibold text-numa-700 hover:text-numa-900"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Volver a Procesos
-      </button>
+      <BotonVolver onClick={() => router.push('/procesos')}>Volver a Procesos</BotonVolver>
       <PageHeader
         title="Nueva invitación rápida"
         subtitle="Agenda la reunión primero; el proceso se crea después, desde la misma invitación"

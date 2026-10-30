@@ -10207,6 +10207,86 @@ def listar_facturas_pagos(
     return _facturas_pagos_filas(usuario, q, tipo, usuario_id, sucursal_id, fecha_desde, fecha_hasta, cliente_id)
 
 
+@app.get("/facturas-pagos/faltantes")
+def listar_facturas_pagos_faltantes(
+    q: str = None, usuario_id: int = None, sucursal_id: int = None,
+    usuario=Depends(obtener_usuario_actual)
+):
+    """Lo que FALTA por subir: facturas (solo en procesos con el acta firmada ya subida),
+    el comprobante de pago del acta (hay documentos pero no comprobante) y el comprobante
+    del saldo (pago en abonos todavía incompleto). El mediador solo ve sus procesos."""
+    if usuario["rol"] not in ("administrador", "mediador"):
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver esta lista")
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT * FROM (
+                SELECT p.id AS proceso_id, p.codigo_proceso, p.acta_firmada_fecha,
+                       s.nombre AS sucursal, ci.nombre AS ciudad,
+                       um.nombre || ' ' || um.apellido AS mediador,
+                       TRIM(cd.nombre || ' ' || COALESCE(cd.apellido, '')) AS demandante,
+                       TRIM(cdd.nombre || ' ' || COALESCE(cdd.apellido, '')) AS demandado,
+                       (SELECT ax.codigo_acta FROM actas_proceso ax WHERE ax.proceso_id = p.id
+                        ORDER BY ax.id DESC LIMIT 1) AS numero_acta,
+                       CASE WHEN p.acta_firmada_fecha IS NULL THEN NULL
+                            ELSE FLOOR(EXTRACT(EPOCH FROM (NOW() - p.acta_firmada_fecha)) / 86400)::int
+                       END AS dias_desde_acta_firmada,
+                       (p.requiere_facturas = true AND p.acta_firmada_ruta IS NOT NULL
+                        AND NOT EXISTS (SELECT 1 FROM proceso_facturas f
+                                         WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'cliente')
+                       ) AS falta_factura_cliente,
+                       (p.requiere_facturas = true AND p.acta_firmada_ruta IS NOT NULL
+                        AND NOT EXISTS (SELECT 1 FROM proceso_facturas f
+                                         WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'mediador')
+                       ) AS falta_factura_mediador,
+                       EXISTS (SELECT 1 FROM actas_proceso ap
+                                WHERE ap.proceso_id = p.id AND ap.ruta_comprobante_pago IS NULL
+                       ) AS falta_comprobante_pago,
+                       COALESCE(p.pago_en_abonos AND p.pago_pendiente, false) AS falta_comprobante_saldo
+                FROM procesos_mediacion p
+                JOIN sucursales s ON s.id = p.sucursal_id
+                LEFT JOIN ciudades ci ON ci.id = s.ciudad_id
+                JOIN usuarios um ON um.id = p.usuario_id
+                LEFT JOIN clientes cd ON cd.id = p.cliente_demandante_id
+                LEFT JOIN clientes cdd ON cdd.id = p.cliente_demandado_id
+                WHERE p.estado <> 'anulado'
+                  AND (%s OR p.usuario_id = %s)
+                  AND (%s::int IS NULL OR p.usuario_id = %s)
+                  AND (%s::int IS NULL OR p.sucursal_id = %s)
+                  AND (%s::text IS NULL OR p.codigo_proceso ILIKE %s
+                       OR (um.nombre || ' ' || um.apellido) ILIKE %s
+                       OR (COALESCE(cd.nombre,'') || ' ' || COALESCE(cd.apellido,'')) ILIKE %s
+                       OR (COALESCE(cdd.nombre,'') || ' ' || COALESCE(cdd.apellido,'')) ILIKE %s)
+            ) x
+            WHERE x.falta_factura_cliente OR x.falta_factura_mediador
+               OR x.falta_comprobante_pago OR x.falta_comprobante_saldo
+            ORDER BY x.acta_firmada_fecha ASC NULLS LAST, x.proceso_id DESC
+            LIMIT 500
+        """, (
+            usuario["rol"] == "administrador", usuario["id"],
+            usuario_id, usuario_id,
+            sucursal_id, sucursal_id,
+            (q or None), f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%",
+        ))
+        filas = cur.fetchall()
+        for f in filas:
+            faltan = []
+            if f["falta_comprobante_pago"]:
+                faltan.append("Comprobante de pago")
+            if f["falta_comprobante_saldo"]:
+                faltan.append("Comprobante del segundo pago (saldo)")
+            if f["falta_factura_cliente"]:
+                faltan.append("Factura de NUMA al cliente")
+            if f["falta_factura_mediador"]:
+                faltan.append("Factura del mediador a NUMA")
+            f["faltan"] = faltan
+        return filas
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.get("/facturas-pagos/exportar-excel")
 def exportar_facturas_pagos_excel(
     q: str = None, tipo: str = None, usuario_id: int = None,

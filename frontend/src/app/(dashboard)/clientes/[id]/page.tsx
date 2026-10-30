@@ -1,4 +1,5 @@
 'use client';
+import BotonVolver from '@/components/layout/BotonVolver';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -64,9 +65,7 @@ export default function FichaClientePage() {
   if (!ficha) {
     return (
       <>
-        <Link href="/clientes" className="mb-3 inline-flex items-center gap-1 text-sm font-semibold text-[#144193] hover:underline">
-          <ArrowLeft size={14} /> Volver a clientes
-        </Link>
+        <BotonVolver href="/clientes">Volver a clientes</BotonVolver>
         <ErrorAlert message={error || 'Cliente no encontrado'} />
       </>
     );
@@ -83,9 +82,7 @@ export default function FichaClientePage() {
 
   return (
     <>
-      <Link href="/clientes" className="mb-3 inline-flex items-center gap-1 text-sm font-semibold text-[#144193] hover:underline">
-        <ArrowLeft size={14} /> Volver a clientes
-      </Link>
+      <BotonVolver href="/clientes">Volver a clientes</BotonVolver>
 
       <PageHeader
         title={nombre}

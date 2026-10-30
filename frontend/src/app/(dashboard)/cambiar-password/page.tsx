@@ -1,4 +1,5 @@
 'use client';
+import BotonVolver from '@/components/layout/BotonVolver';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -68,13 +69,7 @@ export default function CambiarPasswordPage() {
 
   return (
     <>
-      <button
-        onClick={() => router.back()}
-        className="btn-ghost text-sm mb-4 -ml-2"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Volver
-      </button>
+      <BotonVolver onClick={() => router.back()}>Volver</BotonVolver>
 
       <PageHeader
         title="Cambiar contraseña"
