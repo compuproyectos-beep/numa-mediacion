@@ -102,7 +102,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
     return (
       <div className="card p-4">
         <h3 className="text-sm font-semibold text-numa-800 mb-1">Acta de no acuerdo</h3>
-        <p className="text-sm text-numa-600 mb-3">
+        <p className="text-sm text-numa-700 mb-3">
           Este proceso cerró sin acuerdo. El acta de no acuerdo es opcional: si la emites, funciona
           como cualquier otra acta (con número, facturación, comprobante de pago y acta firmada).
         </p>
@@ -112,7 +112,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
           </div>
         )}
         {ok && (
-          <div className="flex items-start gap-3 text-sm px-4 py-3 mb-3 rounded-sm bg-white border border-numa-100 border-l-4 border-l-green-600 text-numa-800">
+          <div className="flex items-start gap-3 text-sm px-4 py-3 mb-3 rounded-sm bg-white border border-numa-200 border-l-4 border-l-green-600 text-numa-800">
             <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" aria-hidden="true" />
             <span>{ok}</span>
           </div>
@@ -291,7 +291,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
     <div className="space-y-4">
       {error && !showFirmada && !showCorregir && !showSuspender && <ErrorAlert message={error} />}
       {ok && (
-        <div className="flex items-start gap-3 text-sm px-4 py-3 rounded-sm bg-white border border-numa-100 border-l-4 border-l-green-600 text-numa-800">
+        <div className="flex items-start gap-3 text-sm px-4 py-3 rounded-sm bg-white border border-numa-200 border-l-4 border-l-green-600 text-numa-800">
           <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" aria-hidden="true" />
           <span>{ok}</span>
         </div>
@@ -308,7 +308,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
               </button>
             )}
           </div>
-          <p className="text-sm text-numa-700 whitespace-pre-line">{proceso.acuerdo_texto}</p>
+          <p className="text-sm text-numa-800 whitespace-pre-line">{proceso.acuerdo_texto}</p>
         </div>
       )}
 
@@ -320,7 +320,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
           }`}
         >
           <p className="text-sm font-semibold text-numa-800 mb-1">Pago en abonos</p>
-          <p className="text-sm text-numa-700">
+          <p className="text-sm text-numa-800">
             Primer abono: <strong>{dinero(proceso.abono1_monto)}</strong> el {fechaDia(proceso.pago_fecha)}.
           </p>
           {proceso.pago_pendiente ? (
@@ -350,10 +350,10 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
       {/* Falta el acta firmada */}
       {etapa === 'falta_firmada' && (
         <div className="card p-4">
-          <p className="text-sm text-numa-700 mb-1 font-semibold">
+          <p className="text-sm text-numa-800 mb-1 font-semibold">
             {proceso.pago_pendiente ? 'Proceso incompleto: falta el comprobante del saldo' : 'Proceso incompleto: falta el acta firmada'}
           </p>
-          <p className="text-sm text-numa-600 mb-3">
+          <p className="text-sm text-numa-700 mb-3">
             {proceso.pago_pendiente
               ? 'La documentación con el acta firmada ya está subida. Falta el comprobante del segundo pago (el saldo) para completar el proceso.'
               : noAcuerdo
@@ -386,7 +386,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
             </button>
           </div>
           {!esAdmin && !yaImprimio && (
-            <p className="text-xs text-numa-700 mt-2">
+            <p className="text-xs text-numa-800 mt-2">
               Primero imprime el acta para firmar; luego se habilita &quot;Subir acta firmada&quot;.
             </p>
           )}
@@ -400,7 +400,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
             <CheckCircle2 className="w-5 h-5 text-green-600" aria-hidden="true" />
             {noAcuerdo ? 'Proceso completo: cerrado sin acuerdo' : 'Proceso completo: cerrado con acuerdo'}
           </p>
-          <p className="text-sm text-numa-600">
+          <p className="text-sm text-numa-700">
             {proceso.tiene_acta_firmada
               ? 'El proceso terminó: solo se puede consultar el historial. Los documentos del acta están abajo.'
               : 'Proceso anterior a la regla del acta firmada.'}
@@ -444,7 +444,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
         <div className="space-y-4">
           {!proceso.pago_pendiente && (
             <div>
-              <label className="block text-sm font-medium text-numa-700 mb-1">Acta firmada (PDF)</label>
+              <label className="block text-sm font-medium text-numa-800 mb-1">Acta firmada (PDF)</label>
               <input
                 type="file"
                 accept="application/pdf"
@@ -460,7 +460,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
                 pago para completar el proceso.
               </p>
               <div>
-                <label className="block text-sm font-medium text-numa-700 mb-1">
+                <label className="block text-sm font-medium text-numa-800 mb-1">
                   Comprobante del segundo pago (PDF, JPG o PNG)
                 </label>
                 <input
@@ -471,7 +471,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-numa-700 mb-1">
+                <label className="block text-sm font-medium text-numa-800 mb-1">
                   Fecha del segundo pago
                 </label>
                 <input
@@ -483,7 +483,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
               </div>
             </div>
           )}
-          <label className="flex items-start gap-2 text-sm text-numa-700">
+          <label className="flex items-start gap-2 text-sm text-numa-800">
             <input
               type="checkbox"
               checked={confirmoFirmada}
@@ -541,12 +541,12 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
 
           {historial && historial.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-numa-700 uppercase tracking-wide mb-2">
+              <p className="text-xs font-semibold text-numa-800 uppercase tracking-wide mb-2">
                 Correcciones anteriores
               </p>
               <ul className="space-y-2 max-h-40 overflow-y-auto">
                 {historial.map((h) => (
-                  <li key={h.id} className="text-xs text-numa-600 border border-numa-100 rounded-sm p-2">
+                  <li key={h.id} className="text-xs text-numa-700 border border-numa-200 rounded-sm p-2">
                     <span className="font-medium">{h.usuario}</span> · {fmt(h.fecha)} — {h.motivo}
                   </li>
                 ))}
@@ -582,7 +582,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
           </div>
         )}
         <div className="space-y-4">
-          <p className="text-sm text-numa-600">
+          <p className="text-sm text-numa-700">
             El proceso no se borra: queda suspendido y el mediador puede subir las actas de sus
             otros procesos. Podrás reactivarlo más adelante para completar sus documentos.
           </p>

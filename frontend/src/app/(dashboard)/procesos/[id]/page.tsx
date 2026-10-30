@@ -59,10 +59,10 @@ const getEstadoCitaBadgeClass = (estado: string) => {
     realizada: 'bg-green-50 text-green-700',
     no_realizada: 'bg-stone-100 text-stone-700',
     cancelada: 'bg-red-50 text-red-700',
-    reagendada: 'bg-numa-100 text-numa-700'
+    reagendada: 'bg-numa-100 text-numa-800'
   };
 
-  return classes[estado] || 'bg-numa-100 text-numa-600';
+  return classes[estado] || 'bg-numa-100 text-numa-700';
 };
 
 const getEstadoCitaBorderClass = (estado: string) => {
@@ -909,28 +909,28 @@ function ProcesoDetalleContenido() {
                   <span className="text-red-700 text-xl font-sans"> (anulado)</span>
                 )}
               </h1>
-              <p className="text-sm text-numa-600 mt-1">Proceso {proceso.codigo_proceso}</p>
+              <p className="text-sm text-numa-700 mt-1">Proceso {proceso.codigo_proceso}</p>
             </>
           ) : (
             <h1 className="section-title whitespace-nowrap">{proceso.codigo_proceso}</h1>
           )}
-          <p className="text-numa-700 mt-1">
+          <p className="text-numa-800 mt-1">
             {proceso.demandante}
             {proceso.total_solicitantes > 1 && (
-              <span className="text-numa-600"> +{proceso.total_solicitantes - 1} más</span>
+              <span className="text-numa-700"> +{proceso.total_solicitantes - 1} más</span>
             )}{' '}
             y {proceso.demandado}
             {proceso.total_invitados > 1 && (
-              <span className="text-numa-600"> +{proceso.total_invitados - 1} más</span>
+              <span className="text-numa-700"> +{proceso.total_invitados - 1} más</span>
             )}
           </p>
-          <p className="text-xs text-numa-600 mt-1">
+          <p className="text-xs text-numa-700 mt-1">
             {proceso.demandante_cedula || '—'} · {proceso.demandado_cedula || '—'}
           </p>
           {proceso.numero_acta_codigo && proceso.numero_acta_estado === 'reservado' && (() => {
             const t = tiempoRestante(proceso.numero_acta_vence_en, ahoraReloj);
             return (
-              <p className={`mt-1 inline-flex items-center gap-1.5 text-sm font-semibold ${!t || t.urgente ? 'text-red-700' : 'text-numa-700'}`}>
+              <p className={`mt-1 inline-flex items-center gap-1.5 text-sm font-semibold ${!t || t.urgente ? 'text-red-700' : 'text-numa-800'}`}>
                 <Clock className="w-4 h-4" aria-hidden="true" />
                 {t
                   ? `Te faltan ${t.texto} para subir toda la documentación y el comprobante de pago`
@@ -1055,7 +1055,7 @@ function ProcesoDetalleContenido() {
                 </p>
               </div>
             </div>
-            <button type="button" onClick={() => setAvisoNumero(null)} className="text-sm font-semibold text-numa-700 underline shrink-0">
+            <button type="button" onClick={() => setAvisoNumero(null)} className="text-sm font-semibold text-numa-800 underline shrink-0">
               Entendido
             </button>
           </div>
@@ -1121,22 +1121,22 @@ function ProcesoDetalleContenido() {
 
       <PartesProceso
         resumen={
-          <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm pb-3 mb-3 border-b border-numa-100">
+          <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm pb-3 mb-3 border-b border-numa-200">
             {esAdminSesion() && (
               <div>
-                <p className="text-numa-600 text-xs mb-0.5">Ciudad · Sucursal · Mediador</p>
-                <p className="text-numa-800 font-medium">
+                <p className="text-numa-700 text-xs mb-0.5">Ciudad · Sucursal · Mediador</p>
+                <p className="text-numa-900 font-medium">
                   {proceso.ciudad || '—'} · {proceso.sucursal || '—'} · {proceso.usuario || '—'}
                 </p>
               </div>
             )}
-            <div className="min-w-0 flex-1">
-              <p className="text-numa-600 text-xs mb-0.5">Tema</p>
-              <p className="text-numa-800 font-medium">{mayusInicial(proceso.tema)}</p>
+            <div className="min-w-0 max-w-xl">
+              <p className="text-numa-700 text-xs mb-0.5">Tema</p>
+              <p className="text-numa-900 font-medium">{mayusInicial(proceso.tema)}</p>
             </div>
             <div>
-              <p className="text-numa-600 text-xs mb-0.5">Fecha de apertura</p>
-              <p className="text-numa-800 font-medium">
+              <p className="text-numa-700 text-xs mb-0.5">Fecha de apertura</p>
+              <p className="text-numa-900 font-medium">
                 {proceso.fecha_creacion
                   ? new Date(proceso.fecha_creacion).toLocaleDateString('es-EC')
                   : '—'}
@@ -1230,7 +1230,7 @@ function ProcesoDetalleContenido() {
                           Invitación #{index + 1}
                         </p>
 
-                        <p className="text-sm text-numa-700 mt-1">
+                        <p className="text-sm text-numa-800 mt-1">
                           {cita.fecha ? cita.fecha.slice(0, 10).split('-').reverse().join('/') : '—'} · {cita.hora?.slice(0, 5)}
                         </p>
 
@@ -1239,7 +1239,7 @@ function ProcesoDetalleContenido() {
                             crearla en su nombre (ej. el mediador se
                             enfermó), y esto deja ese dato visible. */}
                         {(cita.creado_por || cita.fecha_creacion) && (
-                          <p className="text-xs text-numa-600 mt-1">
+                          <p className="text-xs text-numa-700 mt-1">
                             Invitación creada
                             {cita.fecha_creacion && (
                               <>
@@ -1296,11 +1296,11 @@ function ProcesoDetalleContenido() {
 
                     {cita.observaciones && (
                       <div className="mt-3">
-                        <p className="text-xs font-semibold text-numa-700">
+                        <p className="text-xs font-semibold text-numa-800">
                           Observación de invitación:
                         </p>
 
-                        <p className="text-sm text-numa-600 whitespace-pre-wrap">
+                        <p className="text-sm text-numa-700 whitespace-pre-wrap">
                           {cita.observaciones}
                         </p>
                       </div>
@@ -1319,8 +1319,8 @@ function ProcesoDetalleContenido() {
                     )}
 
                     {avance?.resultado ? (
-                      <div className="mt-4 border-t border-numa-100 pt-3">
-                        <p className="text-xs font-semibold text-numa-700">
+                      <div className="mt-4 border-t border-numa-200 pt-3">
+                        <p className="text-xs font-semibold text-numa-800">
                           Resultado:
                         </p>
 
@@ -1328,16 +1328,16 @@ function ProcesoDetalleContenido() {
                           {estadoLabelProceso(avance.resultado, proceso.requiere_acta_no_acuerdo)}
                         </p>
 
-                        <p className="text-xs font-semibold text-numa-700 mt-3">
+                        <p className="text-xs font-semibold text-numa-800 mt-3">
                           Registro / observación:
                         </p>
 
-                        <p className="text-sm text-numa-600 whitespace-pre-wrap">
+                        <p className="text-sm text-numa-700 whitespace-pre-wrap">
                           {avance.avance_observacion || avance.observacion}
                         </p>
 
                         {avance.usuario_avance && (
-                          <p className="text-xs text-numa-600 mt-2">
+                          <p className="text-xs text-numa-700 mt-2">
                             Registrado por: {avance.usuario_avance}
                           </p>
                         )}
@@ -1350,17 +1350,17 @@ function ProcesoDetalleContenido() {
                         )}
                       </div>
                     ) : (
-                      <div className="mt-4 border-t border-numa-100 pt-3">
+                      <div className="mt-4 border-t border-numa-200 pt-3">
                         {citaEstaAtrasada(cita) ? (
                           <p className="text-sm font-medium text-red-700">
                             Esta invitación ya pasó y no tiene resultado. Registra cómo terminó la reunión.
                           </p>
                         ) : cita.estado === 'cancelada' ? (
-                          <p className="text-sm text-numa-600">
+                          <p className="text-sm text-numa-700">
                             Invitación cancelada: no necesita resultado.
                           </p>
                         ) : (
-                          <p className="text-sm text-numa-600">
+                          <p className="text-sm text-numa-700">
                             Pendiente de registrar resultado.
                           </p>
                         )}
@@ -1374,9 +1374,9 @@ function ProcesoDetalleContenido() {
         </div>
 
         {proceso.finalizado && proceso.etapa_acta !== 'falta_firmada' && proceso.etapa_acta !== 'completa' && (
-          <div className="flex items-start gap-3 px-4 py-3 bg-white border border-numa-100 border-l-4 border-l-green-600 rounded-sm text-sm">
+          <div className="flex items-start gap-3 px-4 py-3 bg-white border border-numa-200 border-l-4 border-l-green-600 rounded-sm text-sm">
             <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" aria-hidden="true" />
-            <p className="text-numa-700">
+            <p className="text-numa-800">
               <span className="font-semibold text-numa-900">Proceso finalizado.</span>{' '}
               Solo se puede consultar el historial.
             </p>
@@ -1435,7 +1435,7 @@ function ProcesoDetalleContenido() {
                   <FileText className="w-3.5 h-3.5" />
                   Redactar sobre el documento
                 </button>
-                <p className="text-xs text-numa-700">
+                <p className="text-xs text-numa-800">
                   Sube el Word o el PDF hecho en computadora (no una foto, un escaneo ni un
                   documento escrito a mano). El sistema lee la fecha y la hora y llena el
                   formulario de abajo; tú lo revisas y creas la invitación. El archivo no se guarda.
@@ -1444,12 +1444,12 @@ function ProcesoDetalleContenido() {
 
               {lecturaInvitacion && (
                 <div className="mt-3 text-sm space-y-2">
-                  <p className="text-numa-700 font-medium">Esto fue lo que se leyó del documento:</p>
+                  <p className="text-numa-900 font-medium">Esto fue lo que se leyó del documento:</p>
                   <ul className="space-y-0.5">
                     {lecturaInvitacion.partes.map((pt: any, i: number) => (
                       <li key={i} className={pt.encontrado ? 'text-green-700' : 'text-amber-700'}>
                         {pt.encontrado ? '✓' : '⚠'} {pt.nombre}{' '}
-                        <span className="text-xs text-numa-600">
+                        <span className="text-xs text-numa-700">
                           ({pt.rol === 'solicitante' ? 'solicitante' : 'invitado'})
                         </span>
                       </li>
@@ -1460,7 +1460,7 @@ function ProcesoDetalleContenido() {
                       ⚠ {a}
                     </p>
                   ))}
-                  <p className="text-xs text-numa-700">
+                  <p className="text-xs text-numa-800">
                     Revisa la fecha, la hora y las observaciones abajo; puedes corregir lo que haga falta.
                   </p>
                 </div>
@@ -1468,7 +1468,7 @@ function ProcesoDetalleContenido() {
             </div>
 
             {mostrarCalendarioInvitacion && (
-              <div className="mb-4 border border-numa-100 rounded-sm p-4">
+              <div className="mb-4 border border-numa-200 rounded-sm p-4">
                 <CalendarioAgendaMediador
                   usuarioId={proceso.usuario_id}
                   permitirCrear
@@ -1577,7 +1577,7 @@ function ProcesoDetalleContenido() {
               <h3 className="text-sm font-semibold text-numa-800 mb-1">
                 Registrar resultado de la invitación pendiente
               </h3>
-              <p className="text-xs text-numa-700">
+              <p className="text-xs text-numa-800">
                 Se habilita cuando llegue la hora de la reunión (
                 {fechaLargaEC(String(citaPendiente.fecha || '').slice(0, 10))} a las{' '}
                 {String(citaPendiente.hora || '').slice(0, 5)}).
@@ -1748,7 +1748,7 @@ function ProcesoDetalleContenido() {
         {conActa(proceso) && !proceso.finalizado && !proceso.suspendido && !proceso.bloqueo_acta_id && (
           <div className="card p-4">
             <div className="flex items-center justify-between gap-4 flex-wrap">
-              <p className="text-sm text-numa-600">
+              <p className="text-sm text-numa-700">
                 {procesoPrimeroEnFila
                   ? `Este proceso necesita su acta, pero primero debes completar el proceso ${procesoPrimeroEnFila.codigo_proceso} (es el primero en la fila).`
                   : esNoAcuerdo(proceso)
@@ -1856,7 +1856,7 @@ function ProcesoDetalleContenido() {
                 y los botones quedan centrados en el espacio restante de la
                 fila, sin pegarse al borde derecho de la tarjeta. */}
             <div className="flex items-center gap-3 flex-wrap">
-              <p className="text-sm text-numa-600 shrink-0">
+              <p className="text-sm text-numa-700 shrink-0">
                 Código acta:{' '}
                 <span className="font-semibold text-numa-900 code-text">
                   {expedienteProceso.acta_final.codigo_acta}
@@ -1903,7 +1903,7 @@ function ProcesoDetalleContenido() {
               </div>
             )}
 
-            <div className="mt-3 pt-3 border-t border-numa-100 text-xs text-numa-700 space-y-0.5">
+            <div className="mt-3 pt-3 border-t border-numa-200 text-xs text-numa-800 space-y-0.5">
             <p>
               Subido por{' '}
               <span className="text-numa-800">{expedienteProceso.acta_final.subido_por || '—'}</span>
@@ -1951,7 +1951,7 @@ function ProcesoDetalleContenido() {
         )}
 
         <div className="space-y-4">
-          <p className="text-sm text-numa-600">
+          <p className="text-sm text-numa-700">
             Sube en un solo PDF la documentación del acta, incluida el acta ya firmada, y por
             separado el comprobante de pago. Tienes 48 horas desde que se te dio el número
             de acta; pasado ese plazo el acta se bloquea y no podrás pedir números ni subir
@@ -1960,7 +1960,7 @@ function ProcesoDetalleContenido() {
 
           {numerosPedidos.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-numa-700 mb-1">
+              <label className="block text-sm font-medium text-numa-800 mb-1">
                 Número de acta de esta acta
               </label>
               <select
@@ -1978,7 +1978,7 @@ function ProcesoDetalleContenido() {
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-numa-700 mt-1">
+              <p className="text-xs text-numa-800 mt-1">
                 {numerosPedidos.length === 1 && numerosPedidos[0].proceso_id === proceso.id
                   ? 'Este número se pidió desde la invitación que dio origen al proceso.'
                   : 'Debe ser el mismo número que escribiste en el acta.'}
@@ -1987,7 +1987,7 @@ function ProcesoDetalleContenido() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-numa-700 mb-1">
+            <label className="block text-sm font-medium text-numa-800 mb-1">
               {esNoAcuerdo(proceso)
                 ? 'Documentos del acta de no acuerdo con el acta firmada (un solo PDF)'
                 : 'Documentos del acta con el acta firmada (un solo PDF)'}
@@ -2004,7 +2004,7 @@ function ProcesoDetalleContenido() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-numa-700 mb-1">
+            <label className="block text-sm font-medium text-numa-800 mb-1">
               Comprobante de pago (PDF, JPG o PNG)
             </label>
             <input
@@ -2019,9 +2019,9 @@ function ProcesoDetalleContenido() {
           </div>
 
           <div>
-            <p className="block text-sm font-medium text-numa-700 mb-2">¿Cómo se pagó?</p>
+            <p className="block text-sm font-medium text-numa-800 mb-2">¿Cómo se pagó?</p>
             <div className="flex flex-col sm:flex-row gap-2">
-              <label className="flex items-center gap-2 text-sm text-numa-700 border border-numa-200 rounded-sm px-3 py-2 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-numa-800 border border-numa-200 rounded-sm px-3 py-2 cursor-pointer">
                 <input
                   type="radio"
                   name="pago-modo"
@@ -2030,7 +2030,7 @@ function ProcesoDetalleContenido() {
                 />
                 Pago completo (un comprobante)
               </label>
-              <label className="flex items-center gap-2 text-sm text-numa-700 border border-numa-200 rounded-sm px-3 py-2 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-numa-800 border border-numa-200 rounded-sm px-3 py-2 cursor-pointer">
                 <input
                   type="radio"
                   name="pago-modo"
@@ -2043,7 +2043,7 @@ function ProcesoDetalleContenido() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-numa-700 mb-1">
+            <label className="block text-sm font-medium text-numa-800 mb-1">
               Fecha del pago
             </label>
             <input
@@ -2058,7 +2058,7 @@ function ProcesoDetalleContenido() {
             <div className="space-y-3 border border-gold-200 bg-gold-50 rounded-sm p-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-numa-700 mb-1">
+                  <label className="block text-sm font-medium text-numa-800 mb-1">
                     Valor total ($)
                   </label>
                   <input
@@ -2072,7 +2072,7 @@ function ProcesoDetalleContenido() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-numa-700 mb-1">
+                  <label className="block text-sm font-medium text-numa-800 mb-1">
                     Primer abono ($)
                   </label>
                   <input
@@ -2096,7 +2096,7 @@ function ProcesoDetalleContenido() {
             </div>
           )}
 
-          <label className="flex items-start gap-2 text-sm text-numa-700 border border-gold-200 bg-gold-50 rounded-sm p-3">
+          <label className="flex items-start gap-2 text-sm text-numa-800 border border-gold-200 bg-gold-50 rounded-sm p-3">
             <input
               type="checkbox"
               checked={confirmoActaFinal}

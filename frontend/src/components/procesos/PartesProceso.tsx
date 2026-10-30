@@ -220,7 +220,7 @@ export default function PartesProceso({ procesoId, editable, onCambio, resumen }
     return (
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-numa-700">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-numa-800">
             {TITULOS[rol]}
           </h3>
 
@@ -242,9 +242,9 @@ export default function PartesProceso({ procesoId, editable, onCambio, resumen }
             return (
               <li
                 key={p.id}
-                className="border border-numa-100 rounded-sm px-3 py-2 bg-white flex items-start gap-2"
+                className="border border-numa-200 rounded-sm px-3 py-2 bg-white flex items-start gap-2"
               >
-                <span className="mt-0.5 text-numa-600 shrink-0">
+                <span className="mt-0.5 text-numa-700 shrink-0">
                   {esEmpresa ? <Building2 className="w-4 h-4" /> : <User className="w-4 h-4" />}
                 </span>
 
@@ -258,26 +258,26 @@ export default function PartesProceso({ procesoId, editable, onCambio, resumen }
                     )}
                   </p>
 
-                  <p className="text-xs text-numa-700 code-text">
+                  <p className="text-xs text-numa-800 code-text">
                     {esEmpresa ? `RUC ${p.ruc || '—'}` : `C.I. ${p.cedula || '—'}`}
                   </p>
 
                   {esEmpresa && p.representante_nombre && (
-                    <p className="text-xs text-numa-700">
+                    <p className="text-xs text-numa-800">
                       Representante legal: {p.representante_nombre}
                       {p.representante_cedula ? ` (C.I. ${p.representante_cedula})` : ''}
                     </p>
                   )}
 
                   {p.empresa_nombre && (
-                    <p className="text-xs text-numa-700">
+                    <p className="text-xs text-numa-800">
                       Miembro de <strong>{p.empresa_nombre}</strong>
                       {p.empresa_ruc ? ` (RUC ${p.empresa_ruc})` : ''}
                     </p>
                   )}
 
                   {/* Solo informativo en pantalla: no se imprime. */}
-                  <p className="text-[11px] italic text-numa-600">
+                  <p className="text-[11px] italic text-numa-700">
                     {esEmpresa || p.empresa_nombre ? 'A título jurídico' : 'A título personal'}
                   </p>
                 </div>
@@ -289,7 +289,7 @@ export default function PartesProceso({ procesoId, editable, onCambio, resumen }
                         <button
                           type="button"
                           onClick={() => hacerResponsable(p.id)}
-                          className="text-[11px] text-numa-600 hover:text-gold-700 underline underline-offset-2"
+                          className="text-[11px] text-numa-700 hover:text-gold-700 underline underline-offset-2"
                         >
                           Hacer responsable
                         </button>
@@ -318,7 +318,7 @@ export default function PartesProceso({ procesoId, editable, onCambio, resumen }
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-numa-800">Partes del proceso</h2>
         {!editable && (
-          <span className="text-[11px] text-numa-600">
+          <span className="text-[11px] text-numa-700">
             Ya no se pueden modificar (el proceso no está en negociación)
           </span>
         )}
@@ -370,7 +370,7 @@ export default function PartesProceso({ procesoId, editable, onCambio, resumen }
                   setNuevo(VACIO);
                 }}
                 className={`px-3 py-1 rounded ${
-                  tipoParte === clave ? 'bg-[#144193] text-white' : 'text-numa-600 hover:bg-numa-50'
+                  tipoParte === clave ? 'bg-[#144193] text-white' : 'text-numa-700 hover:bg-numa-50'
                 }`}
               >
                 {texto}
@@ -380,7 +380,7 @@ export default function PartesProceso({ procesoId, editable, onCambio, resumen }
           )}
 
           {ladoActual.length > 0 && (
-            <p className="text-xs rounded-md border border-numa-200 bg-numa-50 text-numa-600 px-3 py-2">
+            <p className="text-xs rounded-md border border-numa-200 bg-numa-50 text-numa-700 px-3 py-2">
               {empresaDelLado ? (
                 <>
                   Este lado tiene una empresa (<strong>{empresaDelLado.nombre}</strong>): la persona
@@ -428,7 +428,7 @@ export default function PartesProceso({ procesoId, editable, onCambio, resumen }
 
           {creando && (
             <div className="rounded-md border border-gold-300 bg-gold-50/40 p-3 space-y-3">
-              <p className="text-xs font-semibold text-numa-700">
+              <p className="text-xs font-semibold text-numa-800">
                 {tipoParte === 'empresa' ? 'Nueva empresa o institución' : 'Nueva persona natural'}
               </p>
 
@@ -528,7 +528,7 @@ export default function PartesProceso({ procesoId, editable, onCambio, resumen }
             </div>
           )}
 
-          <p className="text-xs text-numa-600">
+          <p className="text-xs text-numa-700">
             El cliente nuevo queda guardado también en la sección &quot;Clientes&quot;.
           </p>
         </div>

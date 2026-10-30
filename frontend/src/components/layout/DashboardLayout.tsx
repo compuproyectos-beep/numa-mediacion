@@ -217,7 +217,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const noLeidas = sinLeerTitulo;
   // Los "persistentes" (acta sin completar, vencida o bloqueada) siguen
   // en el banner hasta que se resuelve el problema; el resto, hasta que se lee.
-  const urgentesTodos = urgentesServidor ?? notificaciones.filter((n) => !n.leida && esUrgente(n));
+  // Mientras el servidor no responde, los avisos de acta (bloqueada, sin completar…)
+  // no se muestran: la lista local puede traer avisos ya resueltos que aparecerían un
+  // instante y luego desaparecerían.
+  const TITULOS_DE_ACTA = ['Número de acta sin completar', 'Acta con plazo vencido', 'Acta bloqueada', 'Acta bloqueada por plazo'];
+  const urgentesTodos =
+    urgentesServidor ??
+    notificaciones.filter((n) => !n.leida && esUrgente(n) && !TITULOS_DE_ACTA.includes(n?.titulo));
   // El banner rojo solo se muestra donde le sirve a la persona, para no estorbar en
   // todo el sistema (en la campana siempre se pueden ver). "Cuenta bloqueada" es de
   // seguridad y sale en todas las pantallas.
