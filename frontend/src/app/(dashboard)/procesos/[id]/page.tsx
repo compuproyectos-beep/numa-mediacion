@@ -930,7 +930,7 @@ function ProcesoDetalleContenido() {
           {proceso.numero_acta_codigo && proceso.numero_acta_estado === 'reservado' && (() => {
             const t = tiempoRestante(proceso.numero_acta_vence_en, ahoraReloj);
             return (
-              <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+              <div className="mt-3 inline-flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5">
                 <div className="flex items-start gap-2.5 max-w-md">
                   <Clock className="w-5 h-5 text-red-700 shrink-0 mt-0.5" aria-hidden="true" />
                   <p className="text-sm font-semibold text-red-900">

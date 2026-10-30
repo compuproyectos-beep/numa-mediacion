@@ -73,7 +73,7 @@ export function CuentaRegresiva({ venceEn, pequeno = false }: { venceEn: any; pe
     <div className="flex flex-col items-center">
       <div
         className={`relative flex items-center justify-center rounded-lg bg-red-700 text-white font-mono font-bold tabular-nums shadow-[0_6px_14px_-6px_rgba(153,27,27,0.7)] ${
-          pequeno ? 'w-9 h-9 text-base' : 'w-16 h-16 sm:w-[4.5rem] sm:h-[4.5rem] text-4xl'
+          pequeno ? 'w-9 h-9 text-base' : 'w-11 h-11 text-2xl'
         }`}
       >
         {valor}
@@ -82,7 +82,7 @@ export function CuentaRegresiva({ venceEn, pequeno = false }: { venceEn: any; pe
       </div>
       <span
         className={`uppercase tracking-wide font-semibold text-red-800 ${
-          pequeno ? 'text-[9px] mt-0.5' : 'text-[11px] mt-1.5'
+          pequeno ? 'text-[9px] mt-0.5' : 'text-[10px] mt-1'
         }`}
       >
         {etiqueta}
@@ -91,7 +91,7 @@ export function CuentaRegresiva({ venceEn, pequeno = false }: { venceEn: any; pe
   );
   const separador = (
     <span
-      className={`font-bold text-red-700 ${pequeno ? 'text-base pb-3' : 'text-3xl pb-5'}`}
+      className={`font-bold text-red-700 ${pequeno ? 'text-base pb-3' : 'text-xl pb-4'}`}
       aria-hidden="true"
     >
       :
@@ -102,7 +102,7 @@ export function CuentaRegresiva({ venceEn, pequeno = false }: { venceEn: any; pe
     <div
       role="timer"
       aria-label={`${h} horas ${m} minutos ${sg} segundos`}
-      className="inline-flex items-start gap-1.5"
+      className="inline-flex items-start gap-1"
     >
       {bloque(p(h), 'Horas')}
       {separador}
