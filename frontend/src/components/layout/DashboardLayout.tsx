@@ -302,7 +302,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       <main className="menu-pad pt-14 lg:pt-0 min-h-screen">
         <div className="sticky top-0 z-20 bg-[#E8EEF6]/90 backdrop-blur border-b border-numa-100">
-          <div className="max-w-7xl mx-auto px-6 py-1.5 flex justify-end">
+          <div className="max-w-7xl mx-auto px-6 py-1.5 flex items-center justify-between gap-3">
+            {/* Espacio a la izquierda de la campana: algunas pantallas (como el detalle de un proceso) ponen aquí su botón "Volver". */}
+            <div id="barra-izquierda" className="flex items-center min-w-0" />
             <div className="relative" ref={dropdownRef}>
               <button
                 type="button"

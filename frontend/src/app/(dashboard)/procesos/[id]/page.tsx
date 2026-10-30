@@ -2,6 +2,7 @@
 
 import { mayusInicial } from '@/lib/texto';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useRouter } from 'next/navigation';
 import PasosProceso from '@/components/procesos/PasosProceso';
 import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon, Eye, Download, Receipt, FileText, PlayCircle, CheckCircle2, Lock, Clock, Hash } from 'lucide-react';
@@ -238,6 +239,11 @@ function ProcesoDetalleContenido() {
   }, [claveBorrador]);
 
   const ahoraReloj = useAhora();
+  // Lugar de la barra de arriba (junto a la campana) donde va el botón "Volver".
+  const [slotVolver, setSlotVolver] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setSlotVolver(document.getElementById('barra-izquierda'));
+  }, []);
   // Aviso grande cuando el sistema acaba de dar un número de acta nuevo.
   const [avisoNumero, setAvisoNumero] = useState<string | null>(null);
   const [desbloqueandoActa, setDesbloqueandoActa] = useState(false);
@@ -891,10 +897,16 @@ function ProcesoDetalleContenido() {
 
   return (
     <div className="vista-proceso">
-      <button onClick={volverAtras} className="btn-ghost text-sm mb-4 -ml-2">
-        <ArrowLeft className="w-4 h-4" />
-        Volver
-      </button>
+      {/* "Volver" va en la barra de arriba, al nivel de la campana, para ganar espacio. */}
+      {(() => {
+        const boton = (
+          <button onClick={volverAtras} className="btn-ghost text-sm -ml-2">
+            <ArrowLeft className="w-4 h-4" />
+            Volver
+          </button>
+        );
+        return slotVolver ? createPortal(boton, slotVolver) : <div className="mb-4">{boton}</div>;
+      })()}
 
       {/* En celular el título y los botones van uno debajo del otro (para que el
           código y los nombres no queden apretados); desde pantallas medianas
