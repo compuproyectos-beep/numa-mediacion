@@ -298,7 +298,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
       )}
 
       {/* Acuerdo registrado */}
-      {!noAcuerdo && proceso.acuerdo_texto && (
+      {!noAcuerdo && proceso.acuerdo_texto && etapa !== 'completa' && (
         <div className="card p-4">
           <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
             <h3 className="text-sm font-semibold text-numa-800">Acuerdo</h3>
@@ -400,28 +400,12 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
             <CheckCircle2 className="w-5 h-5 text-green-600" aria-hidden="true" />
             {noAcuerdo ? 'Proceso completo: cerrado sin acuerdo' : 'Proceso completo: cerrado con acuerdo'}
           </p>
-          <p className="text-sm text-numa-600 mb-3">
+          <p className="text-sm text-numa-600">
             {proceso.tiene_acta_firmada
-              ? `El acta firmada se subió el ${fmt(proceso.acta_firmada_fecha)}. El proceso terminó: solo se puede consultar el historial.`
+              ? 'El proceso terminó: solo se puede consultar el historial. Los documentos del acta están abajo.'
               : 'Proceso anterior a la regla del acta firmada.'}
           </p>
-          <div className="flex flex-wrap items-center gap-2">
-            {proceso.tiene_acta_firmada && (
-              <button type="button" onClick={verFirmada} className="btn-secondary btn-sm">
-                <Eye className="w-3.5 h-3.5" /> Ver acta firmada
-              </button>
-            )}
-            {esAdmin && proceso.tiene_acta_firmada && (
-              <button
-                type="button"
-                onClick={descargarFirmada}
-                title="Descargar acta firmada"
-                aria-label="Descargar acta firmada"
-                className="btn-icon"
-              >
-                <Download className="w-4 h-4" />
-              </button>
-            )}
+          <div className="flex flex-wrap items-center gap-2 mt-3 empty:hidden">
             {!proceso.tiene_acta_firmada && botonImprimir()}
           </div>
         </div>
