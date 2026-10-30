@@ -954,7 +954,7 @@ export default function CalendarioAgendaMediador({
                         {usuarioActual?.id === citaActiva.usuario_id ? (
                           <button
                             type="button"
-                            onClick={() => router.push(`/procesos?crear=1&cita=${citaActiva.id}`)}
+                            onClick={() => router.push(`/procesos?crear=1&cita=${citaActiva.id}&directo=1`)}
                             className="btn-secondary inline-flex items-center gap-2"
                           >
                             <FolderPlus className="w-4 h-4" />

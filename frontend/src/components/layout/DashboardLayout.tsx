@@ -215,7 +215,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (checkingAuth || !hasToken) return null;
 
   const noLeidas = sinLeerTitulo;
-  // Los "persistentes" (proceso suspendido, acta sin completar o vencida) siguen
+  // Los "persistentes" (acta sin completar, vencida o bloqueada) siguen
   // en el banner hasta que se resuelve el problema; el resto, hasta que se lee.
   const urgentesTodos = urgentesServidor ?? notificaciones.filter((n) => !n.leida && esUrgente(n));
   // El banner rojo solo se muestra donde le sirve a la persona, para no estorbar en
@@ -229,7 +229,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const enRutaBanner = rutasBanner.some((r) => pathname === r || pathname.startsWith(r + '/'));
   const urgentes = urgentesTodos.filter((n) => n.titulo === 'Cuenta bloqueada' || enRutaBanner);
   const esPersistente = (n: any) =>
-    ['Proceso suspendido', 'Número de acta sin completar', 'Acta con plazo vencido', 'Acta bloqueada', 'Acta bloqueada por plazo'].includes(n?.titulo);
+    ['Número de acta sin completar', 'Acta con plazo vencido', 'Acta bloqueada', 'Acta bloqueada por plazo'].includes(n?.titulo);
 
   // Abre la ventana con todos los avisos urgentes, empezando por el primero.
   const abrirUrgentes = () => {
@@ -279,7 +279,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
     // Un urgente "normal" sale del banner al leerlo; los persistentes se quedan.
     setUrgentesServidor((prev) =>
-      prev ? prev.filter((x) => x.id !== id || ['Proceso suspendido', 'Número de acta sin completar', 'Acta con plazo vencido', 'Acta bloqueada', 'Acta bloqueada por plazo'].includes(x.titulo)) : prev
+      prev ? prev.filter((x) => x.id !== id || ['Número de acta sin completar', 'Acta con plazo vencido', 'Acta bloqueada', 'Acta bloqueada por plazo'].includes(x.titulo)) : prev
     );
   };
 

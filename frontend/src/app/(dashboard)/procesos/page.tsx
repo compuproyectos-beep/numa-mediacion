@@ -146,6 +146,11 @@ export default function ProcesosPage() {
   // Llegar con ?cita=ID (desde la Agenda) deja elegida esa invitación rápida.
   const citaDesdeUrl = searchParams?.get('cita') || '';
   const citaAplicada = useRef(false);
+  // Con ?directo=1 (botón "Crear el proceso" de una invitación rápida) el
+  // formulario se abre directo en el paso de confirmar, si la invitación ya
+  // trae todo (partes y tema). Si falta algo, queda en el paso que falta.
+  const directoDesdeUrl = searchParams?.get('directo') === '1';
+  const saltarAConfirmar = useRef(false);
 
   const [procesos, setProcesos] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
@@ -431,8 +436,17 @@ export default function ProcesosPage() {
     if (!citasRapidas.some((c: any) => String(c.id) === String(citaDesdeUrl))) return;
     citaAplicada.current = true;
     elegirCitaRapida(citaDesdeUrl);
+    if (directoDesdeUrl) saltarAConfirmar.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [citasRapidas, clientes, citaDesdeUrl]);
+
+  useEffect(() => {
+    if (!saltarAConfirmar.current || !showCreate || !form.cita_rapida_id) return;
+    saltarAConfirmar.current = false;
+    if (validarPaso1() && validarPaso2()) setPaso(3);
+    else setError('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form, nuevos, extras, showCreate]);
 
   const cerrarCrear = () => {
     setShowCreate(false);

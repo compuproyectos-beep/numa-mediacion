@@ -743,7 +743,7 @@ def obtener_notificaciones_urgentes(usuario=Depends(obtener_usuario_actual)):
                 ON n.referencia_tipo = 'numero_acta' AND na.id = n.referencia_id
             WHERE n.usuario_id = %s
               AND (
-                (n.titulo = 'Proceso suspendido' AND COALESCE(p.suspendido, false) = true)
+                (n.titulo = 'Proceso suspendido' AND COALESCE(p.suspendido, false) = true AND n.leida = false)
                 OR (n.titulo IN ('Número de acta sin completar', 'Acta con plazo vencido')
                     AND COALESCE(na.estado, '') = 'reservado')
                 OR (n.titulo IN ('Número de acta anulado', 'Cuenta bloqueada') AND n.leida = false)
