@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Eye, FileSpreadsheet, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { PageHeader, Spinner, EmptyState, Badge, InputField, SelectField, ErrorAlert } from '@/components/ui';
+import { PageHeader, Spinner, EmptyState, InputField, SelectField, ErrorAlert } from '@/components/ui';
 import {
   getFacturasPagos,
   getFacturasPagosFaltantes,
@@ -21,6 +21,14 @@ const TIPOS = [
   { value: 'factura_mediador', label: 'Factura del mediador a NUMA' },
   { value: 'pago_acta', label: 'Comprobante de pago' },
   { value: 'pago_final', label: 'Comprobante del segundo pago' },
+];
+
+// Cada faltante del servidor se traduce al mismo "tipo" que usan las filas subidas.
+const FALTAS: { flag: string; tipo: string; etiqueta: string }[] = [
+  { flag: 'falta_comprobante_pago', tipo: 'pago_acta', etiqueta: 'Comprobante de pago' },
+  { flag: 'falta_comprobante_saldo', tipo: 'pago_final', etiqueta: 'Comprobante del segundo pago (saldo)' },
+  { flag: 'falta_factura_cliente', tipo: 'factura_cliente', etiqueta: 'Factura de NUMA al cliente' },
+  { flag: 'falta_factura_mediador', tipo: 'factura_mediador', etiqueta: 'Factura del mediador a NUMA' },
 ];
 
 const VACIO = { q: '', tipo: '', sucursal_id: '', usuario_id: '', fecha_desde: '', fecha_hasta: '' };
@@ -51,9 +59,8 @@ function limpiar(f: typeof VACIO) {
 export default function FacturasPagosPage() {
   const { isAdmin } = useAuth();
   const [filas, setFilas] = useState<any[]>([]);
-  // Lo que falta por subir (facturas y comprobantes), en una pestaña aparte.
+  // Lo que todavía falta por subir: se muestra dentro de la tarjeta de cada proceso.
   const [faltantes, setFaltantes] = useState<any[]>([]);
-  const [vista, setVista] = useState<'subidos' | 'faltan'>('subidos');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [exportando, setExportando] = useState(false);
@@ -76,6 +83,7 @@ export default function FacturasPagosPage() {
       setFaltantes(faltan);
     } catch {
       setFilas([]);
+      setFaltantes([]);
       setError('No se pudo cargar la lista');
     } finally {
       setLoading(false);
@@ -131,18 +139,41 @@ export default function FacturasPagosPage() {
     cargar(VACIO);
   };
 
-  // Un cuadro por proceso, con sus documentos adentro (el orden sale del más reciente).
+  // Un cuadro por proceso: arriba sus datos, luego lo subido y, en el mismo cuadro, lo que falta.
   const grupos: any[] = [];
   const porProceso = new Map<number, any>();
-  filas.forEach((f) => {
-    let g = porProceso.get(f.proceso_id);
+  const grupoDe = (base: any) => {
+    let g = porProceso.get(base.proceso_id);
     if (!g) {
-      g = { ...f, items: [] };
-      porProceso.set(f.proceso_id, g);
+      g = { ...base, items: [], faltan: [] };
+      porProceso.set(base.proceso_id, g);
       grupos.push(g);
     }
-    g.items.push(f);
+    return g;
+  };
+  filas.forEach((f) => grupoDe(f).items.push(f));
+
+  // Si se filtra por un tipo, solo se muestran las faltas de ese tipo; con fechas, los procesos
+  // que no tienen nada subido en ese rango no aparecen solo por tener algo pendiente.
+  const hayFechas = !!(filters.fecha_desde || filters.fecha_hasta);
+  faltantes.forEach((fp) => {
+    const faltas = FALTAS.filter((x) => fp[x.flag] && (!filters.tipo || filters.tipo === x.tipo));
+    if (faltas.length === 0) return;
+    if (hayFechas && !porProceso.has(fp.proceso_id)) return;
+    const g = grupoDe({
+      proceso_id: fp.proceso_id,
+      codigo_proceso: fp.codigo_proceso,
+      numero_acta: fp.numero_acta,
+      sucursal: fp.sucursal,
+      ciudad: fp.ciudad,
+      mediador: fp.mediador,
+      demandante: fp.demandante,
+      demandado: fp.demandado,
+    });
+    g.faltan = faltas;
+    g.dias_desde_acta_firmada = fp.dias_desde_acta_firmada;
   });
+
   // Montos en orden: primer abono, segundo abono (si hay) y monto final.
   const ORDEN: Record<string, number> = { pago_acta: 0, pago_final: 1, factura_cliente: 2, factura_mediador: 3 };
   grupos.forEach((g) => {
@@ -154,12 +185,15 @@ export default function FacturasPagosPage() {
       g.monto_total != null ? { label: 'Monto final', valor: g.monto_total, final: true } : null,
     ].filter(Boolean);
   });
+  // Primero los procesos a los que les falta algo; dentro de cada grupo, el orden original.
+  grupos.sort((a, b) => (b.faltan.length > 0 ? 1 : 0) - (a.faltan.length > 0 ? 1 : 0));
+  const conFaltas = grupos.filter((g) => g.faltan.length > 0).length;
 
   return (
     <>
       <PageHeader
         title="Facturas y pagos"
-        subtitle="Todas las facturas y comprobantes de pago subidos en los procesos, en un solo lugar"
+        subtitle="Lo subido y lo que todavía falta de cada proceso, en un solo lugar"
       />
 
       {error && (
@@ -168,41 +202,14 @@ export default function FacturasPagosPage() {
         </div>
       )}
 
-      {/* Dos vistas: lo que ya se subió y lo que todavía falta. */}
-      <div role="tablist" className="mb-4 inline-flex rounded-xl border border-[#CBD6E8] bg-white p-1 shadow-sm">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={vista === 'subidos'}
-          onClick={() => setVista('subidos')}
-          className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-            vista === 'subidos' ? 'bg-[#144193] text-white' : 'text-[#144193] hover:bg-[#F4F7FC]'
-          }`}
-        >
-          Subidos <span className="opacity-80">({filas.length})</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={vista === 'faltan'}
-          onClick={() => setVista('faltan')}
-          className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-            vista === 'faltan' ? 'bg-red-700 text-white' : 'text-red-800 hover:bg-red-50'
-          }`}
-        >
-          <AlertTriangle size={15} aria-hidden="true" />
-          Faltan <span className="opacity-90">({faltantes.length})</span>
-        </button>
-      </div>
-
       <form
         onSubmit={(e) => {
           e.preventDefault();
           cargar();
         }}
-        className="mb-4 rounded-xl border border-[#CBD6E8] bg-[#F4F7FC] p-3"
+        className="card mb-5 p-4"
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
           <div className="xl:col-span-2">
             <InputField
               label="Buscar"
@@ -211,7 +218,6 @@ export default function FacturasPagosPage() {
               placeholder="Proceso, N.º de acta, parte, mediador o archivo..."
             />
           </div>
-          {vista === 'subidos' && (
           <SelectField
             label="Tipo"
             value={filters.tipo}
@@ -222,7 +228,6 @@ export default function FacturasPagosPage() {
               <option key={t.value} value={t.value}>{t.label}</option>
             ))}
           </SelectField>
-          )}
           {isAdmin && (
             <SelectField
               label="Sucursal"
@@ -247,192 +252,149 @@ export default function FacturasPagosPage() {
               ))}
             </SelectField>
           )}
-          {vista === 'subidos' && (
-            <>
-              <InputField
-                label="Desde"
-                type="date"
-                value={filters.fecha_desde}
-                onChange={(e) => setFilters({ ...filters, fecha_desde: e.target.value })}
-              />
-              <InputField
-                label="Hasta"
-                type="date"
-                value={filters.fecha_hasta}
-                onChange={(e) => setFilters({ ...filters, fecha_hasta: e.target.value })}
-              />
-            </>
-          )}
+          <InputField
+            label="Desde"
+            type="date"
+            value={filters.fecha_desde}
+            onChange={(e) => setFilters({ ...filters, fecha_desde: e.target.value })}
+          />
+          <InputField
+            label="Hasta"
+            type="date"
+            value={filters.fecha_hasta}
+            onChange={(e) => setFilters({ ...filters, fecha_hasta: e.target.value })}
+          />
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button
-            type="submit"
-            className="rounded-lg bg-[#144193] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0A2A62] transition-colors"
-          >
-            Filtrar
-          </button>
-          <button
-            type="button"
-            onClick={limpiarFiltros}
-            className="rounded-lg border border-[#CBD6E8] bg-white px-4 py-2 text-sm font-semibold text-[#144193] hover:bg-[#F4F7FC] transition-colors"
-          >
-            Limpiar
-          </button>
-          {vista === 'subidos' && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <button type="submit" className="btn-primary btn-sm">Filtrar</button>
+          <button type="button" onClick={limpiarFiltros} className="btn-secondary btn-sm">Limpiar</button>
           <button
             type="button"
             onClick={exportar}
             disabled={exportando || filas.length === 0}
-            className="ml-auto inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+            className="btn-secondary btn-sm ml-auto disabled:opacity-50"
           >
             <FileSpreadsheet size={16} />
             {exportando ? 'Exportando...' : 'Exportar Excel'}
           </button>
-          )}
         </div>
       </form>
 
       {loading ? (
         <Spinner />
-      ) : vista === 'faltan' ? (
-        faltantes.length === 0 ? (
-          <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm font-semibold text-emerald-900">
-            <CheckCircle2 size={20} aria-hidden="true" />
-            No falta ninguna factura ni comprobante con estos filtros.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <p className="text-sm text-[#4A5B78]">
-              Procesos a los que todavía les falta algún documento. Las facturas se esperan una vez
-              subida el acta firmada. Entra al proceso para subir lo que falta.
-            </p>
-            {faltantes.map((g) => (
-              <section
-                key={g.proceso_id}
-                className="rounded-xl border border-red-200 bg-white px-4 py-3 shadow-[0_8px_20px_-18px_rgba(127,29,29,0.7)]"
-              >
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <Link href={`/procesos/${g.proceso_id}`} className="text-base font-bold text-[#0A2A62] hover:underline">
-                    {g.codigo_proceso}
-                  </Link>
-                  {g.numero_acta && (
-                    <span className="rounded-full bg-[#144193] px-2.5 py-0.5 text-xs font-semibold text-white">
-                      Acta {g.numero_acta}
-                    </span>
-                  )}
-                  {g.dias_desde_acta_firmada != null && (
-                    <span className="text-xs font-semibold text-red-800">
-                      {g.dias_desde_acta_firmada === 0
-                        ? 'Acta firmada hoy'
-                        : `${g.dias_desde_acta_firmada} día${g.dias_desde_acta_firmada === 1 ? '' : 's'} desde el acta firmada`}
-                    </span>
-                  )}
-                  <span className="text-xs text-[#4A5B78] sm:ml-auto">
-                    {g.sucursal}{g.ciudad ? ` · ${g.ciudad}` : ''}
-                  </span>
-                </div>
-                <div className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
-                  <p><span className="text-[#6B7C99]">Solicitante: </span><span className="font-medium text-[#0A2A62]">{g.demandante || '—'}</span></p>
-                  <p><span className="text-[#6B7C99]">Invitado: </span><span className="font-medium text-[#0A2A62]">{g.demandado || '—'}</span></p>
-                  <p><span className="text-[#6B7C99]">Mediador: </span><span className="font-medium text-[#0A2A62]">{g.mediador}</span></p>
-                </div>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {(g.faltan || []).map((t: string) => (
-                    <span
-                      key={t}
-                      className="inline-flex items-center gap-1.5 rounded-md bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-800 ring-1 ring-red-200"
-                    >
-                      <AlertTriangle size={13} aria-hidden="true" />
-                      Falta: {t}
-                    </span>
-                  ))}
-                  <Link
-                    href={`/procesos/${g.proceso_id}`}
-                    className="ml-auto inline-flex items-center gap-1 rounded-lg border border-[#CBD6E8] px-2.5 py-1.5 text-xs font-semibold text-[#144193] hover:bg-[#F4F7FC]"
-                  >
-                    <Eye size={14} /> Ir al proceso
-                  </Link>
-                </div>
-              </section>
-            ))}
-          </div>
-        )
-      ) : filas.length === 0 ? (
+      ) : grupos.length === 0 ? (
         <EmptyState
           icon="🧾"
           message="Aún no hay facturas ni comprobantes con estos filtros. Aparecerán aquí cuando se suban dentro de los procesos."
         />
       ) : (
-        <div className="space-y-4">
-          {grupos.map((g) => (
-            <section
-              key={g.proceso_id}
-              className="overflow-hidden rounded-xl border border-[#CBD6E8] bg-white shadow-[0_8px_20px_-18px_rgba(11,39,89,0.7)]"
-            >
-              <div className="border-b border-[#DCE5F3] bg-[#F4F7FC] px-4 py-3">
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <Link href={`/procesos/${g.proceso_id}`} className="text-base font-bold text-[#0A2A62] hover:underline">
-                    {g.codigo_proceso}
-                  </Link>
-                  {g.numero_acta ? (
-                    <span className="rounded-full bg-[#144193] px-2.5 py-0.5 text-xs font-semibold text-white">
-                      Acta {g.numero_acta}
-                    </span>
-                  ) : (
-                    <span className="rounded-full border border-[#CBD6E8] bg-white px-2.5 py-0.5 text-xs font-medium text-[#6B7C99]">
-                      Sin número de acta
-                    </span>
-                  )}
-                  <span className="text-xs text-[#4A5B78] sm:ml-auto">
-                    {g.sucursal}{g.ciudad ? ` · ${g.ciudad}` : ''}
-                  </span>
-                </div>
-                <div className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
-                  <p><span className="text-[#6B7C99]">Solicitante: </span><span className="font-medium text-[#0A2A62]">{g.demandante || '—'}</span></p>
-                  <p><span className="text-[#6B7C99]">Invitado: </span><span className="font-medium text-[#0A2A62]">{g.demandado || '—'}</span></p>
-                  <p><span className="text-[#6B7C99]">Mediador: </span><span className="font-medium text-[#0A2A62]">{g.mediador}</span></p>
-                </div>
-                {(g.chips || []).length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                    {g.chips.map((c: any) => (
-                      <span
-                        key={c.label}
-                        className={
-                          c.final
-                            ? 'rounded-md bg-[#144193] px-2 py-1 font-semibold text-white'
-                            : 'rounded-md bg-white px-2 py-1 font-semibold text-[#0A2A62] ring-1 ring-[#CBD6E8]'
-                        }
-                      >
-                        {c.label}: {dinero(c.valor)}
+        <>
+          {conFaltas > 0 && (
+            <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-red-800">
+              <AlertTriangle size={16} aria-hidden="true" />
+              {conFaltas === 1
+                ? '1 proceso tiene documentos por subir'
+                : `${conFaltas} procesos tienen documentos por subir`}
+              <span className="font-normal text-numa-800">(aparecen primero, marcados en rojo)</span>
+            </p>
+          )}
+          <div className="space-y-5">
+            {grupos.map((g) => (
+              <section
+                key={g.proceso_id}
+                className="card overflow-hidden"
+              >
+                <div className="px-4 pt-3 pb-3 border-b border-numa-200">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <Link href={`/procesos/${g.proceso_id}`} className="text-base font-bold text-numa-900 hover:underline">
+                      {g.codigo_proceso}
+                    </Link>
+                    {g.numero_acta ? (
+                      <span className="rounded-full bg-numa-800 px-2.5 py-0.5 text-xs font-semibold text-white">
+                        Acta {g.numero_acta}
                       </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <ul className="divide-y divide-[#E3EAF5]">
-                {g.items.map((f: any) => (
-                  <li key={f.clave} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
-                    <span className="w-56 shrink-0">
-                      <Badge label={f.tipo_etiqueta} variant={f.tipo.startsWith('factura') ? 'enviado' : 'aprobado'} />
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-[#4A5B78]" title={f.nombre || ''}>{f.nombre || '—'}</span>
-                    {f.monto != null && (
-                      <span className="font-semibold text-[#0A2A62]">{dinero(f.monto)}</span>
+                    ) : (
+                      <span className="rounded-full border border-numa-300 px-2.5 py-0.5 text-xs font-medium text-numa-700">
+                        Sin número de acta
+                      </span>
                     )}
-                    <span className="whitespace-nowrap text-xs text-[#6B7C99]">{formatearFecha(f.fecha)}</span>
-                    <button
-                      type="button"
-                      onClick={() => abrir(f)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-[#CBD6E8] px-2.5 py-1.5 text-xs font-semibold text-[#144193] hover:bg-[#F4F7FC]"
+                    {g.faltan.length > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-red-700 px-2.5 py-0.5 text-xs font-semibold text-white">
+                        <AlertTriangle size={12} aria-hidden="true" />
+                        Faltan {g.faltan.length === 1 ? 'un documento' : `${g.faltan.length} documentos`}
+                      </span>
+                    )}
+                    <span className="text-xs text-numa-700 sm:ml-auto">
+                      {g.sucursal}{g.ciudad ? ` · ${g.ciudad}` : ''}
+                    </span>
+                  </div>
+                  <div className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
+                    <p><span className="text-numa-700">Solicitante: </span><span className="font-medium text-numa-900">{g.demandante || '—'}</span></p>
+                    <p><span className="text-numa-700">Invitado: </span><span className="font-medium text-numa-900">{g.demandado || '—'}</span></p>
+                    <p><span className="text-numa-700">Mediador: </span><span className="font-medium text-numa-900">{g.mediador}</span></p>
+                  </div>
+                  {(g.chips || []).length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                      {g.chips.map((c: any) => (
+                        <span
+                          key={c.label}
+                          className={
+                            c.final
+                              ? 'rounded-md bg-numa-800 px-2 py-1 font-semibold text-white'
+                              : 'rounded-md px-2 py-1 font-semibold text-numa-900 ring-1 ring-numa-300'
+                          }
+                        >
+                          {c.label}: {dinero(c.valor)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <ul className="divide-y divide-numa-200">
+                  {g.items.map((f: any) => (
+                    <li key={f.clave} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
+                      <span className="inline-flex w-60 shrink-0 items-center gap-1.5 font-semibold text-numa-900">
+                        <CheckCircle2 size={15} className="text-emerald-600 shrink-0" aria-hidden="true" />
+                        {f.tipo_etiqueta}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-numa-800" title={f.nombre || ''}>{f.nombre || '—'}</span>
+                      {f.monto != null && (
+                        <span className="font-semibold text-numa-900">{dinero(f.monto)}</span>
+                      )}
+                      <span className="whitespace-nowrap text-xs text-numa-700">{formatearFecha(f.fecha)}</span>
+                      <button type="button" onClick={() => abrir(f)} className="btn-primary btn-sm">
+                        <Eye size={14} /> Abrir
+                      </button>
+                    </li>
+                  ))}
+
+                  {/* Lo que todavía no se ha subido, en la misma tarjeta. */}
+                  {g.faltan.map((x: any) => (
+                    <li
+                      key={x.tipo}
+                      className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-red-50 px-4 py-2.5 text-sm"
                     >
-                      <Eye size={14} /> Abrir
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
+                      <span className="inline-flex w-60 shrink-0 items-center gap-1.5 font-semibold text-red-900">
+                        <AlertTriangle size={15} className="shrink-0" aria-hidden="true" />
+                        {x.etiqueta}
+                      </span>
+                      <span className="min-w-0 flex-1 font-semibold text-red-800">
+                        Falta subir
+                        {g.dias_desde_acta_firmada != null && x.tipo.startsWith('factura')
+                          ? ` · ${g.dias_desde_acta_firmada === 0 ? 'acta firmada hoy' : `${g.dias_desde_acta_firmada} día${g.dias_desde_acta_firmada === 1 ? '' : 's'} desde el acta firmada`}`
+                          : ''}
+                      </span>
+                      <Link href={`/procesos/${g.proceso_id}`} className="btn-secondary btn-sm">
+                        Ir al proceso
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+        </>
       )}
     </>
   );
