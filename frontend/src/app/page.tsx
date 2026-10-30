@@ -421,7 +421,7 @@ export default function HomePage() {
               <p className="text-sm text-numa-600 leading-relaxed justify-es">
                 Numa Pompilio (c. 753-674 a.C.) fue el segundo rey de Roma,
                 sucesor de Rómulo, reconocido como un monarca sabio, religioso
-                y pacífico. Como símbolo de mediador, se destacó por
+                y pacífico. Como <strong className="font-bold text-numa-900">SÍMBOLO DE MEDIADOR</strong>, se destacó por
                 establecer la paz con pueblos vecinos, reformar el calendario
                 y organizar la religión romana, priorizando la diplomacia
                 sobre la guerra.
