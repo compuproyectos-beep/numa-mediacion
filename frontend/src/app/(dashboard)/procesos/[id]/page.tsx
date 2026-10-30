@@ -1153,18 +1153,6 @@ function ProcesoDetalleContenido() {
         onCambio={cargarProceso}
       />
 
-      {proceso.estado !== 'anulado' && (
-        <div id="bloque-facturacion">
-          <FacturacionProceso
-            procesoId={proceso.id}
-            editable={esAdminSesion() || proceso.etapa_acta !== 'completa'}
-            onEstado={setTieneFacturacion}
-            finalizado={!!proceso.finalizado}
-            estado={conActa(proceso) ? 'cerrado_con_acuerdo' : proceso.estado}
-          />
-        </div>
-      )}
-
       {esAdminSesion() && proceso.estado === 'en_negociacion' && (
         <div className="mb-4">
           {!anulando ? (
@@ -1396,86 +1384,6 @@ function ProcesoDetalleContenido() {
               <span className="font-semibold text-numa-900">Proceso finalizado.</span>{' '}
               Solo se puede consultar el historial.
             </p>
-          </div>
-        )}
-
-        {expedienteProceso?.acta_final && (
-          <div className="card p-4 border-l-4 border-l-green-600">
-            <h3 className="text-sm font-semibold text-numa-900 mb-3">
-              Documentos del acta y comprobante de pago
-            </h3>
-
-            {/* Código acta se queda fijo a la izquierda (como estaba antes),
-                y los botones quedan centrados en el espacio restante de la
-                fila, sin pegarse al borde derecho de la tarjeta. */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <p className="text-sm text-numa-600 shrink-0">
-                Código acta:{' '}
-                <span className="font-semibold text-numa-900 code-text">
-                  {expedienteProceso.acta_final.codigo_acta}
-                </span>
-              </p>
-
-            </div>
-
-            {/* Admin y mediador ven el acta y el comprobante; solo el
-                administrador puede descargarlos. */}
-            {(
-              <div className="mt-2 space-y-0.5">
-                <DocFila
-                  etiqueta="Documentos del acta"
-                  textoVer="Ver documentos"
-                  onVer={() => handleVerPdfActaFinal(expedienteProceso.acta_final.id)}
-                  onDescargar={
-                    esAdminSesion()
-                      ? () =>
-                          handleDescargarPdfActaFinal(
-                            expedienteProceso.acta_final.id,
-                            expedienteProceso.acta_final.codigo_acta
-                          )
-                      : undefined
-                  }
-                />
-                {expedienteProceso.acta_final.nombre_comprobante_pago && (
-                  <DocFila
-                    etiqueta="Comprobante de pago"
-                    textoVer="Ver comprobante"
-                    onVer={() => handleVerComprobanteActaFinal(expedienteProceso.acta_final.id)}
-                    onDescargar={
-                      esAdminSesion()
-                        ? () =>
-                            handleDescargarComprobanteActaFinal(
-                              expedienteProceso.acta_final.id,
-                              expedienteProceso.acta_final.codigo_acta,
-                              expedienteProceso.acta_final.nombre_comprobante_pago
-                            )
-                        : undefined
-                    }
-                  />
-                )}
-              </div>
-            )}
-
-            <div className="mt-3 pt-3 border-t border-numa-100 text-xs text-numa-700 space-y-0.5">
-            <p>
-              Subido por{' '}
-              <span className="text-numa-800">{expedienteProceso.acta_final.subido_por || '—'}</span>
-            </p>
-
-            <p>
-              Fecha oficial{' '}
-              <span className="text-numa-800">
-              {expedienteProceso.acta_final.fecha_subida
-                ? new Date(
-                    expedienteProceso.acta_final.fecha_subida
-                  ).toLocaleString('es-EC', {
-                    day: '2-digit', month: '2-digit', year: 'numeric',
-                    hour: 'numeric', minute: '2-digit'
-                  })
-                : '—'}
-              </span>
-            </p>
-            </div>
           </div>
         )}
 
@@ -1829,6 +1737,18 @@ function ProcesoDetalleContenido() {
             </div>
           )}
 
+        {proceso.estado !== 'anulado' && (
+          <div id="bloque-facturacion">
+            <FacturacionProceso
+              procesoId={proceso.id}
+              editable={esAdminSesion() || proceso.etapa_acta !== 'completa'}
+              onEstado={setTieneFacturacion}
+              finalizado={!!proceso.finalizado}
+              estado={conActa(proceso) ? 'cerrado_con_acuerdo' : proceso.estado}
+            />
+          </div>
+        )}
+
         {conActa(proceso) && !proceso.finalizado && !proceso.suspendido && !proceso.bloqueo_acta_id && (
           <div className="card p-4">
             <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -1929,6 +1849,86 @@ function ProcesoDetalleContenido() {
             } catch {}
           }}
         />
+
+        {expedienteProceso?.acta_final && (
+          <div className="card p-4 border-l-4 border-l-green-600">
+            <h3 className="text-sm font-semibold text-numa-900 mb-3">
+              Documentos del acta y comprobante de pago
+            </h3>
+
+            {/* Código acta se queda fijo a la izquierda (como estaba antes),
+                y los botones quedan centrados en el espacio restante de la
+                fila, sin pegarse al borde derecho de la tarjeta. */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <p className="text-sm text-numa-600 shrink-0">
+                Código acta:{' '}
+                <span className="font-semibold text-numa-900 code-text">
+                  {expedienteProceso.acta_final.codigo_acta}
+                </span>
+              </p>
+
+            </div>
+
+            {/* Admin y mediador ven el acta y el comprobante; solo el
+                administrador puede descargarlos. */}
+            {(
+              <div className="mt-2 space-y-0.5">
+                <DocFila
+                  etiqueta="Documentos del acta"
+                  textoVer="Ver documentos"
+                  onVer={() => handleVerPdfActaFinal(expedienteProceso.acta_final.id)}
+                  onDescargar={
+                    esAdminSesion()
+                      ? () =>
+                          handleDescargarPdfActaFinal(
+                            expedienteProceso.acta_final.id,
+                            expedienteProceso.acta_final.codigo_acta
+                          )
+                      : undefined
+                  }
+                />
+                {expedienteProceso.acta_final.nombre_comprobante_pago && (
+                  <DocFila
+                    etiqueta="Comprobante de pago"
+                    textoVer="Ver comprobante"
+                    onVer={() => handleVerComprobanteActaFinal(expedienteProceso.acta_final.id)}
+                    onDescargar={
+                      esAdminSesion()
+                        ? () =>
+                            handleDescargarComprobanteActaFinal(
+                              expedienteProceso.acta_final.id,
+                              expedienteProceso.acta_final.codigo_acta,
+                              expedienteProceso.acta_final.nombre_comprobante_pago
+                            )
+                        : undefined
+                    }
+                  />
+                )}
+              </div>
+            )}
+
+            <div className="mt-3 pt-3 border-t border-numa-100 text-xs text-numa-700 space-y-0.5">
+            <p>
+              Subido por{' '}
+              <span className="text-numa-800">{expedienteProceso.acta_final.subido_por || '—'}</span>
+            </p>
+
+            <p>
+              Fecha oficial{' '}
+              <span className="text-numa-800">
+              {expedienteProceso.acta_final.fecha_subida
+                ? new Date(
+                    expedienteProceso.acta_final.fecha_subida
+                  ).toLocaleString('es-EC', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: 'numeric', minute: '2-digit'
+                  })
+                : '—'}
+              </span>
+            </p>
+            </div>
+          </div>
+        )}
 
         <FacturasProceso
           proceso={proceso}

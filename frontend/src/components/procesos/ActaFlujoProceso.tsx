@@ -351,7 +351,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
       {etapa === 'falta_firmada' && (
         <div className="card p-4">
           <p className="text-sm text-numa-700 mb-1 font-semibold">
-            {proceso.pago_pendiente ? 'Falta el comprobante del saldo' : 'Falta el acta firmada'}
+            {proceso.pago_pendiente ? 'Proceso incompleto: falta el comprobante del saldo' : 'Proceso incompleto: falta el acta firmada'}
           </p>
           <p className="text-sm text-numa-600 mb-3">
             {proceso.pago_pendiente
@@ -398,7 +398,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
         <div className="card p-4 border-l-4 border-l-green-600">
           <p className="flex items-center gap-2 text-sm text-numa-900 font-semibold mb-1">
             <CheckCircle2 className="w-5 h-5 text-green-600" aria-hidden="true" />
-            Proceso completo
+            {noAcuerdo ? 'Proceso completo: cerrado sin acuerdo' : 'Proceso completo: cerrado con acuerdo'}
           </p>
           <p className="text-sm text-numa-600 mb-3">
             {proceso.tiene_acta_firmada
