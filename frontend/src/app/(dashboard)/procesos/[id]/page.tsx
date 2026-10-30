@@ -955,7 +955,7 @@ function ProcesoDetalleContenido() {
                 '_blank'
               )
             }
-            className="btn-secondary btn-sm"
+            className="btn-primary btn-sm"
           >
             <Printer className="w-3.5 h-3.5" />
             Imprimir expediente
@@ -1271,7 +1271,7 @@ function ProcesoDetalleContenido() {
                                 '_blank'
                               )
                             }
-                            className="btn-secondary btn-sm mt-2"
+                            className="btn-primary btn-sm mt-2"
                           >
                             <Printer className="w-3.5 h-3.5" />
                             Imprimir invitación
