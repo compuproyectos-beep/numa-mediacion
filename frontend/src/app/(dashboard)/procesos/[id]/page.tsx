@@ -1295,12 +1295,12 @@ function ProcesoDetalleContenido() {
                     </div>
 
                     {cita.observaciones && (
-                      <div className="mt-3">
-                        <p className="text-xs font-semibold text-numa-800">
-                          Observación de invitación:
+                      <div className="mt-3 rounded-lg bg-numa-50 border border-numa-200 px-3 py-2.5">
+                        <p className="text-[11px] font-bold uppercase tracking-wide text-numa-700">
+                          Observación de invitación
                         </p>
 
-                        <p className="text-sm text-numa-700 whitespace-pre-wrap">
+                        <p className="text-sm text-numa-900 whitespace-pre-wrap">
                           {cita.observaciones}
                         </p>
                       </div>
@@ -1319,20 +1319,20 @@ function ProcesoDetalleContenido() {
                     )}
 
                     {avance?.resultado ? (
-                      <div className="mt-4 border-t border-numa-200 pt-3">
-                        <p className="text-xs font-semibold text-numa-800">
-                          Resultado:
+                      <div className="mt-3 rounded-lg bg-numa-50 border border-numa-200 border-l-4 border-l-gold-400 px-3 py-2.5">
+                        <p className="text-[11px] font-bold uppercase tracking-wide text-numa-700">
+                          Resultado
                         </p>
 
-                        <p className="text-sm font-medium text-numa-800">
+                        <p className="text-base font-bold text-numa-900">
                           {estadoLabelProceso(avance.resultado, proceso.requiere_acta_no_acuerdo)}
                         </p>
 
-                        <p className="text-xs font-semibold text-numa-800 mt-3">
-                          Registro / observación:
+                        <p className="text-[11px] font-bold uppercase tracking-wide text-numa-700 mt-3">
+                          Registro / observación
                         </p>
 
-                        <p className="text-sm text-numa-700 whitespace-pre-wrap">
+                        <p className="text-sm text-numa-900 whitespace-pre-wrap">
                           {avance.avance_observacion || avance.observacion}
                         </p>
 
@@ -1868,7 +1868,7 @@ function ProcesoDetalleContenido() {
             {/* Admin y mediador ven el acta y el comprobante; solo el
                 administrador puede descargarlos. */}
             {(
-              <div className="mt-2 space-y-0.5">
+              <div className="mt-3 space-y-2 rounded-lg bg-numa-50 border border-numa-200 p-3">
                 <DocFila
                   etiqueta="Documentos del acta"
                   textoVer="Ver documentos"
