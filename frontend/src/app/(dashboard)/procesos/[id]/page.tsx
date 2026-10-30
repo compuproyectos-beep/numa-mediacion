@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import PasosProceso from '@/components/procesos/PasosProceso';
 import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon, Eye, Download, Receipt, FileText, PlayCircle, CheckCircle2, Lock, Clock, Hash } from 'lucide-react';
-import { tiempoRestante, useAhora } from '@/components/actas/NumeroActaPanel';
+import { tiempoRestante, useAhora, CuentaRegresiva } from '@/components/actas/NumeroActaPanel';
 import { isAdmin as esAdminSesion } from '@/lib/auth';
 import PartesProceso from '@/components/procesos/PartesProceso';
 import FacturacionProceso from '@/components/procesos/FacturacionProceso';
@@ -932,9 +932,15 @@ function ProcesoDetalleContenido() {
             return (
               <p className={`mt-1 inline-flex items-center gap-1.5 text-sm font-semibold ${!t || t.urgente ? 'text-red-700' : 'text-numa-800'}`}>
                 <Clock className="w-4 h-4" aria-hidden="true" />
-                {t
-                  ? `Te faltan ${t.texto} para subir toda la documentación y el comprobante de pago`
-                  : 'Plazo de 48 horas cumplido: el acta se bloquea en breve'}
+                {t ? (
+                  <span>
+                    Te faltan{' '}
+                    <CuentaRegresiva venceEn={proceso.numero_acta_vence_en} className="text-xl" />{' '}
+                    para subir toda la documentación y el comprobante de pago
+                  </span>
+                ) : (
+                  'Plazo de 48 horas cumplido: el acta se bloquea en breve'
+                )}
               </p>
             );
           })()}
