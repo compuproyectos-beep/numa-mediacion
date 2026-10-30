@@ -1295,7 +1295,7 @@ function ProcesoDetalleContenido() {
                     </div>
 
                     {cita.observaciones && (
-                      <div className="mt-3 rounded-lg bg-numa-100/70 px-3.5 py-3">
+                      <div className="mt-3 border-t border-numa-200 pt-3">
                         <p className="text-[11px] font-bold uppercase tracking-wide text-numa-700">
                           Observación de invitación
                         </p>
@@ -1848,7 +1848,8 @@ function ProcesoDetalleContenido() {
 
         {expedienteProceso?.acta_final && (
           <div className="card p-4">
-            <h3 className="text-sm font-semibold text-numa-900 mb-3">
+            <h3 className="flex items-center gap-2 text-base font-bold text-numa-900 mb-3">
+              <FileText className="w-5 h-5 text-numa-700" aria-hidden="true" />
               Documentos del acta y comprobante de pago
             </h3>
 
@@ -1868,7 +1869,7 @@ function ProcesoDetalleContenido() {
             {/* Admin y mediador ven el acta y el comprobante; solo el
                 administrador puede descargarlos. */}
             {(
-              <div className="mt-3 space-y-2 rounded-lg bg-numa-100/70 p-3.5">
+              <div className="mt-3 divide-y divide-numa-200 border-y border-numa-200">
                 <DocFila
                   etiqueta="Documentos del acta"
                   textoVer="Ver documentos"

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Star, X, Building2, User } from 'lucide-react';
+import { Plus, Star, X, Building2, User, Users } from 'lucide-react';
 import { getCiudadesCached } from '@/lib/catalogCache';
 import { Modal, SelectField, InputField, ErrorAlert, Spinner } from '@/components/ui';
 import {
@@ -242,7 +242,7 @@ export default function PartesProceso({ procesoId, editable, onCambio, resumen }
             return (
               <li
                 key={p.id}
-                className="rounded-lg px-3.5 py-3 bg-numa-100/70 flex items-start gap-2"
+                className="rounded-lg px-3.5 py-3 bg-white border border-numa-200 flex items-start gap-2"
               >
                 <span className="mt-0.5 text-numa-700 shrink-0">
                   {esEmpresa ? <Building2 className="w-4 h-4" /> : <User className="w-4 h-4" />}
@@ -316,7 +316,10 @@ export default function PartesProceso({ procesoId, editable, onCambio, resumen }
     <div className="card p-4 mb-4">
       {resumen}
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-bold text-numa-900">Partes del proceso</h2>
+        <h2 className="flex items-center gap-2 text-base font-bold text-numa-900">
+          <Users className="w-5 h-5 text-numa-700" aria-hidden="true" />
+          Partes del proceso
+        </h2>
         {!editable && (
           <span className="text-[11px] text-numa-700">
             Ya no se pueden modificar (el proceso no está en negociación)

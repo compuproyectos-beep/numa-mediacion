@@ -13,7 +13,7 @@ interface Props {
 // Una fila de documento: nombre + botón "Ver ..." (+ ícono descargar solo admin).
 export default function DocFila({ etiqueta, textoVer = 'Ver', onVer, onDescargar }: Props) {
   return (
-    <div className="flex items-center gap-2 text-sm">
+    <div className="flex items-center gap-2 text-sm py-2.5">
       <span className="text-numa-800 min-w-[170px]">{etiqueta}</span>
       {onVer && (
         <button type="button" onClick={onVer} className="btn-secondary btn-sm">
