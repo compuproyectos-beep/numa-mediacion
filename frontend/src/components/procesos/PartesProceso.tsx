@@ -22,6 +22,8 @@ interface Props {
   editable: boolean;
   // Se llama cuando cambia el responsable (el encabezado del proceso lo muestra).
   onCambio?: () => void;
+  // Datos del proceso (tema, apertura…) que se muestran arriba, en la misma tarjeta.
+  resumen?: React.ReactNode;
 }
 
 const TITULOS: Record<Rol, string> = {
@@ -29,7 +31,7 @@ const TITULOS: Record<Rol, string> = {
   invitado: 'Invitados'
 };
 
-export default function PartesProceso({ procesoId, editable, onCambio }: Props) {
+export default function PartesProceso({ procesoId, editable, onCambio, resumen }: Props) {
   const [partes, setPartes] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -312,6 +314,7 @@ export default function PartesProceso({ procesoId, editable, onCambio }: Props) 
 
   return (
     <div className="card p-4 mb-4">
+      {resumen}
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-numa-800">Partes del proceso</h2>
         {!editable && (

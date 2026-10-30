@@ -1119,35 +1119,31 @@ function ProcesoDetalleContenido() {
         </div>
       )}
 
-      <div className="card p-5 mb-4 grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-        <div>
-          <p className="text-numa-600 text-xs mb-1">Ciudad · Sucursal</p>
-          <p className="text-numa-800 font-medium">
-            {proceso.ciudad || '—'} · {proceso.sucursal || '—'}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-numa-600 text-xs mb-1">Mediador</p>
-          <p className="text-numa-800 font-medium">{proceso.usuario || '—'}</p>
-        </div>
-
-        <div>
-          <p className="text-numa-600 text-xs mb-1">Tema</p>
-          <p className="text-numa-800 font-medium">{mayusInicial(proceso.tema)}</p>
-        </div>
-
-        <div>
-          <p className="text-numa-600 text-xs mb-1">Fecha de apertura</p>
-          <p className="text-numa-800 font-medium">
-            {proceso.fecha_creacion
-              ? new Date(proceso.fecha_creacion).toLocaleDateString('es-EC')
-              : '—'}
-          </p>
-        </div>
-      </div>
-
       <PartesProceso
+        resumen={
+          <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm pb-3 mb-3 border-b border-numa-100">
+            {esAdminSesion() && (
+              <div>
+                <p className="text-numa-600 text-xs mb-0.5">Ciudad · Sucursal · Mediador</p>
+                <p className="text-numa-800 font-medium">
+                  {proceso.ciudad || '—'} · {proceso.sucursal || '—'} · {proceso.usuario || '—'}
+                </p>
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-numa-600 text-xs mb-0.5">Tema</p>
+              <p className="text-numa-800 font-medium">{mayusInicial(proceso.tema)}</p>
+            </div>
+            <div>
+              <p className="text-numa-600 text-xs mb-0.5">Fecha de apertura</p>
+              <p className="text-numa-800 font-medium">
+                {proceso.fecha_creacion
+                  ? new Date(proceso.fecha_creacion).toLocaleDateString('es-EC')
+                  : '—'}
+              </p>
+            </div>
+          </div>
+        }
         procesoId={proceso.id}
         editable={proceso.estado === 'en_negociacion'}
         onCambio={cargarProceso}
