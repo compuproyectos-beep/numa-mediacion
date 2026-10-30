@@ -51,9 +51,10 @@ export function useAhora(): number {
   return ahora;
 }
 
-// Reloj en vivo: cuenta hacia atrás cada segundo como "47:59:32" (horas:minutos:segundos).
-// Tiene su propio temporizador para que solo se repinte este pedacito, no toda la pantalla.
-export function CuentaRegresiva({ venceEn, className = '' }: { venceEn: any; className?: string }) {
+// Reloj en vivo que cuenta hacia atrás cada segundo, con tarjetas rojas de horas, minutos y
+// segundos (estilo reloj de cuenta regresiva). Tiene su propio temporizador para que solo se
+// repinte este pedacito y no toda la pantalla. `pequeno` es la versión para tablas.
+export function CuentaRegresiva({ venceEn, pequeno = false }: { venceEn: any; pequeno?: boolean }) {
   const [ahora, setAhora] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setAhora(Date.now()), 1000);
@@ -61,21 +62,54 @@ export function CuentaRegresiva({ venceEn, className = '' }: { venceEn: any; cla
   }, []);
   const iso = String(venceEn || '').replace(' ', 'T');
   const d = new Date(/(Z|[+-]\d\d:?\d\d)$/.test(iso) ? iso : `${iso}Z`);
-  const ms = isNaN(d.getTime()) ? 0 : d.getTime() - ahora;
-  if (ms <= 0) return <span className={className}>00:00:00</span>;
+  const ms = isNaN(d.getTime()) ? 0 : Math.max(0, d.getTime() - ahora);
   const seg = Math.floor(ms / 1000);
   const h = Math.floor(seg / 3600);
   const m = Math.floor((seg % 3600) / 60);
   const sg = seg % 60;
   const p = (n: number) => String(n).padStart(2, '0');
-  return (
+
+  const bloque = (valor: string, etiqueta: string) => (
+    <div className="flex flex-col items-center">
+      <div
+        className={`relative flex items-center justify-center rounded-lg bg-red-700 text-white font-mono font-bold tabular-nums shadow-[0_6px_14px_-6px_rgba(153,27,27,0.7)] ${
+          pequeno ? 'w-9 h-9 text-base' : 'w-16 h-16 sm:w-[4.5rem] sm:h-[4.5rem] text-4xl'
+        }`}
+      >
+        {valor}
+        {/* línea del medio, como en los relojes de tarjetas */}
+        <span className="absolute inset-x-0 top-1/2 h-px bg-red-900/60" aria-hidden="true" />
+      </div>
+      <span
+        className={`uppercase tracking-wide font-semibold text-red-800 ${
+          pequeno ? 'text-[9px] mt-0.5' : 'text-[11px] mt-1.5'
+        }`}
+      >
+        {etiqueta}
+      </span>
+    </div>
+  );
+  const separador = (
     <span
-      className={`font-mono font-bold tabular-nums ${className}`}
+      className={`font-bold text-red-700 ${pequeno ? 'text-base pb-3' : 'text-3xl pb-5'}`}
+      aria-hidden="true"
+    >
+      :
+    </span>
+  );
+
+  return (
+    <div
       role="timer"
       aria-label={`${h} horas ${m} minutos ${sg} segundos`}
+      className="inline-flex items-start gap-1.5"
     >
-      {p(h)}:{p(m)}:{p(sg)}
-    </span>
+      {bloque(p(h), 'Horas')}
+      {separador}
+      {bloque(p(m), 'Min')}
+      {separador}
+      {bloque(p(sg), 'Seg')}
+    </div>
   );
 }
 
@@ -219,7 +253,7 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
                       if (!t) return <span className="text-red-600 font-semibold">Plazo cumplido · se bloquea en breve</span>;
                       return (
                         <span className={`inline-flex items-center gap-1.5 font-semibold ${t.urgente ? 'text-red-600' : 'text-[#144193]'}`}>
-                          <Clock size={14} /> Te faltan <CuentaRegresiva venceEn={r.vence_en} />
+                          <Clock size={14} /> Te faltan <CuentaRegresiva venceEn={r.vence_en} pequeno />
                           <span className="block font-normal text-xs text-slate-700 ml-1">hasta {fechaEC(r.vence_en)}</span>
                         </span>
                       );

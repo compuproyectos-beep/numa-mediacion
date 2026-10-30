@@ -930,18 +930,17 @@ function ProcesoDetalleContenido() {
           {proceso.numero_acta_codigo && proceso.numero_acta_estado === 'reservado' && (() => {
             const t = tiempoRestante(proceso.numero_acta_vence_en, ahoraReloj);
             return (
-              <p className={`mt-1 inline-flex items-center gap-1.5 text-sm font-semibold ${!t || t.urgente ? 'text-red-700' : 'text-numa-800'}`}>
-                <Clock className="w-4 h-4" aria-hidden="true" />
-                {t ? (
-                  <span>
-                    Te faltan{' '}
-                    <CuentaRegresiva venceEn={proceso.numero_acta_vence_en} className="text-xl" />{' '}
-                    para subir toda la documentación y el comprobante de pago
-                  </span>
-                ) : (
-                  'Plazo de 48 horas cumplido: el acta se bloquea en breve'
-                )}
-              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                <div className="flex items-start gap-2.5 max-w-md">
+                  <Clock className="w-5 h-5 text-red-700 shrink-0 mt-0.5" aria-hidden="true" />
+                  <p className="text-sm font-semibold text-red-900">
+                    {t
+                      ? 'Tiempo para subir toda la documentación y el comprobante de pago'
+                      : 'Plazo de 48 horas cumplido: el acta se bloquea en breve'}
+                  </p>
+                </div>
+                {t && <CuentaRegresiva venceEn={proceso.numero_acta_vence_en} />}
+              </div>
             );
           })()}
         </div>
