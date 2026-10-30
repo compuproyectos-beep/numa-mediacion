@@ -402,7 +402,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
           </p>
           <p className="text-sm text-numa-600 mb-3">
             {proceso.tiene_acta_firmada
-              ? `El acta firmada se subió el ${fmt(proceso.acta_firmada_fecha)}.`
+              ? `El acta firmada se subió el ${fmt(proceso.acta_firmada_fecha)}. El proceso terminó: solo se puede consultar el historial.`
               : 'Proceso anterior a la regla del acta firmada.'}
           </p>
           <div className="flex flex-wrap items-center gap-2">

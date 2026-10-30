@@ -473,11 +473,6 @@ function ProcesoDetalleContenido() {
       return;
     }
 
-    if (!invitacionForm.observaciones.trim()) {
-      setError('Debes ingresar una observación para la invitación');
-      return;
-    }
-
     enviandoInvitacionRef.current = true;
     setGuardandoInvitacion(true);
     setError('');
@@ -1394,7 +1389,7 @@ function ProcesoDetalleContenido() {
           )}
         </div>
 
-        {proceso.finalizado && proceso.etapa_acta !== 'falta_firmada' && (
+        {proceso.finalizado && proceso.etapa_acta !== 'falta_firmada' && proceso.etapa_acta !== 'completa' && (
           <div className="flex items-start gap-3 px-4 py-3 bg-white border border-numa-100 border-l-4 border-l-green-600 rounded-sm text-sm">
             <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" aria-hidden="true" />
             <p className="text-numa-700">
@@ -1635,7 +1630,7 @@ function ProcesoDetalleContenido() {
 
             <div ref={observacionesRef} className="mt-4">
               <TextareaField
-                label="Observaciones (obligatorio)"
+                label="Observaciones (opcional)"
                 rows={3}
                 value={invitacionForm.observaciones}
                 onChange={(e) =>
@@ -1644,7 +1639,7 @@ function ProcesoDetalleContenido() {
                     observaciones: e.target.value
                   })
                 }
-                placeholder="Ejemplo: Primera invitación a reunión de mediación..."
+                placeholder="Solo si quieres dejar una nota sobre esta invitación"
               />
             </div>
 
@@ -1660,8 +1655,7 @@ function ProcesoDetalleContenido() {
                 onClick={handleCrearInvitacion}
                 disabled={
                   guardandoInvitacion ||
-                  horaInvitacionOcupada ||
-                  !invitacionForm.observaciones.trim()
+                  horaInvitacionOcupada
                 }
                 className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >

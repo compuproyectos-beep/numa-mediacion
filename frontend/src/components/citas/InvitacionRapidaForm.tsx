@@ -355,10 +355,6 @@ export default function InvitacionRapidaForm({
       setError('Escribe el tema a tratar en la reunión.');
       return;
     }
-    if (!observaciones.trim()) {
-      setError('Debes ingresar una observación para la invitación.');
-      return;
-    }
 
     setGuardando(true);
     setError('');
@@ -432,11 +428,11 @@ export default function InvitacionRapidaForm({
           />
 
           <TextareaField
-            label="Observaciones (obligatorio)"
+            label="Observaciones (opcional)"
             rows={3}
             value={observaciones}
             onChange={(e) => setObservaciones(e.target.value)}
-            placeholder="Ejemplo: Primera invitación a reunión de mediación..."
+            placeholder="Solo si quieres dejar una nota sobre esta invitación"
           />
         </div>
       </div>

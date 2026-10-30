@@ -182,11 +182,6 @@ export default function AgendaPanel({ embebido = false }: { embebido?: boolean }
   const handleCrearInvitacion = async () => {
     if (!procesoSeleccionadoId || !invitacionForm.fecha || !invitacionForm.hora) return;
 
-    if (!invitacionForm.observaciones.trim()) {
-      setError('Debes ingresar una observación para la invitación');
-      return;
-    }
-
     setGuardandoInvitacion(true);
     setError('');
     setSuccessMessage('');
@@ -343,7 +338,7 @@ export default function AgendaPanel({ embebido = false }: { embebido?: boolean }
           </p>
 
           <TextareaField
-            label="Observaciones (obligatorio)"
+            label="Observaciones (opcional)"
             rows={3}
             value={invitacionForm.observaciones}
             onChange={(e) =>
@@ -352,7 +347,7 @@ export default function AgendaPanel({ embebido = false }: { embebido?: boolean }
                 observaciones: e.target.value
               })
             }
-            placeholder="Ejemplo: Primera invitación a reunión de mediación..."
+            placeholder="Solo si quieres dejar una nota sobre esta invitación"
           />
 
           {error && (
@@ -364,7 +359,7 @@ export default function AgendaPanel({ embebido = false }: { embebido?: boolean }
           <button
             type="button"
             onClick={handleCrearInvitacion}
-            disabled={guardandoInvitacion || !invitacionForm.observaciones.trim()}
+            disabled={guardandoInvitacion}
             className="btn-primary mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {guardandoInvitacion ? 'Guardando...' : 'Crear invitación'}

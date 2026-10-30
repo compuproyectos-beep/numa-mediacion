@@ -955,7 +955,7 @@ export default function CalendarioAgendaMediador({
                           <button
                             type="button"
                             onClick={() => router.push(`/procesos?crear=1&cita=${citaActiva.id}&directo=1`)}
-                            className="btn-secondary inline-flex items-center gap-2"
+                            className="btn-primary inline-flex items-center gap-2"
                           >
                             <FolderPlus className="w-4 h-4" />
                             Crear el proceso
@@ -969,7 +969,7 @@ export default function CalendarioAgendaMediador({
                               setNotaCierre('');
                               setMostrarCerrarSinProceso(true);
                             }}
-                            className="btn-primary disabled:opacity-50"
+                            className="btn-secondary disabled:opacity-50"
                           >
                             Cerrar sin proceso
                           </button>

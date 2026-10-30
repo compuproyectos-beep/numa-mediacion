@@ -4650,12 +4650,6 @@ def crear_invitacion_proceso(
                 detail="Este proceso está anulado: no admite invitaciones"
             )
 
-        if not observaciones or not observaciones.strip():
-            raise HTTPException(
-                status_code=400,
-                detail="Debes ingresar una observación para la invitación"
-            )
-
         try:
             fecha_hora_cita = datetime.datetime.strptime(
                 f"{fecha} {hora}", "%Y-%m-%d %H:%M"
@@ -4923,9 +4917,6 @@ def crear_invitacion_rapida(datos: dict, usuario=Depends(obtener_usuario_actual)
     # blanco (el mediador lo completa después en el documento).
     if not tema and usuario["rol"] != "secretaria":
         raise HTTPException(status_code=400, detail="Escribe el tema a tratar en la reunión")
-
-    if not observaciones:
-        raise HTTPException(status_code=400, detail="Debes ingresar una observación para la invitación")
 
     try:
         fecha_hora_cita = datetime.datetime.strptime(f"{fecha} {hora[:5]}", "%Y-%m-%d %H:%M")

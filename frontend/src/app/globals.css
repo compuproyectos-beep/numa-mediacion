@@ -53,7 +53,7 @@
   }
 
   .btn-secondary {
-    @apply btn-base px-5 py-2.5 border border-numa-400 bg-white text-numa-900 hover:bg-numa-50 hover:border-numa-500 disabled:hover:bg-white;
+    @apply btn-base px-5 py-2.5 border border-numa-500 bg-numa-50 text-numa-900 shadow-sm hover:bg-numa-100 hover:border-numa-600 disabled:hover:bg-numa-50;
   }
 
   .btn-gold {
