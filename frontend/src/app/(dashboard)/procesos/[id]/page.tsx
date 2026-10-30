@@ -890,7 +890,7 @@ function ProcesoDetalleContenido() {
   }
 
   return (
-    <>
+    <div className="vista-proceso">
       <button onClick={volverAtras} className="btn-ghost text-sm mb-4 -ml-2">
         <ArrowLeft className="w-4 h-4" />
         Volver
@@ -1199,7 +1199,7 @@ function ProcesoDetalleContenido() {
         </div>
       )}
 
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div>
           <h3 className="text-base font-bold text-numa-900 mb-3">
             Línea de tiempo del proceso
@@ -1319,7 +1319,7 @@ function ProcesoDetalleContenido() {
                     )}
 
                     {avance?.resultado ? (
-                      <div className="mt-3 rounded-lg bg-numa-100/70 px-3.5 py-3">
+                      <div className="mt-3 rounded-lg bg-gold-50 px-3.5 py-3">
                         <p className="text-[11px] font-bold uppercase tracking-wide text-numa-700">
                           Resultado
                         </p>
@@ -2134,6 +2134,6 @@ function ProcesoDetalleContenido() {
           </div>
         </div>
       </Modal>
-    </>
+    </div>
   );
 }
