@@ -77,8 +77,6 @@ export function CuentaRegresiva({ venceEn, pequeno = false }: { venceEn: any; pe
         }`}
       >
         {valor}
-        {/* línea del medio, como en los relojes de tarjetas */}
-        <span className="absolute inset-x-0 top-1/2 h-px bg-red-900/60" aria-hidden="true" />
       </div>
       <span
         className={`uppercase tracking-wide font-semibold text-red-800 ${
