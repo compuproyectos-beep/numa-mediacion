@@ -394,7 +394,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
       )}
 
       {/* Completa */}
-      {etapa === 'completa' && (
+      {etapa === 'completa' && !proceso.tiene_acta_firmada && (
         <div className="card p-4">
           <p className="flex items-center gap-2 text-sm text-numa-900 font-semibold mb-1">
             <CheckCircle2 className="w-5 h-5 text-green-600" aria-hidden="true" />

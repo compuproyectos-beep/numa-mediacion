@@ -1320,16 +1320,28 @@ function ProcesoDetalleContenido() {
 
                     {avance?.resultado ? (
                       <div className="mt-3 rounded-lg bg-gold-50 px-3.5 py-3">
-                        <p className="text-[11px] font-bold uppercase tracking-wide text-numa-700">
-                          Resultado
-                        </p>
+                        {/* Si es el cierre del proceso, el resultado ya está en el encabezado
+                            ("Cerrado con acuerdo"): aquí no se repite. */}
+                        {!(proceso.finalizado && String(avance.resultado).startsWith('cerrado')) && (
+                          <>
+                            <p className="text-[11px] font-bold uppercase tracking-wide text-numa-700">
+                              Resultado
+                            </p>
 
-                        <p className="text-base font-bold text-numa-900">
-                          {estadoLabelProceso(avance.resultado, proceso.requiere_acta_no_acuerdo)}
-                        </p>
+                            <p className="text-base font-bold text-numa-900">
+                              {estadoLabelProceso(avance.resultado, proceso.requiere_acta_no_acuerdo)}
+                            </p>
+                          </>
+                        )}
 
-                        <p className="text-[11px] font-bold uppercase tracking-wide text-numa-700 mt-3">
-                          Registro / observación
+                        <p
+                          className={`text-[11px] font-bold uppercase tracking-wide text-numa-700 ${
+                            proceso.finalizado && String(avance.resultado).startsWith('cerrado') ? '' : 'mt-3'
+                          }`}
+                        >
+                          {proceso.finalizado && String(avance.resultado).startsWith('cerrado')
+                            ? 'Observación del cierre'
+                            : 'Registro / observación'}
                         </p>
 
                         <p className="text-sm text-numa-900 whitespace-pre-wrap">
