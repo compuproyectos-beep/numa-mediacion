@@ -415,7 +415,7 @@ export default function HomePage() {
               </div>
 
               <h2 className="text-xl sm:text-2xl font-bold text-numa-900 mb-2 leading-tight">
-                Numa Pompilio, símbolo de mediador
+                Numa Pompilio, SÍMBOLO DE MEDIADOR
               </h2>
 
               <p className="text-sm text-numa-600 leading-relaxed justify-es">
