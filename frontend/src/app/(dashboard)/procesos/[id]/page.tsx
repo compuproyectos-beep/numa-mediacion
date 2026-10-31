@@ -771,7 +771,7 @@ function ProcesoDetalleContenido() {
     }
 
     if (conActa(proceso) && procesoPrimeroEnFila) {
-      return `Espera tu turno: primero completa el proceso ${procesoPrimeroEnFila.codigo_proceso}.`;
+      return `Primero completa el acta ${procesoPrimeroEnFila.numero_acta_codigo || `del proceso ${procesoPrimeroEnFila.codigo_proceso}`}, que ya pasó las 48 horas.`;
     }
 
     if (conActa(proceso) && tieneFacturacion === false) {
@@ -1021,10 +1021,9 @@ function ProcesoDetalleContenido() {
       {procesoPrimeroEnFila ? (
         <div className="mb-4 text-sm px-4 py-3 rounded-sm border font-medium bg-blue-50 border-blue-100 text-blue-700 flex items-center justify-between gap-3 flex-wrap">
           <span>
-            Este proceso también tiene su acta pendiente, pero primero debes
-            completar el proceso{' '}
-            <strong>{procesoPrimeroEnFila.codigo_proceso}</strong> (acta,
-            comprobante y acta firmada) — es el primero en la fila.
+            Esta acta no se puede subir todavía: primero debes completar el acta{' '}
+            <strong>{procesoPrimeroEnFila.numero_acta_codigo || `del proceso ${procesoPrimeroEnFila.codigo_proceso}`}</strong>{' '}
+            (documentos, comprobante y acta firmada), porque ya pasaron sus 48 horas.
           </span>
 
           <button
@@ -1779,7 +1778,7 @@ function ProcesoDetalleContenido() {
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <p className="text-sm text-numa-700">
                 {procesoPrimeroEnFila
-                  ? `Este proceso necesita su acta, pero primero debes completar el proceso ${procesoPrimeroEnFila.codigo_proceso} (es el primero en la fila).`
+                  ? `Esta acta no se puede subir todavía: primero completa el acta ${procesoPrimeroEnFila.numero_acta_codigo || `del proceso ${procesoPrimeroEnFila.codigo_proceso}`}, que ya pasó las 48 horas.`
                   : esNoAcuerdo(proceso)
                   ? 'Se pidió el acta de no acuerdo. Sube la documentación y el comprobante de pago para cerrarla.'
                   : 'El proceso llegó a un acuerdo. Sube la documentación y el comprobante de pago para cerrarlo.'}

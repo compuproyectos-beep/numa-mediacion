@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Bell, Calendar, FileText, CheckCircle2, AlertTriangle, X } from 'lucide-react';
+import { Bell, Calendar, FileText, CheckCircle2, AlertTriangle, Clock, X } from 'lucide-react';
 import { Modal } from '@/components/ui';
 import Sidebar from '@/components/layout/Sidebar';
+import { CuentaRegresiva } from '@/components/actas/NumeroActaPanel';
 import { getToken, getUser } from '@/lib/auth';
 import {
   getNotificaciones,
@@ -408,10 +409,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {urgentes.length > 0 && (
             <div className="bg-[#F4F7FC] border-t border-[#DCE5F3]" role="alert">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5">
-                <div className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-[#CBD6E8] bg-white pl-4 pr-3 py-2.5 shadow-[0_8px_20px_-16px_rgba(11,39,89,0.7)]">
-                  <span className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-[#E5484D] to-[#B42318]" aria-hidden />
-                  <span className="ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FDECEC] text-[#C0262D]">
-                    <AlertTriangle className="w-[18px] h-[18px]" />
+                <div className={`relative flex flex-wrap items-center gap-x-4 gap-y-2 overflow-hidden rounded-xl border pl-4 pr-3 py-2.5 shadow-[0_8px_20px_-16px_rgba(11,39,89,0.7)] ${
+                  urgentes[0].titulo === 'Acta por vencer'
+                    ? 'border-red-300 bg-gradient-to-r from-red-50 via-red-50 to-white'
+                    : 'border-[#CBD6E8] bg-white'
+                }`}>
+                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                    urgentes[0].titulo === 'Acta por vencer' ? 'bg-red-700 text-white' : 'bg-[#FDECEC] text-[#C0262D]'
+                  }`}>
+                    {urgentes[0].titulo === 'Acta por vencer'
+                      ? <Clock className="w-[18px] h-[18px]" aria-hidden="true" />
+                      : <AlertTriangle className="w-[18px] h-[18px]" />}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-[#0A2A62] leading-tight">
@@ -424,6 +432,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </p>
                     <p className="mt-0.5 text-[13px] text-[#4A5B78] line-clamp-2 break-words">{urgentes[0].mensaje}</p>
                   </div>
+                  {urgentes[0].titulo === 'Acta por vencer' && urgentes[0].vence_en && (
+                    <CuentaRegresiva venceEn={urgentes[0].vence_en} pequeno />
+                  )}
                   <button
                     type="button"
                     onClick={abrirUrgentes}

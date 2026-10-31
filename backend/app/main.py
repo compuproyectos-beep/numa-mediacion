@@ -763,6 +763,7 @@ def obtener_notificaciones_urgentes(usuario=Depends(obtener_usuario_actual)):
         if usuario["rol"] == "mediador":
             cur.execute("""
                 SELECT na.id, na.codigo, na.proceso_id,
+                       na.fecha_solicitud + INTERVAL '48 hours' AS vence_en,
                        to_char((na.fecha_solicitud + INTERVAL '48 hours') AT TIME ZONE 'America/Guayaquil',
                                'DD/MM "a las" HH24:MI') AS vence_texto
                 FROM numeros_acta na
@@ -777,8 +778,8 @@ def obtener_notificaciones_urgentes(usuario=Depends(obtener_usuario_actual)):
                     "id": -r["id"],  # negativo: aviso calculado, no existe en la tabla de notificaciones
                     "titulo": "Acta por vencer",
                     "mensaje": (
-                        f"Tu acta {r['codigo']} vence el {r['vence_texto']} (hora de Ecuador). "
-                        "Sube toda la documentación y el comprobante de pago antes de que se bloquee."
+                        f"Tu acta {r['codigo']} se bloquea el {r['vence_texto']} (hora de Ecuador). "
+                        "Sube la documentación y el comprobante de pago antes de que termine el tiempo."
                     ),
                     "tipo": "acta",
                     "leida": True,
@@ -787,6 +788,7 @@ def obtener_notificaciones_urgentes(usuario=Depends(obtener_usuario_actual)):
                     "fecha_creacion": ahora,
                     "cita_usuario_id": None,
                     "proceso_destino": r["proceso_id"],
+                    "vence_en": r["vence_en"],
                 })
 
         filas.sort(key=lambda r: r["fecha_creacion"], reverse=True)
@@ -4261,11 +4263,32 @@ HORAS_GRACIA_ACTA = 48
 
 
 def _sql_acta_vencida(a: str = "p") -> str:
+    # El plazo corre desde que se pidió el número de acta (si el proceso tiene
+    # uno reservado); si no, desde el acuerdo / la solicitud del acta de no
+    # acuerdo. Así, varias actas dentro de sus 48 horas se pueden subir en
+    # cualquier orden: solo bloquea la que ya venció.
     return (
         f"({a}.reactivado_fecha IS NOT NULL OR "
-        f"COALESCE({a}.fecha_acuerdo, {a}.fecha_solicitud_acta_na) "
+        f"COALESCE("
+        f"(SELECT MIN(nr.fecha_solicitud) FROM numeros_acta nr "
+        f"WHERE nr.proceso_id = {a}.id AND nr.estado = 'reservado'), "
+        f"{a}.fecha_acuerdo, {a}.fecha_solicitud_acta_na) "
         f"<= NOW() - INTERVAL '{HORAS_GRACIA_ACTA} hours')"
     )
+
+
+def _texto_acta_bloqueante(cur, proceso_id, codigo_proceso):
+    """«el acta CAL-SUR-00032 (proceso PRC-000054)» o, si no tiene número,
+    «el acta del proceso PRC-000054»."""
+    cur.execute(
+        "SELECT codigo FROM numeros_acta WHERE proceso_id = %s AND estado IN ('reservado','usado') "
+        "ORDER BY id DESC LIMIT 1",
+        (proceso_id,)
+    )
+    r = cur.fetchone()
+    if r and r["codigo"]:
+        return f"el acta {r['codigo']} (proceso {codigo_proceso})"
+    return f"el acta del proceso {codigo_proceso}"
 
 
 def _con_acta(estado, requiere_na) -> bool:
@@ -5869,9 +5892,9 @@ async def subir_acta_final_proceso(
                 raise HTTPException(
                     status_code=400,
                     detail=(
-                        f"Primero debes completar el proceso {bloqueante['codigo_proceso']} "
-                        f"({_cierre_txt} el {fecha_txt}, hace más de 48 horas): falta subir {faltante}. "
-                        f"Hasta entonces no puedes subir actas de otros procesos. Si no se "
+                        f"Primero debes completar {_texto_acta_bloqueante(cur, bloqueante['id'], bloqueante['codigo_proceso'])}: "
+                        f"ya pasaron más de 48 horas ({_cierre_txt} el {fecha_txt}) y falta subir {faltante}. "
+                        f"Hasta entonces no puedes subir otras actas que ya estén vencidas. Si no se "
                         f"puede completar, pide al administrador que lo suspenda."
                     )
                 )
@@ -6900,7 +6923,7 @@ def _motivo_no_puede_pedir_numero(cur, usuario):
                 f"pide al administrador que lo anule."
             )
     cur.execute(
-        "SELECT p.codigo_proceso FROM procesos_mediacion p "
+        "SELECT p.id, p.codigo_proceso FROM procesos_mediacion p "
         "WHERE p.usuario_id = %s AND " + _sql_acta_pendiente("p") +
         " AND " + _sql_acta_vencida("p") +
         " ORDER BY " + _sql_fecha_cola("p") + " ASC NULLS LAST, p.id ASC LIMIT 1",
@@ -6909,7 +6932,7 @@ def _motivo_no_puede_pedir_numero(cur, usuario):
     bloqueante = cur.fetchone()
     if bloqueante:
         return (
-            f"Primero debes completar el proceso {bloqueante['codigo_proceso']} "
+            f"Primero debes completar {_texto_acta_bloqueante(cur, bloqueante['id'], bloqueante['codigo_proceso'])} "
             f"(documentos del acta, comprobante de pago y acta firmada): ya pasaron más de 48 horas. "
             f"Hasta entonces no puedes pedir otro número de acta."
         )
