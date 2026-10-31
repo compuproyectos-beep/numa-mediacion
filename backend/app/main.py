@@ -3608,6 +3608,23 @@ def cambiar_estado_cita(
                 detail="Esta invitación pertenece a un proceso: su resultado se registra dentro del proceso, en Registrar avance"
             )
 
+        # Una invitación rápida con número de acta pedido no se puede cancelar ni
+        # cerrar sin proceso: ese camino dejaría al mediador sin completar el acta.
+        # Debe crear el proceso; si la reunión no se hizo, el administrador anula el número.
+        if estado in ("cancelada", "realizada") and not cita_actual["proceso_id"]:
+            cur.execute(
+                "SELECT 1 FROM numeros_acta WHERE cita_id = %s AND estado IN ('reservado', 'usado') LIMIT 1",
+                (cita_id,)
+            )
+            if cur.fetchone():
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "Esta invitación ya tiene número de acta, así que no se puede cancelar ni cerrar sin proceso. "
+                        "Crea el proceso para continuar. Si la reunión no se hizo, pide al administrador que anule el número."
+                    )
+                )
+
         if usuario["rol"] == "secretaria":
             if cita_actual["sucursal_id"] != usuario["sucursal_id"]:
                 raise HTTPException(

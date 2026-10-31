@@ -249,6 +249,9 @@ export default function CalendarioAgendaMediador({
     !c.proceso_id &&
     c.estado === 'pendiente' &&
     (!c.numero_acta_codigo || c.numero_acta_estado === 'anulado');
+  // Con número de acta pedido (y sin proceso) no se puede cancelar ni cerrar sin proceso.
+  const tieneNumeroActivo = (c: any) =>
+    !!c && !c.proceso_id && !!c.numero_acta_codigo && ['reservado', 'usado'].includes(c.numero_acta_estado);
   const [calendarDate, setCalendarDate] = useState(new Date());
 
   // Día vacío elegido para agendar una cita NUEVA
@@ -947,7 +950,9 @@ export default function CalendarioAgendaMediador({
                     <>
                       <p className="mb-2">
                         {usuarioActual?.id === citaActiva.usuario_id
-                          ? 'Si la reunión continúa, crea el proceso (puedes hacerlo antes de la hora). Si no, ciérrala sin proceso una vez realizada.'
+                          ? (tieneNumeroActivo(citaActiva)
+                              ? 'Ya tiene número de acta: crea el proceso para continuar (puedes hacerlo antes de la hora).'
+                              : 'Si la reunión continúa, crea el proceso (puedes hacerlo antes de la hora). Si no, ciérrala sin proceso una vez realizada.')
                           : `Si la reunión continúa, ${citaActiva.mediador || 'el mediador'} crea el proceso. Si no, puedes cerrarla sin proceso una vez realizada.`}
                       </p>
                       <div className="flex flex-wrap gap-3 items-center">
@@ -961,7 +966,7 @@ export default function CalendarioAgendaMediador({
                             Crear el proceso
                           </button>
                         ) : null}
-                        {permitirGestionarEstado && (
+                        {permitirGestionarEstado && !tieneNumeroActivo(citaActiva) && (
                           <button
                             type="button"
                             disabled={!horaLlego || cambiandoEstado}
@@ -974,7 +979,7 @@ export default function CalendarioAgendaMediador({
                             Cerrar sin proceso
                           </button>
                         )}
-                        {permitirGestionarEstado && !horaLlego && (
+                        {permitirGestionarEstado && !horaLlego && !tieneNumeroActivo(citaActiva) && (
                           <span>Se habilita cuando llegue la hora de la reunión.</span>
                         )}
                       </div>
@@ -1042,14 +1047,16 @@ export default function CalendarioAgendaMediador({
                   Ir al proceso
                 </button>
               )}
-              <button
-                type="button"
-                disabled={cambiandoEstado}
-                onClick={handleCancelarClick}
-                className="btn-secondary text-red-600 hover:bg-red-50 disabled:opacity-50"
-              >
-                Cancelar invitación
-              </button>
+              {!tieneNumeroActivo(citaActiva) && (
+                <button
+                  type="button"
+                  disabled={cambiandoEstado}
+                  onClick={handleCancelarClick}
+                  className="btn-secondary text-red-600 hover:bg-red-50 disabled:opacity-50"
+                >
+                  Cancelar invitación
+                </button>
+              )}
             </div>
           ) : citaActiva.estado === 'pendiente' ? (
             <p className="text-sm text-numa-700">
