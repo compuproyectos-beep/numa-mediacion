@@ -754,6 +754,41 @@ def obtener_notificaciones_urgentes(usuario=Depends(obtener_usuario_actual)):
             ORDER BY n.titulo, n.referencia_tipo, n.referencia_id, n.fecha_creacion DESC
         """, (usuario["id"],))
         filas = cur.fetchall()
+        for f in filas:
+            f["proceso_destino"] = None
+
+        # Aviso "Acta por vencer": al mediador le quedan 8 horas o menos para completar un número de
+        # acta (el plazo es de 48 horas). No se guarda en la base: se calcula aquí, así aparece solo
+        # y desaparece solo cuando sube la documentación o el acta se bloquea.
+        if usuario["rol"] == "mediador":
+            cur.execute("""
+                SELECT na.id, na.codigo, na.proceso_id,
+                       to_char((na.fecha_solicitud + INTERVAL '48 hours') AT TIME ZONE 'America/Guayaquil',
+                               'DD/MM "a las" HH24:MI') AS vence_texto
+                FROM numeros_acta na
+                WHERE na.usuario_id = %s AND na.estado = 'reservado'
+                  AND na.fecha_solicitud + INTERVAL '48 hours' > NOW()
+                  AND na.fecha_solicitud + INTERVAL '48 hours' <= NOW() + INTERVAL '8 hours'
+                ORDER BY na.fecha_solicitud ASC
+            """, (usuario["id"],))
+            ahora = datetime.datetime.now(datetime.timezone.utc)
+            for r in cur.fetchall():
+                filas.append({
+                    "id": -r["id"],  # negativo: aviso calculado, no existe en la tabla de notificaciones
+                    "titulo": "Acta por vencer",
+                    "mensaje": (
+                        f"Tu acta {r['codigo']} vence el {r['vence_texto']} (hora de Ecuador). "
+                        "Sube toda la documentación y el comprobante de pago antes de que se bloquee."
+                    ),
+                    "tipo": "acta",
+                    "leida": True,
+                    "referencia_tipo": "numero_acta",
+                    "referencia_id": r["id"],
+                    "fecha_creacion": ahora,
+                    "cita_usuario_id": None,
+                    "proceso_destino": r["proceso_id"],
+                })
+
         filas.sort(key=lambda r: r["fecha_creacion"], reverse=True)
         return filas
     finally:

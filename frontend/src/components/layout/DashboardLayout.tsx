@@ -25,6 +25,7 @@ const TITULOS_URGENTES = new Set([
   'Acta con plazo vencido',
   'Acta bloqueada',
   'Acta bloqueada por plazo',
+  'Acta por vencer',
   'Cuenta bloqueada',
 ]);
 const TITULOS_DESTACADOS = new Set([
@@ -233,7 +234,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const enRutaBanner = rutasBanner.some((r) => pathname === r || pathname.startsWith(r + '/'));
   const urgentes = urgentesTodos.filter((n) => n.titulo === 'Cuenta bloqueada' || enRutaBanner);
   const esPersistente = (n: any) =>
-    ['Número de acta sin completar', 'Acta con plazo vencido', 'Acta bloqueada', 'Acta bloqueada por plazo'].includes(n?.titulo);
+    ['Número de acta sin completar', 'Acta con plazo vencido', 'Acta bloqueada', 'Acta bloqueada por plazo', 'Acta por vencer'].includes(n?.titulo);
 
   // Abre la ventana con todos los avisos urgentes, empezando por el primero.
   const abrirUrgentes = () => {
@@ -261,6 +262,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     // La secretaria solo entra a Agenda y Clientes: a lo demás no la llevamos
     // (la pantalla la regresaría a la Agenda sin explicación).
     const esSecretariaActual = getUser()?.rol === 'secretaria';
+    if (!esSecretariaActual && n?.proceso_destino) {
+      return { texto: 'Ir al proceso', ruta: `/procesos/${n.proceso_destino}` };
+    }
     if (!esSecretariaActual && n?.referencia_tipo === 'proceso_mediacion' && n.referencia_id) {
       return { texto: 'Ir al proceso', ruta: `/procesos/${n.referencia_id}` };
     }
@@ -274,6 +278,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   const marcarUna = async (id: number) => {
+    // Los avisos calculados por el servidor (id negativo, como "Acta por vencer") no se marcan como leídos.
+    if (id < 0) return;
     const yaLeida = notificaciones.find((n) => n.id === id)?.leida;
     await marcarNotificacionLeida(id);
     if (!yaLeida) setTotalNoLeidas((t) => (t === null ? t : Math.max(0, t - 1)));
@@ -283,7 +289,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
     // Un urgente "normal" sale del banner al leerlo; los persistentes se quedan.
     setUrgentesServidor((prev) =>
-      prev ? prev.filter((x) => x.id !== id || ['Número de acta sin completar', 'Acta con plazo vencido', 'Acta bloqueada', 'Acta bloqueada por plazo'].includes(x.titulo)) : prev
+      prev ? prev.filter((x) => x.id !== id || ['Número de acta sin completar', 'Acta con plazo vencido', 'Acta bloqueada', 'Acta bloqueada por plazo', 'Acta por vencer'].includes(x.titulo)) : prev
     );
   };
 
