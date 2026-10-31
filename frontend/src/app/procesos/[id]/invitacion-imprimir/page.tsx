@@ -135,13 +135,15 @@ function Editable({
   onChange,
   placeholder,
   multi = false,
-  upper = false
+  upper = false,
+  suave = false
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
   multi?: boolean;
   upper?: boolean;
+  suave?: boolean;
 }) {
   const soloLectura = useContext(SoloLecturaCtx);
   const ref = useRef<HTMLSpanElement>(null);
@@ -160,7 +162,7 @@ function Editable({
       suppressContentEditableWarning
       spellCheck={false}
       data-ph={placeholder}
-      className={soloLectura ? undefined : 'campo-edit'}
+      className={soloLectura ? undefined : suave ? 'texto-edit' : 'campo-edit'}
       style={{
         textTransform: upper ? 'uppercase' : undefined,
         whiteSpace: multi ? 'pre-line' : 'pre-wrap'
@@ -210,6 +212,9 @@ function ImprimirInvitacion() {
   const [errorGuardar, setErrorGuardar] = useState('');
   const [okGuardar, setOkGuardar] = useState('');
   const [popFecha, setPopFecha] = useState(false);
+  // Textos fijos del documento que la persona modificó (id -> texto). Lo que no
+  // se toca queda con el texto original del modelo.
+  const [textos, setTextos] = useState<Record<string, string>>({});
 
   // Rellena los campos con los textos que se guardaron con una invitación.
   const aplicarDocumento = (doc: any, conTitulo = true) => {
@@ -221,6 +226,14 @@ function ImprimirInvitacion() {
     if (doc.lugar) setLugar(doc.lugar);
     if (doc.pie) setPie(doc.pie);
     if (typeof doc.extras === 'string') setExtras(doc.extras);
+    if (typeof doc.textos === 'string' && doc.textos) {
+      try {
+        const t = JSON.parse(doc.textos);
+        if (t && typeof t === 'object') setTextos(t);
+      } catch {
+        /* texto guardado dañado: se usan los originales */
+      }
+    }
   };
 
   useEffect(() => {
@@ -296,7 +309,8 @@ function ImprimirInvitacion() {
     pie,
     telefono,
     correo,
-    extras
+    extras,
+    textos: JSON.stringify(textos)
   });
 
   // Nueva: crea la invitación en el sistema y guarda los textos del documento.
@@ -476,6 +490,31 @@ function ImprimirInvitacion() {
 
   const pDefault: React.CSSProperties = { margin: '0 0 3.2mm' };
 
+  // Texto fijo del modelo que se puede modificar (aumentar o quitar) antes de
+  // imprimir. Si no se toca, sale el texto original.
+  const T = (id: string, defecto: string) => (
+    <Editable
+      suave
+      multi
+      placeholder="(texto vacío)"
+      value={textos[id] ?? defecto}
+      onChange={(v) => setTextos((prev) => ({ ...prev, [id]: v }))}
+    />
+  );
+
+  // Párrafo extra opcional antes de la despedida: no sale si queda vacío.
+  const adicional = (
+    <p style={pDefault} className={(textos.adicional || '').trim() ? undefined : 'extras-vacio'}>
+      <Editable
+        suave
+        multi
+        placeholder="Párrafo adicional (opcional): escribe aquí lo que quieras agregar"
+        value={textos.adicional ?? ''}
+        onChange={(v) => setTextos((prev) => ({ ...prev, adicional: v }))}
+      />
+    </p>
+  );
+
   const firma = (
     <div style={{ marginTop: '14mm', breakInside: 'avoid' }}>
       <div style={{ width: '70mm', borderBottom: '1px solid #222', height: '16mm' }} />
@@ -513,12 +552,13 @@ function ImprimirInvitacion() {
       <p style={pDefault}>
         <Editable value={titulo} onChange={setTitulo} placeholder="Primera invitación" />.
       </p>
-      <p style={pDefault}>De mi consideración:</p>
+      <p style={pDefault}>{T('n_consideracion', 'De mi consideración:')}</p>
 
       <p style={pDefault}>
         {plural(solicitantes, 'La persona', 'Las personas')} {listaNombres(solicitantes)},{' '}
         {plural(solicitantes, 'ha solicitado', 'han solicitado')} una Audiencia de Mediación, con{' '}
-        {listaNombres(invitados)}, y así poder solucionar, de manera extrajudicial, un conflicto de ámbito{' '}
+        {listaNombres(invitados)},{' '}
+        {T('n_intro_fin', 'y así poder solucionar, de manera extrajudicial, un conflicto de ámbito')}{' '}
         <b>
           <Editable value={asunto} onChange={setAsunto} placeholder="ámbito del conflicto" upper />
         </b>
@@ -526,8 +566,8 @@ function ImprimirInvitacion() {
       </p>
 
       <p style={pDefault}>
-        Este centro acepta prestar sus servicios, para cuyo efecto convoca a la Audiencia de
-        Mediación que se efectuará el {chipFecha}, a realizarse{' '}
+        {T('n_convoca', 'Este centro acepta prestar sus servicios, para cuyo efecto convoca a la Audiencia de Mediación que se efectuará el')}{' '}
+        {chipFecha}, a realizarse{' '}
         <Editable value={lugar} onChange={setLugar} placeholder="lugar de la audiencia" multi />.
       </p>
 
@@ -536,7 +576,8 @@ function ImprimirInvitacion() {
         electrónico {correo}.
       </p>
 
-      <p style={pDefault}>Atentamente,</p>
+      {adicional}
+      <p style={pDefault}>{T('atentamente', 'Atentamente,')}</p>
       {firma}
     </>
   );
@@ -563,24 +604,20 @@ function ImprimirInvitacion() {
         <Editable value={titulo} onChange={setTitulo} placeholder="Primera invitación" />.
       </p>
       <p style={pDefault}>
-        <b>De mi consideración:</b>
+        <b>{T('e_consideracion', 'De mi consideración:')}</b>
       </p>
 
       <p style={pDefault}>
-        Reciba un cordial saludo por parte del Centro de Mediación “NUMA”, quien suscribe lo hace
-        en calidad de mediador autorizado debidamente registrado en el Consejo de la Judicatura,
-        cumpliendo con los requisitos formales que exige la Ley de Arbitraje y Mediación en sus
-        artículos 43, 44 y 45 de la ley ibídem; por consiguiente, manifiesto a continuación:
+        {T('e_saludo', 'Reciba un cordial saludo por parte del Centro de Mediación “NUMA”, quien suscribe lo hace en calidad de mediador autorizado debidamente registrado en el Consejo de la Judicatura, cumpliendo con los requisitos formales que exige la Ley de Arbitraje y Mediación en sus artículos 43, 44 y 45 de la ley ibídem; por consiguiente, manifiesto a continuación:')}
       </p>
 
       <p style={pDefault}>
-        <b>1.- SOLICITUD DE MEDIACIÓN</b>
+        <b>{T('e_h1', '1.- SOLICITUD DE MEDIACIÓN')}</b>
       </p>
       <p style={pDefault}>
         {listaNombres(solicitantes, true)}, {plural(solicitantes, 'ha solicitado', 'han solicitado')} que
-        invite a {listaNombres(invitados)}, para llevar a cabo una audiencia en el Centro de
-        Mediación “NUMA”, con el fin de resolver el conflicto mediante acuerdos voluntarios
-        extrajudiciales, referente a:{' '}
+        invite a {listaNombres(invitados)},{' '}
+        {T('e_solicitud_fin', 'para llevar a cabo una audiencia en el Centro de Mediación “NUMA”, con el fin de resolver el conflicto mediante acuerdos voluntarios extrajudiciales, referente a:')}{' '}
         <b>
           <Editable value={asunto} onChange={setAsunto} placeholder="asunto" />
         </b>
@@ -588,39 +625,29 @@ function ImprimirInvitacion() {
       </p>
 
       <p style={pDefault}>
-        <b>2.- INVITACIÓN</b>
+        <b>{T('e_h2', '2.- INVITACIÓN')}</b>
       </p>
       <p style={pDefault}>
-        Este centro acepta prestar sus servicios, para cuyo efecto convoca a la audiencia de
-        mediación que se efectuará el {chipFecha},{' '}
-        <Editable value={lugar} onChange={setLugar} placeholder="lugar de la audiencia" multi />, lugar donde se procurará un
-        acuerdo voluntario que verse sobre materia transigible, de carácter extrajudicial y
-        definitivo, que ponga fin al conflicto.
-      </p>
-
-      <p style={pDefault}>
-        Una vez que las partes han sido debidamente notificadas con la presente invitación, se les
-        informa que podrán comparecer a la audiencia de mediación de manera personal o mediante
-        conexión telemática.
+        {T('e_convoca', 'Este centro acepta prestar sus servicios, para cuyo efecto convoca a la audiencia de mediación que se efectuará el')}{' '}
+        {chipFecha},{' '}
+        <Editable value={lugar} onChange={setLugar} placeholder="lugar de la audiencia" multi />,{' '}
+        {T('e_convoca_fin', 'lugar donde se procurará un acuerdo voluntario que verse sobre materia transigible, de carácter extrajudicial y definitivo, que ponga fin al conflicto.')}
       </p>
 
       <p style={pDefault}>
-        Se deja expresa constancia de que la presente diligencia no requiere de patrocinio de
-        abogado, por tratarse de un procedimiento de mediación en el cual las partes serán
-        asistidas directamente por el mediador, conforme a la normativa vigente.
+        {T('e_telematica', 'Una vez que las partes han sido debidamente notificadas con la presente invitación, se les informa que podrán comparecer a la audiencia de mediación de manera personal o mediante conexión telemática.')}
       </p>
 
       <p style={pDefault}>
-        Se recuerda a los comparecientes que deberán presentarse portando su documento de
-        identidad original. En caso de actuar en calidad de representantes legales de personas
-        jurídicas, deberán exhibir en original los documentos habilitantes que acrediten dicha
-        representación.
+        {T('e_abogado', 'Se deja expresa constancia de que la presente diligencia no requiere de patrocinio de abogado, por tratarse de un procedimiento de mediación en el cual las partes serán asistidas directamente por el mediador, conforme a la normativa vigente.')}
       </p>
 
       <p style={pDefault}>
-        Con los antecedentes antes expuestos y, de acuerdo al Art. 51 de la Ley de Arbitraje y
-        Mediación, a la que fuere convocada, el mediador expedirá la constancia de imposibilidad
-        de mediación.
+        {T('e_identidad', 'Se recuerda a los comparecientes que deberán presentarse portando su documento de identidad original. En caso de actuar en calidad de representantes legales de personas jurídicas, deberán exhibir en original los documentos habilitantes que acrediten dicha representación.')}
+      </p>
+
+      <p style={pDefault}>
+        {T('e_art51', 'Con los antecedentes antes expuestos y, de acuerdo al Art. 51 de la Ley de Arbitraje y Mediación, a la que fuere convocada, el mediador expedirá la constancia de imposibilidad de mediación.')}
       </p>
 
       <p style={pDefault}>
@@ -628,7 +655,8 @@ function ImprimirInvitacion() {
         electrónico {correo}.
       </p>
 
-      <p style={pDefault}>Atentamente,</p>
+      {adicional}
+      <p style={pDefault}>{T('atentamente', 'Atentamente,')}</p>
       {firma}
     </>
   );
@@ -646,12 +674,16 @@ function ImprimirInvitacion() {
         .membrete-pie { position: absolute; left: 0; bottom: 0; width: 210mm; height: 297mm; z-index: 0; clip-path: inset(255mm 0 0 0); pointer-events: none; }
         .campo-edit { background: #fff7cc; border-bottom: 1px dashed #c9a400; outline: none; padding: 0 1px; cursor: text; border-radius: 2px; }
         .campo-edit:focus { background: #ffefa0; }
+        .texto-edit { outline: none; cursor: text; border-radius: 2px; transition: background-color .15s; }
+        .texto-edit:hover { background: #fffbe0; }
+        .texto-edit:focus { background: #fff7cc; }
+        .texto-edit:empty::before { content: attr(data-ph); color: #8a7a20; font-weight: 400; }
         .campo-edit:empty::before { content: attr(data-ph); color: #8a7a20; font-weight: 400; text-transform: none; }
         .pie-capa { position: absolute; bottom: 0; left: 0; width: 210mm; height: 297mm; z-index: 5; pointer-events: none; }
         .pie-capa > div { pointer-events: auto; }
         @media print {
-          .campo-edit { background: none !important; border: 0 !important; padding: 0 !important; }
-          .campo-edit:empty::before { content: '' !important; }
+          .campo-edit, .texto-edit { background: none !important; border: 0 !important; padding: 0 !important; }
+          .campo-edit:empty::before, .texto-edit:empty::before { content: '' !important; }
           .extras-vacio { display: none !important; }
           .pie-capa { position: absolute; top: 0; bottom: auto; }
           html, body { background: #fff !important; }

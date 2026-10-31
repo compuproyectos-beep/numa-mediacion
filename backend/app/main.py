@@ -7830,6 +7830,8 @@ def datos_invitacion_imprimible(proceso_id: int, usuario=Depends(obtener_usuario
 _CAMPOS_DOCUMENTO = {
     "modelo": 20, "titulo": 120, "fecha_emision": 10, "asunto": 500,
     "lugar": 1000, "pie": 500, "telefono": 40, "correo": 200, "extras": 1500,
+    # Textos del cuerpo del documento que la persona modificó (JSON como texto).
+    "textos": 20000,
 }
 
 

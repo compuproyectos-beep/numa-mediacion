@@ -1045,7 +1045,7 @@ export default function ProcesosPage() {
               Paso 1 de {PASOS_CREAR.length}: elige quiénes participan en el proceso.
             </p>
 
-            {citasRapidas.length > 0 && (
+            {citasRapidas.length > 0 && (citaDesdeUrl || form.cita_rapida_id) && (
               <div>
                 <SelectField
                   label="Traer de una invitación rápida (opcional)"
