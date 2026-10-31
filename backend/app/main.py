@@ -4027,6 +4027,9 @@ def obtener_procesos_mediacion(
                     LIMIT 1
                 ) AS _id_bloqueante,
                 """ + _sql_acta_vencida("p") + """ AS _vencida_propia,
+                (EXISTS (SELECT 1 FROM bloqueos_acta bd WHERE bd.proceso_id = p.id AND bd.estado = 'desbloqueado')
+                 AND EXISTS (SELECT 1 FROM numeros_acta nd WHERE nd.proceso_id = p.id AND nd.estado = 'reservado')
+                ) AS _desbloq_admin,
                 p.suspendido,
                 p.motivo_suspension,
                 p.acuerdo_texto,
@@ -4192,7 +4195,9 @@ def obtener_procesos_mediacion(
             # Si este proceso ya está vencido (pasaron 48 horas), puede subirse
             # en cualquier orden respecto a los otros vencidos: solo quedan
             # bloqueados los procesos nuevos mientras haya vencidos.
-            if fila.pop("_vencida_propia", False):
+            _venc_propia = fila.pop("_vencida_propia", False)
+            _desbloq = fila.pop("_desbloq_admin", False)
+            if _venc_propia or _desbloq:
                 id_bloqueante = None
             # Qué proceso lo bloquea (si no es él mismo).
             fila["bloqueante_id"] = (
@@ -5820,7 +5825,8 @@ async def subir_acta_final_proceso(
         _bq_proc = _bloqueo_activo_proceso(cur, proceso_id)
         if _bq_proc:
             raise HTTPException(status_code=400, detail=_msg_bloqueado(_bq_proc["codigo"]))
-        if usuario["rol"] != "administrador":
+        _desbloq_admin = _proceso_desbloqueado_por_admin(cur, proceso_id)
+        if usuario["rol"] != "administrador" and not _desbloq_admin:
             _bq_user = _bloqueo_activo_usuario(cur, usuario["id"])
             if _bq_user:
                 raise HTTPException(
@@ -5854,7 +5860,7 @@ async def subir_acta_final_proceso(
         # va primero. Mientras no se complete, el mediador no puede subir
         # el acta de otros. El administrador no tiene esta restricción y
         # puede suspender el proceso bloqueante para desbloquear al mediador.
-        if usuario["rol"] != "administrador":
+        if usuario["rol"] != "administrador" and not _desbloq_admin:
             cur.execute(
                 "SELECT id, codigo_proceso, fecha_acuerdo, fecha_solicitud_acta_na, estado, finalizado, pago_pendiente "
                 "FROM procesos_mediacion p "
@@ -5940,7 +5946,7 @@ async def subir_acta_final_proceso(
         libres = [r for r in reservados if not r["cita_id"] and not r["proceso_id"]]
         if numero_ligado:
             numero_reservado = numero_ligado
-            if not es_admin_subida:
+            if not es_admin_subida and not _desbloq_admin:
                 vencidos = [r for r in reservados if r["vencido"] and r["id"] != numero_ligado["id"]]
                 if vencidos and not numero_ligado["vencido"]:
                     raise HTTPException(
@@ -6829,6 +6835,20 @@ def _bloqueo_activo_usuario(cur, usuario_id):
         WHERE usuario_id = %s AND estado = 'activo' ORDER BY fecha_bloqueo ASC LIMIT 1
     """, (usuario_id,))
     return cur.fetchone()
+
+
+def _proceso_desbloqueado_por_admin(cur, proceso_id):
+    """True si el administrador desbloqueó el acta de este proceso y el proceso
+    tiene de nuevo un número reservado. Esa acta se puede subir aunque el
+    mediador tenga otras actas bloqueadas: el administrador eligió cuál va primero."""
+    cur.execute(
+        "SELECT 1 FROM bloqueos_acta b "
+        "WHERE b.proceso_id = %s AND b.estado = 'desbloqueado' "
+        "AND EXISTS (SELECT 1 FROM numeros_acta n WHERE n.proceso_id = %s AND n.estado = 'reservado') "
+        "LIMIT 1",
+        (proceso_id, proceso_id)
+    )
+    return cur.fetchone() is not None
 
 
 def _bloqueo_activo_proceso(cur, proceso_id):
