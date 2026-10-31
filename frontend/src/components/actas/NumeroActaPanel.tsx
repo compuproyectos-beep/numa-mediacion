@@ -7,6 +7,7 @@ import {
   getMiNumeroActa,
   getNumerosActaAdmin,
   anularNumeroActa,
+  pedirAnulacionNumeroActa,
   reactivarNumeroActa,
   desbloquearActa
 } from '@/lib/services';
@@ -159,6 +160,31 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
   const [copiado, setCopiado] = useState<number | null>(null);
   const [verAnulados, setVerAnulados] = useState(false);
   const ahora = useAhora();
+  // Pedir al administrador que anule un número (queda registrado y avisa).
+  const [pedir, setPedir] = useState<any | null>(null);
+  const [motivoPedido, setMotivoPedido] = useState('');
+  const [enviandoPedido, setEnviandoPedido] = useState(false);
+  const [errorPedido, setErrorPedido] = useState('');
+  const [okPedido, setOkPedido] = useState('');
+  const enviarPedido = async () => {
+    if (!pedir) return;
+    if (motivoPedido.trim().length < 5) {
+      setErrorPedido('Escribe el motivo del pedido');
+      return;
+    }
+    setEnviandoPedido(true);
+    setErrorPedido('');
+    try {
+      await pedirAnulacionNumeroActa(pedir.id, motivoPedido.trim());
+      setPedir(null);
+      setMotivoPedido('');
+      setOkPedido('Pedido enviado al administrador y a la secretaria. Quedó registrado.');
+    } catch (e: any) {
+      setErrorPedido(e?.response?.data?.detail || 'No se pudo enviar el pedido');
+    } finally {
+      setEnviandoPedido(false);
+    }
+  };
 
   const cargar = () =>
     getMiNumeroActa().then(setEstado).catch(() => setEstado(null));
@@ -262,6 +288,17 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
                       {copiado === r.id ? <Check size={14} /> : <Copy size={14} />}
                       {copiado === r.id ? 'Copiado' : 'Copiar'}
                     </button>
+                    <button
+                      type="button"
+                      className="btn-secondary btn-sm ml-2"
+                      onClick={() => {
+                        setPedir(r);
+                        setMotivoPedido('');
+                        setErrorPedido('');
+                      }}
+                    >
+                      Pedir anulación
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -269,6 +306,43 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
           </table>
         </div>
       )}
+
+      {okPedido && (
+        <p className="mt-3 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
+          {okPedido}
+        </p>
+      )}
+
+      <Modal
+        open={!!pedir}
+        onClose={() => setPedir(null)}
+        title={`Pedir anulación del número ${pedir?.codigo ?? ''}`}
+      >
+        <p className="text-sm text-slate-900 mb-3">
+          Esto no anula el número: le avisa al administrador y a la secretaria de tu sucursal, y queda
+          registrado con tu motivo. Úsalo, por ejemplo, si la reunión no se hizo.
+        </p>
+        {errorPedido && (
+          <div className="mb-3">
+            <ErrorAlert message={errorPedido} />
+          </div>
+        )}
+        <TextareaField
+          label="Motivo"
+          rows={3}
+          value={motivoPedido}
+          onChange={(e) => setMotivoPedido(e.target.value)}
+          placeholder="Por qué pides anular este número"
+        />
+        <div className="flex justify-end gap-2 mt-4">
+          <button type="button" className="btn-secondary" onClick={() => setPedir(null)}>
+            Cancelar
+          </button>
+          <button type="button" className="btn-primary disabled:opacity-50" disabled={enviandoPedido} onClick={enviarPedido}>
+            {enviandoPedido ? 'Enviando…' : 'Enviar pedido'}
+          </button>
+        </div>
+      </Modal>
 
       <div className="mt-3">
         <button

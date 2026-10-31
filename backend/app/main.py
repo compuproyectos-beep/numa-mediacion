@@ -7303,6 +7303,60 @@ def desbloquear_acta(bloqueo_id: int, usuario=Depends(obtener_usuario_actual)):
         conn.close()
 
 
+@app.post("/numeros-acta/{numero_id}/pedir-anulacion")
+def pedir_anulacion_numero(numero_id: int, motivo: str = Form(...), usuario=Depends(obtener_usuario_actual)):
+    """El mediador pide al administrador que anule su número de acta (por ejemplo,
+    porque la reunión no se hizo). Queda registrado en la auditoría y avisa a los
+    administradores y a la secretaria de la sucursal. No anula nada por sí solo."""
+    if usuario["rol"] != "mediador":
+        raise HTTPException(status_code=403, detail="Solo el mediador dueño del número puede pedir su anulación")
+    motivo = (motivo or "").strip()
+    if len(motivo) < 5:
+        raise HTTPException(status_code=400, detail="Escribe el motivo del pedido")
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute(
+            "SELECT id, codigo, estado, usuario_id, sucursal_id, cita_id, proceso_id FROM numeros_acta WHERE id = %s",
+            (numero_id,)
+        )
+        n = cur.fetchone()
+        if not n or n["usuario_id"] != usuario["id"]:
+            raise HTTPException(status_code=404, detail="Número de acta no encontrado")
+        if n["estado"] != "reservado":
+            raise HTTPException(status_code=400, detail="Solo se puede pedir la anulación de un número pedido que aún no se usó")
+        nombre = f"{usuario['nombre']} {usuario['apellido']}".strip()
+        texto = (
+            f"{nombre} pide anular el número de acta {n['codigo']}. Motivo: {motivo}. "
+            f"El administrador puede anularlo en Actas finales (números de acta)."
+        )
+        cur.execute("SELECT id FROM usuarios WHERE rol = 'administrador' AND activo = true")
+        for a in cur.fetchall():
+            crear_notificacion(cur, a["id"], "Pedido de anulación de número", texto, "acta", "numero_acta", numero_id)
+        cur.execute(
+            "SELECT id FROM usuarios WHERE rol = 'secretaria' AND activo = true AND sucursal_id = %s",
+            (n["sucursal_id"],)
+        )
+        for sec in cur.fetchall():
+            crear_notificacion(
+                cur, sec["id"], "Pedido de anulación de número",
+                texto + " Avisa al administrador si no lo ves atendido.", "acta", "numero_acta", numero_id
+            )
+        registrar_auditoria(cur, usuario, "pedir_anulacion_numero_acta", "numero_acta", numero_id,
+                            f"Pidió anular el número {n['codigo']}. Motivo: {motivo}")
+        conn.commit()
+        return {"mensaje": "Pedido enviado al administrador"}
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudo enviar el pedido: {e}")
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.post("/numeros-acta/{numero_id}/anular")
 def anular_numero_acta(numero_id: int, motivo: str = Form(...), usuario=Depends(obtener_usuario_actual)):
     if usuario["rol"] != "administrador":
@@ -7544,7 +7598,7 @@ def historial_acuerdo(proceso_id: int, usuario=Depends(obtener_usuario_actual)):
 # SUSPENDER / REACTIVAR (desbloquea al mediador, solo administrador)
 # =========================
 @app.put("/procesos/{proceso_id}/suspender")
-def suspender_proceso(proceso_id: int, motivo: str, usuario=Depends(obtener_usuario_actual)):
+def suspender_proceso(proceso_id: int, motivo: str, baja: bool = False, usuario=Depends(obtener_usuario_actual)):
     if usuario["rol"] != "administrador":
         raise HTTPException(status_code=403, detail="Solo el administrador puede suspender un proceso")
 
@@ -7572,19 +7626,46 @@ def suspender_proceso(proceso_id: int, motivo: str, usuario=Depends(obtener_usua
             SET suspendido = true, motivo_suspension = %s, fecha_suspension = NOW(),
                 suspendido_por_id = %s, fecha_modificacion = NOW()
             WHERE id = %s
-        """, (motivo, usuario["id"], proceso_id))
+        """, (("Baja del acta: " if baja else "") + motivo, usuario["id"], proceso_id))
+
+        if baja:
+            # Baja del acta: el mediador queda libre de ese número y el número vuelve
+            # a estar disponible durante 30 días (para otro mediador o para el mismo).
+            cur.execute(
+                "SELECT id, estado FROM numeros_acta WHERE proceso_id = %s AND estado IN ('reservado', 'bloqueado') FOR UPDATE",
+                (proceso_id,)
+            )
+            for num in cur.fetchall():
+                if num["estado"] == "reservado":
+                    cur.execute("""
+                        UPDATE numeros_acta
+                        SET estado = 'anulado', anulado_por = %s, motivo_anulacion = %s, fecha_anulacion = NOW()
+                        WHERE id = %s
+                    """, (usuario["id"], "Baja del acta: " + motivo, num["id"]))
+                else:
+                    cur.execute("UPDATE numeros_acta SET proceso_id = NULL, cita_id = NULL WHERE id = %s", (num["id"],))
+            cur.execute("""
+                UPDATE bloqueos_acta
+                SET estado = 'desbloqueado', fecha_desbloqueo = NOW(), desbloqueado_por = %s, mismo_numero = false
+                WHERE proceso_id = %s AND estado = 'activo'
+            """, (usuario["id"], proceso_id))
 
         crear_notificacion(
-            cur, p["usuario_id"], "Proceso suspendido",
-            f"El administrador suspendió el proceso {p['codigo_proceso']}. Ya puedes subir las actas de tus otros procesos. Motivo: {motivo}",
+            cur, p["usuario_id"],
+            "Acta dada de baja" if baja else "Proceso suspendido",
+            (f"El administrador dio de baja el acta del proceso {p['codigo_proceso']}: ya no tienes que completarla y quedas libre para tus otros procesos. Motivo: {motivo}"
+             if baja else
+             f"El administrador suspendió el proceso {p['codigo_proceso']}. Ya puedes subir las actas de tus otros procesos. Motivo: {motivo}"),
             "proceso", "proceso_mediacion", proceso_id
         )
         registrar_auditoria(
-            cur, usuario, "proceso_suspendido", "procesos", proceso_id,
-            f"Suspendió el proceso {p['codigo_proceso']}. Motivo: {motivo}"
+            cur, usuario, "proceso_baja_acta" if baja else "proceso_suspendido", "procesos", proceso_id,
+            (f"Dio de baja el acta del proceso {p['codigo_proceso']}. Motivo: {motivo}" if baja
+             else f"Suspendió el proceso {p['codigo_proceso']}. Motivo: {motivo}")
         )
         conn.commit()
-        return {"mensaje": "Proceso suspendido. El mediador ya no está bloqueado por este proceso."}
+        return {"mensaje": ("Acta dada de baja. El mediador queda libre y el número vuelve a estar disponible 30 días."
+                            if baja else "Proceso suspendido. El mediador ya no está bloqueado por este proceso.")}
 
     except HTTPException:
         conn.rollback()

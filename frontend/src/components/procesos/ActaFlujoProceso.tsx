@@ -72,6 +72,8 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
 
   // Suspender (admin)
   const [showSuspender, setShowSuspender] = useState(false);
+  // true: dar de baja el acta (libera el número 30 días); false: solo suspender.
+  const [modoBaja, setModoBaja] = useState(false);
   const [motivoSuspension, setMotivoSuspension] = useState('');
 
   const etapa = proceso.etapa_acta as string | null;
@@ -254,10 +256,10 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
     setGuardando(true);
     setError('');
     try {
-      await suspenderProceso(proceso.id, motivoSuspension);
+      await suspenderProceso(proceso.id, motivoSuspension, modoBaja);
       setShowSuspender(false);
       setMotivoSuspension('');
-      setOk('Proceso suspendido. El mediador ya no queda bloqueado por este proceso.');
+      setOk(modoBaja ? 'Acta dada de baja. El mediador queda libre y el número vuelve a estar disponible 30 días.' : 'Proceso suspendido. El mediador ya no queda bloqueado por este proceso.');
       onCambio();
     } catch (e: any) {
       setError(msg(e, 'No se pudo suspender'));
@@ -420,12 +422,24 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
           <button
             type="button"
             onClick={() => {
+              setModoBaja(false);
               setShowSuspender(true);
               setError('');
             }}
             className="inline-flex items-center gap-2 px-3 py-2 rounded-sm border border-red-300 bg-red-50 text-red-700 text-sm font-semibold hover:bg-red-100 transition-colors"
           >
             <PauseCircle className="w-4 h-4" /> Suspender este proceso (desbloquear al mediador)
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setModoBaja(true);
+              setShowSuspender(true);
+              setError('');
+            }}
+            className="ml-2 inline-flex items-center gap-2 px-3 py-2 rounded-sm border border-red-700 bg-red-700 text-white text-sm font-semibold hover:bg-red-800 transition-colors"
+          >
+            <PauseCircle className="w-4 h-4" /> Dar de baja el acta (no se va a completar)
           </button>
         </div>
       )}
@@ -574,7 +588,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
       <Modal
         open={showSuspender}
         onClose={() => setShowSuspender(false)}
-        title={`Suspender proceso — ${proceso.codigo_proceso}`}
+        title={`${modoBaja ? 'Dar de baja el acta' : 'Suspender proceso'} — ${proceso.codigo_proceso}`}
       >
         {error && (
           <div className="mb-4">
@@ -583,8 +597,9 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
         )}
         <div className="space-y-4">
           <p className="text-sm text-numa-700">
-            El proceso no se borra: queda suspendido y el mediador puede subir las actas de sus
-            otros procesos. Podrás reactivarlo más adelante para completar sus documentos.
+            {modoBaja
+              ? 'El proceso no se borra: queda registrado con su motivo. El mediador queda libre de esta acta (se corta el ciclo de 48 horas) y su número vuelve a estar disponible durante 30 días, para otro mediador o para el mismo.'
+              : 'El proceso no se borra: queda suspendido y el mediador puede subir las actas de sus otros procesos. Podrás reactivarlo más adelante para completar sus documentos.'}
           </p>
           <TextareaField
             label="Motivo (queda registrado)"
@@ -602,7 +617,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
               disabled={guardando || motivoSuspension.trim().length < 5}
               className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {guardando ? 'Guardando...' : 'Suspender proceso'}
+              {guardando ? 'Guardando...' : modoBaja ? 'Dar de baja el acta' : 'Suspender proceso'}
             </button>
           </div>
         </div>

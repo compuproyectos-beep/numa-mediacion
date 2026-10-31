@@ -941,8 +941,8 @@ export async function descargarComprobanteFinal(procesoId: number): Promise<Blob
   return res.data;
 }
 
-export async function suspenderProceso(procesoId: number, motivo: string): Promise<any> {
-  const res = await api.put(`/procesos/${procesoId}/suspender`, null, { params: { motivo } });
+export async function suspenderProceso(procesoId: number, motivo: string, baja = false): Promise<any> {
+  const res = await api.put(`/procesos/${procesoId}/suspender`, null, { params: { motivo, baja } });
   return res.data;
 }
 
@@ -1043,6 +1043,15 @@ export async function desbloquearActa(bloqueoId: number): Promise<any> {
 
 export async function getNumerosActaAdmin(): Promise<{ pendientes: any[]; anulados: any[]; bloqueados: any[] }> {
   const res = await api.get('/numeros-acta');
+  return res.data;
+}
+
+export async function pedirAnulacionNumeroActa(id: number, motivo: string): Promise<any> {
+  const formData = new FormData();
+  formData.append('motivo', motivo);
+  const res = await api.post(`/numeros-acta/${id}/pedir-anulacion`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
   return res.data;
 }
 
