@@ -5464,6 +5464,23 @@ def crear_avance_proceso(
                 detail="No existe una invitación pendiente para registrar resultado"
             )
 
+        # Con número de acta pedido el proceso solo se cierra con acuerdo o con
+        # acta de no acuerdo: cerrar sin acuerdo (sin acta) o archivar dejaría el
+        # número sin completar. Si no se hizo la reunión, el administrador anula el número.
+        if resultado in ("cerrado_sin_acuerdo", "archivado"):
+            cur.execute(
+                "SELECT 1 FROM numeros_acta WHERE proceso_id = %s AND estado IN ('reservado', 'usado') LIMIT 1",
+                (proceso_id,)
+            )
+            if cur.fetchone():
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "Este proceso ya tiene número de acta: solo se puede cerrar con acuerdo o con no acuerdo "
+                        "(con acta). Si la reunión no se hizo, pide al administrador que anule el número."
+                    )
+                )
+
         numero_acta_asignado = None
         numero_acta_nuevo = False
         if resultado == "cerrado_con_acuerdo" or con_acta_na:

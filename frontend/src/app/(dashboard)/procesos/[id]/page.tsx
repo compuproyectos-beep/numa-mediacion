@@ -1646,8 +1646,12 @@ function ProcesoDetalleContenido() {
                   Cerrado con no acuerdo (se emite acta de no acuerdo)
                   {cierreConActaBloqueado ? ' (bloqueado: completa tus actas pendientes)' : ''}
                 </option>
-                <option value="cerrado_sin_acuerdo">Cerrado sin acuerdo (no se emite acta)</option>
-                <option value="archivado">Archivado</option>
+                {!(proceso?.numero_acta_codigo && ['reservado', 'usado'].includes(proceso?.numero_acta_estado)) && (
+                  <>
+                    <option value="cerrado_sin_acuerdo">Cerrado sin acuerdo (no se emite acta)</option>
+                    <option value="archivado">Archivado</option>
+                  </>
+                )}
               </SelectField>
 
               <div className="mt-4">
