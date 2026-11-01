@@ -9157,6 +9157,15 @@ async def reemplazar_acta_final_pdf(
             acta_id
         ))
 
+        # Si el acta firmada del proceso era este mismo archivo (acta de no
+        # acuerdo: un solo PDF), también apunta al nuevo para que "Acta firmada"
+        # y "Documentos del acta" muestren el mismo documento.
+        cur.execute("""
+            UPDATE procesos_mediacion
+            SET acta_firmada_ruta = %s
+            WHERE acta_final_id = %s AND acta_firmada_ruta = %s
+        """, (ruta_storage, acta_id, acta["archivo_pdf"]))
+
         conn.commit()
 
         return {
