@@ -5376,6 +5376,16 @@ def anular_proceso(
             WHERE proceso_id = %s AND estado IN ('pendiente', 'confirmada')
         """, (proceso_id,))
 
+        # Un proceso anulado ya no tendrá acta: si tenía un número reservado (por ejemplo, de
+        # su invitación rápida), se anula para que no cuente las 48 horas ni bloquee al mediador;
+        # queda libre 30 días como cualquier número anulado.
+        cur.execute(
+            "UPDATE numeros_acta SET estado = 'anulado', anulado_por = %s, "
+            "motivo_anulacion = 'Proceso anulado', fecha_anulacion = NOW() "
+            "WHERE proceso_id = %s AND estado = 'reservado'",
+            (usuario["id"], proceso_id)
+        )
+
         registrar_auditoria(
             cur, usuario, "proceso_anulado", "procesos", proceso_id,
             f"Proceso {proceso['codigo_proceso']} anulado. Motivo: {motivo}"
