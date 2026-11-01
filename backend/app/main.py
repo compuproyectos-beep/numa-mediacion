@@ -1234,7 +1234,8 @@ def dashboard(solo_mios: bool = False, usuario=Depends(obtener_usuario_actual)):
                 COUNT(*) FILTER (WHERE estado = 'cerrado_con_acuerdo' AND NOT suspendido) AS cerrados_con_acuerdo,
                 COUNT(*) FILTER (WHERE estado = 'cerrado_sin_acuerdo' AND NOT suspendido) AS cerrados_sin_acuerdo,
                 COUNT(*) FILTER (WHERE estado = 'archivado') AS archivados,
-                COUNT(*) FILTER (WHERE suspendido) AS suspendidos
+                COUNT(*) FILTER (WHERE suspendido) AS suspendidos,
+                COUNT(*) FILTER (WHERE estado = 'anulado') AS anulados
             FROM procesos_mediacion
             WHERE 1=1 {filtro_usuario}
         """, tuple(params))
@@ -5341,7 +5342,11 @@ def anular_proceso(
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
     try:
-        cur.execute("SELECT id, codigo_proceso, estado FROM procesos_mediacion WHERE id = %s FOR UPDATE", (proceso_id,))
+        cur.execute(
+            "SELECT id, codigo_proceso, estado, usuario_id, finalizado, requiere_acta_firmada, acta_firmada_ruta, "
+            "requiere_acta_no_acuerdo, suspendido FROM procesos_mediacion WHERE id = %s FOR UPDATE",
+            (proceso_id,)
+        )
         proceso = cur.fetchone()
 
         if not proceso:
@@ -5350,10 +5355,16 @@ def anular_proceso(
         if proceso["estado"] == "anulado":
             raise HTTPException(status_code=400, detail="Este proceso ya está anulado")
 
-        if proceso["estado"] != "en_negociacion":
+        # Se anula un proceso en negociación o uno cerrado cuya acta aún no se completa
+        # (falta la documentación, el comprobante o el acta firmada).
+        acta_pendiente = _con_acta(proceso["estado"], proceso["requiere_acta_no_acuerdo"]) and (
+            not proceso["finalizado"]
+            or (proceso["requiere_acta_firmada"] and proceso["acta_firmada_ruta"] is None)
+        )
+        if proceso["estado"] != "en_negociacion" and not acta_pendiente:
             raise HTTPException(
                 status_code=400,
-                detail="Solo se puede anular un proceso que sigue en negociación. Los procesos ya cerrados no se anulan."
+                detail="Solo se puede anular un proceso que sigue en negociación o cuya acta aún no se completa."
             )
 
         cur.execute("""
@@ -5385,6 +5396,23 @@ def anular_proceso(
             "WHERE proceso_id = %s AND estado = 'reservado'",
             (usuario["id"], proceso_id)
         )
+        # Un número ya bloqueado por las 48 horas queda libre (se sueltan sus enlaces) y el
+        # bloqueo activo se cierra: el mediador queda libre de este proceso.
+        cur.execute(
+            "UPDATE numeros_acta SET proceso_id = NULL, cita_id = NULL WHERE proceso_id = %s AND estado = 'bloqueado'",
+            (proceso_id,)
+        )
+        cur.execute(
+            "UPDATE bloqueos_acta SET estado = 'desbloqueado', fecha_desbloqueo = NOW(), "
+            "desbloqueado_por = %s, mismo_numero = false WHERE proceso_id = %s AND estado = 'activo'",
+            (usuario["id"], proceso_id)
+        )
+        if proceso["usuario_id"]:
+            crear_notificacion(
+                cur, proceso["usuario_id"], "Proceso anulado",
+                f"El administrador anuló el proceso {proceso['codigo_proceso']}. Motivo: {motivo}",
+                "proceso", "proceso_mediacion", proceso_id
+            )
 
         registrar_auditoria(
             cur, usuario, "proceso_anulado", "procesos", proceso_id,

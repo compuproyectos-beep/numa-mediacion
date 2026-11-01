@@ -183,7 +183,7 @@ function DetalleProcesos({
                     ? new Date(p.fecha_subida_acta).toLocaleDateString('es-EC', { timeZone: 'America/Guayaquil' })
                     : '—'}
                 </td>
-                <td className="py-0.5 pr-2">{getEstadoLabel(p.suspendido ? 'suspendido' : p.estado)}</td>
+                <td className="py-0.5 pr-2">{getEstadoLabel(p.estado)}</td>
                 <td className="py-0.5 pr-2">
                   {p.demandante} y {p.demandado}
                 </td>
@@ -279,7 +279,7 @@ function ImprimirReporteContenido() {
       ? datos.reduce(
           (acc: any, p: any) => {
             // Un proceso suspendido se cuenta aparte (no en "con acuerdo").
-            const k = p.suspendido ? 'suspendido' : p.estado;
+            const k = p.estado;
             acc[k] = (acc[k] || 0) + 1;
             return acc;
           },
@@ -477,7 +477,7 @@ function ImprimirReporteContenido() {
                         Archivados
                       </th>
                       <th className="text-left py-1 pr-4 font-semibold text-numa-700">
-                        Suspendidos
+                        Anulados
                       </th>
                       <th className="text-left py-1 pr-4 font-semibold text-numa-700">Total</th>
                       <th className="text-left py-1 pr-4 font-semibold text-amber-700">
@@ -510,7 +510,7 @@ function ImprimirReporteContenido() {
                         {resumenProcesos.archivado || 0}
                       </td>
                       <td className="py-1 pr-4 text-numa-800 text-sm font-semibold">
-                        {resumenProcesos.suspendido || 0}
+                        {resumenProcesos.anulado || 0}
                       </td>
                       <td className="py-1 pr-4 text-numa-900 text-sm font-bold">
                         {datos.length}
@@ -816,7 +816,7 @@ function ImprimirReporteContenido() {
                 {tipo === 'procesos' &&
                   datos.map((p: any) => (
                     <tr key={p.id} className="border-b border-numa-300">
-                      <td className="py-1.5 pr-2">{getEstadoLabel(p.suspendido ? 'suspendido' : p.estado)}</td>
+                      <td className="py-1.5 pr-2">{getEstadoLabel(p.estado)}</td>
                       <td className="py-1.5 pr-2">
                         {conActa(p) && !actaLista(p)
                           ? 'Pendiente'

@@ -413,36 +413,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
         </div>
       )}
 
-      {/* Admin: suspender */}
-      {/* Suspender sirve para liberar a un mediador bloqueado por este proceso;
-          el administrador nunca queda bloqueado, así que en sus propios
-          procesos no tiene sentido. */}
-      {esAdmin && proceso.usuario_id !== getUser()?.id && (etapa === 'falta_acta' || etapa === 'falta_firmada') && (
-        <div>
-          <button
-            type="button"
-            onClick={() => {
-              setModoBaja(false);
-              setShowSuspender(true);
-              setError('');
-            }}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-sm border border-red-300 bg-red-50 text-red-700 text-sm font-semibold hover:bg-red-100 transition-colors"
-          >
-            <PauseCircle className="w-4 h-4" /> Suspender este proceso (desbloquear al mediador)
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setModoBaja(true);
-              setShowSuspender(true);
-              setError('');
-            }}
-            className="ml-2 inline-flex items-center gap-2 px-3 py-2 rounded-sm border border-red-700 bg-red-700 text-white text-sm font-semibold hover:bg-red-800 transition-colors"
-          >
-            <PauseCircle className="w-4 h-4" /> Dar de baja el acta y este proceso
-          </button>
-        </div>
-      )}
+      {/* La anulación (y la liberación del mediador) se hace desde «Anular este proceso». */}
 
       {/* Modal: subir acta firmada */}
       <Modal
@@ -584,44 +555,6 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
         </div>
       </Modal>
 
-      {/* Modal: suspender (admin) */}
-      <Modal
-        open={showSuspender}
-        onClose={() => setShowSuspender(false)}
-        title={`${modoBaja ? 'Dar de baja el acta y el proceso' : 'Suspender proceso'} — ${proceso.codigo_proceso}`}
-      >
-        {error && (
-          <div className="mb-4">
-            <ErrorAlert message={error} />
-          </div>
-        )}
-        <div className="space-y-4">
-          <p className="text-sm text-numa-700">
-            {modoBaja
-              ? 'Este proceso y su acta ya no van a continuar. El proceso no se borra: queda registrado con su motivo. El mediador queda libre (se corta el ciclo de 48 horas) y el número de acta vuelve a estar disponible durante 30 días, para otro mediador o para el mismo.'
-              : 'El proceso no se borra: queda suspendido y el mediador puede subir las actas de sus otros procesos. Podrás reactivarlo más adelante para completar sus documentos.'}
-          </p>
-          <TextareaField
-            label="Motivo (queda registrado)"
-            rows={3}
-            value={motivoSuspension}
-            onChange={(e) => setMotivoSuspension(e.target.value)}
-          />
-          <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={() => setShowSuspender(false)} className="btn-secondary">
-              Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={suspender}
-              disabled={guardando || motivoSuspension.trim().length < 5}
-              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {guardando ? 'Guardando...' : modoBaja ? 'Dar de baja el acta y el proceso' : 'Suspender proceso'}
-            </button>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }

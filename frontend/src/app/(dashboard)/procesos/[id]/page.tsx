@@ -1194,7 +1194,7 @@ function ProcesoDetalleContenido() {
         onCambio={cargarProceso}
       />
 
-      {esAdminSesion() && proceso.estado === 'en_negociacion' && (
+      {esAdminSesion() && (proceso.estado === 'en_negociacion' || proceso.etapa_acta === 'falta_acta' || proceso.etapa_acta === 'falta_firmada') && (
         <div className="mb-4">
           {!anulando ? (
             <button
@@ -1207,9 +1207,9 @@ function ProcesoDetalleContenido() {
           ) : (
             <div className="text-sm px-4 py-3 rounded-sm border border-red-200 bg-red-50 text-red-800 space-y-2">
               <p>
-                Anular deja el proceso como <strong>Anulado</strong>: no se borra, conserva su
-                número y su historial, y se cancelan sus invitaciones pendientes. Esto no se puede
-                deshacer.
+                Anular deja el proceso como <strong>Anulado</strong>: no se borra y conserva su
+                historial. Si tenía número de acta, queda libre 30 días; se liberan al mediador de
+                este proceso y se cancelan sus invitaciones pendientes. Esto no se puede deshacer.
               </p>
               <textarea
                 value={motivoAnulacion}

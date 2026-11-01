@@ -8,7 +8,7 @@ import {
   Clock,
   Archive,
   FileCheck,
-  PauseCircle,
+  Ban,
   Lock,
   LayoutDashboard,
   HardDrive,
@@ -67,7 +67,7 @@ const TEMA_CATEGORIA: Record<
     item: 'border-slate-200 border-t-4 border-t-slate-400 hover:border-slate-300',
     titulo: 'text-slate-700'
   },
-  suspendido: {
+  anulado: {
     caja: 'bg-rose-100 border-rose-300',
     icono: 'bg-rose-600 text-white',
     texto: 'text-rose-900',
@@ -128,9 +128,10 @@ const CATEGORIAS: Record<
     estadoProceso: 'archivado',
     verTodoHref: '/procesos?estado=archivado'
   },
-  suspendido: {
-    titulo: 'Procesos suspendidos',
-    verTodoHref: '/procesos'
+  anulado: {
+    titulo: 'Procesos anulados',
+    estadoProceso: 'anulado',
+    verTodoHref: '/procesos?estado=anulado'
   },
   actas_bloqueadas: {
     titulo: 'Actas bloqueadas (pasaron 48 horas sin completar)',
@@ -199,7 +200,7 @@ const ESTILO_TARJETA: Record<
   cerrado_con_acuerdo: { caja: 'bg-white border-[#CBD6E8]', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-emerald-500', pista: 'bg-numa-100', icono: 'bg-emerald-100 text-emerald-700' },
   cerrado_sin_acuerdo: { caja: 'bg-white border-[#CBD6E8]', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-slate-500', pista: 'bg-numa-100', icono: 'bg-slate-100 text-slate-600' },
   archivado: { caja: 'bg-white border-[#CBD6E8]', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-numa-400', pista: 'bg-numa-100', icono: 'bg-numa-100 text-numa-600' },
-  suspendido: { caja: 'bg-white border-[#CBD6E8]', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-rose-500', pista: 'bg-numa-100', icono: 'bg-rose-100 text-rose-700' }
+  anulado: { caja: 'bg-white border-[#CBD6E8]', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-rose-500', pista: 'bg-numa-100', icono: 'bg-rose-100 text-rose-700' }
 };
 
 // Estilo de la tarjeta que se elige (dorada); las demás van en blanco.
@@ -351,11 +352,6 @@ export default function DashboardPage() {
         } else {
           data = (await getMiNumeroActa()).bloqueados || [];
         }
-      } else if (clave === 'suspendido') {
-        data = await getProcesos({
-          suspendido: true,
-          ...(isAdmin && vista === 'mios' ? { usuario_id: user?.id } : {})
-        });
       } else if (info.estadoProceso) {
         data = await getProcesos({
           estado: info.estadoProceso,
@@ -485,7 +481,7 @@ export default function DashboardPage() {
                 ['cerrado_con_acuerdo', procesos.cerrados_con_acuerdo ?? 0, procesos.cerrados_con_acuerdo === 1 ? 'proceso con acuerdo' : 'procesos con acuerdo', CheckCircle],
                 ['cerrado_sin_acuerdo', procesos.cerrados_sin_acuerdo ?? 0, procesos.cerrados_sin_acuerdo === 1 ? 'proceso sin acuerdo' : 'procesos sin acuerdo', FileText],
                 ['archivado', procesos.archivados ?? 0, procesos.archivados === 1 ? 'proceso archivado' : 'procesos archivados', Archive],
-                ['suspendido', procesos.suspendidos ?? 0, procesos.suspendidos === 1 ? 'proceso suspendido' : 'procesos suspendidos', PauseCircle]
+                ['anulado', procesos.anulados ?? 0, procesos.anulados === 1 ? 'proceso anulado' : 'procesos anulados', Ban]
               ] as const
             ).map(([clave, valor, etiqueta, icono], i, todas) => (
               <TarjetaResumen
@@ -588,7 +584,7 @@ export default function DashboardPage() {
                           </p>
                           {/* Un proceso "cerrado con acuerdo" no significa que ya
                               esté todo listo: se muestra qué le falta. */}
-                          {(categoriaAbierta === 'cerrado_con_acuerdo' || categoriaAbierta === 'cerrado_sin_acuerdo' || categoriaAbierta === 'suspendido') && etapaActaBadge(item) && (
+                          {(categoriaAbierta === 'cerrado_con_acuerdo' || categoriaAbierta === 'cerrado_sin_acuerdo') && etapaActaBadge(item) && (
                             <Pill {...etapaActaBadge(item)!} />
                           )}
                         </div>
@@ -610,9 +606,9 @@ export default function DashboardPage() {
                         <span>{item.ciudad || '—'} · {item.sucursal || '—'}</span>
                         {isAdmin && <span>Mediador: {item.usuario || '—'}</span>}
                       </p>
-                      {categoriaAbierta === 'suspendido' && item.motivo_suspension && (
+                      {categoriaAbierta === 'anulado' && item.motivo_anulacion && (
                         <p className="text-xs text-rose-700 mt-0.5 line-clamp-1">
-                          Motivo: {item.motivo_suspension}
+                          Motivo: {item.motivo_anulacion}
                         </p>
                       )}
                     </div>

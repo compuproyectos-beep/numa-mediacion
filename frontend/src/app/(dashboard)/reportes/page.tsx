@@ -87,7 +87,7 @@ const TIPOS: { valor: TipoReporte; titulo: string; adminOnly?: boolean; soloSecr
 // los números sin tener que preguntar.
 const DESCRIPCIONES: Record<TipoReporte, string> = {
   procesos:
-    'Resumen básico de los procesos de mediación creados en el rango de fechas elegido, con su estado actual (los suspendidos se cuentan aparte). Da clic en cualquier fila para abrir ese proceso. "Procesos que terminaron en acuerdo" es, de los procesos ya cerrados (con o sin acuerdo; los archivados y anulados no cuentan), qué porcentaje cerró con acuerdo.',
+    'Resumen básico de los procesos de mediación creados en el rango de fechas elegido, con su estado actual. Da clic en cualquier fila para abrir ese proceso. "Procesos que terminaron en acuerdo" es, de los procesos ya cerrados (con o sin acuerdo; los archivados y anulados no cuentan), qué porcentaje cerró con acuerdo.',
   productividad:
     'El listado del equipo de mediadores (activos e inactivos), con cuántos procesos maneja cada uno y qué tan rápido los resuelve. Las columnas de reuniones cuentan las reuniones del mediador en el rango de fechas (realizadas, canceladas y las que no se realizaron por inasistencia). "Prom. días cierre" es el promedio de días entre que se crea un proceso y se cierra (con o sin acuerdo, o archivado); mientras más bajo, más rápido resuelve. Da clic en un mediador para ver el detalle de sus procesos.',
   actas:
@@ -101,7 +101,7 @@ const DESCRIPCIONES: Record<TipoReporte, string> = {
   'sin-avance':
     'Procesos que siguen en negociación y llevan al menos esos días sin que se registre ningún avance. Sirve para saber cuáles se están quedando olvidados. Los días se cuentan desde el último avance (o desde que se creó el proceso, si nunca tuvo uno).',
   'actas-pendientes':
-    'Procesos cerrados con acuerdo que aún no están completos: les falta subir la documentación y el comprobante, o el acta firmada (o están suspendidos). Se muestra cuántos días llevan pendientes desde la fecha del acuerdo.',
+    'Procesos cerrados con acuerdo que aún no están completos: les falta subir la documentación y el comprobante, o el acta firmada. Se muestra cuántos días llevan pendientes desde la fecha del acuerdo.',
   'facturas-pendientes':
     'Procesos con el acta firmada ya subida a los que todavía les falta la factura de NUMA al cliente o la factura del mediador a NUMA (solo cuentan las actas firmadas desde que existe esta regla). No bloquea el proceso; sirve para saber a quién cobrarle las facturas. Se muestran los días desde que se subió el acta firmada.'
 };
@@ -434,7 +434,7 @@ export default function ReportesPage() {
       ? datos.reduce(
           (acc: any, p: any) => {
             // Un proceso suspendido se cuenta aparte (no en "con acuerdo").
-            const k = p.suspendido ? 'suspendido' : p.estado;
+            const k = p.estado;
             acc[k] = (acc[k] || 0) + 1;
             return acc;
           },
@@ -1187,7 +1187,7 @@ export default function ReportesPage() {
                               style={{ backgroundColor: COLOR_ESTADO[p.estado] || '#94A3B8' }}
                               aria-hidden="true"
                             />
-                            {getEstadoLabel(p.suspendido ? 'suspendido' : p.estado)}
+                            {getEstadoLabel(p.estado)}
                           </span>
                         </td>
                         <td className="table-cell">
@@ -1329,7 +1329,7 @@ export default function ReportesPage() {
                                       </div>
 
                                       <span className="text-xs text-numa-700">
-                                        {getEstadoLabel(p.suspendido ? 'suspendido' : p.estado)} ·{' '}
+                                        {getEstadoLabel(p.estado)} ·{' '}
                                         {p.fecha_creacion
                                           ? new Date(p.fecha_creacion).toLocaleDateString('es-EC')
                                           : '—'}
@@ -1471,7 +1471,7 @@ export default function ReportesPage() {
                                       </div>
 
                                       <span className="text-xs text-numa-700">
-                                        {getEstadoLabel(p.suspendido ? 'suspendido' : p.estado)} ·{' '}
+                                        {getEstadoLabel(p.estado)} ·{' '}
                                         {p.fecha_creacion
                                           ? new Date(p.fecha_creacion).toLocaleDateString('es-EC')
                                           : '—'}
@@ -1586,7 +1586,7 @@ export default function ReportesPage() {
                                       </div>
 
                                       <span className="text-xs text-numa-700">
-                                        {getEstadoLabel(p.suspendido ? 'suspendido' : p.estado)} ·{' '}
+                                        {getEstadoLabel(p.estado)} ·{' '}
                                         {p.fecha_creacion
                                           ? new Date(p.fecha_creacion).toLocaleDateString('es-EC')
                                           : '—'}
