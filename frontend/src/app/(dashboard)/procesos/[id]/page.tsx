@@ -239,6 +239,23 @@ function ProcesoDetalleContenido() {
   }, [claveBorrador]);
 
   const ahoraReloj = useAhora();
+  // Al cumplirse el plazo de 48 horas el acta se bloquea sola; se recarga el proceso una vez
+  // para que la pantalla refleje el bloqueo sin que la persona tenga que actualizar.
+  const recargadoPorPlazo = useRef(false);
+  useEffect(() => {
+    const v = proceso?.numero_acta_vence_en;
+    if (!v || proceso?.numero_acta_estado !== 'reservado') {
+      recargadoPorPlazo.current = false;
+      return;
+    }
+    const iso = String(v).replace(' ', 'T');
+    const d = new Date(/(Z|[+-]\d\d:?\d\d)$/.test(iso) ? iso : `${iso}Z`);
+    if (!isNaN(d.getTime()) && d.getTime() <= ahoraReloj && !recargadoPorPlazo.current) {
+      recargadoPorPlazo.current = true;
+      cargarProceso();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ahoraReloj, proceso?.numero_acta_vence_en, proceso?.numero_acta_estado]);
   // Lugar de la barra de arriba (junto a la campana) donde va el botón "Volver".
   const [slotVolver, setSlotVolver] = useState<HTMLElement | null>(null);
   useEffect(() => {
@@ -991,8 +1008,7 @@ function ProcesoDetalleContenido() {
               <>
                 <strong>El administrador dio de baja el acta y este proceso.</strong>{' '}
                 {`Motivo: ${String(proceso.motivo_suspension).replace(/^Baja del acta:\s*/, '')}. `}
-                Ya no continúa ni bloquea al mediador, y su número de acta quedó libre. Solo el
-                administrador puede reactivarlo.
+                Ya no continúa ni bloquea al mediador, y su número de acta quedó libre.
               </>
             ) : (
               <>
@@ -1790,7 +1806,17 @@ function ProcesoDetalleContenido() {
           </div>
         )}
 
-        {conActa(proceso) && !proceso.finalizado && !proceso.suspendido && !proceso.bloqueo_acta_id && (
+        {conActa(proceso) && !proceso.finalizado && !proceso.suspendido && !proceso.bloqueo_acta_id && !!proceso.bloqueo_otro_codigo && (
+          <div className="card p-4">
+            <p className="text-sm text-numa-900 font-medium">
+              Esta acta no se puede subir ahora: tienes el acta{' '}
+              <b className="font-mono">{proceso.bloqueo_otro_codigo}</b> bloqueada. El administrador
+              debe resolverla primero.
+            </p>
+          </div>
+        )}
+
+        {conActa(proceso) && !proceso.finalizado && !proceso.suspendido && !proceso.bloqueo_acta_id && !proceso.bloqueo_otro_codigo && (
           <div className="card p-4">
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <p className="text-sm text-numa-700">

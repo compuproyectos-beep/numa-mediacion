@@ -4053,6 +4053,10 @@ def obtener_procesos_mediacion(
                     LIMIT 1
                 ) AS _id_bloqueante,
                 """ + _sql_acta_vencida("p") + """ AS _vencida_propia,
+                (SELECT bo.codigo FROM bloqueos_acta bo
+                  WHERE bo.usuario_id = p.usuario_id AND bo.estado = 'activo'
+                    AND bo.proceso_id IS DISTINCT FROM p.id
+                  ORDER BY bo.id LIMIT 1) AS bloqueo_otro_codigo,
                 (EXISTS (SELECT 1 FROM bloqueos_acta bd WHERE bd.proceso_id = p.id AND bd.estado = 'desbloqueado')
                  AND EXISTS (SELECT 1 FROM numeros_acta nd WHERE nd.proceso_id = p.id AND nd.estado = 'reservado')
                 ) AS _desbloq_admin,
@@ -4223,6 +4227,10 @@ def obtener_procesos_mediacion(
             # bloqueados los procesos nuevos mientras haya vencidos.
             _venc_propia = fila.pop("_vencida_propia", False)
             _desbloq = fila.pop("_desbloq_admin", False)
+            # Otra acta bloqueada del mismo mediador le impide subir esta (salvo que el
+            # administrador haya desbloqueado esta a propósito; el administrador no tiene el límite).
+            if _desbloq or usuario["rol"] == "administrador":
+                fila["bloqueo_otro_codigo"] = None
             if _venc_propia or _desbloq:
                 id_bloqueante = None
             # Qué proceso lo bloquea (si no es él mismo).
