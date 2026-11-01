@@ -36,7 +36,7 @@ export default function PedirAnulacionBoton({ numeroId, codigo }: { numeroId: nu
   if (enviado) {
     return (
       <span className="text-sm font-medium text-emerald-800">
-        Pedido enviado al administrador y a la secretaria. Quedó registrado.
+        Pedido enviado y registrado.
       </span>
     );
   }

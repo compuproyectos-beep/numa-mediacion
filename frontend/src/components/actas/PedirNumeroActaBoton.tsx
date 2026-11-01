@@ -104,7 +104,8 @@ export default function PedirNumeroActaBoton({
         onConfirm={pedir}
         loading={pidiendo}
         confirmLabel="Pedir número"
-        message="¿Pedir el número de acta de esta invitación? Quedará ligado a ella: no se podrá pedir otro para la misma invitación y tendrás 48 horas para completar el acta."
+        variante="primario"
+        message="¿Pedir el número de acta de esta invitación? Quedará ligado a ella y tendrás 48 horas para completar el acta."
       />
     </div>
   );
