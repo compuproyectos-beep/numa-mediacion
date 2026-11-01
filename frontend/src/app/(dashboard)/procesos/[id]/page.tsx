@@ -7,6 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import PasosProceso from '@/components/procesos/PasosProceso';
 import { ArrowLeft, Printer, Upload, Calendar as CalendarIcon, Eye, Download, Receipt, FileText, PlayCircle, CheckCircle2, Lock, Clock, Hash } from 'lucide-react';
 import { tiempoRestante, useAhora, CuentaRegresiva } from '@/components/actas/NumeroActaPanel';
+import PedirAnulacionBoton from '@/components/actas/PedirAnulacionBoton';
 import { isAdmin as esAdminSesion } from '@/lib/auth';
 import PartesProceso from '@/components/procesos/PartesProceso';
 import FacturacionProceso from '@/components/procesos/FacturacionProceso';
@@ -971,6 +972,9 @@ function ProcesoDetalleContenido() {
                   </p>
                 </div>
                 {t && <CuentaRegresiva venceEn={proceso.numero_acta_vence_en} />}
+                {t && !esAdminSesion() && proceso.numero_acta_id && (
+                  <PedirAnulacionBoton numeroId={proceso.numero_acta_id} codigo={proceso.numero_acta_codigo} />
+                )}
               </div>
             );
           })()}

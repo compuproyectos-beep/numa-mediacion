@@ -4082,6 +4082,7 @@ def obtener_procesos_mediacion(
                 EXISTS (SELECT 1 FROM proceso_facturas f
                          WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'mediador') AS tiene_factura_mediador,
                 (p.acta_impresa_fecha IS NOT NULL) AS acta_impresa,
+                (SELECT na.id FROM numeros_acta na WHERE na.proceso_id = p.id ORDER BY na.id LIMIT 1) AS numero_acta_id,
                 (SELECT na.codigo FROM numeros_acta na WHERE na.proceso_id = p.id ORDER BY na.id LIMIT 1) AS numero_acta_codigo,
                 (SELECT na.estado FROM numeros_acta na WHERE na.proceso_id = p.id ORDER BY na.id LIMIT 1) AS numero_acta_estado,
                 (SELECT na.fecha_solicitud + INTERVAL '48 hours' FROM numeros_acta na

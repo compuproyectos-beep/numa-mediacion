@@ -290,7 +290,7 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
                     </button>
                     <button
                       type="button"
-                      className="btn-secondary btn-sm ml-2"
+                      className="btn-danger-outline btn-sm ml-2"
                       onClick={() => {
                         setPedir(r);
                         setMotivoPedido('');
@@ -519,7 +519,7 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
                 </span>
                 <button
                   type="button"
-                  className="btn-sm inline-flex items-center gap-1.5 rounded-lg bg-[#144193] px-3 py-1.5 font-bold text-white shadow-[0_8px_16px_-10px_rgba(10,42,98,0.9)] hover:bg-[#1B4AAE] active:scale-[0.98] transition"
+                  className="btn-primary btn-sm"
                   onClick={() => {
                     setError('');
                     setDesbloq(b);
@@ -642,7 +642,7 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
                   </span>
                   <button
                     type="button"
-                    className="btn-sm inline-flex items-center gap-1.5 rounded-lg bg-[#144193] px-3 py-1.5 font-bold text-white shadow-[0_8px_16px_-10px_rgba(10,42,98,0.9)] hover:bg-[#1B4AAE] active:scale-[0.98] transition"
+                    className="btn-primary btn-sm"
                     onClick={() => {
                       setError('');
                       setReactivar(n);
