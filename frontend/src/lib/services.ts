@@ -490,6 +490,7 @@ export async function createProceso(
       empresa_solicitante_id: payload.empresa_solicitante_id,
       empresa_invitado_id: payload.empresa_invitado_id,
       cita_rapida_id: payload.cita_rapida_id,
+      mediador_id: payload.mediador_id,
     },
   });
 
@@ -1101,5 +1102,13 @@ export async function descargarFacturasPagosExcel(filters?: FiltrosFacturasPagos
 // Ficha del cliente: datos, procesos donde participa y sus citas.
 export async function getFichaCliente(id: number | string): Promise<any> {
   const res = await api.get(`/clientes/${id}/ficha`);
+  return res.data;
+}
+
+// El administrador pasa un proceso a otro mediador de la sucursal (o a sí mismo).
+export async function reasignarMediadorProceso(procesoId: number, nuevoUsuarioId: number) {
+  const form = new FormData();
+  form.append('nuevo_usuario_id', String(nuevoUsuarioId));
+  const res = await api.post(`/procesos/${procesoId}/reasignar-mediador`, form);
   return res.data;
 }

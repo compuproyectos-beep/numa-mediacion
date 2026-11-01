@@ -3853,6 +3853,7 @@ def crear_proceso_mediacion(
     empresa_solicitante_id: int = None,
     empresa_invitado_id: int = None,
     cita_rapida_id: int = None,
+    mediador_id: int = None,
     usuario=Depends(obtener_usuario_actual)
 ):
     conn = get_db()
@@ -3891,9 +3892,21 @@ def crear_proceso_mediacion(
                 detail="El tema es obligatorio"
             )
 
+        # El administrador puede dejar el proceso a cargo de un mediador de la
+        # sucursal elegida (por defecto lo lleva él mismo).
+        responsable_id = usuario["id"]
+        if mediador_id and usuario["rol"] == "administrador" and mediador_id != usuario["id"]:
+            cur.execute("SELECT id, rol, activo, sucursal_id FROM usuarios WHERE id = %s", (mediador_id,))
+            m_asig = cur.fetchone()
+            if not m_asig or not m_asig["activo"] or m_asig["rol"] != "mediador":
+                raise HTTPException(status_code=400, detail="El mediador elegido no está disponible")
+            if sucursal_id and m_asig["sucursal_id"] != sucursal_id:
+                raise HTTPException(status_code=400, detail="El mediador elegido no pertenece a esa sucursal")
+            responsable_id = m_asig["id"]
+
         # Conflicto de interés: quien lleva el proceso no puede ser una de
         # las partes. Se compara por cédula (misma persona = misma cédula).
-        cur.execute("SELECT cedula FROM usuarios WHERE id = %s", (usuario["id"],))
+        cur.execute("SELECT cedula FROM usuarios WHERE id = %s", (responsable_id,))
         fila_mediador = cur.fetchone()
         if fila_mediador and fila_mediador["cedula"]:
             cur.execute(
@@ -3964,7 +3977,7 @@ def crear_proceso_mediacion(
         """, (
             codigo_proceso,
             sucursal_id,
-            usuario["id"],
+            responsable_id,
             cliente_demandante_id,
             cliente_demandado_id,
             tema
@@ -3997,6 +4010,15 @@ def crear_proceso_mediacion(
                 "UPDATE numeros_acta SET proceso_id = %s WHERE cita_id = %s AND proceso_id IS NULL",
                 (proceso["id"], cita_rapida_id)
             )
+
+        if responsable_id != usuario["id"]:
+            crear_notificacion(
+                cur, responsable_id, "Nuevo proceso asignado",
+                f"El administrador te asignó el proceso {codigo_proceso}. Ya aparece en tu lista de procesos.",
+                "proceso", "proceso_mediacion", proceso["id"]
+            )
+            registrar_auditoria(cur, usuario, "proceso_asignado", "procesos", proceso["id"],
+                                f"Proceso {codigo_proceso} creado y asignado a otro mediador (id {responsable_id})")
 
         conn.commit()
 
@@ -4330,7 +4352,9 @@ def _sql_acta_vencida(a: str = "p") -> str:
         f"COALESCE("
         f"(SELECT MIN(nr.fecha_solicitud) FROM numeros_acta nr "
         f"WHERE nr.proceso_id = {a}.id AND nr.estado = 'reservado'), "
-        f"{a}.fecha_acuerdo, {a}.fecha_solicitud_acta_na) "
+        f"CASE WHEN COALESCE({a}.fecha_acuerdo, {a}.fecha_solicitud_acta_na) IS NULL THEN NULL "
+        f"ELSE GREATEST(COALESCE({a}.fecha_acuerdo, {a}.fecha_solicitud_acta_na), "
+        f"COALESCE({a}.fecha_reasignacion, '-infinity'::timestamptz)) END) "
         f"<= NOW() - INTERVAL '{HORAS_GRACIA_ACTA} hours'))"
     )
 
@@ -4485,6 +4509,98 @@ def obtener_partes_proceso(proceso_id: int, usuario=Depends(obtener_usuario_actu
         if usuario["rol"] != "administrador" and proceso["usuario_id"] != usuario["id"]:
             raise HTTPException(status_code=403, detail="No puedes ver este proceso")
         return _consulta_partes(cur, proceso_id)
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/procesos/{proceso_id}/reasignar-mediador")
+def reasignar_mediador_proceso(proceso_id: int, nuevo_usuario_id: int = Form(...), usuario=Depends(obtener_usuario_actual)):
+    """Solo el administrador. Pasa el proceso (con su número de acta e invitaciones
+    pendientes) a otro mediador de la misma sucursal, o al propio administrador.
+    Al nuevo responsable le corren 48 horas nuevas desde este momento."""
+    if usuario["rol"] != "administrador":
+        raise HTTPException(status_code=403, detail="Solo el administrador puede reasignar un proceso")
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("SELECT * FROM procesos_mediacion WHERE id = %s FOR UPDATE", (proceso_id,))
+        p = cur.fetchone()
+        if not p:
+            raise HTTPException(status_code=404, detail="Proceso no encontrado")
+        if p["estado"] == "anulado":
+            raise HTTPException(status_code=400, detail="Este proceso está anulado")
+        if p["finalizado"] and not (p["requiere_acta_firmada"] and p["acta_firmada_ruta"] is None):
+            raise HTTPException(status_code=400, detail="Este proceso ya está completo")
+        if p["usuario_id"] == nuevo_usuario_id:
+            raise HTTPException(status_code=400, detail="Ese mediador ya lleva este proceso")
+        cur.execute("SELECT id, nombre, apellido, cedula, rol, activo, sucursal_id FROM usuarios WHERE id = %s", (nuevo_usuario_id,))
+        nuevo = cur.fetchone()
+        if not nuevo or not nuevo["activo"] or nuevo["rol"] not in ("mediador", "administrador"):
+            raise HTTPException(status_code=400, detail="El mediador elegido no está disponible")
+        if nuevo["rol"] == "mediador" and nuevo["sucursal_id"] != p["sucursal_id"]:
+            raise HTTPException(status_code=400, detail="El mediador debe ser de la misma sucursal del proceso")
+        if nuevo["cedula"]:
+            cur.execute(
+                "SELECT 1 FROM proceso_partes pp JOIN clientes c ON c.id = pp.cliente_id "
+                "WHERE pp.proceso_id = %s AND c.cedula = %s LIMIT 1",
+                (proceso_id, nuevo["cedula"])
+            )
+            if cur.fetchone():
+                raise HTTPException(status_code=400, detail="Ese mediador es parte del proceso y no puede llevarlo")
+        anterior_id = p["usuario_id"]
+        cur.execute("SELECT pg_advisory_xact_lock(%s)", (7300000 + int(p["sucursal_id"]),))
+        cur.execute(
+            "UPDATE procesos_mediacion SET usuario_id = %s, fecha_reasignacion = NOW(), fecha_modificacion = NOW() WHERE id = %s",
+            (nuevo_usuario_id, proceso_id)
+        )
+        # Invitaciones que siguen pendientes pasan a la agenda del nuevo mediador.
+        cur.execute(
+            "UPDATE citas SET usuario_id = %s, fecha_modificacion = NOW() "
+            "WHERE proceso_id = %s AND estado IN ('pendiente', 'reagendada')",
+            (nuevo_usuario_id, proceso_id)
+        )
+        # El número de acta reservado se va con el proceso y el plazo de 48 horas vuelve a empezar.
+        cur.execute(
+            "UPDATE numeros_acta SET usuario_id = %s, fecha_solicitud = NOW() WHERE proceso_id = %s AND estado = 'reservado'",
+            (nuevo_usuario_id, proceso_id)
+        )
+        # Si el acta estaba bloqueada, su número queda libre y el bloqueo se cierra:
+        # el nuevo responsable pide un número y arranca limpio.
+        cur.execute(
+            "UPDATE numeros_acta SET proceso_id = NULL, cita_id = NULL, reutilizable = true WHERE proceso_id = %s AND estado = 'bloqueado'",
+            (proceso_id,)
+        )
+        cur.execute(
+            "UPDATE bloqueos_acta SET estado = 'desbloqueado', fecha_desbloqueo = NOW(), "
+            "desbloqueado_por = %s, mismo_numero = false WHERE proceso_id = %s AND estado = 'activo'",
+            (usuario["id"], proceso_id)
+        )
+        nombre_nuevo = f"{nuevo['nombre']} {nuevo['apellido']}".strip()
+        if nuevo_usuario_id != usuario["id"]:
+            crear_notificacion(
+                cur, nuevo_usuario_id, "Proceso asignado",
+                f"El administrador te asignó el proceso {p['codigo_proceso']}. Tienes 48 horas desde ahora para completar su acta.",
+                "proceso", "proceso_mediacion", proceso_id
+            )
+        if anterior_id and anterior_id != nuevo_usuario_id:
+            crear_notificacion(
+                cur, anterior_id, "Proceso reasignado",
+                f"El proceso {p['codigo_proceso']} pasó a {nombre_nuevo}.",
+                "proceso", "proceso_mediacion", proceso_id
+            )
+        registrar_auditoria(
+            cur, usuario, "proceso_reasignado", "procesos", proceso_id,
+            f"Proceso {p['codigo_proceso']} reasignado del mediador {anterior_id} a {nombre_nuevo} (id {nuevo_usuario_id})"
+        )
+        conn.commit()
+        return {"mensaje": "Proceso reasignado", "mediador": nombre_nuevo}
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudo reasignar el proceso: {e}")
     finally:
         cur.close()
         conn.close()

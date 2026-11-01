@@ -49,6 +49,8 @@ import {
   descargarComprobantePagoActaFinal,
   pedirNumeroActaProceso,
   desbloquearActa,
+  getUsuarios,
+  reasignarMediadorProceso,
 } from '@/lib/services';
 
 // Mismos colores que ya se usan en la Agenda (ver colorPorEstado en
@@ -267,6 +269,34 @@ function ProcesoDetalleContenido() {
   const [desbloqueandoActa, setDesbloqueandoActa] = useState(false);
   const [confirmoActaFinal, setConfirmoActaFinal] = useState(false);
   const [confirmDesbloqueo, setConfirmDesbloqueo] = useState(false);
+  const [reasignando, setReasignando] = useState(false);
+  const [candidatosMediador, setCandidatosMediador] = useState<any[]>([]);
+  const [nuevoMediadorId, setNuevoMediadorId] = useState('');
+  const [guardandoReasignacion, setGuardandoReasignacion] = useState(false);
+  const abrirReasignar = async () => {
+    setReasignando(true);
+    setNuevoMediadorId('');
+    try {
+      setCandidatosMediador(await getUsuarios());
+    } catch {
+      setCandidatosMediador([]);
+    }
+  };
+  const confirmarReasignar = async () => {
+    if (!proceso || !nuevoMediadorId) return;
+    setGuardandoReasignacion(true);
+    setError('');
+    try {
+      const r = await reasignarMediadorProceso(Number(proceso.id), Number(nuevoMediadorId));
+      setReasignando(false);
+      setSuccessMessage(`Proceso reasignado a ${r?.mediador ?? 'el nuevo mediador'}. Tiene 48 horas nuevas para completar el acta.`);
+      window.location.reload();
+    } catch (e: any) {
+      setError(e?.response?.data?.detail || 'No se pudo reasignar el proceso');
+    } finally {
+      setGuardandoReasignacion(false);
+    }
+  };
   const desbloquearDesdeProceso = async () => {
     setConfirmDesbloqueo(false);
     if (!proceso?.bloqueo_acta_id) return;
@@ -1125,6 +1155,66 @@ function ProcesoDetalleContenido() {
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {esAdminSesion() && !proceso.finalizado && proceso.estado !== 'anulado' && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
+          <p className="text-sm text-gray-700">
+            A cargo de <strong>{proceso.mediador ?? 'sin asignar'}</strong>
+            {proceso.sucursal ? ` · ${proceso.sucursal}` : ''}
+          </p>
+          {!reasignando ? (
+            <button
+              type="button"
+              onClick={abrirReasignar}
+              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-800 hover:bg-gray-50"
+            >
+              Reasignar mediador
+            </button>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={nuevoMediadorId}
+                onChange={(e) => setNuevoMediadorId(e.target.value)}
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+                aria-label="Nuevo mediador"
+              >
+                <option value="">Elegir quién lo lleva</option>
+                {candidatosMediador
+                  .filter((m: any) =>
+                    m.activo !== false &&
+                    m.id !== proceso.usuario_id &&
+                    (m.rol === 'administrador' || (m.rol === 'mediador' && String(m.sucursal_id) === String(proceso.sucursal_id)))
+                  )
+                  .map((m: any) => (
+                    <option key={m.id} value={m.id}>
+                      {m.nombre} {m.apellido}{m.rol === 'administrador' ? ' (administrador)' : ''}
+                    </option>
+                  ))}
+              </select>
+              <button
+                type="button"
+                disabled={!nuevoMediadorId || guardandoReasignacion}
+                onClick={confirmarReasignar}
+                className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {guardandoReasignacion ? 'Pasando…' : 'Pasar el proceso'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setReasignando(false)}
+                className="px-2 py-1.5 text-sm text-gray-600 hover:underline"
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
+          {reasignando && (
+            <p className="basis-full text-xs text-gray-600">
+              El proceso, su número de acta y sus invitaciones pendientes pasan al nuevo responsable, y le corren 48 horas nuevas.
+            </p>
+          )}
         </div>
       )}
 

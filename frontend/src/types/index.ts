@@ -217,4 +217,5 @@ export interface CreateProcesoPayload {
   empresa_solicitante_id?: number;
   empresa_invitado_id?: number;
   cita_rapida_id?: number;
+  mediador_id?: number;
 }

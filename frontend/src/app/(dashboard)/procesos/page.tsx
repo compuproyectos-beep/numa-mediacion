@@ -195,7 +195,8 @@ export default function ProcesosPage() {
     cliente_demandado_id: '',
     sucursal_id: '',
     tema: '',
-    cita_rapida_id: ''
+    cita_rapida_id: '',
+    mediador_id: ''
   });
 
   // Invitaciones rápidas de la Agenda que todavía no tienen proceso.
@@ -306,7 +307,8 @@ export default function ProcesosPage() {
       cliente_demandado_id: '',
       sucursal_id: '',
       tema: '',
-      cita_rapida_id: ''
+      cita_rapida_id: '',
+      mediador_id: ''
     });
     setAvisoCitaRapida('');
     setPaso(1);
@@ -620,7 +622,8 @@ export default function ProcesosPage() {
         cliente_demandado_id: Number(idInv),
         tema: form.tema,
         ...(isAdmin() ? { sucursal_id: Number(form.sucursal_id) } : {}),
-        ...(form.cita_rapida_id ? { cita_rapida_id: Number(form.cita_rapida_id) } : {})
+        ...(form.cita_rapida_id ? { cita_rapida_id: Number(form.cita_rapida_id) } : {}),
+        ...(isAdmin() && form.mediador_id ? { mediador_id: Number(form.mediador_id) } : {})
       });
 
       // Se agregan al proceso las demás personas de cada lado.
@@ -642,7 +645,8 @@ export default function ProcesosPage() {
         cliente_demandado_id: '',
         sucursal_id: '',
         tema: '',
-        cita_rapida_id: ''
+        cita_rapida_id: '',
+        mediador_id: ''
       });
 
       // Se navega directo al proceso recién creado en vez de depender de
@@ -1077,7 +1081,7 @@ export default function ProcesosPage() {
               <SelectField
                 label="Sucursal"
                 value={form.sucursal_id}
-                onChange={(e) => setForm({ ...form, sucursal_id: e.target.value })}
+                onChange={(e) => setForm({ ...form, sucursal_id: e.target.value, mediador_id: '' })}
               >
                 <option value="">Seleccione una sucursal</option>
 
@@ -1086,6 +1090,23 @@ export default function ProcesosPage() {
                     {s.ciudad_nombre || s.ciudad || ''} - {s.nombre}
                   </option>
                 ))}
+              </SelectField>
+            )}
+
+            {isAdmin() && form.sucursal_id && (
+              <SelectField
+                label="Mediador a cargo"
+                value={form.mediador_id}
+                onChange={(e) => setForm({ ...form, mediador_id: e.target.value })}
+              >
+                <option value="">Yo mismo (administrador)</option>
+                {mediadores
+                  .filter((m: any) => m.activo !== false && m.rol === 'mediador' && String(m.sucursal_id) === String(form.sucursal_id))
+                  .map((m: any) => (
+                    <option key={m.id} value={m.id}>
+                      {m.nombre} {m.apellido}
+                    </option>
+                  ))}
               </SelectField>
             )}
 
