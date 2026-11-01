@@ -4102,12 +4102,14 @@ def obtener_procesos_mediacion(
                   ORDER BY bq.id DESC LIMIT 1) AS bloqueo_acta_codigo,
                 (SELECT bq.fecha_bloqueo FROM bloqueos_acta bq WHERE bq.proceso_id = p.id AND bq.estado = 'activo'
                   ORDER BY bq.id DESC LIMIT 1) AS bloqueo_acta_fecha,
-                (SELECT bq.codigo FROM bloqueos_acta bq
-                  WHERE bq.proceso_id = p.id AND bq.estado = 'desbloqueado' AND bq.mismo_numero = false
-                    AND bq.codigo_nuevo = (SELECT na.codigo FROM numeros_acta na
+                -- Solo cuenta el ÚLTIMO desbloqueo: si ese devolvió el mismo número, no hubo cambio.
+                (SELECT ub.codigo FROM (SELECT bq.codigo, bq.mismo_numero, bq.codigo_nuevo FROM bloqueos_acta bq
+                  WHERE bq.proceso_id = p.id AND bq.estado = 'desbloqueado'
+                  ORDER BY bq.id DESC LIMIT 1) ub
+                  WHERE ub.mismo_numero = false
+                    AND ub.codigo_nuevo = (SELECT na.codigo FROM numeros_acta na
                                             WHERE na.proceso_id = p.id AND na.estado = 'reservado'
-                                            ORDER BY na.id LIMIT 1)
-                  ORDER BY bq.id DESC LIMIT 1) AS acta_renumerada_desde,
+                                            ORDER BY na.id LIMIT 1)) AS acta_renumerada_desde,
                 -- Si ya tiene una invitación pendiente, no se puede agendar
                 -- otra hasta que esa se resuelva (realizada/cancelada) —
                 -- usado para saber qué procesos se pueden elegir al crear
