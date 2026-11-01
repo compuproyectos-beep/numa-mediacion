@@ -250,21 +250,17 @@ function TarjetaResumen({
       type="button"
       onClick={onClick}
       style={{ animationDelay: `${0.08 + orden * 0.06}s` }}
-      className={`tarjeta-resumen tile-in group w-full text-left rounded-2xl border p-3.5 shadow-[0_10px_22px_-16px_rgba(11,39,89,.45)] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400 focus-visible:ring-offset-2 ${e.caja} ${
+      className={`tarjeta-resumen tile-in group w-full text-left rounded-xl border px-3 py-2.5 shadow-[0_8px_18px_-14px_rgba(11,39,89,.45)] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400 focus-visible:ring-offset-2 flex items-center gap-3 ${e.caja} ${
         active ? 'ring-2 ring-gold-500/60 ring-offset-2 -translate-y-0.5' : ''
       }`}
     >
-      <div className="flex items-start justify-between">
-        <span className={`w-8 h-8 rounded-xl flex items-center justify-center ${e.icono}`}>
-          <Icon className="w-5 h-5" />
-        </span>
-        <ArrowRight className={`w-4 h-4 opacity-0 -translate-x-2 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 ${e.sub}`} />
-      </div>
-      <p className={`mt-2.5 text-3xl font-extrabold tracking-tight tabular-nums leading-none ${e.texto}`}>{mostrado}</p>
-      <div className={`mt-3 h-1.5 rounded-full ${e.pista}`}>
-        <div className={`h-1.5 rounded-full transition-all duration-1000 ease-out ${e.acento}`} style={{ width: `${porcentaje}%` }} />
-      </div>
-      <p className={`mt-2.5 text-[11px] leading-tight uppercase tracking-wide font-semibold ${e.sub}`}>{label}</p>
+      <span className={`w-9 h-9 shrink-0 rounded-lg flex items-center justify-center ${e.icono}`}>
+        <Icon className="w-[18px] h-[18px]" />
+      </span>
+      <span className="min-w-0">
+        <span className={`block text-2xl font-extrabold tracking-tight tabular-nums leading-none ${e.texto}`}>{mostrado}</span>
+        <span className={`mt-1 block text-[10.5px] leading-tight uppercase tracking-wide font-semibold ${e.sub}`}>{label}</span>
+      </span>
     </button>
   );
 }
@@ -487,32 +483,43 @@ export default function DashboardPage() {
         <div className="space-y-4 animate-fade-in">
           {/* Las cajas van directo sobre el fondo de la página: sus colores
               suaves ya las distinguen, sin franja detrás. */}
-          <div className="relative -mt-9 sm:-mt-10 mx-2 sm:mx-6 grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="relative -mt-9 sm:-mt-10 mx-2 sm:mx-6 space-y-2.5">
             {(
               [
-                ['actas_bloqueadas', stats.actas_bloqueadas ?? 0, stats.actas_bloqueadas === 1 ? 'acta bloqueada' : 'actas bloqueadas', Lock],
-                ['numeros_anulados', stats.numeros_anulados ?? 0, stats.numeros_anulados === 1 ? 'número de acta anulado' : 'números de actas anulados', Hash],
-                ['actas_acuerdo', stats.actas_acuerdo ?? 0, stats.actas_acuerdo === 1 ? 'acta de acuerdo' : 'actas de acuerdo', FileCheck],
-                ['actas_no_acuerdo', stats.actas_no_acuerdo ?? 0, stats.actas_no_acuerdo === 1 ? 'acta de no acuerdo' : 'actas de no acuerdo', FileCheck],
-                ['en_negociacion', procesos.en_negociacion ?? 0, procesos.en_negociacion === 1 ? 'proceso en negociación' : 'procesos en negociación', Clock],
-                ['cerrado_con_acuerdo', procesos.cerrados_con_acuerdo ?? 0, procesos.cerrados_con_acuerdo === 1 ? 'proceso con acuerdo' : 'procesos con acuerdo', CheckCircle],
-                ['cerrado_sin_acuerdo', procesos.cerrados_sin_acuerdo ?? 0, procesos.cerrados_sin_acuerdo === 1 ? 'proceso sin acuerdo' : 'procesos sin acuerdo', FileText],
-                ['archivado', procesos.archivados ?? 0, procesos.archivados === 1 ? 'proceso archivado' : 'procesos archivados', Archive],
-                ['anulado', procesos.anulados ?? 0, procesos.anulados === 1 ? 'proceso anulado' : 'procesos anulados', Ban]
+                [
+                  ['actas_acuerdo', stats.actas_acuerdo ?? 0, stats.actas_acuerdo === 1 ? 'acta de acuerdo' : 'actas de acuerdo', FileCheck],
+                  ['actas_no_acuerdo', stats.actas_no_acuerdo ?? 0, stats.actas_no_acuerdo === 1 ? 'acta de no acuerdo' : 'actas de no acuerdo', FileCheck],
+                  ['actas_bloqueadas', stats.actas_bloqueadas ?? 0, stats.actas_bloqueadas === 1 ? 'acta bloqueada' : 'actas bloqueadas', Lock],
+                  ['numeros_anulados', stats.numeros_anulados ?? 0, stats.numeros_anulados === 1 ? 'número de acta anulado' : 'números de actas anulados', Hash]
+                ],
+                [
+                  ['en_negociacion', procesos.en_negociacion ?? 0, procesos.en_negociacion === 1 ? 'proceso en negociación' : 'procesos en negociación', Clock],
+                  ['cerrado_con_acuerdo', procesos.cerrados_con_acuerdo ?? 0, procesos.cerrados_con_acuerdo === 1 ? 'proceso con acuerdo' : 'procesos con acuerdo', CheckCircle],
+                  ['cerrado_sin_acuerdo', procesos.cerrados_sin_acuerdo ?? 0, procesos.cerrados_sin_acuerdo === 1 ? 'proceso sin acuerdo' : 'procesos sin acuerdo', FileText],
+                  ['archivado', procesos.archivados ?? 0, procesos.archivados === 1 ? 'proceso archivado' : 'procesos archivados', Archive],
+                  ['anulado', procesos.anulados ?? 0, procesos.anulados === 1 ? 'proceso anulado' : 'procesos anulados', Ban]
+                ]
               ] as const
-            ).map(([clave, valor, etiqueta, icono], i, todas) => (
-              <TarjetaResumen
-                key={clave}
-                clave={clave}
-                label={etiqueta}
-                value={valor}
-                maximo={Math.max(...todas.map((t) => t[1] as number), 1)}
-                icon={icono}
-                onClick={() => toggleCategoria(clave)}
-                active={categoriaAbierta === clave}
-                porDefecto={false}
-                orden={i}
-              />
+            ).map((grupo, g) => (
+              <div
+                key={g}
+                className={`grid grid-cols-2 gap-2.5 ${g === 0 ? 'lg:grid-cols-4' : 'sm:grid-cols-3 lg:grid-cols-5'}`}
+              >
+                {grupo.map(([clave, valor, etiqueta, icono], i) => (
+                  <TarjetaResumen
+                    key={clave}
+                    clave={clave}
+                    label={etiqueta}
+                    value={valor}
+                    maximo={1}
+                    icon={icono}
+                    onClick={() => toggleCategoria(clave)}
+                    active={categoriaAbierta === clave}
+                    porDefecto={false}
+                    orden={g * 4 + i}
+                  />
+                ))}
+              </div>
             ))}
           </div>
 
