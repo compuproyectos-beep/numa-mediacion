@@ -9187,6 +9187,86 @@ async def reemplazar_acta_final_pdf(
         cur.close()
         conn.close()
 
+@app.post("/actas-finales/{acta_id}/reemplazar-comprobante")
+async def reemplazar_comprobante_acta_final(
+    acta_id: int,
+    archivo: UploadFile = File(...),
+    motivo: str = Form(...),
+    usuario=Depends(obtener_usuario_actual)
+):
+    """Solo el administrador. Cambia el comprobante de pago de un acta final
+    (el acta y su código no cambian) y deja el motivo en el historial."""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        if usuario["rol"] != "administrador":
+            raise HTTPException(status_code=403, detail="Solo el administrador puede reemplazar comprobantes")
+        if not motivo.strip():
+            raise HTTPException(status_code=400, detail="Debe ingresar el motivo del reemplazo")
+        ext = {"application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png"}.get(archivo.content_type)
+        if not ext:
+            raise HTTPException(status_code=400, detail="El comprobante debe ser PDF, JPG o PNG")
+
+        cur.execute(
+            "SELECT id, codigo_acta, ruta_comprobante_pago FROM actas_proceso WHERE id = %s", (acta_id,)
+        )
+        acta = cur.fetchone()
+        if not acta:
+            raise HTTPException(status_code=404, detail="Acta final no encontrada")
+        if not acta["ruta_comprobante_pago"]:
+            raise HTTPException(status_code=400, detail="Esta acta no tiene comprobante de pago que reemplazar")
+
+        contenido = await archivo.read()
+        if ext == "pdf":
+            contenido = comprimir_pdf(contenido)
+
+        SUPABASE_URL = os.getenv("SUPABASE_URL")
+        SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "actas-pdf")
+        if not SUPABASE_URL or not SUPABASE_KEY:
+            raise HTTPException(status_code=500, detail="Supabase no está configurado en el backend")
+
+        ruta_nueva = f"comprobantes-pago/{acta['codigo_acta']}/{uuid.uuid4()}.{ext}"
+        upload_url = (
+            f"{SUPABASE_URL.rstrip('/')}/storage/v1/object/"
+            f"{SUPABASE_BUCKET}/{quote(ruta_nueva, safe='/')}"
+        )
+        response = requests.post(
+            upload_url,
+            headers={**_sb_auth(SUPABASE_KEY), "apikey": SUPABASE_KEY,
+                     "Content-Type": archivo.content_type, "x-upsert": "true"},
+            data=contenido
+        )
+        if response.status_code not in [200, 201]:
+            raise HTTPException(status_code=500, detail=f"Error subiendo archivo a Supabase: {response.text}")
+
+        cur.execute(
+            """
+            INSERT INTO actas_proceso_historial (
+                acta_proceso_id, acta_reemplazada_id, usuario_id, accion, motivo,
+                archivo_anterior, archivo_nuevo, fecha_accion
+            ) VALUES (%s, %s, %s, 'REEMPLAZO_COMPROBANTE', %s, %s, %s, NOW())
+            """,
+            (acta_id, acta_id, usuario["id"], motivo, acta["ruta_comprobante_pago"], ruta_nueva)
+        )
+        cur.execute(
+            "UPDATE actas_proceso SET ruta_comprobante_pago = %s, nombre_comprobante_pago = %s, "
+            "tamano_comprobante_bytes = %s WHERE id = %s",
+            (ruta_nueva, archivo.filename, len(contenido), acta_id)
+        )
+        conn.commit()
+        return {"mensaje": "Comprobante de pago reemplazado correctamente", "codigo_acta": acta["codigo_acta"]}
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+        conn.close()
+
+
 # =========================
 # HISTORIAL ACTA FINAL PDF
 # =========================

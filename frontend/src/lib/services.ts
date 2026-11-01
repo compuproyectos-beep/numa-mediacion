@@ -1117,3 +1117,17 @@ export async function getHistorialAsignacion(procesoId: number): Promise<any[]> 
   const res = await api.get(`/procesos/${procesoId}/historial-asignacion`);
   return res.data;
 }
+
+export async function reemplazarComprobanteActaFinal(
+  actaId: number,
+  file: File,
+  motivo: string
+): Promise<any> {
+  const formData = new FormData();
+  formData.append('archivo', file);
+  formData.append('motivo', motivo);
+  const res = await api.post(`/actas-finales/${actaId}/reemplazar-comprobante`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data;
+}

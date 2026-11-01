@@ -20,6 +20,7 @@ import {
   descargarComprobantePagoActaFinal,
   descargarComprobanteFinal,
   reemplazarPdfActaFinal,
+  reemplazarComprobanteActaFinal,
   exportarActasFinalesZip,
   getUsuarios
 } from '@/lib/services';
@@ -56,6 +57,7 @@ export default function ActasFinalesPage() {
   });
 
   const [actaReemplazar, setActaReemplazar] = useState<any | null>(null);
+  const [modoReemplazo, setModoReemplazo] = useState<'pdf' | 'comprobante'>('pdf');
   const [archivoReemplazo, setArchivoReemplazo] = useState<File | null>(null);
   const [motivoReemplazo, setMotivoReemplazo] = useState('');
   const [reemplazando, setReemplazando] = useState(false);
@@ -235,7 +237,7 @@ export default function ActasFinalesPage() {
 
   const handleReemplazarPdf = async () => {
     if (!actaReemplazar || !archivoReemplazo) {
-      setError('Seleccione un archivo PDF');
+      setError(modoReemplazo === 'comprobante' ? 'Seleccione el comprobante' : 'Seleccione un archivo PDF');
       return;
     }
 
@@ -248,20 +250,20 @@ export default function ActasFinalesPage() {
     setReemplazando(true);
 
     try {
-      await reemplazarPdfActaFinal(
-        actaReemplazar.id,
-        archivoReemplazo,
-        motivoReemplazo
-      );
+      if (modoReemplazo === 'comprobante') {
+        await reemplazarComprobanteActaFinal(actaReemplazar.id, archivoReemplazo, motivoReemplazo);
+      } else {
+        await reemplazarPdfActaFinal(actaReemplazar.id, archivoReemplazo, motivoReemplazo);
+      }
 
       const data = await getActasFinales();
       setActas(data);
 
       setArchivoReemplazo(null);
       setMotivoReemplazo('');
-      setMensajeReemplazo('PDF reemplazado correctamente');
+      setMensajeReemplazo(modoReemplazo === 'comprobante' ? 'Comprobante reemplazado correctamente' : 'PDF reemplazado correctamente');
     } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Error al reemplazar PDF');
+      setError(typeof err?.response?.data?.detail === 'string' ? err.response.data.detail : 'Error al reemplazar');
     } finally {
       setReemplazando(false);
     }
@@ -696,6 +698,7 @@ const handleExportarZip = async () => {
                     <button
                       type="button"
                       onClick={() => {
+                        setModoReemplazo('pdf');
                         setActaReemplazar(a);
                         setArchivoReemplazo(null);
                         setMotivoReemplazo('');
@@ -705,6 +708,21 @@ const handleExportarZip = async () => {
                     >
                       <RefreshCw className="w-3.5 h-3.5" /> Reemplazar PDF
                     </button>
+                    {a.ruta_comprobante_pago && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setModoReemplazo('comprobante');
+                          setActaReemplazar(a);
+                          setArchivoReemplazo(null);
+                          setMotivoReemplazo('');
+                          setMensajeReemplazo('');
+                        }}
+                        className="btn-sm inline-flex items-center gap-1.5 rounded-md bg-white border border-numa-200 text-numa-700 font-medium hover:border-gold-400"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" /> Reemplazar comprobante
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -723,7 +741,7 @@ const handleExportarZip = async () => {
           setMensajeReemplazo('');
           setError('');
         }}
-        title={`Reemplazar PDF — ${actaReemplazar?.codigo_acta || ''}`}
+        title={`${modoReemplazo === 'comprobante' ? 'Reemplazar comprobante' : 'Reemplazar PDF'} — ${actaReemplazar?.codigo_acta || ''}`}
         size="md"
       >
         <div className="space-y-4">
@@ -736,12 +754,12 @@ const handleExportarZip = async () => {
           {error && <ErrorAlert message={error} />}
 
           <p className="text-sm text-numa-600">
-            Solo administración puede reemplazar el PDF final. El motivo quedará registrado para control interno.
+            {modoReemplazo === 'comprobante' ? 'Solo administración puede reemplazar el comprobante de pago (PDF, JPG o PNG). El motivo quedará registrado para control interno.' : 'Solo administración puede reemplazar el PDF final. El motivo quedará registrado para control interno.'}
           </p>
 
           <input
             type="file"
-            accept="application/pdf"
+            accept={modoReemplazo === 'comprobante' ? 'application/pdf,image/jpeg,image/png' : 'application/pdf'}
             onChange={(e) =>
               setArchivoReemplazo(e.target.files?.[0] || null)
             }
@@ -777,7 +795,7 @@ const handleExportarZip = async () => {
               disabled={reemplazando}
               className="btn-primary"
             >
-              {reemplazando ? 'Reemplazando...' : 'Reemplazar PDF'}
+              {reemplazando ? 'Reemplazando...' : modoReemplazo === 'comprobante' ? 'Reemplazar comprobante' : 'Reemplazar PDF'}
             </button>
           </div>
         </div>
