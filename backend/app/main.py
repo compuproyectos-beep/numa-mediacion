@@ -1265,6 +1265,13 @@ def dashboard(solo_mios: bool = False, usuario=Depends(obtener_usuario_actual)):
         )
         actas_bloqueadas = cur.fetchone()["n"]
 
+        cur.execute(
+            "SELECT COUNT(*) AS n FROM numeros_acta_anulaciones WHERE fecha > NOW() - INTERVAL '30 days'"
+            + (" AND usuario_id = %s" if filtrar else ""),
+            tuple(params)
+        )
+        numeros_anulados = cur.fetchone()["n"]
+
         cur.execute(f"""
             SELECT
                 p.id,
@@ -1327,6 +1334,7 @@ def dashboard(solo_mios: bool = False, usuario=Depends(obtener_usuario_actual)):
             "actas_acuerdo": actas_acuerdo,
             "actas_no_acuerdo": actas_no_acuerdo,
             "actas_bloqueadas": actas_bloqueadas,
+            "numeros_anulados": numeros_anulados,
             "procesos_recientes": procesos_recientes,
             "actas_recientes": actas_recientes
         }
@@ -7047,6 +7055,44 @@ def _motivo_no_puede_pedir_numero(cur, usuario):
             f"Hasta entonces no puedes pedir otro número de acta."
         )
     return None
+
+
+@app.get("/numeros-acta/anulaciones")
+def historial_anulaciones_numeros(usuario=Depends(obtener_usuario_actual)):
+    """Anulaciones de números de acta de los últimos 30 días (la ventana en que un número
+    puede volver a tomarse). El administrador ve todas; el mediador, solo las suyas.
+    «destino» dice qué pasó después con el número."""
+    if usuario["rol"] not in ("administrador", "mediador"):
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver esta información")
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        filtro = "" if usuario["rol"] == "administrador" else " AND a.usuario_id = %(u)s"
+        cur.execute(f"""
+            SELECT a.id, a.codigo, a.fecha, a.motivo,
+                   m.nombre || ' ' || m.apellido AS mediador,
+                   s.nombre AS sucursal, ci.nombre AS ciudad,
+                   CASE
+                     WHEN n.estado = 'anulado' AND n.reutilizable THEN 'libre'
+                     WHEN n.estado = 'anulado' THEN 'retirado'
+                     WHEN n.usuario_id IS DISTINCT FROM a.usuario_id THEN 'tomado'
+                     ELSE 'reactivado'
+                   END AS destino,
+                   CASE WHEN n.estado <> 'anulado' AND n.usuario_id IS DISTINCT FROM a.usuario_id
+                        THEN o.nombre || ' ' || o.apellido END AS tomado_por
+            FROM numeros_acta_anulaciones a
+            JOIN numeros_acta n ON n.id = a.numero_id
+            LEFT JOIN usuarios m ON m.id = a.usuario_id
+            LEFT JOIN usuarios o ON o.id = n.usuario_id
+            LEFT JOIN sucursales s ON s.id = a.sucursal_id
+            LEFT JOIN ciudades ci ON ci.id = s.ciudad_id
+            WHERE a.fecha > NOW() - INTERVAL '30 days' {filtro}
+            ORDER BY a.fecha DESC
+        """, {"u": usuario["id"]})
+        return cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
 
 
 @app.get("/numeros-acta/mio")

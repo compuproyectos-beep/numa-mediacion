@@ -10,6 +10,7 @@ import {
   FileCheck,
   Ban,
   Lock,
+  Hash,
   LayoutDashboard,
   HardDrive,
   ChevronDown,
@@ -19,7 +20,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Spinner, ErrorAlert, Badge, EmptyState, Pill } from '@/components/ui';
-import { getDashboard, getUsoAlmacenamiento, getProcesos, getActasFinales, enviarRespaldoManual, getNumerosActaAdmin, getMiNumeroActa } from '@/lib/services';
+import { getDashboard, getUsoAlmacenamiento, getProcesos, getActasFinales, enviarRespaldoManual, getNumerosActaAdmin, getMiNumeroActa, getAnulacionesNumeros } from '@/lib/services';
 import { useAuth } from '@/hooks/useAuth';
 import { GuiaBienvenida, useGuiaBienvenida } from '@/components/dashboard/GuiaBienvenida';
 import ResumenActasMes from '@/components/dashboard/ResumenActasMes';
@@ -74,6 +75,14 @@ const TEMA_CATEGORIA: Record<
     panel: 'bg-rose-50 border-rose-200',
     item: 'border-rose-200 border-t-4 border-t-rose-500 hover:border-rose-300',
     titulo: 'text-rose-800'
+  },
+  numeros_anulados: {
+    caja: 'bg-orange-100 border-orange-300',
+    icono: 'bg-orange-600 text-white',
+    texto: 'text-orange-900',
+    panel: 'bg-orange-50 border-orange-200',
+    item: 'border-orange-200 border-t-4 border-t-orange-500 hover:border-orange-300',
+    titulo: 'text-orange-800'
   },
   actas_bloqueadas: {
     caja: 'bg-red-100 border-red-300',
@@ -132,6 +141,10 @@ const CATEGORIAS: Record<
     titulo: 'Procesos anulados',
     estadoProceso: 'anulado',
     verTodoHref: '/procesos?estado=anulado'
+  },
+  numeros_anulados: {
+    titulo: 'Números de actas anuladas (últimos 30 días)',
+    verTodoHref: '/actas-finales'
   },
   actas_bloqueadas: {
     titulo: 'Actas bloqueadas (pasaron 48 horas sin completar)',
@@ -200,6 +213,7 @@ const ESTILO_TARJETA: Record<
   cerrado_con_acuerdo: { caja: 'bg-white border-[#CBD6E8]', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-emerald-500', pista: 'bg-numa-100', icono: 'bg-emerald-100 text-emerald-700' },
   cerrado_sin_acuerdo: { caja: 'bg-white border-[#CBD6E8]', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-slate-500', pista: 'bg-numa-100', icono: 'bg-slate-100 text-slate-600' },
   archivado: { caja: 'bg-white border-[#CBD6E8]', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-numa-400', pista: 'bg-numa-100', icono: 'bg-numa-100 text-numa-600' },
+  numeros_anulados: { caja: 'bg-white border-[#CBD6E8]', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-orange-500', pista: 'bg-numa-100', icono: 'bg-orange-100 text-orange-700' },
   anulado: { caja: 'bg-white border-[#CBD6E8]', texto: 'text-numa-900', sub: 'text-numa-500', acento: 'bg-rose-500', pista: 'bg-numa-100', icono: 'bg-rose-100 text-rose-700' }
 };
 
@@ -352,6 +366,8 @@ export default function DashboardPage() {
         } else {
           data = (await getMiNumeroActa()).bloqueados || [];
         }
+      } else if (clave === 'numeros_anulados') {
+        data = await getAnulacionesNumeros();
       } else if (info.estadoProceso) {
         data = await getProcesos({
           estado: info.estadoProceso,
@@ -471,10 +487,11 @@ export default function DashboardPage() {
         <div className="space-y-4 animate-fade-in">
           {/* Las cajas van directo sobre el fondo de la página: sus colores
               suaves ya las distinguen, sin franja detrás. */}
-          <div className="relative -mt-9 sm:-mt-10 mx-2 sm:mx-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="relative -mt-9 sm:-mt-10 mx-2 sm:mx-6 grid grid-cols-2 md:grid-cols-3 gap-3">
             {(
               [
                 ['actas_bloqueadas', stats.actas_bloqueadas ?? 0, stats.actas_bloqueadas === 1 ? 'acta bloqueada' : 'actas bloqueadas', Lock],
+                ['numeros_anulados', stats.numeros_anulados ?? 0, stats.numeros_anulados === 1 ? 'número de acta anulado' : 'números de actas anulados', Hash],
                 ['actas_acuerdo', stats.actas_acuerdo ?? 0, stats.actas_acuerdo === 1 ? 'acta de acuerdo' : 'actas de acuerdo', FileCheck],
                 ['actas_no_acuerdo', stats.actas_no_acuerdo ?? 0, stats.actas_no_acuerdo === 1 ? 'acta de no acuerdo' : 'actas de no acuerdo', FileCheck],
                 ['en_negociacion', procesos.en_negociacion ?? 0, procesos.en_negociacion === 1 ? 'proceso en negociación' : 'procesos en negociación', Clock],
@@ -538,7 +555,34 @@ export default function DashboardPage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {listaCategoria.slice(0, 10).map((item: any) => (
-                    categoriaAbierta === 'actas_bloqueadas' ? (
+                    categoriaAbierta === 'numeros_anulados' ? (
+                    <div
+                      key={item.id}
+                      onClick={() => router.push('/actas-finales')}
+                      className={`px-3 py-2 border rounded-md bg-white cursor-pointer card-lift shadow-sm hover:shadow-md ${TEMA_CATEGORIA[categoriaAbierta].item}`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-semibold text-numa-900 code-text">{item.codigo}</p>
+                        <span className="text-xs text-numa-600 shrink-0">
+                          {item.fecha ? new Date(item.fecha).toLocaleDateString('es-EC') : '—'}
+                        </span>
+                      </div>
+                      <p className="text-sm font-medium text-numa-800 mt-0.5 line-clamp-1">
+                        {item.motivo || 'Sin motivo registrado'}
+                      </p>
+                      {isAdmin && (
+                        <p className="text-xs text-numa-700 mt-0.5">
+                          Mediador: {item.mediador || '—'} · {item.ciudad || '—'} · {item.sucursal || '—'}
+                        </p>
+                      )}
+                      <p className="text-xs font-semibold text-orange-800 mt-0.5">
+                        {item.destino === 'libre' && 'Libre: espera que un mediador lo tome'}
+                        {item.destino === 'tomado' && `Ya lo tomó ${item.tomado_por || 'otro mediador'}`}
+                        {item.destino === 'reactivado' && 'Reactivado: volvió al mismo mediador'}
+                        {item.destino === 'retirado' && 'Retirado definitivamente'}
+                      </p>
+                    </div>
+                    ) : categoriaAbierta === 'actas_bloqueadas' ? (
                     <div
                       key={item.id}
                       onClick={() => router.push(item.proceso_id ? `/procesos/${item.proceso_id}` : '/actas-finales')}

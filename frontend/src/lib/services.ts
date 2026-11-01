@@ -1046,6 +1046,11 @@ export async function getNumerosActaAdmin(): Promise<{ pendientes: any[]; anulad
   return res.data;
 }
 
+export async function getAnulacionesNumeros(): Promise<any[]> {
+  const res = await api.get('/numeros-acta/anulaciones');
+  return res.data;
+}
+
 export async function pedirAnulacionNumeroActa(id: number, motivo: string): Promise<any> {
   const formData = new FormData();
   formData.append('motivo', motivo);

@@ -350,11 +350,11 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
           className="inline-flex items-center rounded-full border border-[#144193]/40 bg-[#F4F7FC] px-3.5 py-1.5 text-sm font-semibold text-[#144193] hover:bg-[#144193] hover:text-white transition-colors"
           onClick={() => setVerAnulados(!verAnulados)}
         >
-          {verAnulados ? 'Ocultar' : 'Ver'} números anulados ({anulados.length})
+          {verAnulados ? 'Ocultar' : 'Ver'} números de actas anuladas ({anulados.length})
         </button>
         {verAnulados && (
           <ul className="mt-3 space-y-2.5">
-            {anulados.length === 0 && <li className="text-sm text-slate-900">No tienes números anulados.</li>}
+            {anulados.length === 0 && <li className="text-sm text-slate-900">No tienes números de actas anuladas.</li>}
             {anulados.map((r) => (
               <li key={r.id} className="flex flex-col gap-0.5 rounded-xl border border-rose-200 bg-rose-50/70 px-3.5 py-2.5">
                 <span className="font-mono font-bold text-slate-900">{r.codigo}</span>
@@ -630,7 +630,7 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
             className="inline-flex items-center rounded-full border border-[#144193]/40 bg-[#F4F7FC] px-3.5 py-1.5 text-sm font-semibold text-[#144193] hover:bg-[#144193] hover:text-white transition-colors"
             onClick={() => setVerAnulados(!verAnulados)}
           >
-            {verAnulados ? 'Ocultar' : 'Ver'} números anulados ({datos.anulados.length})
+            {verAnulados ? 'Ocultar' : 'Ver'} números de actas anuladas ({datos.anulados.length})
           </button>
           {verAnulados && (
             <ul className="mt-3 text-sm text-slate-900 space-y-2.5">
