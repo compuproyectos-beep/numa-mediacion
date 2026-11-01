@@ -51,6 +51,7 @@ import {
   desbloquearActa,
   getUsuarios,
   reasignarMediadorProceso,
+  getHistorialAsignacion,
 } from '@/lib/services';
 
 // Mismos colores que ya se usan en la Agenda (ver colorPorEstado en
@@ -270,6 +271,11 @@ function ProcesoDetalleContenido() {
   const [confirmoActaFinal, setConfirmoActaFinal] = useState(false);
   const [confirmDesbloqueo, setConfirmDesbloqueo] = useState(false);
   const [reasignando, setReasignando] = useState(false);
+  const [historialAsignacion, setHistorialAsignacion] = useState<any[]>([]);
+  useEffect(() => {
+    if (!esAdminSesion() || !proceso?.id) return;
+    getHistorialAsignacion(Number(proceso.id)).then(setHistorialAsignacion).catch(() => setHistorialAsignacion([]));
+  }, [proceso?.id, proceso?.usuario_id]);
   const [candidatosMediador, setCandidatosMediador] = useState<any[]>([]);
   const [nuevoMediadorId, setNuevoMediadorId] = useState('');
   const [guardandoReasignacion, setGuardandoReasignacion] = useState(false);
@@ -1215,6 +1221,19 @@ function ProcesoDetalleContenido() {
             <p className="basis-full text-xs text-gray-600">
               El proceso, su número de acta y sus invitaciones pendientes pasan al nuevo responsable, y le corren 48 horas nuevas.
             </p>
+          )}
+          {historialAsignacion.length > 0 && (
+            <ul className="basis-full space-y-0.5 border-t border-gray-100 pt-2 text-xs text-gray-600">
+              {historialAsignacion.map((h: any) => (
+                <li key={h.id}>
+                  <span className="font-semibold text-gray-800">
+                    {new Date(h.fecha_creacion).toLocaleString('es-EC', { timeZone: 'America/Guayaquil', dateStyle: 'short', timeStyle: 'short' })}
+                  </span>
+                  {' · '}{h.detalle}
+                  {h.usuario_nombre ? ` (por ${h.usuario_nombre})` : ''}
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       )}

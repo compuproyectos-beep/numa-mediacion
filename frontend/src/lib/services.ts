@@ -1112,3 +1112,8 @@ export async function reasignarMediadorProceso(procesoId: number, nuevoUsuarioId
   });
   return res.data;
 }
+
+export async function getHistorialAsignacion(procesoId: number): Promise<any[]> {
+  const res = await api.get(`/procesos/${procesoId}/historial-asignacion`);
+  return res.data;
+}

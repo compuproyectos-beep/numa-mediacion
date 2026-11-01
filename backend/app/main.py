@@ -4011,14 +4011,21 @@ def crear_proceso_mediacion(
                 (proceso["id"], cita_rapida_id)
             )
 
-        if responsable_id != usuario["id"]:
-            crear_notificacion(
-                cur, responsable_id, "Nuevo proceso asignado",
-                f"El administrador te asignó el proceso {codigo_proceso}. Ya aparece en tu lista de procesos.",
-                "proceso", "proceso_mediacion", proceso["id"]
-            )
-            registrar_auditoria(cur, usuario, "proceso_asignado", "procesos", proceso["id"],
-                                f"Proceso {codigo_proceso} creado y asignado a otro mediador (id {responsable_id})")
+        if usuario["rol"] == "administrador":
+            cur.execute("SELECT nombre, apellido FROM usuarios WHERE id = %s", (responsable_id,))
+            r_nom = cur.fetchone()
+            nombre_resp = f"{r_nom['nombre']} {r_nom['apellido']}".strip() if r_nom else str(responsable_id)
+            if responsable_id != usuario["id"]:
+                crear_notificacion(
+                    cur, responsable_id, "Nuevo proceso asignado",
+                    f"El administrador te asignó el proceso {codigo_proceso}. Ya aparece en tu lista de procesos.",
+                    "proceso", "proceso_mediacion", proceso["id"]
+                )
+                registrar_auditoria(cur, usuario, "proceso_asignado", "procesos", proceso["id"],
+                                    f"Proceso creado y dejado a cargo de {nombre_resp}")
+            else:
+                registrar_auditoria(cur, usuario, "proceso_asignado", "procesos", proceso["id"],
+                                    f"Proceso creado por el administrador, a cargo de {nombre_resp}")
 
         conn.commit()
 
@@ -4514,6 +4521,25 @@ def obtener_partes_proceso(proceso_id: int, usuario=Depends(obtener_usuario_actu
         conn.close()
 
 
+@app.get("/procesos/{proceso_id}/historial-asignacion")
+def historial_asignacion_proceso(proceso_id: int, usuario=Depends(obtener_usuario_actual)):
+    """Quién creó el proceso a nombre de quién y cada reasignación. Solo administrador."""
+    if usuario["rol"] != "administrador":
+        raise HTTPException(status_code=403, detail="Solo el administrador puede ver este historial")
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute(
+            "SELECT id, accion, usuario_nombre, detalle, fecha_creacion FROM auditoria "
+            "WHERE entidad = 'procesos' AND entidad_id = %s AND accion IN ('proceso_asignado', 'proceso_reasignado') "
+            "ORDER BY id", (proceso_id,)
+        )
+        return cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.post("/procesos/{proceso_id}/reasignar-mediador")
 def reasignar_mediador_proceso(proceso_id: int, nuevo_usuario_id: int, usuario=Depends(obtener_usuario_actual)):
     """Solo el administrador. Pasa el proceso (con su número de acta e invitaciones
@@ -4549,6 +4575,9 @@ def reasignar_mediador_proceso(proceso_id: int, nuevo_usuario_id: int, usuario=D
             if cur.fetchone():
                 raise HTTPException(status_code=400, detail="Ese mediador es parte del proceso y no puede llevarlo")
         anterior_id = p["usuario_id"]
+        cur.execute("SELECT nombre, apellido FROM usuarios WHERE id = %s", (anterior_id,))
+        ant = cur.fetchone()
+        nombre_anterior = f"{ant['nombre']} {ant['apellido']}".strip() if ant else "sin asignar"
         cur.execute("SELECT pg_advisory_xact_lock(%s)", (7300000 + int(p["sucursal_id"]),))
         cur.execute(
             "UPDATE procesos_mediacion SET usuario_id = %s, fecha_reasignacion = NOW(), fecha_modificacion = NOW() WHERE id = %s",
@@ -4591,7 +4620,7 @@ def reasignar_mediador_proceso(proceso_id: int, nuevo_usuario_id: int, usuario=D
             )
         registrar_auditoria(
             cur, usuario, "proceso_reasignado", "procesos", proceso_id,
-            f"Proceso {p['codigo_proceso']} reasignado del mediador {anterior_id} a {nombre_nuevo} (id {nuevo_usuario_id})"
+            f"Pasó de {nombre_anterior} a {nombre_nuevo}. Plazo de 48 horas reiniciado."
         )
         conn.commit()
         return {"mensaje": "Proceso reasignado", "mediador": nombre_nuevo}

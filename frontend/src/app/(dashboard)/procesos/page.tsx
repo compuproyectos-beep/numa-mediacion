@@ -1307,6 +1307,20 @@ export default function ProcesosPage() {
                 </div>
               )}
 
+              {isAdmin() && (
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-numa-600">Mediador a cargo</p>
+                  <p className="text-sm font-semibold text-numa-900">
+                    {form.mediador_id
+                      ? (() => {
+                          const m = mediadores.find((x: any) => String(x.id) === String(form.mediador_id));
+                          return m ? `${m.nombre} ${m.apellido}`.trim() : '—';
+                        })()
+                      : 'Yo mismo (administrador)'}
+                  </p>
+                </div>
+              )}
+
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-wider text-numa-600">Solicitante</p>
                 <p className="text-sm font-semibold text-numa-900">
