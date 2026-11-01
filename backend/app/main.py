@@ -9192,6 +9192,7 @@ async def reemplazar_comprobante_acta_final(
     acta_id: int,
     archivo: UploadFile = File(...),
     motivo: str = Form(...),
+    pago: str = Form("primero"),
     usuario=Depends(obtener_usuario_actual)
 ):
     """Solo el administrador. Cambia el comprobante de pago de un acta final
@@ -9213,8 +9214,21 @@ async def reemplazar_comprobante_acta_final(
         acta = cur.fetchone()
         if not acta:
             raise HTTPException(status_code=404, detail="Acta final no encontrada")
-        if not acta["ruta_comprobante_pago"]:
-            raise HTTPException(status_code=400, detail="Esta acta no tiene comprobante de pago que reemplazar")
+        segundo = (pago == "segundo")
+        extra = None
+        if segundo:
+            cur.execute(
+                "SELECT id, ruta FROM comprobantes_pago_extra WHERE acta_id = %s ORDER BY id DESC LIMIT 1",
+                (acta_id,)
+            )
+            extra = cur.fetchone()
+            if not extra:
+                raise HTTPException(status_code=400, detail="Esta acta no tiene comprobante del segundo pago")
+            ruta_anterior = extra["ruta"]
+        else:
+            if not acta["ruta_comprobante_pago"]:
+                raise HTTPException(status_code=400, detail="Esta acta no tiene comprobante de pago que reemplazar")
+            ruta_anterior = acta["ruta_comprobante_pago"]
 
         contenido = await archivo.read()
         if ext == "pdf":
@@ -9245,15 +9259,23 @@ async def reemplazar_comprobante_acta_final(
             INSERT INTO actas_proceso_historial (
                 acta_proceso_id, acta_reemplazada_id, usuario_id, accion, motivo,
                 archivo_anterior, archivo_nuevo, fecha_accion
-            ) VALUES (%s, %s, %s, 'REEMPLAZO_COMPROBANTE', %s, %s, %s, NOW())
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
             """,
-            (acta_id, acta_id, usuario["id"], motivo, acta["ruta_comprobante_pago"], ruta_nueva)
+            (acta_id, acta_id, usuario["id"],
+             "REEMPLAZO_COMPROBANTE_2" if segundo else "REEMPLAZO_COMPROBANTE",
+             motivo, ruta_anterior, ruta_nueva)
         )
-        cur.execute(
-            "UPDATE actas_proceso SET ruta_comprobante_pago = %s, nombre_comprobante_pago = %s, "
-            "tamano_comprobante_bytes = %s WHERE id = %s",
-            (ruta_nueva, archivo.filename, len(contenido), acta_id)
-        )
+        if segundo:
+            cur.execute(
+                "UPDATE comprobantes_pago_extra SET ruta = %s, nombre = %s, tamano_bytes = %s WHERE id = %s",
+                (ruta_nueva, archivo.filename, len(contenido), extra["id"])
+            )
+        else:
+            cur.execute(
+                "UPDATE actas_proceso SET ruta_comprobante_pago = %s, nombre_comprobante_pago = %s, "
+                "tamano_comprobante_bytes = %s WHERE id = %s",
+                (ruta_nueva, archivo.filename, len(contenido), acta_id)
+            )
         conn.commit()
         return {"mensaje": "Comprobante de pago reemplazado correctamente", "codigo_acta": acta["codigo_acta"]}
     except HTTPException:

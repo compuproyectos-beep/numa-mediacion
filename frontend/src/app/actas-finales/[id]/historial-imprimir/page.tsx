@@ -165,7 +165,7 @@ export default function ImprimirHistorialActaPage() {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-semibold text-numa-900">
-                      Reemplazo #{index + 1} · {h.accion === 'REEMPLAZO_COMPROBANTE' ? 'Comprobante de pago' : 'PDF del acta'}
+                      Reemplazo #{index + 1} · {h.accion === 'REEMPLAZO_COMPROBANTE_2' ? 'Comprobante del 2.º pago' : h.accion === 'REEMPLAZO_COMPROBANTE' ? 'Comprobante de pago' : 'PDF del acta'}
                     </p>
                     <p className="text-xs text-numa-400">
                       {h.fecha_accion

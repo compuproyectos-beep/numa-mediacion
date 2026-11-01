@@ -1121,11 +1121,13 @@ export async function getHistorialAsignacion(procesoId: number): Promise<any[]> 
 export async function reemplazarComprobanteActaFinal(
   actaId: number,
   file: File,
-  motivo: string
+  motivo: string,
+  pago: 'primero' | 'segundo' = 'primero'
 ): Promise<any> {
   const formData = new FormData();
   formData.append('archivo', file);
   formData.append('motivo', motivo);
+  formData.append('pago', pago);
   const res = await api.post(`/actas-finales/${actaId}/reemplazar-comprobante`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
