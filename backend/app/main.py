@@ -4515,7 +4515,7 @@ def obtener_partes_proceso(proceso_id: int, usuario=Depends(obtener_usuario_actu
 
 
 @app.post("/procesos/{proceso_id}/reasignar-mediador")
-def reasignar_mediador_proceso(proceso_id: int, nuevo_usuario_id: int = Form(...), usuario=Depends(obtener_usuario_actual)):
+def reasignar_mediador_proceso(proceso_id: int, nuevo_usuario_id: int, usuario=Depends(obtener_usuario_actual)):
     """Solo el administrador. Pasa el proceso (con su número de acta e invitaciones
     pendientes) a otro mediador de la misma sucursal, o al propio administrador.
     Al nuevo responsable le corren 48 horas nuevas desde este momento."""

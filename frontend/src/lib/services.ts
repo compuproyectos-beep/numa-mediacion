@@ -1107,8 +1107,8 @@ export async function getFichaCliente(id: number | string): Promise<any> {
 
 // El administrador pasa un proceso a otro mediador de la sucursal (o a sí mismo).
 export async function reasignarMediadorProceso(procesoId: number, nuevoUsuarioId: number) {
-  const form = new FormData();
-  form.append('nuevo_usuario_id', String(nuevoUsuarioId));
-  const res = await api.post(`/procesos/${procesoId}/reasignar-mediador`, form);
+  const res = await api.post(`/procesos/${procesoId}/reasignar-mediador`, null, {
+    params: { nuevo_usuario_id: nuevoUsuarioId },
+  });
   return res.data;
 }

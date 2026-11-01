@@ -292,7 +292,8 @@ function ProcesoDetalleContenido() {
       setSuccessMessage(`Proceso reasignado a ${r?.mediador ?? 'el nuevo mediador'}. Tiene 48 horas nuevas para completar el acta.`);
       window.location.reload();
     } catch (e: any) {
-      setError(e?.response?.data?.detail || 'No se pudo reasignar el proceso');
+      const d = e?.response?.data?.detail;
+      setError(typeof d === 'string' ? d : 'No se pudo reasignar el proceso');
     } finally {
       setGuardandoReasignacion(false);
     }
@@ -1161,7 +1162,7 @@ function ProcesoDetalleContenido() {
       {esAdminSesion() && !proceso.finalizado && proceso.estado !== 'anulado' && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
           <p className="text-sm text-gray-700">
-            A cargo de <strong>{proceso.mediador ?? 'sin asignar'}</strong>
+            A cargo de <strong>{(proceso.usuario ?? proceso.mediador) ?? 'sin asignar'}</strong>
             {proceso.sucursal ? ` · ${proceso.sucursal}` : ''}
           </p>
           {!reasignando ? (
@@ -1225,7 +1226,7 @@ function ProcesoDetalleContenido() {
         loading={desbloqueandoActa}
         confirmLabel="Sí, desbloquear"
         variante="primario"
-        message={`¿Desbloquear el acta ${proceso.bloqueo_acta_codigo ?? ''} de ${proceso.mediador ?? 'el mediador'}? Ese número quedó libre para otros mediadores: recibirá el número libre más bajo de la sucursal (puede ser el mismo si nadie lo tomó). Si el número cambia, deberá rehacer y volver a firmar el acta. Tendrá 48 horas nuevas.`}
+        message={`¿Desbloquear el acta ${proceso.bloqueo_acta_codigo ?? ''} de ${(proceso.usuario ?? proceso.mediador) ?? 'el mediador'}? Ese número quedó libre para otros mediadores: recibirá el número libre más bajo de la sucursal (puede ser el mismo si nadie lo tomó). Si el número cambia, deberá rehacer y volver a firmar el acta. Tendrá 48 horas nuevas.`}
       />
 
       {proceso.bloqueo_acta_id && (
