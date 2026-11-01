@@ -3734,7 +3734,8 @@ def cambiar_estado_cita(
             if num:
                 cur.execute("""
                     UPDATE numeros_acta
-                    SET estado = 'anulado', anulado_por = %s, motivo_anulacion = %s, fecha_anulacion = NOW()
+                    SET estado = 'anulado', anulado_por = %s, motivo_anulacion = %s, fecha_anulacion = NOW(),
+                        reutilizable = true, proceso_id = NULL, cita_id = NULL
                     WHERE id = %s
                 """, (usuario["id"], motivo_num, num["id"]))
 
@@ -5404,7 +5405,8 @@ def anular_proceso(
         # queda libre 30 días como cualquier número anulado.
         cur.execute(
             "UPDATE numeros_acta SET estado = 'anulado', anulado_por = %s, "
-            "motivo_anulacion = 'Proceso anulado', fecha_anulacion = NOW() "
+            "motivo_anulacion = 'Proceso anulado', fecha_anulacion = NOW(), "
+            "reutilizable = true, proceso_id = NULL, cita_id = NULL "
             "WHERE proceso_id = %s AND estado = 'reservado'",
             (usuario["id"], proceso_id)
         )
@@ -7158,8 +7160,8 @@ def pedir_numero_acta(cita_id: int = None, usuario=Depends(obtener_usuario_actua
     try:
         sucursal_numero = usuario["sucursal_id"]
         # Pedido desde una invitación rápida: el número queda ligado a ella.
-        # Una invitación tiene un solo número (aunque esté anulado: solo el
-        # administrador puede reactivarlo para continuar con el mismo).
+        # Una invitación tiene un solo número (si se anula, el número queda libre y la
+        # invitación puede pedir otro).
         if cita_id:
             cur.execute("""
                 SELECT id, usuario_id, sucursal_id, proceso_id, estado, partes_rapidas
@@ -7174,10 +7176,11 @@ def pedir_numero_acta(cita_id: int = None, usuario=Depends(obtener_usuario_actua
                 raise HTTPException(status_code=400, detail="Esta invitación ya pertenece a un proceso")
             if cita_n["estado"] not in ("pendiente", "reagendada"):
                 raise HTTPException(status_code=400, detail="Solo se puede pedir el número de una invitación pendiente")
+            cur.execute("UPDATE numeros_acta SET cita_id = NULL, proceso_id = NULL WHERE cita_id = %s AND estado = 'anulado'", (cita_id,))
             cur.execute("SELECT codigo, estado FROM numeros_acta WHERE cita_id = %s", (cita_id,))
             previo = cur.fetchone()
             if previo:
-                extra = (" Fue anulado: solo el administrador puede reactivarlo." if previo["estado"] == "anulado" else "")
+                extra = ""
                 if previo["estado"] == "bloqueado":
                     extra = " Está bloqueado por pasar 48 horas: solo el administrador puede desbloquearlo."
                 raise HTTPException(status_code=409, detail=f"Esta invitación ya tiene el número {previo['codigo']}.{extra}")
@@ -7264,10 +7267,11 @@ def pedir_numero_acta_proceso(proceso_id: int, usuario=Depends(obtener_usuario_a
             raise HTTPException(status_code=400, detail="Este proceso ya está cerrado y no lleva acta")
         if p["finalizado"]:
             raise HTTPException(status_code=400, detail="El acta de este proceso ya está completa")
+        cur.execute("UPDATE numeros_acta SET cita_id = NULL, proceso_id = NULL WHERE proceso_id = %s AND estado = 'anulado'", (proceso_id,))
         cur.execute("SELECT codigo, estado FROM numeros_acta WHERE proceso_id = %s ORDER BY id LIMIT 1", (proceso_id,))
         previo = cur.fetchone()
         if previo:
-            extra = (" Fue anulado: solo el administrador puede reactivarlo." if previo["estado"] == "anulado" else "")
+            extra = ""
             if previo["estado"] == "bloqueado":
                 extra = " Está bloqueado por pasar 48 horas: solo el administrador puede desbloquearlo."
             raise HTTPException(status_code=409, detail=f"Este proceso ya tiene el número {previo['codigo']}.{extra}")
@@ -7486,7 +7490,8 @@ def anular_numero_acta(numero_id: int, motivo: str = Form(...), usuario=Depends(
             raise HTTPException(status_code=400, detail="Solo se puede anular un número pedido que aún no se usó")
         cur.execute("""
             UPDATE numeros_acta
-            SET estado = 'anulado', anulado_por = %s, motivo_anulacion = %s, fecha_anulacion = NOW()
+            SET estado = 'anulado', anulado_por = %s, motivo_anulacion = %s, fecha_anulacion = NOW(),
+                        reutilizable = true, proceso_id = NULL, cita_id = NULL
             WHERE id = %s
         """, (usuario["id"], motivo, numero_id))
         registrar_auditoria(cur, usuario, "anular_numero_acta", "numero_acta", numero_id,
@@ -7495,8 +7500,7 @@ def anular_numero_acta(numero_id: int, motivo: str = Form(...), usuario=Depends(
             crear_notificacion(
                 cur, n["usuario_id"], "Número de acta anulado",
                 f"El administrador anuló el número {n['codigo']}. Motivo: {motivo}. "
-                + ("Ese número está ligado a tu invitación: solo el administrador puede reactivarlo para continuar."
-                   if (n["cita_id"] or n["proceso_id"]) else "Ya puedes pedir otro."),
+                + "El número queda libre para reutilizarse y ya puedes pedir otro.",
                 "acta", "numero_acta", numero_id
             )
         conn.commit()
@@ -7750,7 +7754,8 @@ def suspender_proceso(proceso_id: int, motivo: str, baja: bool = False, usuario=
                 if num["estado"] == "reservado":
                     cur.execute("""
                         UPDATE numeros_acta
-                        SET estado = 'anulado', anulado_por = %s, motivo_anulacion = %s, fecha_anulacion = NOW()
+                        SET estado = 'anulado', anulado_por = %s, motivo_anulacion = %s, fecha_anulacion = NOW(),
+                        reutilizable = true, proceso_id = NULL, cita_id = NULL
                         WHERE id = %s
                     """, (usuario["id"], "Baja del acta: " + motivo, num["id"]))
                 else:

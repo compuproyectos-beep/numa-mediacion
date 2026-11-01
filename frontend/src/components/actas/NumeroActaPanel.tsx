@@ -718,9 +718,7 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
         title={`Anular número ${anular?.codigo ?? ''}`}
       >
         <p className="text-sm text-slate-900 mb-3">
-          {anular?.cita_id || anular?.proceso_id
-            ? `El número está ligado a ${anular?.proceso_id ? 'un proceso' : 'una invitación'}: ${anular?.mediador} no podrá pedir otro para esa acta. Más adelante puedes reactivarlo para que continúe con el mismo número.`
-            : `El número queda libre para que lo tome cualquier mediador de la sucursal. Si pasa un mes sin que nadie lo tome, queda anulado definitivamente. ${anular?.mediador} podrá pedir otro.`}
+          {`El número queda libre para que lo tome ${anular?.mediador} u otro mediador de la sucursal. Si pasa un mes sin que nadie lo tome, queda anulado definitivamente.`}
         </p>
         {error && (
           <div className="mb-3">
