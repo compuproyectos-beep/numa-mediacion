@@ -439,7 +439,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
             }}
             className="ml-2 inline-flex items-center gap-2 px-3 py-2 rounded-sm border border-red-700 bg-red-700 text-white text-sm font-semibold hover:bg-red-800 transition-colors"
           >
-            <PauseCircle className="w-4 h-4" /> Dar de baja el acta (no se va a completar)
+            <PauseCircle className="w-4 h-4" /> Dar de baja el acta y este proceso
           </button>
         </div>
       )}
@@ -588,7 +588,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
       <Modal
         open={showSuspender}
         onClose={() => setShowSuspender(false)}
-        title={`${modoBaja ? 'Dar de baja el acta' : 'Suspender proceso'} — ${proceso.codigo_proceso}`}
+        title={`${modoBaja ? 'Dar de baja el acta y el proceso' : 'Suspender proceso'} — ${proceso.codigo_proceso}`}
       >
         {error && (
           <div className="mb-4">
@@ -598,7 +598,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
         <div className="space-y-4">
           <p className="text-sm text-numa-700">
             {modoBaja
-              ? 'El proceso no se borra: queda registrado con su motivo. El mediador queda libre de esta acta (se corta el ciclo de 48 horas) y su número vuelve a estar disponible durante 30 días, para otro mediador o para el mismo.'
+              ? 'Este proceso y su acta ya no van a continuar. El proceso no se borra: queda registrado con su motivo. El mediador queda libre (se corta el ciclo de 48 horas) y el número de acta vuelve a estar disponible durante 30 días, para otro mediador o para el mismo.'
               : 'El proceso no se borra: queda suspendido y el mediador puede subir las actas de sus otros procesos. Podrás reactivarlo más adelante para completar sus documentos.'}
           </p>
           <TextareaField
@@ -617,7 +617,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
               disabled={guardando || motivoSuspension.trim().length < 5}
               className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {guardando ? 'Guardando...' : modoBaja ? 'Dar de baja el acta' : 'Suspender proceso'}
+              {guardando ? 'Guardando...' : modoBaja ? 'Dar de baja el acta y el proceso' : 'Suspender proceso'}
             </button>
           </div>
         </div>

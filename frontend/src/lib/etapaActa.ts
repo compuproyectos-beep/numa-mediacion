@@ -8,7 +8,10 @@ export function etapaActaBadge(p: any): { label: string; pill: string; dot: stri
 
   switch (p.etapa_acta) {
     case 'suspendido':
-      return { label: 'Suspendido', ...ETAPA_PILL.pausa };
+      return {
+        label: String(p.motivo_suspension || '').startsWith('Baja del acta') ? 'Baja del acta' : 'Suspendido',
+        ...ETAPA_PILL.pausa
+      };
     case 'falta_acta':
       return p.acta_primero_en_fila
         ? { label: 'Falta subir acta', ...ETAPA_PILL.atencion }

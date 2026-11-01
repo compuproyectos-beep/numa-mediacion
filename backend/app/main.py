@@ -773,14 +773,23 @@ def obtener_notificaciones_urgentes(usuario=Depends(obtener_usuario_actual)):
                 ORDER BY na.fecha_solicitud ASC
             """, (usuario["id"],))
             ahora = datetime.datetime.now(datetime.timezone.utc)
+            _bq_otro = _bloqueo_activo_usuario(cur, usuario["id"])
             for r in cur.fetchall():
+                if _bq_otro:
+                    _msg_vence = (
+                        f"Tu acta {r['codigo']} se bloquea el {r['vence_texto']} (hora de Ecuador). "
+                        f"Por ahora no puedes subirla: tienes el acta {_bq_otro['codigo']} bloqueada y primero "
+                        f"el administrador debe resolverla (desbloquearla o darla de baja)."
+                    )
+                else:
+                    _msg_vence = (
+                        f"Tu acta {r['codigo']} se bloquea el {r['vence_texto']} (hora de Ecuador). "
+                        "Sube la documentación y el comprobante de pago antes de que termine el tiempo."
+                    )
                 filas.append({
                     "id": -r["id"],  # negativo: aviso calculado, no existe en la tabla de notificaciones
                     "titulo": "Acta por vencer",
-                    "mensaje": (
-                        f"Tu acta {r['codigo']} se bloquea el {r['vence_texto']} (hora de Ecuador). "
-                        "Sube la documentación y el comprobante de pago antes de que termine el tiempo."
-                    ),
+                    "mensaje": _msg_vence,
                     "tipo": "acta",
                     "leida": True,
                     "referencia_tipo": "numero_acta",
@@ -7340,7 +7349,7 @@ def pedir_anulacion_numero(numero_id: int, motivo: str = Form(...), usuario=Depe
         for sec in cur.fetchall():
             crear_notificacion(
                 cur, sec["id"], "Pedido de anulación de número",
-                texto + " Avisa al administrador si no lo ves atendido.", "acta", "numero_acta", numero_id
+                texto + " Si el administrador aún no lo resuelve, recuérdaselo.", "acta", "numero_acta", numero_id
             )
         registrar_auditoria(cur, usuario, "pedir_anulacion_numero_acta", "numero_acta", numero_id,
                             f"Pidió anular el número {n['codigo']}. Motivo: {motivo}")

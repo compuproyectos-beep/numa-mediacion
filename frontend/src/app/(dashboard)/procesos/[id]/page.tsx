@@ -747,7 +747,9 @@ function ProcesoDetalleContenido() {
     if (!proceso) return null;
 
     if (proceso.etapa_acta === 'suspendido') {
-      return 'Este proceso está suspendido por el administrador.';
+      return String(proceso.motivo_suspension || '').startsWith('Baja del acta')
+        ? 'El administrador dio de baja el acta y este proceso: ya no continúa.'
+        : 'Este proceso está suspendido por el administrador.';
     }
 
     if (proceso.bloqueo_acta_id) {
@@ -985,10 +987,21 @@ function ProcesoDetalleContenido() {
       {proceso.etapa_acta === 'suspendido' && (
         <div className="mb-4 px-4 py-3 rounded-sm border-2 border-amber-300 bg-amber-50 flex items-center justify-between gap-3 flex-wrap">
           <p className="text-sm text-amber-900">
-            <strong>Proceso suspendido por el administrador.</strong>{' '}
-            {proceso.motivo_suspension ? `Motivo: ${proceso.motivo_suspension}. ` : ''}
-            Ya no bloquea al mediador. Los documentos pendientes se podrán completar cuando el
-            administrador lo reactive.
+            {String(proceso.motivo_suspension || '').startsWith('Baja del acta') ? (
+              <>
+                <strong>El administrador dio de baja el acta y este proceso.</strong>{' '}
+                {`Motivo: ${String(proceso.motivo_suspension).replace(/^Baja del acta:\s*/, '')}. `}
+                Ya no continúa ni bloquea al mediador, y su número de acta quedó libre. Solo el
+                administrador puede reactivarlo.
+              </>
+            ) : (
+              <>
+                <strong>Proceso suspendido por el administrador.</strong>{' '}
+                {proceso.motivo_suspension ? `Motivo: ${proceso.motivo_suspension}. ` : ''}
+                Ya no bloquea al mediador. Los documentos pendientes se podrán completar cuando el
+                administrador lo reactive.
+              </>
+            )}
           </p>
           {esAdminSesion() && (
             <button
