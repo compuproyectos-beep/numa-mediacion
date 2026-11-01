@@ -7310,6 +7310,10 @@ def listar_numeros_acta(sucursal_id: int = None, usuario=Depends(obtener_usuario
             SELECT n.id, n.codigo, n.estado, n.fecha_solicitud, n.fecha_anulacion, n.motivo_anulacion,
                    n.cita_id, n.proceso_id,
                    EXTRACT(DAY FROM NOW() - n.fecha_solicitud)::int AS dias,
+                   (SELECT substring(a.detalle from 'Motivo: (.*)$') FROM auditoria a
+                     WHERE a.accion = 'pedir_anulacion_numero_acta' AND a.entidad = 'numero_acta'
+                       AND a.entidad_id = n.id AND n.estado = 'reservado'
+                     ORDER BY a.id DESC LIMIT 1) AS pedido_anulacion,
                    u.nombre || ' ' || u.apellido AS mediador,
                    s.nombre AS sucursal, c.nombre AS ciudad
             FROM numeros_acta n

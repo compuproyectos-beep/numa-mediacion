@@ -470,11 +470,12 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
   if (!datos) return null;
   // Solo se listan los que ya pasaron el plazo de 48 horas; los que siguen
   // dentro del plazo no necesitan atención del administrador todavía.
-  const vencidos = datos.pendientes.filter((n) => (n.dias ?? 0) >= 2);
+  const pedidos = datos.pendientes.filter((n) => !!n.pedido_anulacion);
+  const vencidos = datos.pendientes.filter((n) => (n.dias ?? 0) >= 2 && !n.pedido_anulacion);
   const codigosPropios = new Set(propios.map((x) => x.codigo));
-  const enPlazo = datos.pendientes.filter((n) => (n.dias ?? 0) < 2 && !codigosPropios.has(n.codigo)).length;
+  const enPlazo = datos.pendientes.filter((n) => (n.dias ?? 0) < 2 && !n.pedido_anulacion && !codigosPropios.has(n.codigo)).length;
   const bloqueados = datos.bloqueados || [];
-  if (bloqueados.length === 0 && vencidos.length === 0 && enPlazo === 0 && datos.anulados.length === 0 && propios.length === 0 && !msgDesbloq) return null;
+  if (bloqueados.length === 0 && pedidos.length === 0 && vencidos.length === 0 && enPlazo === 0 && datos.anulados.length === 0 && propios.length === 0 && !msgDesbloq) return null;
 
   return (
     <div className="card px-5 py-4 mb-4 bg-white border border-[#C5D2E6] border-t-4 border-t-gold-400 shadow-[0_14px_30px_-22px_rgba(10,42,98,0.5)]">
@@ -526,6 +527,38 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
                   }}
                 >
                   Desbloquear
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {pedidos.length > 0 && (
+        <div className="mb-4 rounded-xl border border-gold-400 bg-gold-50 px-3.5 py-3">
+          <p className="flex items-center gap-2 text-sm font-bold text-numa-900 mb-2">
+            <Hash size={16} /> Pedidos de anulación de mediadores ({pedidos.length})
+          </p>
+          <ul className="space-y-2">
+            {pedidos.map((n) => (
+              <li key={n.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-lg bg-white border border-gold-300 px-3 py-2.5">
+                <span className="text-sm text-slate-900">
+                  <span className="font-mono font-bold">{n.codigo}</span> · {n.mediador} · {n.ciudad} · {n.sucursal}
+                  <span className="block text-xs text-slate-700">
+                    <Ligado n={n} />
+                  </span>
+                  <span className="block text-xs text-slate-800">Motivo: {n.pedido_anulacion}</span>
+                </span>
+                <button
+                  type="button"
+                  className="btn-danger btn-sm"
+                  onClick={() => {
+                    setAnular(n);
+                    setMotivo(n.pedido_anulacion || '');
+                    setError('');
+                  }}
+                >
+                  <Ban size={14} /> Anular
                 </button>
               </li>
             ))}
