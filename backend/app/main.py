@@ -4320,13 +4320,18 @@ def _sql_acta_vencida(a: str = "p") -> str:
     # uno reservado); si no, desde el acuerdo / la solicitud del acta de no
     # acuerdo. Así, varias actas dentro de sus 48 horas se pueden subir en
     # cualquier orden: solo bloquea la que ya venció.
+    # Si a este proceso se le anuló su número y aún no pidió otro, el plazo vuelve a
+    # empezar cuando lo pida: mientras tanto no cuenta como vencido ni bloquea.
     return (
+        f"(NOT (NOT EXISTS (SELECT 1 FROM numeros_acta nx WHERE nx.proceso_id = {a}.id "
+        f"AND nx.estado IN ('reservado', 'usado')) "
+        f"AND EXISTS (SELECT 1 FROM numeros_acta_anulaciones an WHERE an.proceso_id = {a}.id)) AND "
         f"({a}.reactivado_fecha IS NOT NULL OR "
         f"COALESCE("
         f"(SELECT MIN(nr.fecha_solicitud) FROM numeros_acta nr "
         f"WHERE nr.proceso_id = {a}.id AND nr.estado = 'reservado'), "
         f"{a}.fecha_acuerdo, {a}.fecha_solicitud_acta_na) "
-        f"<= NOW() - INTERVAL '{HORAS_GRACIA_ACTA} hours')"
+        f"<= NOW() - INTERVAL '{HORAS_GRACIA_ACTA} hours'))"
     )
 
 
