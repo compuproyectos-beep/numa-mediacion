@@ -11,6 +11,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { InputField, TextareaField, Spinner, ErrorAlert, Modal } from '@/components/ui';
 import { getCitas, cambiarEstadoCita, getReuniones, cancelarReunion } from '@/lib/services';
 import ReunionModal from '@/components/citas/ReunionModal';
+import PedirAnulacionBoton from '@/components/actas/PedirAnulacionBoton';
 import { useAuth } from '@/hooks/useAuth';
 import PedirNumeroActaBoton from '@/components/actas/PedirNumeroActaBoton';
 import HistorialInvitaciones from '@/components/citas/HistorialInvitaciones';
@@ -997,6 +998,11 @@ export default function CalendarioAgendaMediador({
                             numero={{ codigo: citaActiva.numero_acta_codigo, estado: citaActiva.numero_acta_estado }}
                             onPedido={() => cargarCitas()}
                           />
+                          {citaActiva.numero_acta_id && citaActiva.numero_acta_estado === 'reservado' && !citaActiva.proceso_id && (
+                            <div className="mt-2">
+                              <PedirAnulacionBoton numeroId={citaActiva.numero_acta_id} codigo={citaActiva.numero_acta_codigo} />
+                            </div>
+                          )}
                         </div>
                       )}
                     </>

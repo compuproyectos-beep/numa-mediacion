@@ -3502,6 +3502,7 @@ def obtener_citas(
                 NULLIF(btrim(c.documento->>'asunto'), '') AS documento_asunto,
                 (SELECT na.codigo FROM numeros_acta na WHERE na.cita_id = c.id LIMIT 1) AS numero_acta_codigo,
                 (SELECT na.estado FROM numeros_acta na WHERE na.cita_id = c.id LIMIT 1) AS numero_acta_estado,
+                (SELECT na.id FROM numeros_acta na WHERE na.cita_id = c.id LIMIT 1) AS numero_acta_id,
                 c.creado_por_id,
                 cp.nombre || ' ' || cp.apellido AS creado_por,
                 pm.codigo_proceso AS codigo_proceso,
