@@ -1134,6 +1134,7 @@ function ProcesoDetalleContenido() {
         onConfirm={desbloquearDesdeProceso}
         loading={desbloqueandoActa}
         confirmLabel="Sí, desbloquear"
+        variante="primario"
         message={`¿Desbloquear el acta ${proceso.bloqueo_acta_codigo ?? ''} de ${proceso.mediador ?? 'el mediador'}? Ese número quedó libre para otros mediadores: recibirá el número libre más bajo de la sucursal (puede ser el mismo si nadie lo tomó). Si el número cambia, deberá rehacer y volver a firmar el acta. Tendrá 48 horas nuevas.`}
       />
 

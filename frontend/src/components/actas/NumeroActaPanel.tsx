@@ -663,6 +663,7 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
         onConfirm={confirmarDesbloqueo}
         loading={desbloqueando}
         confirmLabel="Sí, desbloquear"
+        variante="primario"
         message={
           `¿Desbloquear el acta ${desbloq?.codigo ?? ''} de ${desbloq?.mediador ?? 'el mediador'}? Ese número quedó libre para otros mediadores: recibirá el número libre más bajo de la sucursal (puede ser el mismo si nadie lo tomó). Si el número cambia, deberá rehacer y volver a firmar el acta. Tendrá 48 horas nuevas.`
         }
@@ -674,6 +675,7 @@ function PanelAdmin({ version, onCambio }: { version: number; onCambio: () => vo
         onConfirm={confirmarReactivar}
         loading={reactivando}
         confirmLabel="Sí, reactivar"
+        variante="primario"
         message={`¿Reactivar el número ${reactivar?.codigo ?? ''}? Vuelve a ${reactivar?.mediador ?? 'el mediador'} como número pedido, con un plazo nuevo de 48 horas para completar esa acta.`}
       />
 

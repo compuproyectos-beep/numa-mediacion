@@ -107,15 +107,17 @@ interface ConfirmProps {
   message: string;
   loading?: boolean;
   confirmLabel?: string;
+  /** 'peligro' (rojo, por defecto) para acciones destructivas; 'primario' (dorado) para acciones positivas. */
+  variante?: 'peligro' | 'primario';
 }
 
-export function ConfirmDialog({ open, onClose, onConfirm, message, loading, confirmLabel }: ConfirmProps) {
+export function ConfirmDialog({ open, onClose, onConfirm, message, loading, confirmLabel, variante = 'peligro' }: ConfirmProps) {
   return (
     <Modal open={open} onClose={onClose} title="Confirmar acción" size="sm">
       <p className="text-sm text-numa-700 mb-6">{message}</p>
       <div className="flex gap-3 justify-end">
         <button onClick={onClose} className="btn-secondary text-sm">Cancelar</button>
-        <button onClick={onConfirm} disabled={loading} className="btn-danger text-sm">
+        <button onClick={onConfirm} disabled={loading} className={`${variante === 'primario' ? 'btn-primary' : 'btn-danger'} text-sm`}>
          {loading ? 'Procesando...' : confirmLabel || 'Confirmar'}
         </button>
       </div>
