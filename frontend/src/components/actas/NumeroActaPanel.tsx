@@ -350,7 +350,7 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
           className="inline-flex items-center rounded-full border border-[#144193]/40 bg-[#F4F7FC] px-3.5 py-1.5 text-sm font-semibold text-[#144193] hover:bg-[#144193] hover:text-white transition-colors"
           onClick={() => setVerAnulados(!verAnulados)}
         >
-          {verAnulados ? 'Ocultar' : 'Ver'} números anulados por el administrador ({anulados.length})
+          {verAnulados ? 'Ocultar' : 'Ver'} números anulados ({anulados.length})
         </button>
         {verAnulados && (
           <ul className="mt-3 space-y-2.5">
