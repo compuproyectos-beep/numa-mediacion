@@ -100,7 +100,14 @@ export default function Sidebar() {
     if (tipRef.current) tipRef.current.dataset.visible = 'false';
   };
 
+  // Al ampliar o encoger, el botón que mostraba la etiqueta desaparece sin avisar al navegador
+  // (no llega el "mouse leave"), y la etiqueta se quedaba pegada. Se oculta al cambiar el modo.
+  useEffect(() => {
+    if (tipRef.current) tipRef.current.dataset.visible = 'false';
+  }, [compacto]);
+
   const alternarMenu = () => {
+    ocultarTip();
     setCompacto((v) => {
       try {
         localStorage.setItem('numa_menu_compacto', v ? '0' : '1');
