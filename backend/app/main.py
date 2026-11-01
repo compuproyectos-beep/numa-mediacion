@@ -7069,7 +7069,8 @@ def historial_anulaciones_numeros(usuario=Depends(obtener_usuario_actual)):
     try:
         filtro = "" if usuario["rol"] == "administrador" else " AND a.usuario_id = %(u)s"
         cur.execute(f"""
-            SELECT a.id, a.codigo, a.fecha, a.motivo,
+            SELECT a.id, a.codigo, a.fecha, a.motivo, a.proceso_id, a.cita_id, a.usuario_id AS mediador_id,
+                   pr.codigo_proceso AS proceso_codigo,
                    m.nombre || ' ' || m.apellido AS mediador,
                    s.nombre AS sucursal, ci.nombre AS ciudad,
                    CASE
@@ -7084,6 +7085,7 @@ def historial_anulaciones_numeros(usuario=Depends(obtener_usuario_actual)):
             JOIN numeros_acta n ON n.id = a.numero_id
             LEFT JOIN usuarios m ON m.id = a.usuario_id
             LEFT JOIN usuarios o ON o.id = n.usuario_id
+            LEFT JOIN procesos_mediacion pr ON pr.id = a.proceso_id
             LEFT JOIN sucursales s ON s.id = a.sucursal_id
             LEFT JOIN ciudades ci ON ci.id = s.ciudad_id
             WHERE a.fecha > NOW() - INTERVAL '30 days' {filtro}

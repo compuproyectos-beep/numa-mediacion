@@ -558,7 +558,15 @@ export default function DashboardPage() {
                     categoriaAbierta === 'numeros_anulados' ? (
                     <div
                       key={item.id}
-                      onClick={() => router.push('/actas-finales')}
+                      onClick={() =>
+                        router.push(
+                          item.proceso_id
+                            ? `/procesos/${item.proceso_id}`
+                            : item.cita_id
+                            ? `/agenda?cita=${item.cita_id}&mediador=${item.mediador_id}`
+                            : '/actas-finales'
+                        )
+                      }
                       className={`px-3 py-2 border rounded-md bg-white cursor-pointer card-lift shadow-sm hover:shadow-md ${TEMA_CATEGORIA[categoriaAbierta].item}`}
                     >
                       <div className="flex items-center justify-between gap-2">
@@ -569,6 +577,9 @@ export default function DashboardPage() {
                       </div>
                       <p className="text-sm font-medium text-numa-800 mt-0.5 line-clamp-1">
                         {item.motivo || 'Sin motivo registrado'}
+                      </p>
+                      <p className="text-xs text-numa-700 mt-0.5">
+                        {item.proceso_id ? `Proceso ${item.proceso_codigo || ''}` : item.cita_id ? 'Invitación rápida' : 'Sin proceso ni invitación'}
                       </p>
                       {isAdmin && (
                         <p className="text-xs text-numa-700 mt-0.5">
