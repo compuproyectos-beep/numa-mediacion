@@ -3253,7 +3253,7 @@ def _citas_en_conflicto(cur, sucursal_id, fecha, hora_inicio, hora_fin):
 def _notificar_reunion(cur, sucursal_id, titulo, mensaje, reunion_id, excluir_id=None):
     cur.execute("""
         SELECT id FROM usuarios
-        WHERE sucursal_id = %s AND activo = true AND rol IN ('mediador', 'secretaria')
+        WHERE sucursal_id = %s AND activo = true AND rol IN ('mediador', 'secretaria', 'administrador')
           AND id <> COALESCE(%s, -1)
     """, (sucursal_id, excluir_id))
     for u in cur.fetchall():
@@ -3337,12 +3337,16 @@ def listar_reuniones(
 
 @app.post("/reuniones")
 def crear_reunion(datos: dict, usuario=Depends(obtener_usuario_actual)):
-    """El administrador crea una reunión para TODOS los mediadores de la sucursal
-    que elija (por defecto, la suya)."""
-    if usuario["rol"] != "administrador":
-        raise HTTPException(status_code=403, detail="Solo el administrador puede crear reuniones")
+    """El administrador crea una reunión para TODOS los mediadores y la secretaria de
+    la sucursal que elija (por defecto, la suya). La secretaria también puede crearla,
+    pero solo para su propia sucursal (por pedido del administrador)."""
+    if usuario["rol"] not in ("administrador", "secretaria"):
+        raise HTTPException(status_code=403, detail="Solo el administrador o la secretaria pueden crear reuniones")
     try:
-        suc_id = int(datos.get("sucursal_id") or usuario["sucursal_id"] or 0)
+        if usuario["rol"] == "secretaria":
+            suc_id = int(usuario["sucursal_id"] or 0)
+        else:
+            suc_id = int(datos.get("sucursal_id") or usuario["sucursal_id"] or 0)
     except (TypeError, ValueError):
         raise HTTPException(status_code=400, detail="Sucursal no válida")
     if not suc_id:
@@ -3370,6 +3374,8 @@ def crear_reunion(datos: dict, usuario=Depends(obtener_usuario_actual)):
             cur, suc_id, "Reunión de mediadores",
             _texto_reunion(ini, hora_fin, titulo), reunion["id"], excluir_id=usuario["id"]
         )
+        registrar_auditoria(cur, usuario, "reunion_creada", "reuniones", reunion["id"],
+                            f"Reunión «{titulo}» el {fecha} de {hora_inicio} a {hora_fin}")
         conn.commit()
         return {"reunion": reunion, "conflictos": conflictos}
     except HTTPException:
@@ -3385,8 +3391,8 @@ def crear_reunion(datos: dict, usuario=Depends(obtener_usuario_actual)):
 
 @app.put("/reuniones/{reunion_id}")
 def editar_reunion(reunion_id: int, datos: dict, usuario=Depends(obtener_usuario_actual)):
-    if usuario["rol"] != "administrador":
-        raise HTTPException(status_code=403, detail="Solo el administrador puede modificar reuniones")
+    if usuario["rol"] not in ("administrador", "secretaria"):
+        raise HTTPException(status_code=403, detail="Solo el administrador o la secretaria pueden modificar reuniones")
 
     fecha, hora_inicio, hora_fin, titulo, detalle, ini = _validar_reunion(datos)
 
@@ -3399,6 +3405,8 @@ def editar_reunion(reunion_id: int, datos: dict, usuario=Depends(obtener_usuario
             raise HTTPException(status_code=404, detail="Reunión no encontrada")
         if actual["estado"] != "activa":
             raise HTTPException(status_code=400, detail="Esta reunión ya fue cancelada")
+        if usuario["rol"] == "secretaria" and actual["sucursal_id"] != usuario["sucursal_id"]:
+            raise HTTPException(status_code=403, detail="Solo puedes modificar reuniones de tu sucursal")
 
         cur.execute("""
             UPDATE reuniones_mediadores
@@ -3416,6 +3424,8 @@ def editar_reunion(reunion_id: int, datos: dict, usuario=Depends(obtener_usuario
             "Nuevo horario: " + _texto_reunion(ini, hora_fin, titulo), reunion_id,
             excluir_id=usuario["id"]
         )
+        registrar_auditoria(cur, usuario, "reunion_modificada", "reuniones", reunion_id,
+                            f"Reunión «{titulo}» ahora el {fecha} de {hora_inicio} a {hora_fin}")
         conn.commit()
         return {"reunion": reunion, "conflictos": conflictos}
     except HTTPException:
@@ -3431,8 +3441,8 @@ def editar_reunion(reunion_id: int, datos: dict, usuario=Depends(obtener_usuario
 
 @app.put("/reuniones/{reunion_id}/cancelar")
 def cancelar_reunion(reunion_id: int, motivo: str = None, usuario=Depends(obtener_usuario_actual)):
-    if usuario["rol"] != "administrador":
-        raise HTTPException(status_code=403, detail="Solo el administrador puede cancelar reuniones")
+    if usuario["rol"] not in ("administrador", "secretaria"):
+        raise HTTPException(status_code=403, detail="Solo el administrador o la secretaria pueden cancelar reuniones")
 
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -3441,8 +3451,9 @@ def cancelar_reunion(reunion_id: int, motivo: str = None, usuario=Depends(obtene
             UPDATE reuniones_mediadores
             SET estado = 'cancelada', motivo_cancelacion = %s, fecha_modificacion = NOW()
             WHERE id = %s AND estado = 'activa'
+              AND (%s <> 'secretaria' OR sucursal_id = %s)
             RETURNING *
-        """, ((motivo or "").strip() or None, reunion_id))
+        """, ((motivo or "").strip() or None, reunion_id, usuario["rol"], usuario["sucursal_id"]))
         reunion = cur.fetchone()
         if not reunion:
             raise HTTPException(status_code=404, detail="Reunión no encontrada o ya cancelada")
@@ -3455,6 +3466,8 @@ def cancelar_reunion(reunion_id: int, motivo: str = None, usuario=Depends(obtene
             "Cancelada: " + _texto_reunion(ini, str(reunion["hora_fin"])[:5], reunion["titulo"]),
             reunion_id, excluir_id=usuario["id"]
         )
+        registrar_auditoria(cur, usuario, "reunion_cancelada", "reuniones", reunion_id,
+                            f"Reunión «{reunion['titulo']}» cancelada")
         conn.commit()
         return reunion
     except HTTPException:

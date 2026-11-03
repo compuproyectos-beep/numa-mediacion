@@ -58,6 +58,10 @@ _RUTAS_SECRETARIA = [
     ("GET", r"^/ciudades$"),
     ("GET", r"^/sucursal/mediadores$"),
     ("GET", r"^/reuniones$"),
+    # Reuniones de mediadores: la secretaria también las crea, cambia y cancela (solo de su sucursal; main.py lo valida).
+    ("POST", r"^/reuniones$"),
+    ("PUT", r"^/reuniones/\d+$"),
+    ("PUT", r"^/reuniones/\d+/cancelar$"),
     # Reportes: solo el de Clientes (de su sucursal) y su descarga en Excel;
     # main.py además rechaza cualquier otro tipo de reporte para ella.
     ("GET", r"^/reportes/clientes$"),

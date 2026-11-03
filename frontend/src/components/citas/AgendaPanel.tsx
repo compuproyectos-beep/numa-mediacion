@@ -439,7 +439,7 @@ export default function AgendaPanel({ embebido = false }: { embebido?: boolean }
       />
       )}
 
-      {isAdmin && !embebido && (
+      {(isAdmin || esSecretaria) && !embebido && (
         <div className="mb-4">
           <button
             type="button"
@@ -485,7 +485,7 @@ export default function AgendaPanel({ embebido = false }: { embebido?: boolean }
 
       <ReunionModal
         open={reunionNueva}
-        sucursales={nombresSucursales
+        sucursales={!isAdmin ? undefined : nombresSucursales
           .filter((n) => gruposPorSucursal[n][0]?.sucursal_id)
           .map((n) => ({
             id: Number(gruposPorSucursal[n][0].sucursal_id),
@@ -496,7 +496,7 @@ export default function AgendaPanel({ embebido = false }: { embebido?: boolean }
               (u: any) => String(u.sucursal_id) === String(gruposPorSucursal[n][0].sucursal_id)
             ).length,
           }))}
-        sucursalInicial={mediadorActivo?.sucursal_id ?? user?.sucursal_id ?? null}
+        sucursalInicial={isAdmin ? mediadorActivo?.sucursal_id ?? user?.sucursal_id ?? null : null}
         onClose={() => setReunionNueva(false)}
         onGuardada={(res) => {
           setReunionNueva(false);

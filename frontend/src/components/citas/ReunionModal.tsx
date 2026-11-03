@@ -110,8 +110,11 @@ export default function ReunionModal({
       size="md"
     >
       <p className="text-xs text-numa-700 mb-4">
-        La reunión es para todos los mediadores y la secretaria de la sucursal que elijas: cada uno
-        recibe una notificación y verá la reunión en su agenda. En ese horario no se podrán agendar invitaciones.
+        {sucursales && sucursales.length > 0
+          ? 'La reunión es para todos los mediadores y la secretaria de la sucursal que elijas'
+          : 'La reunión es para todos los mediadores y la secretaria de tu sucursal'}
+        : cada uno recibe una notificación y verá la reunión en su agenda. En ese horario no se
+        podrán agendar invitaciones.
       </p>
 
       <div className="space-y-4">
