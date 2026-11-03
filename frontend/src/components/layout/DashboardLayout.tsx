@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Bell, Calendar, FileText, CheckCircle2, AlertTriangle, Clock, X } from 'lucide-react';
 import { Modal } from '@/components/ui';
 import Sidebar from '@/components/layout/Sidebar';
+import BotonModoOscuro from '@/components/layout/BotonModoOscuro';
 import { CuentaRegresiva } from '@/components/actas/NumeroActaPanel';
 import { getToken, getUser } from '@/lib/auth';
 import {
@@ -313,6 +314,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* Espacio a la izquierda de la campana: algunas pantallas (como el detalle de un proceso) ponen aquí su botón "Volver". */}
             <div id="barra-izquierda" className="flex items-center min-w-0" />
             <div className="relative" ref={dropdownRef}>
+              <BotonModoOscuro className="absolute right-12 top-0 mr-2" />
               <button
                 type="button"
                 onClick={() => {

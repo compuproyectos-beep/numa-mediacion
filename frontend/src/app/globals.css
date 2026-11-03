@@ -484,3 +484,52 @@ html[data-tamano="fijo"] { zoom: 1; --tz: 1; }
 @media (prefers-reduced-motion: reduce) {
   .etiqueta-menu { transition: none; }
 }
+
+/* ───────── Modo oscuro ─────────
+   Se logra invirtiendo la luminosidad de toda la pantalla (conservando los
+   tonos) y volviendo a invertir lo que no debe cambiar: imágenes, logos, la
+   barra lateral y los botones de color fuerte. En la impresión nunca se aplica. */
+html.dark {
+  filter: invert(1) hue-rotate(180deg);
+  background: #fff;
+}
+html.dark img,
+html.dark video,
+html.dark iframe,
+html.dark canvas,
+html.dark embed,
+html.dark object,
+html.dark aside,
+html.dark header.lg\:hidden,
+html.dark .btn-primary,
+html.dark .bg-numa-800,
+html.dark .bg-numa-900,
+html.dark .bg-numa-950,
+html.dark .bg-red-700,
+html.dark .bg-red-600,
+html.dark .bg-emerald-600,
+html.dark .bg-\[\#144193\],
+html.dark .bg-\[\#0A2A62\],
+html.dark .bg-\[\#1B4AAE\] {
+  filter: invert(1) hue-rotate(180deg);
+}
+@media print {
+  html.dark,
+  html.dark img,
+  html.dark video,
+  html.dark iframe,
+  html.dark canvas,
+  html.dark aside,
+  html.dark .btn-primary,
+  html.dark .bg-numa-800,
+  html.dark .bg-numa-900,
+  html.dark .bg-numa-950,
+  html.dark .bg-red-700,
+  html.dark .bg-red-600,
+  html.dark .bg-emerald-600,
+  html.dark .bg-\[\#144193\],
+  html.dark .bg-\[\#0A2A62\],
+  html.dark .bg-\[\#1B4AAE\] {
+    filter: none !important;
+  }
+}
