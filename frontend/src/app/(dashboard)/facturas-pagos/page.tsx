@@ -306,18 +306,18 @@ export default function FacturasPagosPage() {
               >
                 <div className="px-4 pt-3 pb-3 border-b border-numa-200">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <Link href={`/procesos/${g.proceso_id}`} className="text-base font-bold text-numa-900 hover:underline">
-                      {g.codigo_proceso}
-                    </Link>
                     {g.numero_acta ? (
-                      <span className="rounded-full bg-numa-800 px-2.5 py-0.5 text-xs font-semibold text-white">
+                      <span className="rounded-full bg-numa-800 px-3 py-1 text-base font-bold text-white">
                         Acta {g.numero_acta}
                       </span>
                     ) : (
-                      <span className="rounded-full border border-numa-300 px-2.5 py-0.5 text-xs font-medium text-numa-700">
+                      <span className="rounded-full border border-numa-300 px-3 py-1 text-base font-medium text-numa-700">
                         Sin número de acta
                       </span>
                     )}
+                    <Link href={`/procesos/${g.proceso_id}`} className="text-sm font-semibold text-numa-800 hover:underline">
+                      {g.codigo_proceso}
+                    </Link>
                     {g.faltan.length > 0 && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-red-700 px-2.5 py-0.5 text-xs font-semibold text-white">
                         <AlertTriangle size={12} aria-hidden="true" />

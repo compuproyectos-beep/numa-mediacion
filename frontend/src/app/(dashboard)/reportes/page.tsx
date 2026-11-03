@@ -423,6 +423,9 @@ export default function ReportesPage() {
       if (value) params.set(key, String(value));
     });
 
+    // Si se está viendo solo "De acuerdo" o "De no acuerdo", se imprime solo eso.
+    if (tipo === 'actas' && filtroTipoActa) params.set('tipo_acta', filtroTipoActa);
+
     window.open(`/reportes/imprimir?${params.toString()}`, '_blank');
   };
 
@@ -962,7 +965,6 @@ export default function ReportesPage() {
                         <th className="table-header">Tipo</th>
                         <th className="table-header">Solicitante</th>
                         <th className="table-header">Invitado</th>
-                        <th className="table-header">Ciudad</th>
                         <th className="table-header">Sucursal</th>
                         {admin && <th className="table-header">Mediador</th>}
                         <th className="table-header">Fecha de subida</th>
@@ -1363,7 +1365,6 @@ export default function ReportesPage() {
                         </td>
                         <td className="table-cell">{a.demandante}</td>
                         <td className="table-cell">{a.demandado}</td>
-                        <td className="table-cell">{a.ciudad || '—'}</td>
                         <td className="table-cell">{a.sucursal ? labelSucursal(a) : "—"}</td>
                         {admin && <td className="table-cell">{a.mediador || a.usuario || '—'}</td>}
                         <td className="table-cell">

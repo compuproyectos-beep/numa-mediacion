@@ -207,6 +207,7 @@ function ImprimirReporteContenido() {
   const sucursal_id = searchParams?.get('sucursal_id') || '';
   const usuario_id = searchParams?.get('usuario_id') || '';
   const dias_minimo = searchParams?.get('dias_minimo') || '';
+  const tipo_acta = searchParams?.get('tipo_acta') || '';
 
   const [datos, setDatos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -232,7 +233,11 @@ function ImprimirReporteContenido() {
       tipo === 'productividad'
         ? getReporteProductividad(filtros)
         : tipo === 'actas'
-        ? getActasFinales(filtros).then((lista: any[]) => lista.filter((a: any) => !a.requiere_acta_firmada || a.tiene_acta_firmada))
+        ? getActasFinales(filtros).then((lista: any[]) => lista
+            .filter((a: any) => !a.requiere_acta_firmada || a.tiene_acta_firmada)
+            .filter((a: any) =>
+              tipo_acta === 'no_acuerdo' ? a.tipo === 'no_acuerdo' : tipo_acta === 'acuerdo' ? a.tipo !== 'no_acuerdo' : true
+            ))
         : tipo === 'sucursales'
         ? getReporteSucursales(filtros)
         : tipo === 'clientes'
@@ -594,7 +599,7 @@ function ImprimirReporteContenido() {
                 } text-[11px] font-bold text-numa-900 uppercase tracking-[0.12em] mb-1 pb-1.5 border-b-2 border-gold-500`}
               >
                 {tipo === 'actas'
-                  ? `Detalle · ${datos.length} ${datos.length === 1 ? 'acta' : 'actas'} (${datos.filter((a: any) => a.tipo !== 'no_acuerdo').length} de acuerdo, ${datos.filter((a: any) => a.tipo === 'no_acuerdo').length} de no acuerdo)`
+                  ? `Detalle${tipo_acta === 'no_acuerdo' ? ' (solo actas de no acuerdo)' : tipo_acta === 'acuerdo' ? ' (solo actas de acuerdo)' : ''} · ${datos.length} ${datos.length === 1 ? 'acta' : 'actas'} (${datos.filter((a: any) => a.tipo !== 'no_acuerdo').length} de acuerdo, ${datos.filter((a: any) => a.tipo === 'no_acuerdo').length} de no acuerdo)`
                   : `Detalle · ${datos.length} ${datos.length === 1 ? 'registro' : 'registros'}`}
               </h3>
               <table className="w-full text-xs border-collapse">
