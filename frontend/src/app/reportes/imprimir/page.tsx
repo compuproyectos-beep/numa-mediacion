@@ -267,11 +267,7 @@ function ImprimirReporteContenido() {
   }, []);
 
   const rangoFechas =
-    tipo === 'actas-pendientes' || tipo === 'facturas-pendientes'
-      ? 'Situación al día de hoy'
-      : tipo === 'sin-avance'
-      ? `Procesos en negociación con ${dias_minimo || '7'} o más días sin avance`
-      : fecha_desde || fecha_hasta
+    fecha_desde || fecha_hasta
       ? `Del ${fecha_desde ? new Date(fecha_desde + 'T00:00:00').toLocaleDateString('es-EC') : '—'} al ${
           fecha_hasta ? new Date(fecha_hasta + 'T00:00:00').toLocaleDateString('es-EC') : '—'
         }`
@@ -414,9 +410,24 @@ function ImprimirReporteContenido() {
     );
   }
 
+  // Los reportes con muchas columnas (equipo de mediadores, sucursales,
+  // clientes) se imprimen en hoja horizontal, a todo el ancho y con letra
+  // más pequeña, para que no se corten las últimas columnas.
+  const reporteAncho = tipo === 'productividad' || tipo === 'sucursales' || tipo === 'clientes';
+
   return (
     <main className="min-h-screen bg-numa-100 print:bg-white py-10 print:py-0">
-      <div className="max-w-5xl mx-auto bg-white shadow-md print:shadow-none border border-numa-200 print:border-0 rounded-sm">
+      {reporteAncho && (
+        <style>{`
+          @media print {
+            @page { size: A4 landscape; margin: 8mm; }
+            .tabla-ancha { table-layout: auto; width: 100%; }
+            .tabla-ancha th, .tabla-ancha td { font-size: 8.5px !important; line-height: 1.15; padding-right: 3px !important; word-break: break-word; }
+            .tabla-ancha th { white-space: normal; vertical-align: bottom; }
+          }
+        `}</style>
+      )}
+      <div className={`${reporteAncho ? 'max-w-[1500px] print:max-w-none' : 'max-w-5xl'} mx-auto bg-white shadow-md print:shadow-none border border-numa-200 print:border-0 rounded-sm`}>
         {/* Encabezado tipo membrete, igual al de los expedientes impresos.
             El logo y el nombre van centrados en la hoja; el botón de
             Imprimir queda flotando aparte (y desaparece al imprimir). */}
@@ -602,7 +613,7 @@ function ImprimirReporteContenido() {
                   ? `Detalle${tipo_acta === 'no_acuerdo' ? ' (solo actas de no acuerdo)' : tipo_acta === 'acuerdo' ? ' (solo actas de acuerdo)' : ''} · ${datos.length} ${datos.length === 1 ? 'acta' : 'actas'} (${datos.filter((a: any) => a.tipo !== 'no_acuerdo').length} de acuerdo, ${datos.filter((a: any) => a.tipo === 'no_acuerdo').length} de no acuerdo)`
                   : `Detalle · ${datos.length} ${datos.length === 1 ? 'registro' : 'registros'}`}
               </h3>
-              <table className="w-full text-xs border-collapse">
+              <table className={`w-full text-xs border-collapse ${reporteAncho ? 'tabla-ancha' : ''}`}>
               <thead>
                 {tipo === 'productividad' && (
                   <tr>

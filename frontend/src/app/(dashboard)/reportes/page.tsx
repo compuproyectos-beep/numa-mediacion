@@ -99,11 +99,11 @@ const DESCRIPCIONES: Record<TipoReporte, string> = {
   agenda:
     'Las reuniones (invitaciones) programadas en el rango de fechas elegido. Incluye las invitaciones rápidas (marcadas "Sin proceso"). Las marcadas como "Atrasada" ya pasaron y siguen sin resultado registrado. Da clic en una fila para abrir el proceso o la agenda.',
   'sin-avance':
-    'Procesos que siguen en negociación y llevan al menos esos días sin que se registre ningún avance. Sirve para saber cuáles se están quedando olvidados. Los días se cuentan desde el último avance (o desde que se creó el proceso, si nunca tuvo uno).',
+    'Procesos que siguen en negociación y llevan días sin que se registre ningún avance. Sirve para saber cuáles se están quedando olvidados. El rango de fechas se aplica a la fecha del último movimiento (el último avance o, si nunca tuvo uno, la creación del proceso). Sin fechas se muestran todos, de más a menos días sin avance.',
   'actas-pendientes':
-    'Procesos cerrados con acuerdo que aún no están completos: les falta subir la documentación y el comprobante, o el acta firmada. Se muestra cuántos días llevan pendientes desde la fecha del acuerdo.',
+    'Procesos cerrados con acuerdo que aún no están completos: les falta subir la documentación y el comprobante, o el acta firmada. Se muestra cuántos días llevan pendientes desde la fecha del acuerdo. El rango de fechas se aplica a la fecha del acuerdo.',
   'facturas-pendientes':
-    'Procesos con el acta firmada ya subida a los que todavía les falta la factura de NUMA al cliente o la factura del mediador a NUMA (solo cuentan las actas firmadas desde que existe esta regla). No bloquea el proceso; sirve para saber a quién cobrarle las facturas. Se muestran los días desde que se subió el acta firmada.'
+    'Procesos con el acta firmada ya subida a los que todavía les falta la factura de NUMA al cliente o la factura del mediador a NUMA (solo cuentan las actas firmadas desde que existe esta regla). No bloquea el proceso; sirve para saber a quién cobrarle las facturas. Se muestran los días desde que se subió el acta firmada. El rango de fechas se aplica a la fecha del acta firmada.'
 };
 
 // Un acta cuenta como lista solo cuando ya está subida el acta firmada (si la requiere).
@@ -141,7 +141,6 @@ export default function ReportesPage() {
     : TIPOS.filter((t) => (!t.adminOnly || admin) && !t.soloSecretaria);
 
   const [tipo, setTipo] = useState<TipoReporte>(esSecretaria ? 'clientes' : 'actas');
-  const [diasMinimo, setDiasMinimo] = useState('7');
   // Filtro local de la lista de Actas finales: todas, solo de acuerdo o solo de no acuerdo.
   const [filtroTipoActa, setFiltroTipoActa] = useState<'' | 'acuerdo' | 'no_acuerdo'>('');
   const esOperativo = TIPOS_OPERATIVOS.includes(tipo);
@@ -233,14 +232,8 @@ export default function ReportesPage() {
     usuario_id: filters.usuario_id || undefined
   };
 
-  // Para los reportes operativos: "sin avance" no usa fechas sino un mínimo
-  // de días; "actas pendientes" tampoco usa fechas (es una foto de hoy).
-  const filtrosOperativo =
-    tipo === 'sin-avance'
-      ? { ...filtrosActivos, fecha_desde: undefined, fecha_hasta: undefined, dias_minimo: diasMinimo || '7' }
-      : tipo === 'actas-pendientes' || tipo === 'facturas-pendientes'
-      ? { ...filtrosActivos, fecha_desde: undefined, fecha_hasta: undefined }
-      : filtrosActivos;
+  // Todos los reportes operativos se buscan por rango de fechas "desde / hasta".
+  const filtrosOperativo = filtrosActivos;
 
   const buscar = async () => {
     setLoading(true);
@@ -652,7 +645,7 @@ export default function ReportesPage() {
           }}
         >
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-2">
-          {tipo !== 'sin-avance' && tipo !== 'actas-pendientes' && tipo !== 'facturas-pendientes' && (
+          {(
             <>
               <InputField
                 label="Fecha desde"
@@ -668,16 +661,6 @@ export default function ReportesPage() {
                 onChange={(e) => setFilters({ ...filters, fecha_hasta: e.target.value })}
               />
             </>
-          )}
-
-          {tipo === 'sin-avance' && (
-            <InputField
-              label="Mínimo de días sin avance"
-              type="number"
-              min={0}
-              value={diasMinimo}
-              onChange={(e) => setDiasMinimo(e.target.value)}
-            />
           )}
 
           {admin && (

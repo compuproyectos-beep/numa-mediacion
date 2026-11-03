@@ -10077,6 +10077,18 @@ def _filtros_operativos(query, params, usuario, usuario_id, sucursal_id, ciudad_
     return query
 
 
+def _filtro_rango_fecha(query, params, columna, fecha_desde, fecha_hasta):
+    # Rango "desde / hasta" (ambos días incluidos) sobre una marca de tiempo
+    # guardada en UTC, contado en hora de Ecuador (UTC-5).
+    if fecha_desde:
+        query += f" AND ({columna} - interval '5 hours')::date >= %s::date"
+        params.append(fecha_desde)
+    if fecha_hasta:
+        query += f" AND ({columna} - interval '5 hours')::date <= %s::date"
+        params.append(fecha_hasta)
+    return query
+
+
 @app.get("/reportes/operativos/agenda")
 def reporte_operativo_agenda(
     fecha_desde: str = None,
@@ -10156,7 +10168,9 @@ def reporte_operativo_agenda(
 
 @app.get("/reportes/operativos/sin-avance")
 def reporte_operativo_sin_avance(
-    dias_minimo: int = 7,
+    dias_minimo: int = 0,
+    fecha_desde: str = None,
+    fecha_hasta: str = None,
     ciudad_id: int = None,
     sucursal_id: int = None,
     usuario_id: int = None,
@@ -10179,6 +10193,7 @@ def reporte_operativo_sin_avance(
                     s.nombre AS sucursal,
                     ci.nombre AS ciudad,
                     p.fecha_creacion,
+                    GREATEST(p.fecha_creacion, COALESCE((SELECT MAX(a.fecha_creacion) FROM avances_mediacion a WHERE a.proceso_id = p.id), p.fecha_creacion)) AS ultima_actividad,
                     (SELECT MAX(a.fecha_creacion) FROM avances_mediacion a WHERE a.proceso_id = p.id) AS ultimo_avance,
                     (SELECT COUNT(*) FROM avances_mediacion a WHERE a.proceso_id = p.id) AS total_avances,
                     FLOOR(EXTRACT(EPOCH FROM (NOW() - GREATEST(
@@ -10198,9 +10213,12 @@ def reporte_operativo_sin_avance(
         query += """
             ) t
             WHERE t.dias_sin_avance >= %s
-            ORDER BY t.dias_sin_avance DESC, t.codigo_proceso ASC
         """
         params.append(dias_minimo)
+        # Rango de fechas: sobre la fecha del último movimiento (último avance
+        # o, si nunca tuvo, la creación del proceso).
+        query = _filtro_rango_fecha(query, params, "t.ultima_actividad", fecha_desde, fecha_hasta)
+        query += " ORDER BY t.dias_sin_avance DESC, t.codigo_proceso ASC"
         cur.execute(query, tuple(params))
         return cur.fetchall()
     finally:
@@ -10210,6 +10228,8 @@ def reporte_operativo_sin_avance(
 
 @app.get("/reportes/operativos/actas-pendientes")
 def reporte_operativo_actas_pendientes(
+    fecha_desde: str = None,
+    fecha_hasta: str = None,
     ciudad_id: int = None,
     sucursal_id: int = None,
     usuario_id: int = None,
@@ -10249,6 +10269,7 @@ def reporte_operativo_actas_pendientes(
         """
         params = []
         query = _filtros_operativos(query, params, usuario, usuario_id, sucursal_id, ciudad_id)
+        query = _filtro_rango_fecha(query, params, "p.fecha_acuerdo", fecha_desde, fecha_hasta)
         query += " ORDER BY p.fecha_acuerdo ASC NULLS LAST"
         cur.execute(query, tuple(params))
         return cur.fetchall()
@@ -10259,6 +10280,8 @@ def reporte_operativo_actas_pendientes(
 
 @app.get("/reportes/operativos/facturas-pendientes")
 def reporte_operativo_facturas_pendientes(
+    fecha_desde: str = None,
+    fecha_hasta: str = None,
     ciudad_id: int = None,
     sucursal_id: int = None,
     usuario_id: int = None,
@@ -10299,6 +10322,7 @@ def reporte_operativo_facturas_pendientes(
         """
         params = []
         query = _filtros_operativos(query, params, usuario, usuario_id, sucursal_id, ciudad_id)
+        query = _filtro_rango_fecha(query, params, "p.acta_firmada_fecha", fecha_desde, fecha_hasta)
         query += " ORDER BY p.acta_firmada_fecha ASC"
         cur.execute(query, tuple(params))
         return cur.fetchall()
@@ -10394,7 +10418,7 @@ def exportar_reporte_excel(
     ciudad_id: int = None,
     sucursal_id: int = None,
     usuario_id: int = None,
-    dias_minimo: int = 7,
+    dias_minimo: int = 0,
     usuario=Depends(obtener_usuario_actual)
 ):
     if tipo not in ["procesos", "productividad", "actas", "sucursales", "clientes",
@@ -10566,7 +10590,8 @@ def exportar_reporte_excel(
 
     elif tipo == "sin-avance":
         filas = reporte_operativo_sin_avance(
-            dias_minimo=dias_minimo, ciudad_id=ciudad_id, sucursal_id=sucursal_id,
+            dias_minimo=dias_minimo, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta,
+            ciudad_id=ciudad_id, sucursal_id=sucursal_id,
             usuario_id=usuario_id, usuario=usuario
         )
         encabezados = ["Proceso", "Solicitante", "Invitado", "Mediador", "Sucursal", "Ciudad",
@@ -10583,7 +10608,7 @@ def exportar_reporte_excel(
 
     elif tipo == "actas-pendientes":
         filas = reporte_operativo_actas_pendientes(
-            ciudad_id=ciudad_id, sucursal_id=sucursal_id,
+            fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ciudad_id=ciudad_id, sucursal_id=sucursal_id,
             usuario_id=usuario_id, usuario=usuario
         )
         encabezados = ["Acta", "Proceso", "Solicitante", "Invitado", "Mediador", "Sucursal", "Ciudad",
@@ -10602,7 +10627,7 @@ def exportar_reporte_excel(
 
     elif tipo == "facturas-pendientes":
         filas = reporte_operativo_facturas_pendientes(
-            ciudad_id=ciudad_id, sucursal_id=sucursal_id,
+            fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ciudad_id=ciudad_id, sucursal_id=sucursal_id,
             usuario_id=usuario_id, usuario=usuario
         )
         encabezados = ["Acta", "Solicitante", "Invitado", "Mediador", "Sucursal", "Ciudad",
