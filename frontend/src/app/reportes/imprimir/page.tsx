@@ -411,7 +411,7 @@ function ImprimirReporteContenido() {
   }
 
   // Los reportes con muchas columnas (equipo de mediadores, sucursales,
-  // clientes) se imprimen en hoja horizontal, a todo el ancho y con letra
+  // clientes) se imprimen en hoja vertical, a todo el ancho y con letra
   // más pequeña, para que no se corten las últimas columnas.
   const reporteAncho = tipo === 'productividad' || tipo === 'sucursales' || tipo === 'clientes';
 
@@ -420,14 +420,14 @@ function ImprimirReporteContenido() {
       {reporteAncho && (
         <style>{`
           @media print {
-            @page { size: A4 landscape; margin: 8mm; }
+            @page { size: A4 portrait; margin: 8mm; }
             .tabla-ancha { table-layout: auto; width: 100%; }
             .tabla-ancha th, .tabla-ancha td { font-size: 8.5px !important; line-height: 1.15; padding-right: 3px !important; word-break: break-word; }
             .tabla-ancha th { white-space: normal; vertical-align: bottom; }
           }
         `}</style>
       )}
-      <div className={`${reporteAncho ? 'max-w-[1500px] print:max-w-none' : 'max-w-5xl'} mx-auto bg-white shadow-md print:shadow-none border border-numa-200 print:border-0 rounded-sm`}>
+      <div className={`${reporteAncho ? 'max-w-5xl print:max-w-none' : 'max-w-5xl'} mx-auto bg-white shadow-md print:shadow-none border border-numa-200 print:border-0 rounded-sm`}>
         {/* Encabezado tipo membrete, igual al de los expedientes impresos.
             El logo y el nombre van centrados en la hoja; el botón de
             Imprimir queda flotando aparte (y desaparece al imprimir). */}
@@ -666,9 +666,6 @@ function ImprimirReporteContenido() {
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Archivados</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Anulados</th>
                       <th className="text-left py-2 pr-2 font-semibold text-numa-700">Prom. días</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Reuniones realizadas</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">Reuniones canceladas</th>
-                      <th className="text-left py-2 pr-2 font-semibold text-numa-700">No asistieron</th>
                     </>
                   )}
 
@@ -863,7 +860,7 @@ function ImprimirReporteContenido() {
                 {tipo === 'productividad' &&
                   datos.map((m: any, i: number) => (
                     <Fragment key={m.usuario_id}>
-                    {i > 0 && <RotulosGrupo etiquetas={['Mediador', 'Estado', 'Ingreso', 'Sucursal', 'Actas de acuerdo', 'Actas de no acuerdo', 'Actas pendientes', 'Total', 'En negociación', 'Con acuerdo', 'Sin acuerdo', 'Archivados', 'Anulados', 'Prom. días', 'Reuniones realizadas', 'Reuniones canceladas', 'No asistieron']} />}
+                    {i > 0 && <RotulosGrupo etiquetas={['Mediador', 'Estado', 'Ingreso', 'Sucursal', 'Actas de acuerdo', 'Actas de no acuerdo', 'Actas pendientes', 'Total', 'En negociación', 'Con acuerdo', 'Sin acuerdo', 'Archivados', 'Anulados', 'Prom. días']} />}
                     <tr className="bg-numa-50">
                       <td className="py-1.5 pr-2 font-semibold text-numa-900">{m.mediador}</td>
                       <td className="py-1.5 pr-2">{m.activo ? 'Activo' : 'Inactivo'}</td>
@@ -885,11 +882,8 @@ function ImprimirReporteContenido() {
                       <td className="py-1.5 pr-2">
                         {m.promedio_dias_cierre != null ? `${m.promedio_dias_cierre}` : '—'}
                       </td>
-                      <td className="py-1.5 pr-2">{m.reuniones_realizadas ?? 0}</td>
-                      <td className="py-1.5 pr-2">{m.reuniones_canceladas ?? 0}</td>
-                      <td className="py-1.5 pr-2">{m.reuniones_no_asistieron ?? 0}</td>
                     </tr>
-                    <DetalleProcesos colSpan={18} titulo={`Procesos de ${m.mediador}`} mostrarMediador={false} filas={procesosDetalle.filter((p: any) => Number(p.usuario_id) === Number(m.usuario_id))} />
+                    <DetalleProcesos colSpan={15} titulo={`Procesos de ${m.mediador}`} mostrarMediador={false} filas={procesosDetalle.filter((p: any) => Number(p.usuario_id) === Number(m.usuario_id))} />
                     </Fragment>
                   ))}
 
