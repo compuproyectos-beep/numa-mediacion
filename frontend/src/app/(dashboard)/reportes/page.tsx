@@ -924,6 +924,7 @@ export default function ReportesPage() {
                   <tr>
                     {tipo === 'procesos' && (
                       <>
+                        <th className="table-header">Proceso</th>
                         <th className="table-header">Estado</th>
                         <th className="table-header">Acta final</th>
                         <th className="table-header">Solicitante</th>
@@ -1023,6 +1024,7 @@ export default function ReportesPage() {
 
                     {tipo === 'sin-avance' && (
                       <>
+                        <th className="table-header">Proceso</th>
                         <th className="table-header">Solicitante</th>
                         <th className="table-header">Invitado</th>
                         {admin && <th className="table-header">Mediador</th>}
@@ -1035,6 +1037,8 @@ export default function ReportesPage() {
 
                     {tipo === 'actas-pendientes' && (
                       <>
+                        <th className="table-header">Acta</th>
+                        <th className="table-header">Proceso</th>
                         <th className="table-header">Solicitante</th>
                         <th className="table-header">Invitado</th>
                         {admin && <th className="table-header">Mediador</th>}
@@ -1047,7 +1051,7 @@ export default function ReportesPage() {
 
                     {tipo === 'facturas-pendientes' && (
                       <>
-                        <th className="table-header">Proceso</th>
+                        <th className="table-header">Acta</th>
                         <th className="table-header">Solicitante</th>
                         <th className="table-header">Invitado</th>
                         {admin && <th className="table-header">Mediador</th>}
@@ -1103,6 +1107,7 @@ export default function ReportesPage() {
                         onClick={() => abrirProceso(p.id)}
                         className="table-row cursor-pointer hover:bg-gold-400/[0.06]"
                       >
+                        <td className="table-cell code-text">{p.codigo_proceso}</td>
                         <td className="table-cell">{p.demandante}</td>
                         <td className="table-cell">{p.demandado}</td>
                         {admin && <td className="table-cell">{p.mediador}</td>}
@@ -1132,6 +1137,8 @@ export default function ReportesPage() {
                         onClick={() => abrirProceso(p.id)}
                         className="table-row cursor-pointer hover:bg-gold-400/[0.06]"
                       >
+                        <td className="table-cell font-semibold">{p.numero_acta_codigo || '—'}</td>
+                        <td className="table-cell code-text">{p.codigo_proceso}</td>
                         <td className="table-cell">{p.demandante}</td>
                         <td className="table-cell">{p.demandado}</td>
                         {admin && <td className="table-cell">{p.mediador}</td>}
@@ -1153,7 +1160,7 @@ export default function ReportesPage() {
                         onClick={() => abrirProceso(p.id)}
                         className="table-row cursor-pointer hover:bg-gold-400/[0.06]"
                       >
-                        <td className="table-cell code-text">{p.codigo_proceso}</td>
+                        <td className="table-cell font-semibold">{p.numero_acta_codigo || '—'}</td>
                         <td className="table-cell">{p.demandante}</td>
                         <td className="table-cell">{p.demandado}</td>
                         {admin && <td className="table-cell">{p.mediador}</td>}
@@ -1182,6 +1189,7 @@ export default function ReportesPage() {
                         onClick={() => abrirProceso(p.id)}
                         className="table-row cursor-pointer hover:bg-gold-400/[0.06]"
                       >
+                        <td className="table-cell code-text">{p.codigo_proceso}</td>
                         <td className="table-cell">
                           <span className="inline-flex items-center gap-2">
                             <span

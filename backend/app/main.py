@@ -10172,6 +10172,7 @@ def reporte_operativo_sin_avance(
             SELECT * FROM (
                 SELECT
                     p.id, p.codigo_proceso, p.tema,
+                    (SELECT na.codigo FROM numeros_acta na WHERE na.proceso_id = p.id ORDER BY na.id LIMIT 1) AS numero_acta_codigo,
                     cd.nombre || ' ' || cd.apellido AS demandante,
                     cdd.nombre || ' ' || cdd.apellido AS demandado,
                     u.nombre || ' ' || u.apellido AS mediador,
@@ -10221,6 +10222,7 @@ def reporte_operativo_actas_pendientes(
         query = """
             SELECT
                 p.id, p.codigo_proceso, p.tema, p.fecha_acuerdo,
+                (SELECT na.codigo FROM numeros_acta na WHERE na.proceso_id = p.id ORDER BY na.id LIMIT 1) AS numero_acta_codigo,
                 cd.nombre || ' ' || cd.apellido AS demandante,
                 cdd.nombre || ' ' || cdd.apellido AS demandado,
                 u.nombre || ' ' || u.apellido AS mediador,
@@ -10269,6 +10271,7 @@ def reporte_operativo_facturas_pendientes(
         query = """
             SELECT
                 p.id, p.codigo_proceso, p.tema, p.acta_firmada_fecha,
+                (SELECT na.codigo FROM numeros_acta na WHERE na.proceso_id = p.id ORDER BY na.id LIMIT 1) AS numero_acta_codigo,
                 cd.nombre || ' ' || cd.apellido AS demandante,
                 cdd.nombre || ' ' || cdd.apellido AS demandado,
                 u.nombre || ' ' || u.apellido AS mediador,
@@ -10566,10 +10569,10 @@ def exportar_reporte_excel(
             dias_minimo=dias_minimo, ciudad_id=ciudad_id, sucursal_id=sucursal_id,
             usuario_id=usuario_id, usuario=usuario
         )
-        encabezados = ["Solicitante", "Invitado", "Mediador", "Sucursal", "Ciudad",
+        encabezados = ["Proceso", "Solicitante", "Invitado", "Mediador", "Sucursal", "Ciudad",
                        "Tema", "Creado", "Último avance", "Avances", "Días sin avance"]
         filas_excel = [
-            [f.get("demandante"), f.get("demandado"),
+            [f.get("codigo_proceso"), f.get("demandante"), f.get("demandado"),
              f.get("mediador"), f.get("sucursal"), f.get("ciudad"), f.get("tema"),
              _fecha_excel_ec(f.get("fecha_creacion"), con_hora=False),
              str(f.get("ultimo_avance") or "")[:10] or "Ninguno",
@@ -10583,10 +10586,10 @@ def exportar_reporte_excel(
             ciudad_id=ciudad_id, sucursal_id=sucursal_id,
             usuario_id=usuario_id, usuario=usuario
         )
-        encabezados = ["Solicitante", "Invitado", "Mediador", "Sucursal", "Ciudad",
+        encabezados = ["Acta", "Proceso", "Solicitante", "Invitado", "Mediador", "Sucursal", "Ciudad",
                        "Tema", "Fecha del acuerdo", "Estado", "Días pendientes"]
         filas_excel = [
-            [f.get("demandante"), f.get("demandado"),
+            [f.get("numero_acta_codigo") or "", f.get("codigo_proceso"), f.get("demandante"), f.get("demandado"),
              f.get("mediador"), f.get("sucursal"), f.get("ciudad"), f.get("tema"),
              # fecha_acuerdo está en UTC: se muestra en hora de Ecuador.
              ((f["fecha_acuerdo"] - datetime.timedelta(hours=5)).strftime("%d/%m/%Y %H:%M")
@@ -10602,11 +10605,11 @@ def exportar_reporte_excel(
             ciudad_id=ciudad_id, sucursal_id=sucursal_id,
             usuario_id=usuario_id, usuario=usuario
         )
-        encabezados = ["Proceso", "Solicitante", "Invitado", "Mediador", "Sucursal", "Ciudad",
+        encabezados = ["Acta", "Solicitante", "Invitado", "Mediador", "Sucursal", "Ciudad",
                        "Acta firmada el", "Días sin facturas",
                        "Falta factura de NUMA al cliente", "Falta factura del mediador a NUMA"]
         filas_excel = [
-            [f.get("codigo_proceso"), f.get("demandante"), f.get("demandado"),
+            [f.get("numero_acta_codigo") or "Sin número", f.get("demandante"), f.get("demandado"),
              f.get("mediador"), f.get("sucursal"), f.get("ciudad"),
              _fecha_excel_ec(f.get("acta_firmada_fecha")),
              f.get("dias_transcurridos"),
