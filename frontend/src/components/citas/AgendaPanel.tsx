@@ -440,7 +440,13 @@ export default function AgendaPanel({ embebido = false }: { embebido?: boolean }
       )}
 
       {(isAdmin || esSecretaria) && !embebido && (
-        <div className="mb-4">
+        <div className="mb-8 rounded-sm border border-numa-200 bg-numa-50 p-4 max-w-2xl">
+          <p className="text-xs font-semibold uppercase tracking-wide text-numa-600 mb-1">
+            Reunión con los mediadores
+          </p>
+          <p className="text-sm text-numa-700 mb-3">
+            Crea una reunión y avisa a todos los mediadores (y la secretaria) de la sucursal.
+          </p>
           <button
             type="button"
             onClick={() => {
@@ -507,8 +513,14 @@ export default function AgendaPanel({ embebido = false }: { embebido?: boolean }
 
       {puedeElegirMediador && (
         <div className="card p-4 mb-6 max-w-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-numa-600 mb-1">
+            Agenda de un mediador
+          </p>
+          <p className="text-sm text-numa-700 mb-3">
+            Elige un mediador para ver su calendario y sus invitaciones.
+          </p>
           <SelectField
-            label="Mediador"
+            label="Buscar la agenda de:"
             value={mediadorSeleccionadoId}
             onChange={(e) => setMediadorSeleccionadoId(e.target.value)}
           >
