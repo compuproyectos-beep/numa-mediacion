@@ -400,6 +400,7 @@ export async function crearReunion(payload: {
   hora_fin: string;
   titulo?: string;
   detalle?: string;
+  sucursal_id?: number;
 }): Promise<{ reunion: any; conflictos: any[] }> {
   const res = await api.post('/reuniones', payload);
   return res.data;

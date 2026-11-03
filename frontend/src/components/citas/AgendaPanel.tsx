@@ -462,7 +462,7 @@ export default function AgendaPanel({ embebido = false }: { embebido?: boolean }
               {avisoReunionNueva.length > 0 ? (
                 <>
                   <p className="font-semibold mb-1">
-                    Reunión creada y avisada a los mediadores. Atención: estos mediadores ya tienen
+                    Reunión creada y avisada a los mediadores de la sucursal. Atención: estos mediadores ya tienen
                     una invitación pendiente en ese horario (no se cancelaron):
                   </p>
                   <ul className="list-disc ml-5">
@@ -474,7 +474,7 @@ export default function AgendaPanel({ embebido = false }: { embebido?: boolean }
                   </ul>
                 </>
               ) : (
-                <p>Reunión creada. Todos los mediadores de tu sucursal recibieron la notificación.</p>
+                <p>Reunión creada. Todos los mediadores de la sucursal elegida recibieron la notificación.</p>
               )}
             </div>
           )}
@@ -483,6 +483,15 @@ export default function AgendaPanel({ embebido = false }: { embebido?: boolean }
 
       <ReunionModal
         open={reunionNueva}
+        sucursales={nombresSucursales
+          .filter((n) => gruposPorSucursal[n][0]?.sucursal_id)
+          .map((n) => ({
+            id: Number(gruposPorSucursal[n][0].sucursal_id),
+            nombre: n,
+            ciudad: gruposPorSucursal[n][0].ciudad,
+            mediadores: gruposPorSucursal[n].filter((m: any) => m.rol === 'mediador' || !m.rol).length,
+          }))}
+        sucursalInicial={mediadorActivo?.sucursal_id ?? user?.sucursal_id ?? null}
         onClose={() => setReunionNueva(false)}
         onGuardada={(res) => {
           setReunionNueva(false);

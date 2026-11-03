@@ -3337,29 +3337,37 @@ def listar_reuniones(
 
 @app.post("/reuniones")
 def crear_reunion(datos: dict, usuario=Depends(obtener_usuario_actual)):
-    """El administrador crea una reunión para TODOS los mediadores de su sucursal."""
+    """El administrador crea una reunión para TODOS los mediadores de la sucursal
+    que elija (por defecto, la suya)."""
     if usuario["rol"] != "administrador":
         raise HTTPException(status_code=403, detail="Solo el administrador puede crear reuniones")
-    if not usuario["sucursal_id"]:
-        raise HTTPException(status_code=400, detail="Tu usuario no tiene sucursal asignada")
+    try:
+        suc_id = int(datos.get("sucursal_id") or usuario["sucursal_id"] or 0)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Sucursal no válida")
+    if not suc_id:
+        raise HTTPException(status_code=400, detail="Elige la sucursal de la reunión")
 
     fecha, hora_inicio, hora_fin, titulo, detalle, ini = _validar_reunion(datos)
 
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
+        cur.execute("SELECT 1 FROM sucursales WHERE id = %s", (suc_id,))
+        if not cur.fetchone():
+            raise HTTPException(status_code=400, detail="La sucursal elegida no existe")
         cur.execute("""
             INSERT INTO reuniones_mediadores
                 (sucursal_id, creado_por_id, titulo, detalle, fecha, hora_inicio, hora_fin)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
             RETURNING *
-        """, (usuario["sucursal_id"], usuario["id"], titulo, detalle, fecha, hora_inicio, hora_fin))
+        """, (suc_id, usuario["id"], titulo, detalle, fecha, hora_inicio, hora_fin))
         reunion = cur.fetchone()
 
-        conflictos = _citas_en_conflicto(cur, usuario["sucursal_id"], fecha, hora_inicio, hora_fin)
+        conflictos = _citas_en_conflicto(cur, suc_id, fecha, hora_inicio, hora_fin)
 
         _notificar_reunion(
-            cur, usuario["sucursal_id"], "Reunión de mediadores",
+            cur, suc_id, "Reunión de mediadores",
             _texto_reunion(ini, hora_fin, titulo), reunion["id"], excluir_id=usuario["id"]
         )
         conn.commit()
