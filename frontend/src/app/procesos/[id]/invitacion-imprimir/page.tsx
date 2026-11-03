@@ -119,6 +119,18 @@ const listaNombres = (lista: any[], conCedula = false) =>
     })
   );
 
+// Misma lista de nombres, pero como texto plano (para poder editarla en la hoja).
+const textoNombres = (lista: any[], conCedula = false) => {
+  const items = lista.map((p) => {
+    const n = nombreParte(p);
+    return `${n.fuerte.toUpperCase()}${conCedula && n.cedula ? `, C.I. ${n.cedula}` : ''}${n.resto}`;
+  });
+  return items.reduce(
+    (acc, it, i) => (i === 0 ? it : `${acc}${i === items.length - 1 ? ' y ' : ', '}${it}`),
+    ''
+  );
+};
+
 const campo = 'w-full border border-numa-300 rounded-sm px-2 py-1.5 text-sm bg-white';
 const etiqueta = 'block text-[11px] uppercase tracking-wide text-numa-500 mb-1';
 
@@ -518,11 +530,11 @@ function ImprimirInvitacion() {
   const firma = (
     <div style={{ marginTop: '14mm', breakInside: 'avoid' }}>
       <div style={{ width: '70mm', borderBottom: '1px solid #222', height: '16mm' }} />
-      <p style={{ margin: '1.5mm 0 0', fontWeight: 700 }}>{mediador}</p>
+      <p style={{ margin: '1.5mm 0 0', fontWeight: 700 }}>{T('f_nombre', mediador)}</p>
       <p style={{ margin: 0 }}>
-        MEDIADOR{proceso.mediador_cedula ? ` · C.I. ${proceso.mediador_cedula}` : ''}
+        {T('f_cargo', `MEDIADOR${proceso.mediador_cedula ? ` · C.I. ${proceso.mediador_cedula}` : ''}`)}
       </p>
-      <p style={{ margin: 0 }}>Centro de Mediación “NUMA”</p>
+      <p style={{ margin: 0 }}>{T('f_centro', 'Centro de Mediación “NUMA”')}</p>
     </div>
   );
 
@@ -530,21 +542,21 @@ function ImprimirInvitacion() {
     <>
       <div style={{ display: 'flex', gap: '8mm', ...pDefault }}>
         <div style={{ flex: 1 }}>
-          <p style={{ margin: 0 }}>{plural(solicitantes, 'Señor(a):', 'Señores:')}</p>
-          <p style={{ margin: '2mm 0 0' }}>{listaNombres(solicitantes, true)}</p>
+          <p style={{ margin: 0 }}>{T('n_senor_sol', plural(solicitantes, 'Señor(a):', 'Señores:'))}</p>
+          <p style={{ margin: '2mm 0 0' }}><b>{T('n_nombres_sol', textoNombres(solicitantes, true))}</b></p>
           <p style={{ margin: '3mm 0 0', fontSize: '10pt' }}>
-            {plural(solicitantes, 'Solicitante', 'Solicitantes')} de Mediación.
+            {T('n_rol_sol', `${plural(solicitantes, 'Solicitante', 'Solicitantes')} de Mediación.`)}
             <br />
-            Ciudad. -
+            {T('n_ciudad_sol', 'Ciudad. -')}
           </p>
         </div>
         <div style={{ flex: 1 }}>
-          <p style={{ margin: 0 }}>{plural(invitados, 'Señor(a):', 'Señores:')}</p>
-          <p style={{ margin: '2mm 0 0' }}>{listaNombres(invitados, true)}</p>
+          <p style={{ margin: 0 }}>{T('n_senor_inv', plural(invitados, 'Señor(a):', 'Señores:'))}</p>
+          <p style={{ margin: '2mm 0 0' }}><b>{T('n_nombres_inv', textoNombres(invitados, true))}</b></p>
           <p style={{ margin: '3mm 0 0', fontSize: '10pt' }}>
-            {plural(invitados, 'Invitado', 'Invitados')} a Mediación.
+            {T('n_rol_inv', `${plural(invitados, 'Invitado', 'Invitados')} a Mediación.`)}
             <br />
-            Ciudad.-
+            {T('n_ciudad_inv', 'Ciudad.-')}
           </p>
         </div>
       </div>
@@ -555,9 +567,7 @@ function ImprimirInvitacion() {
       <p style={pDefault}>{T('n_consideracion', 'De mi consideración:')}</p>
 
       <p style={pDefault}>
-        {plural(solicitantes, 'La persona', 'Las personas')} {listaNombres(solicitantes)},{' '}
-        {plural(solicitantes, 'ha solicitado', 'han solicitado')} una Audiencia de Mediación, con{' '}
-        {listaNombres(invitados)},{' '}
+        {T('n_p1_ini', `${plural(solicitantes, 'La persona', 'Las personas')} ${textoNombres(solicitantes)}, ${plural(solicitantes, 'ha solicitado', 'han solicitado')} una Audiencia de Mediación, con ${textoNombres(invitados)},`)}{' '}
         {T('n_intro_fin', 'y así poder solucionar, de manera extrajudicial, un conflicto de ámbito')}{' '}
         <b>
           <Editable value={asunto} onChange={setAsunto} placeholder="ámbito del conflicto" upper />
@@ -572,8 +582,7 @@ function ImprimirInvitacion() {
       </p>
 
       <p style={pDefault}>
-        Agradeceré confirmar su asistencia con el suscrito al teléfono {telefono} o al correo
-        electrónico {correo}.
+        {T('confirma', `Agradeceré confirmar su asistencia con el suscrito al teléfono ${telefono} o al correo electrónico ${correo}.`)}
       </p>
 
       {adicional}
@@ -585,9 +594,9 @@ function ImprimirInvitacion() {
   const cuerpoEmpresa = (
     <>
       <p style={pDefault}>
-        <b>{plural(invitados, 'SEÑOR(A):', 'SEÑORES:')}</b>
+        <b>{T('e_senor', plural(invitados, 'SEÑOR(A):', 'SEÑORES:'))}</b>
       </p>
-      <p style={pDefault}>{listaNombres(invitados, true)}.</p>
+      <p style={pDefault}><b>{T('e_nombres_inv', `${textoNombres(invitados, true)}.`)}</b></p>
       <p style={pDefault} className={extras.trim() ? undefined : 'extras-vacio'}>
         <Editable
           value={extras}
@@ -597,7 +606,7 @@ function ImprimirInvitacion() {
         />
       </p>
       <p style={pDefault}>
-        <b>ASUNTO:</b>{' '}
+        <b>{T('e_lbl_asunto', 'ASUNTO:')}</b>{' '}
         <Editable value={asunto} onChange={setAsunto} placeholder="asunto" />.
       </p>
       <p style={pDefault}>
@@ -615,8 +624,7 @@ function ImprimirInvitacion() {
         <b>{T('e_h1', '1.- SOLICITUD DE MEDIACIÓN')}</b>
       </p>
       <p style={pDefault}>
-        {listaNombres(solicitantes, true)}, {plural(solicitantes, 'ha solicitado', 'han solicitado')} que
-        invite a {listaNombres(invitados)},{' '}
+        {T('e_p_sol', `${textoNombres(solicitantes, true)}, ${plural(solicitantes, 'ha solicitado', 'han solicitado')} que invite a ${textoNombres(invitados)},`)}{' '}
         {T('e_solicitud_fin', 'para llevar a cabo una audiencia en el Centro de Mediación “NUMA”, con el fin de resolver el conflicto mediante acuerdos voluntarios extrajudiciales, referente a:')}{' '}
         <b>
           <Editable value={asunto} onChange={setAsunto} placeholder="asunto" />
@@ -651,8 +659,7 @@ function ImprimirInvitacion() {
       </p>
 
       <p style={pDefault}>
-        Agradeceré confirmar su asistencia con el suscrito al teléfono {telefono} o al correo
-        electrónico {correo}.
+        {T('confirma', `Agradeceré confirmar su asistencia con el suscrito al teléfono ${telefono} o al correo electrónico ${correo}.`)}
       </p>
 
       {adicional}
@@ -702,7 +709,7 @@ function ImprimirInvitacion() {
                 ? `/agenda?cita=${citaId || citaParam}${(cita?.usuario_id || data?.proceso?.usuario_id) ? `&mediador=${cita?.usuario_id || data?.proceso?.usuario_id}` : ''}`
                 : `/procesos/${procesoId}`
             }
-            className="inline-flex items-center gap-1.5 text-sm text-numa-600 hover:text-numa-900 mb-3"
+            className="inline-flex items-center gap-2 rounded-md border-2 border-numa-800 bg-numa-800 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-numa-900 hover:border-numa-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2 mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             {esRapida
@@ -898,9 +905,7 @@ function ImprimirInvitacion() {
           <div
             style={{ ...estiloPie, top: '281mm', right: '4mm', width: '85mm', textAlign: 'right' }}
           >
-            Celular: {telefono}
-            <br />
-            Correo: {correo}
+            {T('pie_contacto', `Celular: ${telefono}\nCorreo: ${correo}`)}
           </div>
         </div>
 
@@ -928,11 +933,11 @@ function ImprimirInvitacion() {
               <td style={{ padding: `0 ${MARGEN_LAT}mm`, verticalAlign: 'top' }}>
                 <div style={{ height: `${ESPACIO_SUP - ESPACIO_SUP_SIGUIENTES}mm` }} />
                 <div style={{ textAlign: 'center', marginBottom: '6mm' }}>
-                  <p style={{ margin: 0, fontSize: '13pt' }}>CENTRO DE MEDIACIÓN “NUMA”</p>
-                  <p style={{ margin: 0 }}>REGISTRO No.231</p>
+                  <p style={{ margin: 0, fontSize: '13pt' }}>{T('m_centro', 'CENTRO DE MEDIACIÓN “NUMA”')}</p>
+                  <p style={{ margin: 0 }}>{T('m_registro', 'REGISTRO No.231')}</p>
                 </div>
 
-                <p style={pDefault}>{lineaFecha}</p>
+                <p style={pDefault}>{T('linea_fecha', lineaFecha)}</p>
 
                 {modelo === 'natural' ? cuerpoNatural : cuerpoEmpresa}
               </td>
