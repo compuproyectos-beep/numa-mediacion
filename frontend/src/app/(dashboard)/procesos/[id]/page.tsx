@@ -1175,7 +1175,7 @@ function ProcesoDetalleContenido() {
             <button
               type="button"
               onClick={abrirReasignar}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-800 hover:bg-gray-50"
+              className="inline-flex items-center gap-2 rounded-md border-2 border-numa-800 bg-numa-800 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-numa-900 hover:border-numa-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2"
             >
               Reasignar mediador
             </button>
