@@ -228,9 +228,9 @@ export default function PartesProceso({ procesoId, editable, onCambio, resumen }
             <button
               type="button"
               onClick={() => abrirAgregar(rol)}
-              className="btn-ghost btn-sm"
+              className="btn-secondary btn-sm"
             >
-              <Plus className="w-3 h-3" /> Agregar
+              <Plus className="w-3.5 h-3.5" /> {rol === 'solicitante' ? 'Agregar solicitante' : 'Agregar invitado'}
             </button>
           )}
         </div>

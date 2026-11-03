@@ -201,7 +201,7 @@ function LadoEditor({
             onClick={() =>
               onChange({ ...lado, personas: [...lado.personas, { nombre: '', cedula: '' }] })
             }
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-gold-600 hover:text-gold-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gold-600"
+            className="btn-secondary btn-sm"
           >
             <Plus className="w-3.5 h-3.5" />
             Agregar otra persona

@@ -53,7 +53,7 @@
   }
 
   .btn-secondary {
-    @apply btn-base px-5 py-2.5 border border-numa-500 bg-numa-50 text-numa-900 shadow-sm hover:bg-numa-100 hover:border-numa-600 disabled:hover:bg-numa-50;
+    @apply btn-base px-5 py-2.5 border-2 border-numa-700 bg-numa-100 text-numa-900 font-semibold shadow-sm hover:bg-numa-200 hover:border-numa-800 disabled:hover:bg-numa-100;
   }
 
   .btn-gold {
@@ -65,11 +65,11 @@
   }
 
   .btn-danger-outline {
-    @apply btn-base px-5 py-2.5 border border-red-200 bg-white text-red-700 hover:bg-red-50 hover:border-red-300;
+    @apply btn-base px-5 py-2.5 border-2 border-red-600 bg-red-50 text-red-800 font-semibold hover:bg-red-100 hover:border-red-700;
   }
 
   .btn-ghost {
-    @apply btn-base px-4 py-2 text-numa-700 hover:bg-numa-100 hover:text-numa-900;
+    @apply btn-base px-4 py-2 border border-numa-400 bg-numa-50 text-numa-800 font-semibold hover:bg-numa-100 hover:border-numa-600 hover:text-numa-900;
   }
 
   .btn-sm {
@@ -77,7 +77,7 @@
   }
 
   .btn-icon {
-    @apply btn-base p-1.5 text-numa-700 hover:bg-numa-100 hover:text-numa-900;
+    @apply btn-base p-1.5 border border-numa-300 bg-numa-50 text-numa-800 hover:bg-numa-100 hover:border-numa-500 hover:text-numa-900;
   }
 
   /* Enlace de acción peligrosa poco frecuente (ej. "Anular este proceso"). */
@@ -199,7 +199,7 @@
   }
 
   /* Banner de título de cada pantalla (mismo lenguaje del Panel General). */
-  .page-banner .btn-ghost { @apply text-white hover:bg-white/15 hover:text-white; }
+  .page-banner .btn-ghost { @apply border-white/40 bg-white/10 text-white hover:bg-white/20 hover:text-white; }
   .page-banner .btn-secondary { @apply border-white/30 bg-white/10 text-white hover:bg-white/20 hover:border-white/50; }
   .page-banner .btn-danger-outline { @apply bg-white/10 text-white border-white/30 hover:bg-white/20; }
   .page-banner .input-field { @apply bg-white text-numa-900; }

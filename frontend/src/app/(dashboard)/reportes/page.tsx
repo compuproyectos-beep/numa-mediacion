@@ -487,7 +487,7 @@ export default function ReportesPage() {
           className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
             filtroTipoActa === v
               ? 'bg-[#144193] text-white'
-              : 'bg-white border border-numa-200 text-numa-600 hover:border-gold-400'
+              : 'bg-numa-50 border border-numa-400 text-numa-800 font-semibold hover:border-gold-500 hover:bg-gold-400/15'
           }`}
         >
           {t}
@@ -628,7 +628,7 @@ export default function ReportesPage() {
             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
               tipo === t.valor
                 ? 'bg-gold-400 text-numa-950 shadow-sm'
-                : 'bg-white border border-numa-200 text-numa-600 hover:border-gold-400 hover:text-gold-600'
+                : 'bg-numa-50 border border-numa-400 text-numa-800 font-semibold hover:border-gold-500 hover:bg-gold-400/15 hover:text-numa-900'
             }`}
           >
             {t.titulo}

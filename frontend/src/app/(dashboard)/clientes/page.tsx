@@ -452,7 +452,7 @@ export default function ClientesPage() {
                 className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
                   form.tipo === t
                     ? 'bg-[#144193] text-white border-[#144193]'
-                    : 'bg-white text-numa-600 border-numa-200 hover:border-gold-400'
+                    : 'bg-numa-50 text-numa-800 border-numa-400 font-semibold hover:border-gold-500 hover:bg-gold-400/15'
                 }`}
               >
                 {t === 'persona' ? 'Persona natural' : 'Empresa o institución'}

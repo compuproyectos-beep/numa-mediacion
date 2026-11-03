@@ -49,7 +49,7 @@ function Paginador({
   const ultima = Math.ceil(total / porPagina) - 1;
   const desde = pagina * porPagina;
   const boton =
-    'px-1.5 py-0.5 rounded border border-numa-200 bg-white font-semibold hover:bg-numa-50 disabled:opacity-30 disabled:cursor-default';
+    'px-1.5 py-0.5 rounded border border-numa-400 bg-numa-100 font-semibold hover:bg-numa-200 disabled:opacity-30 disabled:cursor-default';
   return (
     <span className="flex items-center gap-1.5 text-xs text-numa-700">
       <button type="button" onClick={() => onCambiar(pagina - 1)} disabled={pagina === 0} className={boton}>

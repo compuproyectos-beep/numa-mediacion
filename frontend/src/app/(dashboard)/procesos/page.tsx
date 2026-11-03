@@ -714,7 +714,7 @@ export default function ProcesosPage() {
                   className={`min-h-[32px] px-3 rounded-full border text-[13px] font-medium transition-colors ${
                     activo
                       ? 'bg-[#144193] border-[#144193] text-white'
-                      : 'bg-white border-numa-200 text-numa-700 hover:border-gold-400'
+                      : 'bg-numa-50 border-numa-400 text-numa-800 font-semibold hover:border-gold-500 hover:bg-gold-400/15'
                   }`}
                 >
                   {c.texto}{' '}

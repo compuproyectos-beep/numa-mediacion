@@ -758,7 +758,7 @@ function ImprimirInvitacion() {
                     if (!esNueva && citaId && !bloqueada) await guardar();
                     window.print();
                   }}
-                  className="inline-flex items-center gap-2 px-4 py-2 border border-numa-300 text-numa-800 bg-white rounded-sm text-sm font-medium hover:bg-numa-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-2 px-4 py-2 border-2 border-numa-700 text-numa-900 bg-numa-100 rounded-sm text-sm font-semibold hover:bg-numa-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Printer className="w-4 h-4" />
                   Descargar o imprimir

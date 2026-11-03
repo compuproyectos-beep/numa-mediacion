@@ -589,7 +589,7 @@ const handleExportarZip = async () => {
                       onClick={() => handleDescargarPdf(a.id, a.codigo_acta)}
                       title="Descargar documentos del acta"
                       aria-label="Descargar documentos del acta"
-                      className="btn-icon bg-white border border-numa-200 text-numa-700 hover:border-gold-400 hover:bg-gold-400/10"
+                      className="btn-icon bg-numa-100 border-2 border-numa-700 text-numa-900 hover:border-gold-500 hover:bg-gold-400/20"
                     >
                       <Download className="w-4 h-4" />
                     </button>
@@ -613,7 +613,7 @@ const handleExportarZip = async () => {
                           }
                           title="Descargar comprobante"
                           aria-label="Descargar comprobante"
-                          className="btn-icon bg-white border border-numa-200 text-numa-700 hover:border-gold-400 hover:bg-gold-400/10"
+                          className="btn-icon bg-numa-100 border-2 border-numa-700 text-numa-900 hover:border-gold-500 hover:bg-gold-400/20"
                         >
                           <Download className="w-4 h-4" />
                         </button>
@@ -639,7 +639,7 @@ const handleExportarZip = async () => {
                           onClick={() => handleDescargarComprobanteFinal(a.proceso_id, a.codigo_acta)}
                           title="Descargar comprobante del 2.º pago"
                           aria-label="Descargar comprobante del 2.º pago"
-                          className="btn-icon bg-white border border-numa-200 text-numa-700 hover:border-gold-400 hover:bg-gold-400/10"
+                          className="btn-icon bg-numa-100 border-2 border-numa-700 text-numa-900 hover:border-gold-500 hover:bg-gold-400/20"
                         >
                           <Download className="w-4 h-4" />
                         </button>
@@ -680,7 +680,7 @@ const handleExportarZip = async () => {
                           onClick={() => handleDescargarFirmada(a.proceso_id, a.codigo_acta)}
                           title="Descargar acta firmada"
                           aria-label="Descargar acta firmada"
-                          className="btn-icon bg-white border border-numa-200 text-numa-700 hover:border-gold-400 hover:bg-gold-400/10"
+                          className="btn-icon bg-numa-100 border-2 border-numa-700 text-numa-900 hover:border-gold-500 hover:bg-gold-400/20"
                         >
                           <Download className="w-4 h-4" />
                         </button>
@@ -696,7 +696,7 @@ const handleExportarZip = async () => {
                     <button
                       type="button"
                       onClick={() => window.open(`/actas-finales/${a.id}/historial-imprimir`, '_blank')}
-                      className="btn-sm inline-flex items-center gap-1.5 rounded-md bg-white border border-numa-200 text-numa-700 font-medium hover:border-gold-400"
+                      className="btn-sm inline-flex items-center gap-1.5 rounded-md bg-numa-100 border-2 border-numa-700 text-numa-900 font-semibold hover:border-gold-500 hover:bg-gold-400/20"
                     >
                       <History className="w-3.5 h-3.5" /> Historial
                     </button>
@@ -709,7 +709,7 @@ const handleExportarZip = async () => {
                         setMotivoReemplazo('');
                         setMensajeReemplazo('');
                       }}
-                      className="btn-sm inline-flex items-center gap-1.5 rounded-md bg-white border border-numa-200 text-numa-700 font-medium hover:border-gold-400"
+                      className="btn-sm inline-flex items-center gap-1.5 rounded-md bg-numa-100 border-2 border-numa-700 text-numa-900 font-semibold hover:border-gold-500 hover:bg-gold-400/20"
                     >
                       <RefreshCw className="w-3.5 h-3.5" /> Reemplazar PDF
                     </button>
@@ -723,7 +723,7 @@ const handleExportarZip = async () => {
                           setMotivoReemplazo('');
                           setMensajeReemplazo('');
                         }}
-                        className="btn-sm inline-flex items-center gap-1.5 rounded-md bg-white border border-numa-200 text-numa-700 font-medium hover:border-gold-400"
+                        className="btn-sm inline-flex items-center gap-1.5 rounded-md bg-numa-100 border-2 border-numa-700 text-numa-900 font-semibold hover:border-gold-500 hover:bg-gold-400/20"
                       >
                         <RefreshCw className="w-3.5 h-3.5" /> Reemplazar comprobante
                       </button>
@@ -738,7 +738,7 @@ const handleExportarZip = async () => {
                           setMotivoReemplazo('');
                           setMensajeReemplazo('');
                         }}
-                        className="btn-sm inline-flex items-center gap-1.5 rounded-md bg-white border border-numa-200 text-numa-700 font-medium hover:border-gold-400"
+                        className="btn-sm inline-flex items-center gap-1.5 rounded-md bg-numa-100 border-2 border-numa-700 text-numa-900 font-semibold hover:border-gold-500 hover:bg-gold-400/20"
                       >
                         <RefreshCw className="w-3.5 h-3.5" /> Reemplazar comprobante 2.º pago
                       </button>
