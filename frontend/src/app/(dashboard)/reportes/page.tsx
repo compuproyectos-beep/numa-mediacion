@@ -895,6 +895,16 @@ export default function ReportesPage() {
             <span className="text-[11px] font-bold text-numa-700 uppercase tracking-[0.14em] whitespace-nowrap">Detalle</span>
             <span className="h-px flex-1 bg-numa-300" aria-hidden="true" />
             {tipo === 'actas' && chipsTipoActa(false)}
+            {tipo === 'actas' && (
+              <button
+                type="button"
+                onClick={handleImprimir}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#144193] hover:bg-[#1B4AAE] text-white text-xs font-bold transition active:scale-[0.98]"
+              >
+                <Printer className="w-4 h-4" />
+                Imprimir {filtroTipoActa === 'acuerdo' ? 'solo de acuerdo' : filtroTipoActa === 'no_acuerdo' ? 'solo de no acuerdo' : 'todas'} ({actasMostradas.length})
+              </button>
+            )}
           </div>
 
           <div className="card overflow-hidden">
