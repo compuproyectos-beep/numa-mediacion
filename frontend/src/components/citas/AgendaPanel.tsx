@@ -37,6 +37,8 @@ export default function AgendaPanel({ embebido = false }: { embebido?: boolean }
   const [reunionNueva, setReunionNueva] = useState(false);
   const [avisoReunionNueva, setAvisoReunionNueva] = useState<any[] | null>(null);
   const [mediadorSeleccionadoId, setMediadorSeleccionadoId] = useState('');
+  const agendaRef = useRef<HTMLDivElement | null>(null);
+  const [irAlCalendario, setIrAlCalendario] = useState(false);
 
   // Llegada desde el Panel General o una notificación: /agenda?cita=ID
   // (y &mediador=ID para el administrador y la secretaria). Se lee de la URL
@@ -135,6 +137,17 @@ export default function AgendaPanel({ embebido = false }: { embebido?: boolean }
       mediadorInicial.current = '';
     }
   }, [mediadores]);
+
+  // Al elegir un mediador en el selector, baja la pantalla hasta "Agendar nueva invitación"
+  // para que se vea ya el calendario sin tener que desplazarse.
+  useEffect(() => {
+    if (!irAlCalendario || !mediadorSeleccionadoId) return;
+    const t = setTimeout(() => {
+      agendaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setIrAlCalendario(false);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [irAlCalendario, mediadorSeleccionadoId]);
 
   // El mediador cuya agenda se está viendo: el seleccionado (admin) o uno
   // mismo. Es también a quién se le puede agendar una invitación nueva.
@@ -251,7 +264,7 @@ export default function AgendaPanel({ embebido = false }: { embebido?: boolean }
       {/* Agendar: con un proceso ya creado (como siempre) o, sin elegir
           proceso, haciendo clic en una hora libre del calendario para crear
           una invitación rápida (el proceso se crea después). */}
-      <div className="mb-5 pb-5 border-b border-numa-100">
+      <div ref={agendaRef} className="mb-5 pb-5 border-b border-numa-100 scroll-mt-4">
         <h3 className="text-sm font-semibold text-numa-800 mb-1 flex items-center gap-2">
           <CalendarPlus className="w-4 h-4 text-gold-600" />
           Agendar nueva invitación
@@ -522,7 +535,10 @@ export default function AgendaPanel({ embebido = false }: { embebido?: boolean }
           <SelectField
             label="Buscar la agenda de:"
             value={mediadorSeleccionadoId}
-            onChange={(e) => setMediadorSeleccionadoId(e.target.value)}
+            onChange={(e) => {
+              setMediadorSeleccionadoId(e.target.value);
+              if (e.target.value) setIrAlCalendario(true);
+            }}
           >
             <option value="">Selecciona un mediador</option>
 
