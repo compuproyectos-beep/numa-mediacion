@@ -32,6 +32,7 @@ export default function AgendaPanel({ embebido = false }: { embebido?: boolean }
   const puedeElegirMediador = isAdmin || esSecretaria;
 
   const [mediadores, setMediadores] = useState<any[]>([]);
+  const [secretarias, setSecretarias] = useState<any[]>([]);
   const [loadingMediadores, setLoadingMediadores] = useState(isAdmin);
   const [reunionNueva, setReunionNueva] = useState(false);
   const [avisoReunionNueva, setAvisoReunionNueva] = useState<any[] | null>(null);
@@ -115,6 +116,7 @@ export default function AgendaPanel({ embebido = false }: { embebido?: boolean }
             (u: any) => (u.rol === 'mediador' || u.rol === 'administrador') && u.activo
           )
         );
+        setSecretarias(data.filter((u: any) => u.rol === 'secretaria' && u.activo));
       } catch (err) {
         console.error(err);
         setMediadores([]);
@@ -462,7 +464,7 @@ export default function AgendaPanel({ embebido = false }: { embebido?: boolean }
               {avisoReunionNueva.length > 0 ? (
                 <>
                   <p className="font-semibold mb-1">
-                    Reunión creada y avisada a los mediadores de la sucursal. Atención: estos mediadores ya tienen
+                    Reunión creada y avisada a los mediadores y la secretaria de la sucursal. Atención: estos mediadores ya tienen
                     una invitación pendiente en ese horario (no se cancelaron):
                   </p>
                   <ul className="list-disc ml-5">
@@ -474,7 +476,7 @@ export default function AgendaPanel({ embebido = false }: { embebido?: boolean }
                   </ul>
                 </>
               ) : (
-                <p>Reunión creada. Todos los mediadores de la sucursal elegida recibieron la notificación.</p>
+                <p>Reunión creada. Los mediadores y la secretaria de la sucursal elegida recibieron la notificación.</p>
               )}
             </div>
           )}
@@ -490,6 +492,9 @@ export default function AgendaPanel({ embebido = false }: { embebido?: boolean }
             nombre: n,
             ciudad: gruposPorSucursal[n][0].ciudad,
             mediadores: gruposPorSucursal[n].filter((m: any) => m.rol === 'mediador' || !m.rol).length,
+            secretarias: secretarias.filter(
+              (u: any) => String(u.sucursal_id) === String(gruposPorSucursal[n][0].sucursal_id)
+            ).length,
           }))}
         sucursalInicial={mediadorActivo?.sucursal_id ?? user?.sucursal_id ?? null}
         onClose={() => setReunionNueva(false)}

@@ -34,7 +34,7 @@ export default function ReunionModal({
   open: boolean;
   reunion?: any | null;
   // Sucursales entre las que el administrador puede elegir al crear.
-  sucursales?: { id: number; nombre: string; ciudad?: string; mediadores: number }[];
+  sucursales?: { id: number; nombre: string; ciudad?: string; mediadores: number; secretarias?: number }[];
   sucursalInicial?: number | string | null;
   onClose: () => void;
   onGuardada: (resultado: { reunion: any; conflictos: any[] }) => void;
@@ -110,8 +110,8 @@ export default function ReunionModal({
       size="md"
     >
       <p className="text-xs text-numa-700 mb-4">
-        La reunión es para todos los mediadores de la sucursal que elijas: cada uno recibe una
-        notificación y verá la reunión en su agenda. En ese horario no se podrán agendar invitaciones.
+        La reunión es para todos los mediadores y la secretaria de la sucursal que elijas: cada uno
+        recibe una notificación y verá la reunión en su agenda. En ese horario no se podrán agendar invitaciones.
       </p>
 
       <div className="space-y-4">
@@ -126,7 +126,10 @@ export default function ReunionModal({
               <option key={s.id} value={s.id}>
                 {s.nombre}
                 {s.ciudad ? ` — ${s.ciudad}` : ''} ({s.mediadores}{' '}
-                {s.mediadores === 1 ? 'mediador' : 'mediadores'})
+                {s.mediadores === 1 ? 'mediador' : 'mediadores'}
+                {s.secretarias
+                  ? ` y ${s.secretarias} ${s.secretarias === 1 ? 'secretaria' : 'secretarias'}`
+                  : ''})
               </option>
             ))}
           </SelectField>
