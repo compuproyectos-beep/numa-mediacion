@@ -6939,6 +6939,7 @@ def avisar_facturas_pendientes():
     try:
         cur.execute("""
             SELECT p.id, p.codigo_proceso, u.nombre || ' ' || u.apellido AS mediador,
+                   (SELECT na.codigo FROM numeros_acta na WHERE na.proceso_id = p.id ORDER BY na.id LIMIT 1) AS numero_acta,
                    NOT EXISTS (SELECT 1 FROM proceso_facturas f
                                 WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'cliente') AS falta_cliente,
                    NOT EXISTS (SELECT 1 FROM proceso_facturas f
@@ -6965,7 +6966,9 @@ def avisar_facturas_pendientes():
             for a in admins:
                 crear_notificacion(
                     cur, a["id"], "Faltan facturas",
-                    f"Hace más de 5 días se subió el acta firmada del proceso {r['codigo_proceso']} "
+                    "Hace más de 5 días se subió el acta firmada "
+                    + (f"número {r['numero_acta']} " if r["numero_acta"] else f"del proceso {r['codigo_proceso']} ")
+                    +
                     f"(mediador {r['mediador']}) y todavía falta {' y '.join(faltan)}.",
                     "acta", "proceso_mediacion", r["id"]
                 )
