@@ -14,11 +14,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
-        {/* Aplica el modo oscuro guardado antes de pintar, para que no parpadee. */}
+        {/* Aplica el modo oscuro guardado antes de pintar, solo en el sistema interno (no en la página pública, el login, sedes ni las hojas de impresión). */}
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "try{if(localStorage.getItem('sigm-tema')==='oscuro')document.documentElement.classList.add('dark')}catch(e){}",
+              "try{var p=location.pathname;var publica=/^\\/($|login|olvide-password|restablecer-password|aviso-privacidad|sedes)/.test(p)||/imprimir/.test(p);if(!publica&&localStorage.getItem('sigm-tema')==='oscuro')document.documentElement.classList.add('dark')}catch(e){}",
           }}
         />
         <link rel="preconnect" href="https://fonts.googleapis.com" />

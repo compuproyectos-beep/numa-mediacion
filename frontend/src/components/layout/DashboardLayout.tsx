@@ -215,6 +215,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => observador?.disconnect();
   }, [sinLeerTitulo, pathname]);
 
+  // El modo oscuro es solo del sistema interno: se aplica mientras esta
+  // pantalla está abierta y se quita al salir (login, página pública, etc.).
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('sigm-tema') === 'oscuro') document.documentElement.classList.add('dark');
+    } catch {
+      /* sin almacenamiento: queda en modo normal */
+    }
+    return () => document.documentElement.classList.remove('dark');
+  }, []);
+
   if (checkingAuth || !hasToken) return null;
 
   const noLeidas = sinLeerTitulo;
