@@ -2091,6 +2091,22 @@ def _contacto_admin_sucursal(admin_telefono, admin_email):
 # =========================
 # CREAR SUCURSAL
 # =========================
+def _mensaje_sucursal_repetida(e):
+    """Traduce los choques de la base (nombre/código repetido) a un texto claro."""
+    if not isinstance(e, psycopg2_errors.UniqueViolation):
+        return None
+    texto = str(e)
+    if "uq_sucursal_ciudad_codigo_corto" in texto:
+        return (
+            "Ya existe una sucursal en esa ciudad con un nombre muy parecido (el sistema les saca el mismo "
+            "código corto). Revisa la lista de sucursales: puede que ya esté creada. Si es otra distinta, "
+            "ponle un nombre que empiece diferente."
+        )
+    if "sucursal" in texto:
+        return "Ya existe una sucursal con esos datos en esa ciudad. Revisa la lista de sucursales."
+    return None
+
+
 @app.post("/sucursales")
 def crear_sucursal(
     ciudad_id: int,
@@ -2233,6 +2249,9 @@ def crear_sucursal(
 
     except Exception as e:
         conn.rollback()
+        amigable = _mensaje_sucursal_repetida(e)
+        if amigable:
+            raise HTTPException(status_code=400, detail=amigable)
         raise HTTPException(status_code=500, detail=str(e))
 
     finally:
@@ -2321,6 +2340,9 @@ def editar_sucursal(
 
     except Exception as e:
         conn.rollback()
+        amigable = _mensaje_sucursal_repetida(e)
+        if amigable:
+            raise HTTPException(status_code=400, detail=amigable)
         raise HTTPException(status_code=500, detail=str(e))
 
     finally:
