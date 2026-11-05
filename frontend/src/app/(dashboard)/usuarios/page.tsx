@@ -640,12 +640,10 @@ export default function UsuariosPage() {
               {!(editing && editing.rol === 'administrador') && (
                 <option value="secretaria">Secretaria</option>
               )}
-              {/* El centro solo tiene un administrador (el actual). Al crear
-                  un usuario nuevo no se puede elegir "Administrador"; esta
-                  opción solo aparece al editar al administrador existente,
-                  para no dejarlo sin rol válido en su propio formulario. */}
-              {editing && editing.rol === 'administrador' && (
-                <option value="administrador">Administrador</option>
+              {/* Administrador total: ve y maneja todas las sucursales. Solo otro
+                  administrador puede crearlo. */}
+              {(!editing || editing.rol === 'administrador') && (
+                <option value="administrador">Administrador (acceso total)</option>
               )}
             </SelectField>
 

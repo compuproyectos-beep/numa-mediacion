@@ -2424,20 +2424,16 @@ def crear_usuario(
             detail="Solo administrador puede crear usuarios"
         )
 
-    # El centro solo debe tener un administrador (el actual). Todo usuario
-    # nuevo se crea como mediador, sin excepción.
-    if rol == "administrador":
-        raise HTTPException(
-            status_code=400,
-            detail="No se pueden crear nuevos administradores"
-        )
-
+    # Solo un administrador puede crear a otro administrador (acceso total).
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
     try:
-        if rol not in ("mediador", "secretaria"):
+        if rol not in ("mediador", "secretaria", "administrador"):
             raise HTTPException(status_code=400, detail="Rol inválido")
+        if rol == "administrador":
+            if not (nombre or "").strip() or not (apellido or "").strip():
+                raise HTTPException(status_code=400, detail="Nombre y apellido son obligatorios")
         if rol == "secretaria":
             _verificar_una_secretaria(cur, sucursal_id)
         if rol == "mediador":
