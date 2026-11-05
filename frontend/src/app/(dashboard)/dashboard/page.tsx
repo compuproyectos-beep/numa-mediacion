@@ -489,21 +489,17 @@ export default function DashboardPage() {
                 [
                   ['actas_acuerdo', stats.actas_acuerdo ?? 0, stats.actas_acuerdo === 1 ? 'acta de acuerdo' : 'actas de acuerdo', FileCheck],
                   ['actas_no_acuerdo', stats.actas_no_acuerdo ?? 0, stats.actas_no_acuerdo === 1 ? 'acta de no acuerdo' : 'actas de no acuerdo', FileCheck],
-                  ['actas_bloqueadas', stats.actas_bloqueadas ?? 0, stats.actas_bloqueadas === 1 ? 'acta bloqueada' : 'actas bloqueadas', Lock],
-                  ['numeros_anulados', stats.numeros_anulados ?? 0, stats.numeros_anulados === 1 ? 'número de acta anulado' : 'números de actas anulados', Hash]
+                  ['actas_bloqueadas', stats.actas_bloqueadas ?? 0, stats.actas_bloqueadas === 1 ? 'acta bloqueada' : 'actas bloqueadas', Lock]
                 ],
                 [
                   ['en_negociacion', procesos.en_negociacion ?? 0, procesos.en_negociacion === 1 ? 'proceso en negociación' : 'procesos en negociación', Clock],
-                  ['cerrado_con_acuerdo', procesos.cerrados_con_acuerdo ?? 0, procesos.cerrados_con_acuerdo === 1 ? 'proceso con acuerdo' : 'procesos con acuerdo', CheckCircle],
-                  ['cerrado_sin_acuerdo', procesos.cerrados_sin_acuerdo ?? 0, procesos.cerrados_sin_acuerdo === 1 ? 'proceso sin acuerdo' : 'procesos sin acuerdo', FileText],
-                  ['archivado', procesos.archivados ?? 0, procesos.archivados === 1 ? 'proceso archivado' : 'procesos archivados', Archive],
-                  ['anulado', procesos.anulados ?? 0, procesos.anulados === 1 ? 'proceso anulado' : 'procesos anulados', Ban]
+                  ['cerrado_sin_acuerdo', procesos.cerrados_sin_acuerdo ?? 0, procesos.cerrados_sin_acuerdo === 1 ? 'proceso sin acuerdo' : 'procesos sin acuerdo', FileText]
                 ]
               ] as const
             ).map((grupo, g) => (
               <div
                 key={g}
-                className={`grid grid-cols-2 gap-2.5 ${g === 0 ? 'lg:grid-cols-4' : 'sm:grid-cols-3 lg:grid-cols-5'}`}
+                className={`grid grid-cols-2 gap-2.5 ${g === 0 ? 'lg:grid-cols-3' : 'lg:grid-cols-3'}`}
               >
                 {grupo.map(([clave, valor, etiqueta, icono], i) => (
                   <TarjetaResumen
