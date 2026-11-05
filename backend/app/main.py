@@ -7001,7 +7001,7 @@ def _reservar_numero_acta(cur, sucursal_id, usuario_id, proceso_id=None, estado=
     único. Un número anulado o bloqueado se reutiliza durante un mes."""
     cur.execute("SELECT pg_advisory_xact_lock(%s)", (7300000 + int(sucursal_id),))
     cur.execute("""
-        SELECT c.prefijo AS prefijo_ciudad, s.codigo_corto
+        SELECT c.prefijo AS prefijo_ciudad, s.codigo_corto, s.acta_numero_inicial
         FROM sucursales s JOIN ciudades c ON c.id = s.ciudad_id
         WHERE s.id = %s
     """, (sucursal_id,))
@@ -7038,6 +7038,9 @@ def _reservar_numero_acta(cur, sucursal_id, usuario_id, proceso_id=None, estado=
         (sucursal_id,)
     )
     n = cur.fetchone()["n"]
+    # Si la sucursal empieza en un número mayor a 1 (las actas anteriores ya
+    # existen en papel), el primero que se entrega es ese.
+    n = max(n, int(suc.get("acta_numero_inicial") or 1))
     codigo = f"{suc['prefijo_ciudad']}-{suc['codigo_corto']}-{str(n).zfill(5)}"
     cur.execute("""
         INSERT INTO numeros_acta (sucursal_id, secuencial, codigo, estado, usuario_id, proceso_id, fecha_uso, cita_id)
