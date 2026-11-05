@@ -2630,7 +2630,7 @@ def crear_usuario(
 # =========================
 # EDITAR USUARIO
 # =========================
-@app.put("/usuarios/{id}")
+@app.put("/usuarios/{id:int}")
 def editar_usuario(
     id: int,
     nombre: str,
@@ -3209,6 +3209,28 @@ def _verificar_sin_reunion(cur, mediador_id, fecha, hora):
             detail=(
                 f"Esa hora está ocupada: el {fecha} de {str(r['hora_inicio'])[:5]} a "
                 f"{str(r['hora_fin'])[:5]} hay una reunión de mediadores ({r['titulo']}). Elige otra hora."
+            )
+        )
+
+
+def _verificar_hora_libre(cur, mediador_id, fecha, hora, quien="El mediador ya tiene"):
+    """Cada invitación ocupa 1 hora: si el mediador tiene una a las 9:00, la
+    siguiente puede ser recién a las 10:00 (y la anterior, hasta las 8:00)."""
+    h = str(hora)[:5]
+    cur.execute("""
+        SELECT hora FROM citas
+        WHERE usuario_id = %s AND fecha = %s AND estado = 'pendiente'
+          AND ABS(EXTRACT(EPOCH FROM (hora - %s::time))) < 3600
+        ORDER BY hora LIMIT 1
+    """, (mediador_id, fecha, h))
+    c = cur.fetchone()
+    if c:
+        hh = str(c["hora"])[:5]
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"{quien} una invitación el {fecha} a las {hh}. Cada invitación dura 1 hora: "
+                f"entre una y otra debe haber al menos 1 hora. Elige otra hora."
             )
         )
 
@@ -4955,20 +4977,7 @@ def crear_invitacion_proceso(
                 detail="No se puede agendar una invitación en una fecha u hora pasada"
             )
 
-        cur.execute("""
-            SELECT id
-            FROM citas
-            WHERE usuario_id = %s
-              AND fecha = %s
-              AND hora = %s
-              AND estado = 'pendiente'
-        """, (proceso["usuario_id"], fecha, hora))
-
-        if cur.fetchone():
-            raise HTTPException(
-                status_code=400,
-                detail=f"El mediador ya tiene otra invitación pendiente el {fecha} a las {hora}. Elige otra hora."
-            )
+        _verificar_hora_libre(cur, proceso["usuario_id"], fecha, hora)
 
         _verificar_sin_reunion(cur, proceso["usuario_id"], fecha, hora)
 
@@ -5263,15 +5272,7 @@ def crear_invitacion_rapida(datos: dict, usuario=Depends(obtener_usuario_actual)
                 else:
                     verificar_cedula_misma_persona(cur, _x.get("cedula"), _x.get("nombre"), "", "usuarios")
 
-        cur.execute("""
-            SELECT id FROM citas
-            WHERE usuario_id = %s AND fecha = %s AND hora = %s AND estado = 'pendiente'
-        """, (mediador_id, fecha, hora))
-        if cur.fetchone():
-            raise HTTPException(
-                status_code=400,
-                detail=f"El mediador ya tiene otra invitación pendiente el {fecha} a las {hora}. Elige otra hora."
-            )
+        _verificar_hora_libre(cur, mediador_id, fecha, hora)
 
         try:
             cur.execute("""
@@ -5749,20 +5750,7 @@ def crear_avance_proceso(
 
         # Si programa nueva invitación
         if proxima_fecha and proxima_hora:
-            cur.execute("""
-                SELECT id
-                FROM citas
-                WHERE usuario_id = %s
-                  AND fecha = %s
-                  AND hora = %s
-                  AND estado = 'pendiente'
-            """, (usuario["id"], proxima_fecha, proxima_hora))
-
-            if cur.fetchone():
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Ya tienes otra invitación pendiente el {proxima_fecha} a las {proxima_hora}. Elige otra hora."
-                )
+            _verificar_hora_libre(cur, usuario["id"], proxima_fecha, proxima_hora, quien="Ya tienes")
 
             _verificar_sin_reunion(cur, usuario["id"], proxima_fecha, proxima_hora)
 
@@ -8901,6 +8889,70 @@ def obtener_actas_finales(
 # =========================
 # VER / DESCARGAR ACTA FINAL PDF
 # =========================
+@app.get("/actas-finales/{acta_id}/completa")
+def ver_acta_completa_firmada(
+    acta_id: int,
+    usuario=Depends(obtener_usuario_actual)
+):
+    """Un solo PDF: los documentos del acta y, a continuación, el acta firmada.
+    Si todavía no hay acta firmada (o es el mismo archivo), devuelve los documentos."""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT ap.codigo_acta, ap.archivo_pdf, p.acta_firmada_ruta, p.usuario_id
+            FROM actas_proceso ap
+            JOIN procesos_mediacion p ON ap.proceso_id = p.id
+            WHERE ap.id = %s
+        """, (acta_id,))
+        acta = cur.fetchone()
+        if not acta:
+            raise HTTPException(status_code=404, detail="Acta final no encontrada")
+        if usuario["rol"] != "administrador" and acta["usuario_id"] != usuario["id"]:
+            raise HTTPException(status_code=403, detail="No puedes ver esta acta")
+
+        base_url, key, bucket = _supabase_config()
+
+        def _bajar(ruta):
+            r = requests.get(
+                f"{base_url}/storage/v1/object/{bucket}/{quote(ruta, safe='/')}",
+                headers={**_sb_auth(key), "apikey": key}
+            )
+            if r.status_code != 200:
+                raise HTTPException(status_code=404, detail="PDF no encontrado en Storage")
+            return r.content
+
+        docs = _bajar(acta["archivo_pdf"])
+        firmada_ruta = acta["acta_firmada_ruta"]
+        if not firmada_ruta or firmada_ruta == acta["archivo_pdf"]:
+            contenido = docs
+        else:
+            from pypdf import PdfWriter, PdfReader
+            escritor = PdfWriter()
+            for parte in (docs, _bajar(firmada_ruta)):
+                try:
+                    lector = PdfReader(io.BytesIO(parte))
+                    for pagina in lector.pages:
+                        escritor.add_page(pagina)
+                except Exception:
+                    raise HTTPException(
+                        status_code=500,
+                        detail="No se pudo unir el acta firmada con los documentos (el archivo no es un PDF válido)"
+                    )
+            salida = io.BytesIO()
+            escritor.write(salida)
+            contenido = salida.getvalue()
+
+        return Response(
+            content=contenido,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'inline; filename="{acta["codigo_acta"]}-completa.pdf"'}
+        )
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.get("/actas-finales/{acta_id}/pdf")
 def ver_pdf_acta_final(
     acta_id: int,

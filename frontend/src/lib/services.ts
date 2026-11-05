@@ -804,6 +804,15 @@ export async function descargarPdfActaFinal(actaId: number): Promise<Blob> {
   return res.data;
 }
 
+// Un solo PDF: los documentos del acta + el acta firmada.
+export async function descargarActaCompleta(actaId: number): Promise<Blob> {
+  const res = await api.get(`/actas-finales/${actaId}/completa`, {
+    responseType: 'blob',
+  });
+
+  return res.data;
+}
+
 export async function descargarComprobantePagoActaFinal(actaId: number): Promise<Blob> {
   const res = await api.get(`/actas-finales/${actaId}/comprobante`, {
     responseType: 'blob',

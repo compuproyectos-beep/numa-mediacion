@@ -18,6 +18,7 @@ import {
   descargarPdfActaFinal,
   descargarActaFirmada,
   descargarComprobantePagoActaFinal,
+  descargarActaCompleta,
   descargarComprobanteFinal,
   reemplazarPdfActaFinal,
   reemplazarComprobanteActaFinal,
@@ -121,6 +122,33 @@ export default function ActasFinalesPage() {
       window.open(url, '_blank');
     } catch {
       setError('No se pudo abrir el PDF');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleVerCompleta = async (actaId: number) => {
+    try {
+      const blob = await descargarActaCompleta(actaId);
+      window.open(window.URL.createObjectURL(blob), '_blank');
+    } catch {
+      setError('No se pudo abrir el acta completa');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleDescargarCompleta = async (actaId: number, codigoActa: string) => {
+    try {
+      const blob = await descargarActaCompleta(actaId);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${codigoActa}_completa_firmada.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setError('No se pudo descargar el acta completa');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
@@ -579,16 +607,25 @@ const handleExportarZip = async () => {
                   Documentos
                 </p>
                 <div className="grid grid-cols-[1fr_auto_2rem] items-center gap-x-2 gap-y-1 text-[13px]">
-                  <span className="text-numa-800 font-medium whitespace-nowrap">Documentos del acta</span>
-                  <button type="button" onClick={() => handleVerPdf(a.id)} className="btn-sm w-[6rem] inline-flex items-center justify-center gap-1.5 rounded-md bg-[#144193] text-white font-semibold hover:bg-[#1B4AAE] transition-colors">
+                  <span className="text-numa-800 font-medium whitespace-nowrap">
+                    {a.requiere_acta_firmada && a.tiene_acta_firmada ? 'Acta completa firmada' : 'Documentos del acta'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => (a.requiere_acta_firmada && a.tiene_acta_firmada ? handleVerCompleta(a.id) : handleVerPdf(a.id))}
+                    className="btn-sm w-[6rem] inline-flex items-center justify-center gap-1.5 rounded-md bg-[#144193] text-white font-semibold hover:bg-[#1B4AAE] transition-colors">
                     <Eye className="w-3.5 h-3.5" /> Ver
                   </button>
                   {isAdmin ? (
                     <button
                       type="button"
-                      onClick={() => handleDescargarPdf(a.id, a.codigo_acta)}
-                      title="Descargar documentos del acta"
-                      aria-label="Descargar documentos del acta"
+                      onClick={() =>
+                        a.requiere_acta_firmada && a.tiene_acta_firmada
+                          ? handleDescargarCompleta(a.id, a.codigo_acta)
+                          : handleDescargarPdf(a.id, a.codigo_acta)
+                      }
+                      title={a.requiere_acta_firmada && a.tiene_acta_firmada ? 'Descargar acta completa firmada' : 'Descargar documentos del acta'}
+                      aria-label={a.requiere_acta_firmada && a.tiene_acta_firmada ? 'Descargar acta completa firmada' : 'Descargar documentos del acta'}
                       className="btn-icon bg-numa-100 border-2 border-numa-700 text-numa-900 hover:border-gold-500 hover:bg-gold-400/20"
                     >
                       <Download className="w-4 h-4" />
@@ -649,7 +686,7 @@ const handleExportarZip = async () => {
                     </>
                   )}
 
-                  {a.requiere_acta_firmada && (
+                  {a.requiere_acta_firmada && !a.tiene_acta_firmada && (
                     <>
                       <span className="text-numa-800 font-medium inline-flex items-center gap-1.5">
                         Acta firmada

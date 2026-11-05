@@ -232,17 +232,8 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
           </p>
           <p className="text-sm text-red-900 mt-1">
             Pasaron 48 horas sin completarla. Mientras tanto no puedes pedir números de acta ni subir otras actas.
-            Pide al administrador que la desbloquee.
+            Pide al administrador que la desbloquee. Abajo, en «Ver números de actas bloqueadas», está el detalle.
           </p>
-          <ul className="mt-2 space-y-1.5">
-            {bloqueados.map((b) => (
-              <li key={b.id} className="rounded-lg bg-white border border-red-200 px-3 py-2">
-                <span className="font-mono font-bold text-slate-900">{b.codigo}</span>
-                <span className="block"><Ligado n={b} /></span>
-                <span className="block text-xs text-red-800">Bloqueada el {fechaEC(b.fecha_bloqueo)}</span>
-              </li>
-            ))}
-          </ul>
         </div>
       )}
 
@@ -350,18 +341,18 @@ function PanelMediador({ version }: { version: number; onCambio: () => void }) {
           className="inline-flex items-center rounded-full border border-[#144193]/40 bg-[#F4F7FC] px-3.5 py-1.5 text-sm font-semibold text-[#144193] hover:bg-[#144193] hover:text-white transition-colors"
           onClick={() => setVerAnulados(!verAnulados)}
         >
-          {verAnulados ? 'Ocultar' : 'Ver'} números de actas anuladas ({anulados.length})
+          {verAnulados ? 'Ocultar' : 'Ver'} números de actas bloqueadas ({bloqueados.length})
         </button>
         {verAnulados && (
           <ul className="mt-3 space-y-2.5">
-            {anulados.length === 0 && <li className="text-sm text-slate-900">No tienes números de actas anuladas.</li>}
-            {anulados.map((r) => (
-              <li key={r.id} className="flex flex-col gap-0.5 rounded-xl border border-rose-200 bg-rose-50/70 px-3.5 py-2.5">
-                <span className="font-mono font-bold text-slate-900">{r.codigo}</span>
-                <Ligado n={r} />
-                <span className="text-xs text-slate-900">
-                  Anulado el {fechaEC(r.fecha_anulacion)}
-                  {r.motivo_anulacion ? ` · Motivo: ${r.motivo_anulacion}` : ''}
+            {bloqueados.length === 0 && <li className="text-sm text-slate-900">No tienes actas bloqueadas.</li>}
+            {bloqueados.map((b) => (
+              <li key={b.id} className="flex flex-col gap-0.5 rounded-xl border border-red-200 bg-red-50/70 px-3.5 py-2.5">
+                <span className="font-mono font-bold text-slate-900">{b.codigo}</span>
+                <Ligado n={b} />
+                <span className="text-xs text-red-800">
+                  Bloqueada automáticamente por el sistema el {fechaEC(b.fecha_bloqueo)}: pasaron 48 horas sin completar la documentación.
+                  Solo el administrador puede desbloquearla.
                 </span>
               </li>
             ))}

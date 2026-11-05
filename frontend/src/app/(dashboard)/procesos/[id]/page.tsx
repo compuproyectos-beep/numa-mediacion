@@ -507,14 +507,21 @@ function ProcesoDetalleContenido() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proceso?.usuario_id]);
 
-  const horaInvitacionOcupada =
-    !!invitacionForm.fecha &&
-    !!invitacionForm.hora &&
-    citasMediador.some(
-      (c) =>
-        c.fecha === invitacionForm.fecha &&
-        c.hora?.slice(0, 5) === invitacionForm.hora
-    );
+  // Cada invitación ocupa 1 hora: con una a las 09:00, la siguiente puede ser
+  // recién a las 10:00 (y la anterior, hasta las 08:00).
+  const aMinutosHora = (h?: string) => {
+    const [hh, mm] = String(h || '').split(':').map(Number);
+    return (hh || 0) * 60 + (mm || 0);
+  };
+  const horaChocanteInvitacion =
+    invitacionForm.fecha && invitacionForm.hora
+      ? citasMediador.find(
+          (c) =>
+            c.fecha === invitacionForm.fecha &&
+            Math.abs(aMinutosHora(c.hora?.slice(0, 5)) - aMinutosHora(invitacionForm.hora)) < 60
+        )
+      : undefined;
+  const horaInvitacionOcupada = !!horaChocanteInvitacion;
 
   const handleCrearInvitacion = async () => {
     if (!proceso) return;
@@ -530,7 +537,7 @@ function ProcesoDetalleContenido() {
     }
 
     if (horaInvitacionOcupada) {
-      setError('Ya tienes otra invitación pendiente ese día a esa hora. Elige otra hora.');
+      setError(`Choca con tu invitación de las ${horaChocanteInvitacion?.hora?.slice(0, 5)}: cada invitación dura 1 hora, debe haber al menos 1 hora entre una y otra. Elige otra hora.`);
       return;
     }
 
@@ -1687,7 +1694,7 @@ function ProcesoDetalleContenido() {
                 }
                 error={
                   horaInvitacionOcupada
-                    ? 'Ya tienes otra invitación pendiente ese día a esa hora'
+                    ? `Choca con la invitación de las ${horaChocanteInvitacion?.hora?.slice(0, 5)}: cada invitación dura 1 hora, debe haber al menos 1 hora entre una y otra`
                     : undefined
                 }
               />

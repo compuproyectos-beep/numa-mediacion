@@ -486,8 +486,16 @@ export default function CalendarioAgendaMediador({
       );
 
   const esHoy = diaSeleccionado === hoyISO();
-  const horaYaOcupada =
-    horasOcupadasDelDia.includes(horaSeleccionada) || !!reunionEnLaHora;
+  // Cada invitación ocupa 1 hora: con una a las 09:00, la siguiente puede ser
+  // recién a las 10:00 (y la anterior, hasta las 08:00).
+  const aMinutos = (h?: string) => {
+    const [hh, mm] = String(h || '').split(':').map(Number);
+    return (hh || 0) * 60 + (mm || 0);
+  };
+  const horaChocante = horaSeleccionada
+    ? horasOcupadasDelDia.find((h) => Math.abs(aMinutos(h) - aMinutos(horaSeleccionada)) < 60)
+    : undefined;
+  const horaYaOcupada = !!horaChocante || !!reunionEnLaHora;
   const horaYaPaso = esHoy && horaSeleccionada < horaActual();
 
   const etiquetaFecha = (fecha: string) => {
@@ -1235,7 +1243,7 @@ export default function CalendarioAgendaMediador({
                         reunionEnLaHora.hora_inicio
                       )} a ${horaCorta(reunionEnLaHora.hora_fin)}`
                     : horaYaOcupada
-                    ? 'Esa hora ya está ocupada ese día'
+                    ? `Choca con la invitación de las ${horaChocante}: cada invitación dura 1 hora, la siguiente puede ser desde las ${String(Math.floor((aMinutos(horaChocante) + 60) / 60)).padStart(2, '0')}:${String((aMinutos(horaChocante) + 60) % 60).padStart(2, '0')}`
                     : horaYaPaso
                     ? 'Esa hora ya pasó, elige una hora más adelante'
                     : undefined
