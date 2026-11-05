@@ -61,7 +61,18 @@ export default function CambiarPasswordPage() {
         router.push('/login?password_actualizada=1');
       }, 2000);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || 'No se pudo actualizar la contraseña');
+      // El servidor a veces devuelve el detalle como lista u objeto (errores de
+      // validación): se convierte siempre a texto para que la pantalla no se caiga.
+      const d = err?.response?.data?.detail;
+      const texto =
+        typeof d === 'string'
+          ? d
+          : Array.isArray(d)
+          ? d.map((x: any) => (typeof x === 'string' ? x : x?.msg || JSON.stringify(x))).join('. ')
+          : d
+          ? JSON.stringify(d)
+          : '';
+      setError(texto || 'No se pudo actualizar la contraseña. Revisa tu conexión e intenta de nuevo.');
     } finally {
       setSaving(false);
     }
