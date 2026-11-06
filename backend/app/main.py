@@ -4177,6 +4177,12 @@ def obtener_procesos_mediacion(
                 (p.acta_firmada_ruta IS NOT NULL) AS tiene_acta_firmada,
                 p.acta_firmada_fecha,
                 p.requiere_facturas,
+                COALESCE(p.sin_factura, false) AS sin_factura,
+                EXISTS (SELECT 1 FROM pagos_efectivo pe WHERE pe.proceso_id = p.id AND NOT pe.depositado) AS efectivo_pendiente,
+                (SELECT COALESCE(json_agg(json_build_object('id', pe.id, 'concepto', pe.concepto, 'monto', pe.monto,
+                         'fecha_recibido', pe.fecha_recibido, 'depositado', pe.depositado,
+                         'fecha_deposito', pe.fecha_deposito) ORDER BY pe.id), '[]'::json)
+                   FROM pagos_efectivo pe WHERE pe.proceso_id = p.id) AS pagos_efectivo,
                 EXISTS (SELECT 1 FROM proceso_facturas f
                          WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'cliente') AS tiene_factura_cliente,
                 EXISTS (SELECT 1 FROM proceso_facturas f
@@ -5997,8 +6003,9 @@ def obtener_avances_proceso(
 async def subir_acta_final_proceso(
     proceso_id: int,
     archivo: UploadFile = File(...),
-    comprobante_pago: UploadFile = File(...),
+    comprobante_pago: UploadFile = File(None),
     pago_modo: str = Form("completo"),
+    forma_pago: str = Form("deposito"),
     monto_total: float = Form(None),
     monto_abono: float = Form(None),
     fecha_pago: str = Form(None),
@@ -6024,8 +6031,16 @@ async def subir_acta_final_proceso(
                 detail="La documentación (con el acta firmada) solo se puede subir en un PDF"
             )
 
+        forma_pago = (forma_pago or "deposito").strip()
+        if forma_pago not in ("deposito", "efectivo"):
+            raise HTTPException(status_code=400, detail="Forma de pago no válida")
+        es_efectivo = forma_pago == "efectivo"
+        con_comprobante = (not es_efectivo) and comprobante_pago is not None and bool(comprobante_pago.filename)
+        if not es_efectivo and not con_comprobante:
+            raise HTTPException(status_code=400, detail="Sube el comprobante de pago (o elige pago en efectivo)")
+
         tipos_comprobante_permitidos = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
-        if comprobante_pago.content_type not in tipos_comprobante_permitidos:
+        if con_comprobante and comprobante_pago.content_type not in tipos_comprobante_permitidos:
             raise HTTPException(
                 status_code=400,
                 detail="El comprobante de pago debe ser un PDF, JPG o PNG"
@@ -6094,6 +6109,9 @@ async def subir_acta_final_proceso(
                     detail="El primer abono debe ser menor al valor total (si ya se pagó todo, elige pago completo)"
                 )
 
+        if es_efectivo and pago_modo == "completo" and (monto_total is None or monto_total <= 0):
+            raise HTTPException(status_code=400, detail="Indica cuánto dinero se recibió en efectivo")
+
         if proceso["finalizado"]:
             raise HTTPException(
                 status_code=400,
@@ -6128,11 +6146,16 @@ async def subir_acta_final_proceso(
             )
 
         # Los datos de facturación son obligatorios antes de subir el acta.
-        cur.execute("SELECT 1 FROM proceso_facturacion WHERE proceso_id = %s", (proceso_id,))
-        if not cur.fetchone():
+        cur.execute("""
+            SELECT EXISTS (SELECT 1 FROM proceso_facturacion WHERE proceso_id = %s) AS hay,
+                   (SELECT COALESCE(sin_factura, false) FROM procesos_mediacion WHERE id = %s) AS sf
+        """, (proceso_id, proceso_id))
+        _fac = cur.fetchone()
+        if not _fac["hay"] and not _fac["sf"]:
             raise HTTPException(
                 status_code=400,
-                detail="Antes de subir el acta, completa los datos de facturación del proceso"
+                detail="Antes de subir el acta, completa los datos de facturación del proceso "
+                       "(o marca que el cliente no quiere factura)"
             )
 
         # Fila de espera por mediador: el proceso pendiente más antiguo
@@ -6277,7 +6300,7 @@ async def subir_acta_final_proceso(
                 )
 
         contenido_acta = await archivo.read()
-        contenido_comprobante = await comprobante_pago.read()
+        contenido_comprobante = await comprobante_pago.read() if con_comprobante else b""
 
         # Se comprimen antes de subir a Supabase Storage para gastar menos
         # espacio de almacenamiento sin perder legibilidad (ver
@@ -6285,7 +6308,7 @@ async def subir_acta_final_proceso(
         # el archivo tal cual llegó — nunca se bloquea la subida por eso.
         contenido_acta = comprimir_pdf(contenido_acta)
 
-        content_type_comprobante = comprobante_pago.content_type
+        content_type_comprobante = comprobante_pago.content_type if con_comprobante else None
         extension_comprobante_forzada = None
 
         if content_type_comprobante in ("image/jpeg", "image/jpg", "image/png"):
@@ -6295,7 +6318,7 @@ async def subir_acta_final_proceso(
         elif content_type_comprobante == "application/pdf":
             contenido_comprobante = comprimir_pdf(contenido_comprobante)
 
-        extension_comprobante = extension_comprobante_forzada or {
+        extension_comprobante = None if not con_comprobante else extension_comprobante_forzada or {
             "application/pdf": "pdf",
             "image/jpeg": "jpg",
             "image/jpg": "jpg",
@@ -6319,7 +6342,7 @@ async def subir_acta_final_proceso(
         ruta_storage = f"actas-finales/{codigo_acta}/{nombre_unico_acta}"
 
         nombre_unico_comprobante = f"{uuid.uuid4()}.{extension_comprobante}"
-        ruta_comprobante = f"comprobantes-pago/{codigo_acta}/{nombre_unico_comprobante}"
+        ruta_comprobante = f"comprobantes-pago/{codigo_acta}/{nombre_unico_comprobante}" if con_comprobante else None
 
         SUPABASE_URL = os.getenv("SUPABASE_URL")
         SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
@@ -6355,11 +6378,12 @@ async def subir_acta_final_proceso(
                 detail=f"Error subiendo los documentos del acta a Supabase: {response_acta.text}"
             )
 
-        response_comprobante = _subir_a_supabase(
-            ruta_comprobante, contenido_comprobante, content_type_comprobante
+        response_comprobante = (
+            _subir_a_supabase(ruta_comprobante, contenido_comprobante, content_type_comprobante)
+            if con_comprobante else None
         )
 
-        if response_comprobante.status_code not in [200, 201]:
+        if con_comprobante and response_comprobante.status_code not in [200, 201]:
             raise HTTPException(
                 status_code=500,
                 detail=f"Error subiendo el comprobante de pago a Supabase: {response_comprobante.text}"
@@ -6389,8 +6413,8 @@ async def subir_acta_final_proceso(
             archivo.filename,
             len(contenido_acta),
             ruta_comprobante,
-            comprobante_pago.filename,
-            len(contenido_comprobante),
+            comprobante_pago.filename if con_comprobante else None,
+            len(contenido_comprobante) if con_comprobante else None,
             usuario["id"]
         ))
 
@@ -6428,7 +6452,19 @@ async def subir_acta_final_proceso(
         # completo, el proceso queda completo de una vez (se registra la misma
         # ruta como acta firmada, para que reportes, facturas y exportaciones
         # sigan funcionando igual). En abonos queda pendiente el saldo.
-        if pago_modo == "completo":
+        if es_efectivo:
+            cur.execute("""
+                INSERT INTO pagos_efectivo (proceso_id, concepto, monto, fecha_recibido, usuario_id)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (
+                proceso_id,
+                "abono1" if pago_modo == "abonos" else "pago",
+                monto_abono if pago_modo == "abonos" else monto_total,
+                fecha_pago_d,
+                usuario["id"],
+            ))
+
+        if pago_modo == "completo" and not es_efectivo:
             cur.execute("""
                 UPDATE procesos_mediacion
                 SET acta_firmada_ruta = %s,
@@ -6450,7 +6486,9 @@ async def subir_acta_final_proceso(
                 admin["id"],
                 "Acta final subida",
                 f"Se subió el acta {'de no acuerdo ' if es_no_acuerdo else 'final '}{codigo_acta} ({proceso['ciudad']} - {proceso['sucursal']}), "
-                + ("con el primer abono (saldo pendiente)" if pago_modo == "abonos" else "con comprobante de pago. El proceso quedó completo."),
+                + ("con pago en efectivo; falta depositarlo para completar el proceso" if es_efectivo
+                   else "con el primer abono (saldo pendiente)" if pago_modo == "abonos"
+                   else "con comprobante de pago. El proceso quedó completo."),
                 "acta",
                 "proceso_mediacion",
                 proceso_id
@@ -6460,7 +6498,9 @@ async def subir_acta_final_proceso(
 
         return {
             "mensaje": (
-                "Documentación y comprobante subidos. Falta el saldo para completar el proceso."
+                "Documentación subida. Falta depositar el efectivo para completar el proceso."
+                if es_efectivo
+                else "Documentación y comprobante subidos. Falta el saldo para completar el proceso."
                 if pago_modo == "abonos"
                 else "Documentación y comprobante subidos. El proceso quedó completo."
             ),
@@ -6519,6 +6559,7 @@ async def subir_acta_firmada(
     archivo: UploadFile = File(None),
     comprobante_final: UploadFile = File(None),
     fecha_pago_final: str = Form(None),
+    forma_pago_saldo: str = Form("deposito"),
     confirmo: bool = Form(False),
     usuario=Depends(obtener_usuario_actual)
 ):
@@ -6580,12 +6621,13 @@ async def subir_acta_firmada(
 
         # Si el pago quedó en abonos, el segundo comprobante (el saldo) es
         # obligatorio para poder cerrar el proceso.
-        if proceso["pago_pendiente"] and (comprobante_final is None or not comprobante_final.filename):
+        saldo_efectivo = bool(proceso["pago_pendiente"]) and (forma_pago_saldo or "deposito").strip() == "efectivo"
+        if proceso["pago_pendiente"] and not saldo_efectivo and (comprobante_final is None or not comprobante_final.filename):
             raise HTTPException(
                 status_code=400,
                 detail="Este proceso tiene un saldo pendiente: sube también el comprobante del segundo pago"
             )
-        if proceso["pago_pendiente"] and comprobante_final.content_type not in (
+        if proceso["pago_pendiente"] and not saldo_efectivo and comprobante_final.content_type not in (
             "application/pdf", "image/jpeg", "image/jpg", "image/png"
         ):
             raise HTTPException(
@@ -6647,7 +6689,15 @@ async def subir_acta_firmada(
             if not ruta:
                 raise HTTPException(status_code=400, detail="No se encontró la documentación del proceso")
 
-        if proceso["pago_pendiente"]:
+        if saldo_efectivo:
+            saldo_ef = None
+            if proceso["monto_total"] is not None and proceso["abono1_monto"] is not None:
+                saldo_ef = proceso["monto_total"] - proceso["abono1_monto"]
+            cur.execute("""
+                INSERT INTO pagos_efectivo (proceso_id, concepto, monto, fecha_recibido, usuario_id)
+                VALUES (%s, 'saldo', %s, %s, %s)
+            """, (proceso_id, saldo_ef, fecha_pago_final_d, usuario["id"]))
+        elif proceso["pago_pendiente"]:
             cont_c = await comprobante_final.read()
             ct_c = comprobante_final.content_type
             ext_c = None
@@ -6687,6 +6737,16 @@ async def subir_acta_firmada(
                 ruta_c, comprobante_final.filename, len(cont_c), usuario["id"]
             ))
 
+        # Si queda efectivo sin depositar, el proceso se completa cuando se deposite.
+        cur.execute("SELECT EXISTS (SELECT 1 FROM pagos_efectivo WHERE proceso_id = %s AND NOT depositado) AS pend", (proceso_id,))
+        if cur.fetchone()["pend"]:
+            cur.execute(
+                "UPDATE procesos_mediacion SET pago_pendiente = false, fecha_modificacion = NOW() WHERE id = %s",
+                (proceso_id,)
+            )
+            conn.commit()
+            return {"mensaje": "Saldo registrado. Falta depositar el efectivo para completar el proceso."}
+
         cur.execute("""
             UPDATE procesos_mediacion
             SET acta_firmada_ruta = %s,
@@ -6722,6 +6782,178 @@ async def subir_acta_firmada(
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+        conn.close()
+
+
+
+# =========================
+# PAGOS EN EFECTIVO y "SIN FACTURA"
+# =========================
+def _completar_si_sin_pendientes(cur, proceso_id):
+    """Cuando ya no queda saldo ni efectivo por depositar, el proceso queda completo
+    (se usa la misma documentación, que ya trae el acta firmada)."""
+    cur.execute("""
+        SELECT p.pago_pendiente, p.acta_firmada_ruta, p.finalizado, ap.archivo_pdf, ap.nombre_original,
+               ap.tamano_bytes, ap.usuario_id AS acta_usuario_id,
+               EXISTS (SELECT 1 FROM pagos_efectivo pe WHERE pe.proceso_id = p.id AND NOT pe.depositado) AS pend
+        FROM procesos_mediacion p
+        LEFT JOIN actas_proceso ap ON ap.id = p.acta_final_id
+        WHERE p.id = %s
+    """, (proceso_id,))
+    r = cur.fetchone()
+    if not r or r["pend"] or r["pago_pendiente"] or r["acta_firmada_ruta"] or not r["finalizado"] or not r["archivo_pdf"]:
+        return False
+    cur.execute("""
+        UPDATE procesos_mediacion
+        SET acta_firmada_ruta = %s, acta_firmada_nombre = %s, acta_firmada_tamano = %s,
+            acta_firmada_fecha = NOW(), acta_firmada_usuario_id = %s,
+            requiere_facturas = true, fecha_modificacion = NOW()
+        WHERE id = %s
+    """, (r["archivo_pdf"], r["nombre_original"], r["tamano_bytes"], r["acta_usuario_id"], proceso_id))
+    return True
+
+
+@app.post("/pagos-efectivo/{pago_id}/depositado")
+def marcar_efectivo_depositado(pago_id: int, usuario=Depends(obtener_usuario_actual)):
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT pe.id, pe.proceso_id, pe.depositado, pe.monto, pe.concepto, p.usuario_id, p.codigo_proceso,
+                   (SELECT na.codigo FROM numeros_acta na WHERE na.proceso_id = p.id ORDER BY na.id LIMIT 1) AS numero_acta
+            FROM pagos_efectivo pe
+            JOIN procesos_mediacion p ON p.id = pe.proceso_id
+            WHERE pe.id = %s
+            FOR UPDATE OF pe
+        """, (pago_id,))
+        pe = cur.fetchone()
+        if not pe:
+            raise HTTPException(status_code=404, detail="Pago en efectivo no encontrado")
+        if usuario["rol"] != "administrador" and pe["usuario_id"] != usuario["id"]:
+            raise HTTPException(status_code=403, detail="Solo el mediador del proceso o el administrador puede marcar el depósito")
+        if pe["depositado"]:
+            raise HTTPException(status_code=400, detail="Este efectivo ya está marcado como depositado")
+
+        cur.execute("""
+            UPDATE pagos_efectivo
+            SET depositado = true, fecha_deposito = NOW(), depositado_por = %s
+            WHERE id = %s
+        """, (usuario["id"], pago_id))
+        completo = _completar_si_sin_pendientes(cur, pe["proceso_id"])
+
+        etiqueta = pe["numero_acta"] or pe["codigo_proceso"]
+        registrar_auditoria(
+            cur, usuario, "efectivo_depositado", "proceso_mediacion", pe["proceso_id"],
+            f"Marcó como depositado el efectivo del acta {etiqueta}"
+            + (f" (${float(pe['monto']):.2f})" if pe["monto"] is not None else "")
+        )
+        if usuario["rol"] != "administrador":
+            cur.execute("SELECT id FROM usuarios WHERE rol = 'administrador' AND activo = true")
+            for admin in cur.fetchall():
+                crear_notificacion(
+                    cur, admin["id"], "Efectivo depositado",
+                    f"{(usuario.get('nombre') or '')} {(usuario.get('apellido') or '')}".strip()
+                    + f" marcó como depositado el efectivo del acta {etiqueta}."
+                    + (" El proceso quedó completo." if completo else ""),
+                    "acta", "proceso_mediacion", pe["proceso_id"]
+                )
+        conn.commit()
+        return {
+            "mensaje": "Depósito registrado." + (" El proceso quedó completo." if completo else ""),
+            "completo": completo,
+        }
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.put("/procesos/{proceso_id}/sin-factura")
+def marcar_sin_factura(proceso_id: int, datos: dict, usuario=Depends(obtener_usuario_actual)):
+    class _D:
+        sin_factura = bool((datos or {}).get("sin_factura"))
+    datos = _D()
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT p.usuario_id, p.codigo_proceso, p.sin_factura,
+                   EXISTS (SELECT 1 FROM proceso_facturas f
+                            WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'cliente') AS tiene_factura_cliente,
+                   (SELECT na.codigo FROM numeros_acta na WHERE na.proceso_id = p.id ORDER BY na.id LIMIT 1) AS numero_acta
+            FROM procesos_mediacion p WHERE p.id = %s
+        """, (proceso_id,))
+        p = cur.fetchone()
+        if not p:
+            raise HTTPException(status_code=404, detail="Proceso no encontrado")
+        if usuario["rol"] != "administrador" and p["usuario_id"] != usuario["id"]:
+            raise HTTPException(status_code=403, detail="Solo el mediador del proceso o el administrador puede cambiar esto")
+        if datos.sin_factura and p["tiene_factura_cliente"]:
+            raise HTTPException(status_code=400, detail="Este proceso ya tiene una factura del cliente subida")
+        if bool(p["sin_factura"]) == datos.sin_factura:
+            return {"sin_factura": datos.sin_factura}
+        cur.execute(
+            "UPDATE procesos_mediacion SET sin_factura = %s, fecha_modificacion = NOW() WHERE id = %s",
+            (datos.sin_factura, proceso_id)
+        )
+        etiqueta = p["numero_acta"] or p["codigo_proceso"]
+        registrar_auditoria(
+            cur, usuario,
+            "sin_factura_marcado" if datos.sin_factura else "sin_factura_quitado",
+            "proceso_mediacion", proceso_id,
+            f"{'Marcó que el cliente no quiere factura' if datos.sin_factura else 'Quitó la marca de sin factura'} (acta {etiqueta})"
+        )
+        conn.commit()
+        return {"sin_factura": datos.sin_factura}
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/reportes/efectivo-pendiente")
+def reporte_efectivo_pendiente(
+    sucursal_id: int = None,
+    usuario=Depends(obtener_usuario_actual)
+):
+    """Efectivo recibido que todavía no se ha marcado como depositado (solo administrador)."""
+    if usuario["rol"] != "administrador":
+        raise HTTPException(status_code=403, detail="Solo el administrador puede ver este reporte")
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        query = """
+            SELECT pe.id, pe.proceso_id, p.codigo_proceso, pe.concepto, pe.monto, pe.fecha_recibido,
+                   (CURRENT_DATE - pe.fecha_recibido) AS dias,
+                   (SELECT na.codigo FROM numeros_acta na WHERE na.proceso_id = p.id ORDER BY na.id LIMIT 1) AS numero_acta,
+                   um.nombre || ' ' || um.apellido AS mediador,
+                   s.nombre AS sucursal, ci.nombre AS ciudad
+            FROM pagos_efectivo pe
+            JOIN procesos_mediacion p ON p.id = pe.proceso_id
+            JOIN usuarios um ON um.id = p.usuario_id
+            JOIN sucursales s ON s.id = p.sucursal_id
+            LEFT JOIN ciudades ci ON ci.id = s.ciudad_id
+            WHERE NOT pe.depositado AND p.estado <> 'anulado'
+        """
+        params = []
+        if sucursal_id:
+            query += " AND p.sucursal_id = %s"
+            params.append(sucursal_id)
+        query += " ORDER BY pe.fecha_recibido ASC, pe.id ASC"
+        cur.execute(query, tuple(params))
+        return cur.fetchall()
     finally:
         cur.close()
         conn.close()
@@ -6946,8 +7178,8 @@ def avisar_facturas_pendientes():
         cur.execute("""
             SELECT p.id, p.codigo_proceso, u.nombre || ' ' || u.apellido AS mediador,
                    (SELECT na.codigo FROM numeros_acta na WHERE na.proceso_id = p.id ORDER BY na.id LIMIT 1) AS numero_acta,
-                   NOT EXISTS (SELECT 1 FROM proceso_facturas f
-                                WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'cliente') AS falta_cliente,
+                   (NOT COALESCE(p.sin_factura, false) AND NOT EXISTS (SELECT 1 FROM proceso_facturas f
+                                WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'cliente')) AS falta_cliente,
                    NOT EXISTS (SELECT 1 FROM proceso_facturas f
                                 WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'mediador') AS falta_mediador
             FROM procesos_mediacion p
@@ -8818,9 +9050,12 @@ def obtener_actas_finales(
                 p.requiere_acta_firmada,
                 p.pago_en_abonos,
                 p.pago_pendiente,
+                EXISTS (SELECT 1 FROM pagos_efectivo pe WHERE pe.proceso_id = p.id AND NOT pe.depositado) AS efectivo_pendiente,
+                EXISTS (SELECT 1 FROM pagos_efectivo pe WHERE pe.proceso_id = p.id) AS tiene_efectivo,
                 COALESCE(p.requiere_facturas, false) AS requiere_facturas,
-                NOT EXISTS (SELECT 1 FROM proceso_facturas f
-                             WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'cliente') AS falta_factura_cliente,
+                (NOT COALESCE(p.sin_factura, false) AND NOT EXISTS (SELECT 1 FROM proceso_facturas f
+                             WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'cliente')) AS falta_factura_cliente,
+                COALESCE(p.sin_factura, false) AS sin_factura,
                 NOT EXISTS (SELECT 1 FROM proceso_facturas f
                              WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'mediador') AS falta_factura_mediador,
                 (SELECT cx.id FROM comprobantes_pago_extra cx
@@ -10390,8 +10625,8 @@ def reporte_operativo_facturas_pendientes(
             WHERE p.requiere_facturas = true
               AND p.acta_firmada_ruta IS NOT NULL
               AND (
-                    NOT EXISTS (SELECT 1 FROM proceso_facturas f
-                                 WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'cliente')
+                    (NOT COALESCE(p.sin_factura, false) AND NOT EXISTS (SELECT 1 FROM proceso_facturas f
+                                 WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'cliente'))
                  OR NOT EXISTS (SELECT 1 FROM proceso_facturas f
                                  WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'mediador')
                   )
@@ -10930,6 +11165,7 @@ def listar_facturas_pagos_faltantes(
                             ELSE FLOOR(EXTRACT(EPOCH FROM (NOW() - p.acta_firmada_fecha)) / 86400)::int
                        END AS dias_desde_acta_firmada,
                        (p.requiere_facturas = true AND p.acta_firmada_ruta IS NOT NULL
+                        AND NOT COALESCE(p.sin_factura, false)
                         AND NOT EXISTS (SELECT 1 FROM proceso_facturas f
                                          WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'cliente')
                        ) AS falta_factura_cliente,
@@ -10939,6 +11175,7 @@ def listar_facturas_pagos_faltantes(
                        ) AS falta_factura_mediador,
                        EXISTS (SELECT 1 FROM actas_proceso ap
                                 WHERE ap.proceso_id = p.id AND ap.ruta_comprobante_pago IS NULL
+                                  AND NOT EXISTS (SELECT 1 FROM pagos_efectivo pe WHERE pe.proceso_id = p.id)
                        ) AS falta_comprobante_pago,
                        COALESCE(p.pago_en_abonos AND p.pago_pendiente, false) AS falta_comprobante_saldo
                 FROM procesos_mediacion p

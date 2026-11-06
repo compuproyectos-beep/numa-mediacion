@@ -23,6 +23,7 @@ import {
   reemplazarPdfActaFinal,
   reemplazarComprobanteActaFinal,
   exportarActasFinalesZip,
+  getEfectivoPendiente,
   getUsuarios
 } from '@/lib/services';
 import { getCiudadesCached, getSucursalesCached } from '@/lib/catalogCache';
@@ -96,9 +97,12 @@ export default function ActasFinalesPage() {
 
   const { isAdmin } = useAuth();
 
+  const [efectivoPend, setEfectivoPend] = useState<any[]>([]);
+
   useEffect(() => {
     if (isAdmin) {
       getUsuarios().then(setMediadores).catch(() => setMediadores([]));
+      getEfectivoPendiente().then(setEfectivoPend).catch(() => setEfectivoPend([]));
     }
   }, [isAdmin]);
 
@@ -352,6 +356,29 @@ const handleExportarZip = async () => {
 
       <NumeroActaPanel esAdmin={isAdmin} />
 
+      {isAdmin && efectivoPend.length > 0 && (
+        <div className="card p-4 mb-4 border-amber-200 bg-amber-50">
+          <p className="text-base font-bold text-numa-900 mb-1">
+            Efectivo pendiente de depositar ({efectivoPend.length})
+          </p>
+          <p className="text-sm text-amber-800 mb-3">
+            Dinero que el mediador recibió en efectivo y todavía no marca como depositado en la cuenta de NUMA.
+          </p>
+          <ul className="space-y-1 text-sm text-numa-900">
+            {efectivoPend.map((e: any) => (
+              <li key={e.id} className="flex flex-wrap gap-x-3">
+                <strong className="font-mono">{e.numero_acta || e.codigo_proceso}</strong>
+                <span>{e.mediador}</span>
+                <span>{e.sucursal}</span>
+                <span>{e.monto != null ? `$${Number(e.monto).toFixed(2)}` : '—'}</span>
+                <span>recibido el {String(e.fecha_recibido).slice(0, 10)}</span>
+                <span className="font-semibold text-amber-900">hace {e.dias} día(s)</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="card px-3 py-2.5 mb-3">
         {isAdmin && (
           <p className="text-sm text-slate-700 mb-2">
@@ -544,7 +571,9 @@ const handleExportarZip = async () => {
 
                   {a.pago_pendiente && <Badge label="Saldo pendiente" variant="enviado" />}
 
-                  {!a.ruta_comprobante_pago && (
+                  {a.efectivo_pendiente && <Badge label="Efectivo por depositar" variant="enviado" />}
+
+                  {!a.ruta_comprobante_pago && !a.tiene_efectivo && (
                     <Badge label="Sin comprobante" variant="rechazado" />
                   )}
 

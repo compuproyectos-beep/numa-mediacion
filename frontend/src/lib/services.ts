@@ -648,18 +648,20 @@ export interface PagoActaFinal {
   fecha?: string;
   montoTotal?: number;
   montoAbono?: number;
+  forma?: 'deposito' | 'efectivo';
 }
 
 export async function subirActaFinalProceso(
   procesoId: number,
   file: File,
-  comprobantePago: File,
+  comprobantePago: File | null,
   pago?: PagoActaFinal,
   numeroActaId?: number
 ): Promise<any> {
   const formData = new FormData();
   formData.append('archivo', file);
-  formData.append('comprobante_pago', comprobantePago);
+  if (comprobantePago) formData.append('comprobante_pago', comprobantePago);
+  formData.append('forma_pago', pago?.forma || 'deposito');
   formData.append('confirmo', 'true');
   if (numeroActaId) formData.append('numero_acta_id', String(numeroActaId));
   formData.append('pago_modo', pago?.modo || 'completo');
@@ -667,6 +669,8 @@ export async function subirActaFinalProceso(
   if (pago?.modo === 'abonos') {
     formData.append('monto_total', String(pago.montoTotal ?? ''));
     formData.append('monto_abono', String(pago.montoAbono ?? ''));
+  } else if (pago?.forma === 'efectivo' && pago.montoTotal) {
+    formData.append('monto_total', String(pago.montoTotal));
   }
 
   const res = await api.post(
@@ -879,14 +883,15 @@ export async function getExpedienteProceso(
 export async function subirActaFirmada(
   procesoId: number,
   file: File | null,
-  segundoPago?: { comprobante: File; fecha?: string } | null
+  segundoPago?: { comprobante: File | null; fecha?: string; forma?: 'deposito' | 'efectivo' } | null
 ): Promise<any> {
   const formData = new FormData();
   if (file) formData.append('archivo', file);
   formData.append('confirmo', 'true');
-  if (segundoPago?.comprobante) {
-    formData.append('comprobante_final', segundoPago.comprobante);
+  if (segundoPago) {
+    if (segundoPago.comprobante) formData.append('comprobante_final', segundoPago.comprobante);
     if (segundoPago.fecha) formData.append('fecha_pago_final', segundoPago.fecha);
+    formData.append('forma_pago_saldo', segundoPago.forma || 'deposito');
   }
 
   const res = await api.post(`/procesos/${procesoId}/acta-firmada`, formData, {
@@ -1141,5 +1146,22 @@ export async function reemplazarComprobanteActaFinal(
   const res = await api.post(`/actas-finales/${actaId}/reemplazar-comprobante`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
+  return res.data;
+}
+
+
+// ── EFECTIVO Y "SIN FACTURA" ─────────────────────────────────────────────────
+export async function marcarEfectivoDepositado(pagoId: number): Promise<any> {
+  const res = await api.post(`/pagos-efectivo/${pagoId}/depositado`);
+  return res.data;
+}
+
+export async function marcarSinFactura(procesoId: number, sinFactura: boolean): Promise<any> {
+  const res = await api.put(`/procesos/${procesoId}/sin-factura`, { sin_factura: sinFactura });
+  return res.data;
+}
+
+export async function getEfectivoPendiente(params?: { sucursal_id?: number | string }): Promise<any[]> {
+  const res = await api.get('/reportes/efectivo-pendiente', { params });
   return res.data;
 }

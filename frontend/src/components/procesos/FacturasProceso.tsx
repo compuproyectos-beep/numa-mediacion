@@ -106,7 +106,8 @@ export default function FacturasProceso({ proceso, esAdmin, onCambio }: Props) {
     }
   };
 
-  const faltan = TARJETAS.filter((t) => !facturas.some((f) => f.tipo === t.tipo && f.vigente));
+  const tarjetas = TARJETAS.filter((t) => !(proceso.sin_factura && t.tipo === 'cliente'));
+  const faltan = tarjetas.filter((t) => !facturas.some((f) => f.tipo === t.tipo && f.vigente));
 
   return (
     <div className="card p-4">
@@ -132,7 +133,7 @@ export default function FacturasProceso({ proceso, esAdmin, onCambio }: Props) {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {TARJETAS.map((t) => {
+        {tarjetas.map((t) => {
           const lista = facturas.filter((f) => f.tipo === t.tipo);
           const vigente = lista.find((f) => f.vigente);
                     return (

@@ -12,7 +12,8 @@ import {
   solicitarActaNoAcuerdo,
   pedirNumeroActaProceso,
   descargarComprobanteFinal,
-  marcarActaImpresa
+  marcarActaImpresa,
+  marcarEfectivoDepositado
 } from '@/lib/services';
 import { conActa, esNoAcuerdo, dinero, saldoPago, fechaDia } from '@/lib/actaProceso';
 import { hoyEcuador } from '@/lib/accionProceso';
@@ -58,6 +59,10 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
   // Segundo pago (cuando el pago quedó en abonos)
   const [archivoSegundoPago, setArchivoSegundoPago] = useState<File | null>(null);
   const [fechaSegundoPago, setFechaSegundoPago] = useState(hoyEcuador());
+  const [formaSaldo, setFormaSaldo] = useState<'deposito' | 'efectivo'>('deposito');
+  // Efectivo recibido que falta depositar
+  const [depositando, setDepositando] = useState<number | null>(null);
+  const [confirmarDeposito, setConfirmarDeposito] = useState<number | null>(null);
 
   // Acta de no acuerdo (opcional)
   const [confirmandoNA, setConfirmandoNA] = useState(false);
@@ -198,25 +203,51 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
     }
   };
 
+  const pagosEf: any[] = Array.isArray(proceso.pagos_efectivo) ? proceso.pagos_efectivo : [];
+  const soloEfectivo = !!proceso.efectivo_pendiente && !proceso.pago_pendiente;
+  const nombreConcepto = (c: string) => (c === 'abono1' ? 'Primer abono' : c === 'saldo' ? 'Saldo' : 'Pago');
+
+  const depositar = async (id: number) => {
+    setDepositando(id);
+    setError('');
+    try {
+      const r = await marcarEfectivoDepositado(id);
+      setConfirmarDeposito(null);
+      setOk(r?.mensaje || 'Depósito registrado.');
+      onCambio();
+    } catch (e: any) {
+      setError(msg(e, 'No se pudo registrar el depósito'));
+    } finally {
+      setDepositando(null);
+    }
+  };
+
   const subir = async () => {
     // Con pago en abonos solo se sube el comprobante del saldo: el acta firmada ya viene en la documentación.
     if (!proceso.pago_pendiente && !archivoFirmada) return;
-    if (proceso.pago_pendiente && !archivoSegundoPago) return;
+    if (proceso.pago_pendiente && formaSaldo === 'deposito' && !archivoSegundoPago) return;
     setSubiendo(true);
     setError('');
     try {
       await subirActaFirmada(
         proceso.id,
         proceso.pago_pendiente ? null : archivoFirmada,
-        proceso.pago_pendiente && archivoSegundoPago
-          ? { comprobante: archivoSegundoPago, fecha: fechaSegundoPago || undefined }
+        proceso.pago_pendiente
+          ? {
+              comprobante: formaSaldo === 'efectivo' ? null : archivoSegundoPago,
+              fecha: fechaSegundoPago || undefined,
+              forma: formaSaldo
+            }
           : null
       );
       setShowFirmada(false);
       setArchivoFirmada(null);
       setArchivoSegundoPago(null);
       setConfirmoFirmada(false);
-      setOk(proceso.pago_pendiente ? 'Comprobante del saldo subido. El proceso quedó completo.' : 'Acta firmada subida. El proceso quedó completo.');
+      setOk(proceso.pago_pendiente
+        ? (formaSaldo === 'efectivo' ? 'Saldo en efectivo registrado. Falta marcar que ya lo depositaste para completar el proceso.' : 'Comprobante del saldo subido. El proceso quedó completo.')
+        : 'Acta firmada subida. El proceso quedó completo.');
+      setFormaSaldo('deposito');
       onCambio();
     } catch (e: any) {
       setError(msg(e, 'No se pudo subir el acta firmada'));
@@ -349,8 +380,54 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
       {/* El aviso de proceso suspendido (y el botón de reactivar) se muestra arriba de
           la pantalla del proceso, no aquí. */}
 
+      {/* Efectivo recibido: falta depositarlo en la cuenta de NUMA */}
+      {pagosEf.length > 0 && (
+        <div className={`card p-4 ${proceso.efectivo_pendiente ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50/50'}`}>
+          <p className="text-base font-bold text-numa-900 mb-1">Pago en efectivo</p>
+          {proceso.efectivo_pendiente && (
+            <p className="text-sm text-amber-800 mb-2">
+              Deposita el dinero en la cuenta de NUMA y luego marca «Efectivo ya depositado». El proceso no se completa hasta entonces.
+              {!esAdmin && ' Mientras tanto no podrás subir otras actas.'}
+            </p>
+          )}
+          <ul className="space-y-2">
+            {pagosEf.map((pe: any) => (
+              <li key={pe.id} className="flex flex-wrap items-center justify-between gap-2 text-sm text-numa-900">
+                <span>
+                  <strong>{nombreConcepto(pe.concepto)}</strong>
+                  {pe.monto != null && <> · {dinero(Number(pe.monto))}</>}
+                  {' '}· recibido el {fechaDia(pe.fecha_recibido)}
+                </span>
+                {pe.depositado ? (
+                  <span className="text-green-700 font-semibold">Depositado el {fmt(pe.fecha_deposito)}</span>
+                ) : confirmarDeposito === pe.id ? (
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="text-amber-900">¿Ya depositaste este dinero en la cuenta de NUMA?</span>
+                    <button
+                      type="button"
+                      onClick={() => depositar(pe.id)}
+                      disabled={depositando === pe.id}
+                      className="btn-primary btn-sm disabled:opacity-50"
+                    >
+                      {depositando === pe.id ? 'Guardando...' : 'Sí, ya lo deposité'}
+                    </button>
+                    <button type="button" onClick={() => setConfirmarDeposito(null)} className="btn-secondary btn-sm">
+                      No
+                    </button>
+                  </span>
+                ) : (
+                  <button type="button" onClick={() => setConfirmarDeposito(pe.id)} className="btn-primary btn-sm">
+                    Efectivo ya depositado
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Falta el acta firmada */}
-      {etapa === 'falta_firmada' && (
+      {etapa === 'falta_firmada' && !soloEfectivo && (
         <div className="card p-4">
           <p className="text-sm text-numa-800 mb-1 font-semibold">
             {proceso.pago_pendiente ? 'Proceso incompleto: falta el comprobante del saldo' : 'Proceso incompleto: falta el acta firmada'}
@@ -444,17 +521,33 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
                 Saldo pendiente: <strong>{dinero(saldo)}</strong>. Sube el comprobante del segundo
                 pago para completar el proceso.
               </p>
-              <div>
-                <label className="block text-sm font-medium text-numa-800 mb-1">
-                  Comprobante del segundo pago (PDF, JPG o PNG)
+              <div className="flex flex-col sm:flex-row gap-2">
+                <label className="flex items-center gap-2 text-sm text-numa-800 border border-numa-200 rounded-sm px-3 py-2 cursor-pointer">
+                  <input type="radio" name="forma-saldo" checked={formaSaldo === 'deposito'} onChange={() => setFormaSaldo('deposito')} />
+                  Depósito o transferencia
                 </label>
-                <input
-                  type="file"
-                  accept="application/pdf,image/jpeg,image/png"
-                  onChange={(e) => setArchivoSegundoPago(e.target.files?.[0] || null)}
-                  className="input-field"
-                />
+                <label className="flex items-center gap-2 text-sm text-numa-800 border border-numa-200 rounded-sm px-3 py-2 cursor-pointer">
+                  <input type="radio" name="forma-saldo" checked={formaSaldo === 'efectivo'} onChange={() => { setFormaSaldo('efectivo'); setArchivoSegundoPago(null); }} />
+                  Efectivo
+                </label>
               </div>
+              {formaSaldo === 'deposito' ? (
+                <div>
+                  <label className="block text-sm font-medium text-numa-800 mb-1">
+                    Comprobante del segundo pago (PDF, JPG o PNG)
+                  </label>
+                  <input
+                    type="file"
+                    accept="application/pdf,image/jpeg,image/png"
+                    onChange={(e) => setArchivoSegundoPago(e.target.files?.[0] || null)}
+                    className="input-field"
+                  />
+                </div>
+              ) : (
+                <p className="text-sm text-amber-800">
+                  Con efectivo no se sube comprobante: el proceso se completará cuando marques que ya depositaste el dinero.
+                </p>
+              )}
               <div>
                 <label className="block text-sm font-medium text-numa-800 mb-1">
                   Fecha del segundo pago
@@ -488,7 +581,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
               onClick={subir}
               disabled={
                 subiendo || (!proceso.pago_pendiente && !archivoFirmada) || !confirmoFirmada ||
-                (!!proceso.pago_pendiente && !archivoSegundoPago)
+                (!!proceso.pago_pendiente && formaSaldo === 'deposito' && !archivoSegundoPago)
               }
               className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >

@@ -7,6 +7,7 @@ import {
   getFacturacionProceso,
   guardarFacturacionProceso,
   getPartesProceso,
+  marcarSinFactura,
   DatosFacturacion
 } from '@/lib/services';
 
@@ -20,6 +21,9 @@ interface Props {
   finalizado?: boolean;
   // Estado del proceso: el aviso amarillo solo sale cuando ya se cerró con acuerdo.
   estado?: string;
+  // El cliente no quiere factura.
+  sinFactura?: boolean;
+  onSinFactura?: () => void;
 }
 
 interface Opcion {
@@ -83,7 +87,23 @@ const VACIO: DatosFacturacion = {
 // Bloque "Datos de facturación": a nombre de quién se emite la factura (la
 // factura se hace en el sistema propio del centro; aquí solo se guardan los
 // datos). Obligatorio antes de subir la documentación y el comprobante.
-export default function FacturacionProceso({ procesoId, editable, onEstado, finalizado, estado }: Props) {
+export default function FacturacionProceso({ procesoId, editable, onEstado, finalizado, estado, sinFactura, onSinFactura }: Props) {
+  const [cambiandoSF, setCambiandoSF] = useState(false);
+  const [errorSF, setErrorSF] = useState('');
+  const cambiarSinFactura = async (valor: boolean) => {
+    setCambiandoSF(true);
+    setErrorSF('');
+    try {
+      await marcarSinFactura(procesoId, valor);
+      onSinFactura?.();
+    } catch (e: any) {
+      const d = e?.response?.data?.detail;
+      setErrorSF(typeof d === 'string' ? d : 'No se pudo guardar el cambio');
+    } finally {
+      setCambiandoSF(false);
+    }
+  };
+
   const [datos, setDatos] = useState<DatosFacturacion | null>(null);
   const [partes, setPartes] = useState<any[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -228,14 +248,18 @@ export default function FacturacionProceso({ procesoId, editable, onEstado, fina
         <h3 className="text-base font-bold text-numa-900 inline-flex items-center gap-2">
           <Receipt className="w-4 h-4 text-numa-800" /> Datos de facturación
         </h3>
-        {editable && (
+        {editable && !sinFactura && (
           <button type="button" onClick={abrir} className="btn-secondary btn-sm">
             <Pencil className="w-3.5 h-3.5" /> {datos ? 'Editar' : 'Completar datos'}
           </button>
         )}
       </div>
 
-      {datos ? (
+      {sinFactura ? (
+        <p className="text-sm text-numa-900 bg-gold-50 border border-gold-200 rounded-sm px-3 py-2">
+          El cliente no quiere factura. No se piden datos de facturación para este proceso.
+        </p>
+      ) : datos ? (
         <div className="text-sm text-numa-800 grid sm:grid-cols-2 gap-x-6 gap-y-1">
           <p>
             <span className="text-numa-800">Facturar a: </span>
@@ -278,6 +302,22 @@ export default function FacturacionProceso({ procesoId, editable, onEstado, fina
           Falta indicar a nombre de quién va la factura. Es obligatorio antes de subir la documentación y
           el comprobante de pago.
         </p>
+      )}
+
+      {editable && !finalizado && (
+        <div className="mt-3 pt-3 border-t border-numa-100">
+          <label className="inline-flex items-start gap-2 text-sm text-numa-800 cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={!!sinFactura}
+              disabled={cambiandoSF}
+              onChange={(e) => cambiarSinFactura(e.target.checked)}
+            />
+            <span>El cliente no quiere factura</span>
+          </label>
+          {errorSF && <p className="text-sm text-red-700 mt-1">{errorSF}</p>}
+        </div>
       )}
 
       <Modal open={abierto} onClose={() => setAbierto(false)} title="Datos de facturación">
