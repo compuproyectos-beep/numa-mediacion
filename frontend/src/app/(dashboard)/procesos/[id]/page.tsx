@@ -1961,7 +1961,12 @@ function ProcesoDetalleContenido() {
                 <div className="flex items-start gap-3">
                   <Hash className="w-8 h-8 text-gold-700 shrink-0 mt-1" aria-hidden="true" />
                   <div>
-                    <p className="text-sm font-bold uppercase tracking-wide text-numa-800">Número de acta de este proceso</p>
+                    <p className="text-sm font-bold uppercase tracking-wide text-numa-800">
+                      Número de acta de este proceso
+                      <span className="ml-2 normal-case tracking-normal rounded-full bg-numa-900 text-white px-2.5 py-0.5 text-xs">
+                        {esNoAcuerdo(proceso) ? 'Acta de no acuerdo' : 'Acta de acuerdo'}
+                      </span>
+                    </p>
                     <p className="text-3xl sm:text-4xl font-mono font-extrabold text-numa-900 my-1">{proceso.numero_acta_codigo}</p>
                     <p className="text-base font-semibold text-numa-900">
                       Escribe este número en el acta.

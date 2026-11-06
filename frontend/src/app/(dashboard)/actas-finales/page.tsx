@@ -637,24 +637,20 @@ const handleExportarZip = async () => {
                 </p>
                 <div className="grid grid-cols-[1fr_auto_2rem] items-center gap-x-2 gap-y-1 text-[13px]">
                   <span className="text-numa-800 font-medium whitespace-nowrap">
-                    {a.requiere_acta_firmada && a.tiene_acta_firmada ? 'Acta completa firmada' : 'Documentos del acta'}
+                    Acta completa firmada
                   </span>
                   <button
                     type="button"
-                    onClick={() => (a.requiere_acta_firmada && a.tiene_acta_firmada ? handleVerCompleta(a.id) : handleVerPdf(a.id))}
+                    onClick={() => handleVerCompleta(a.id)}
                     className="btn-sm w-[6rem] inline-flex items-center justify-center gap-1.5 rounded-md bg-[#144193] text-white font-semibold hover:bg-[#1B4AAE] transition-colors">
                     <Eye className="w-3.5 h-3.5" /> Ver
                   </button>
                   {isAdmin ? (
                     <button
                       type="button"
-                      onClick={() =>
-                        a.requiere_acta_firmada && a.tiene_acta_firmada
-                          ? handleDescargarCompleta(a.id, a.codigo_acta)
-                          : handleDescargarPdf(a.id, a.codigo_acta)
-                      }
-                      title={a.requiere_acta_firmada && a.tiene_acta_firmada ? 'Descargar acta completa firmada' : 'Descargar documentos del acta'}
-                      aria-label={a.requiere_acta_firmada && a.tiene_acta_firmada ? 'Descargar acta completa firmada' : 'Descargar documentos del acta'}
+                      onClick={() => handleDescargarCompleta(a.id, a.codigo_acta)}
+                      title="Descargar acta completa firmada"
+                      aria-label="Descargar acta completa firmada"
                       className="btn-icon bg-numa-100 border-2 border-numa-700 text-numa-900 hover:border-gold-500 hover:bg-gold-400/20"
                     >
                       <Download className="w-4 h-4" />
@@ -715,43 +711,17 @@ const handleExportarZip = async () => {
                     </>
                   )}
 
-                  {a.requiere_acta_firmada && !a.tiene_acta_firmada && (
+                  {a.tiene_efectivo && (
                     <>
-                      <span className="text-numa-800 font-medium inline-flex items-center gap-1.5">
-                        Acta firmada
-                        {a.tiene_acta_firmada ? (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600" aria-label="Subida" />
-                        ) : null}
-                      </span>
-                      {a.tiene_acta_firmada ? (
-                        <button
-                          type="button"
-                          onClick={() => handleVerFirmada(a.proceso_id)}
-                          className="btn-sm w-[6rem] inline-flex items-center justify-center gap-1.5 rounded-md bg-[#144193] text-white font-semibold hover:bg-[#1B4AAE] transition-colors"
-                        >
-                          <Eye className="w-3.5 h-3.5" /> Ver
-                        </button>
+                      <span className="text-numa-800 font-medium whitespace-nowrap">Pago en efectivo</span>
+                      {a.efectivo_pendiente ? (
+                        <span className="pill bg-amber-50 text-amber-800 border-amber-200 col-span-2 justify-center">
+                          <Clock className="w-3.5 h-3.5" /> Por depositar
+                        </span>
                       ) : (
-                        <a
-                          href={`/procesos/${a.proceso_id}`}
-                          title="Ir al proceso para subirla"
-                          className="pill bg-amber-50 text-amber-800 border-amber-200 w-[6rem] justify-center hover:bg-amber-100"
-                        >
-                          <Clock className="w-3.5 h-3.5" /> Falta subir
-                        </a>
-                      )}
-                      {isAdmin && a.tiene_acta_firmada ? (
-                        <button
-                          type="button"
-                          onClick={() => handleDescargarFirmada(a.proceso_id, a.codigo_acta)}
-                          title="Descargar acta firmada"
-                          aria-label="Descargar acta firmada"
-                          className="btn-icon bg-numa-100 border-2 border-numa-700 text-numa-900 hover:border-gold-500 hover:bg-gold-400/20"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                      ) : (
-                        <span />
+                        <span className="pill bg-emerald-50 text-emerald-800 border-emerald-200 col-span-2 justify-center">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Depositado
+                        </span>
                       )}
                     </>
                   )}

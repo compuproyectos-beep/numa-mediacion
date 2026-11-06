@@ -303,6 +303,8 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
   // El acta que genera el sistema queda escondida (la página
   // /procesos/[id]/acta-imprimir sigue existiendo por si se vuelve a usar).
   const MOSTRAR_BOTON_IMPRIMIR_ACTA = false;
+  // El texto del acuerdo y su corrección ya no se usan: el acta se hace aparte, con su propio formato.
+  const MOSTRAR_TEXTO_ACUERDO = false;
   const botonImprimir = (
     texto = 'Descargar o imprimir acta para firmar',
     ayuda = 'Genera el acta con los datos del sistema y espacios en blanco para firmar. Puedes imprimirla o guardarla como PDF.'
@@ -331,7 +333,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
       )}
 
       {/* Acuerdo registrado */}
-      {!noAcuerdo && proceso.acuerdo_texto && etapa !== 'completa' && (
+      {MOSTRAR_TEXTO_ACUERDO && !noAcuerdo && proceso.acuerdo_texto && etapa !== 'completa' && (
         <div className="card p-4">
           <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
             <h3 className="text-base font-bold text-numa-900">Acuerdo</h3>
