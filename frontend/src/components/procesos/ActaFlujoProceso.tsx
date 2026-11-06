@@ -204,6 +204,7 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
   };
 
   const pagosEf: any[] = Array.isArray(proceso.pagos_efectivo) ? proceso.pagos_efectivo : [];
+  const saldoEf = pagosEf.find((x) => x.concepto === 'saldo');
   const soloEfectivo = !!proceso.efectivo_pendiente && !proceso.pago_pendiente;
   const nombreConcepto = (c: string) => (c === 'abono1' ? 'Primer abono' : c === 'saldo' ? 'Saldo' : 'Pago');
 
@@ -367,12 +368,15 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
           ) : (
             <>
               <p className="text-sm text-numa-800 mt-1">
-                Saldo pagado: <strong>{dinero(saldo)}</strong> el {fechaDia(proceso.pago_final_fecha)}. Pago
+                Saldo pagado: <strong>{dinero(saldo)}</strong>
+                {saldoEf ? ' en efectivo' : ''} el {fechaDia(saldoEf ? saldoEf.fecha_recibido : proceso.pago_final_fecha)}. Pago
                 completo (valor total {dinero(proceso.monto_total)}).
               </p>
-              <button type="button" onClick={verComprobanteFinal} className="btn-secondary btn-sm mt-2">
-                <Eye className="w-3.5 h-3.5" /> Ver comprobante del segundo pago
-              </button>
+              {!saldoEf && (
+                <button type="button" onClick={verComprobanteFinal} className="btn-secondary btn-sm mt-2">
+                  <Eye className="w-3.5 h-3.5" /> Ver comprobante del segundo pago
+                </button>
+              )}
             </>
           )}
         </div>
