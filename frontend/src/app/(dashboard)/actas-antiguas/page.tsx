@@ -182,7 +182,7 @@ export default function ActasAntiguasPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <SelectField label="Sucursal" value={sucursalId} onChange={(e) => setSucursalId(e.target.value)}>
             {sucursales.map((s) => (
-              <option key={s.id} value={s.id}>{s.nombre}{s.ciudad_nombre ? ` - ${s.ciudad_nombre}` : ''}</option>
+              <option key={s.id} value={s.id}>{s.ciudad ? `${s.ciudad} - ` : ''}{s.nombre}</option>
             ))}
           </SelectField>
           <SelectField label="Mediador del acta" value={mediadorId} onChange={(e) => setMediadorId(e.target.value)}>
