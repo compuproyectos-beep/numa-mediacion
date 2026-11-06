@@ -832,6 +832,9 @@ function ProcesoDetalleContenido() {
     }
 
     if (proceso.etapa_acta === 'falta_firmada') {
+      if (proceso.efectivo_pendiente && !proceso.pago_pendiente) {
+        return 'Falta depositar el efectivo en la cuenta de NUMA. Cuando lo hagas, marca «Efectivo ya depositado» para completar el proceso.';
+      }
       return proceso.pago_pendiente
         ? 'Falta el comprobante del segundo pago (el saldo). Súbelo para completar el proceso; mientras tanto no puedes subir otras actas.'
         : 'Haz que firmen el acta las partes y el mediador y sube el acta firmada en PDF para completar el proceso.';
