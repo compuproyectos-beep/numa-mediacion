@@ -7022,7 +7022,8 @@ async def registrar_acta_antigua(
         ids_sol = [_cliente(d) for d in solicitantes]
         ids_inv = [_cliente(d) for d in invitados]
 
-        codigo_proceso = f"ANT-{codigo_acta}"
+        cur.execute("SELECT nextval('procesos_codigo_seq') AS n")
+        codigo_proceso = f"PRC-{str(cur.fetchone()['n']).zfill(6)}"
         con_acuerdo = tipo == "acuerdo"
         ruta = f"actas-finales/{codigo_acta}/{uuid.uuid4()}.pdf"
         cur.execute("""
