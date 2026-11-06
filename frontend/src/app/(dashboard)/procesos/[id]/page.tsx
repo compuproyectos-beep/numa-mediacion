@@ -1134,7 +1134,7 @@ function ProcesoDetalleContenido() {
         </div>
       )}
 
-      {avisoNumero && (
+      {avisoNumero && !(conActa(proceso) && !proceso.finalizado && !proceso.suspendido && !proceso.bloqueo_acta_id && !proceso.bloqueo_otro_codigo && !procesoPrimeroEnFila && proceso.numero_acta_codigo) && (
         <div className="mb-4 rounded-xl border-2 border-gold-400 bg-gold-50 px-5 py-4 shadow-[0_14px_30px_-22px_rgba(10,42,98,0.5)]">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3">
@@ -1940,6 +1940,24 @@ function ProcesoDetalleContenido() {
 
         {conActa(proceso) && !proceso.finalizado && !proceso.suspendido && !proceso.bloqueo_acta_id && !proceso.bloqueo_otro_codigo && (
           <div className="card p-4">
+            {!procesoPrimeroEnFila && proceso.numero_acta_codigo && (
+              <div className="mb-4 rounded-xl border-2 border-gold-400 bg-gold-50 px-5 py-4 shadow-[0_14px_30px_-22px_rgba(10,42,98,0.5)]">
+                <div className="flex items-start gap-3">
+                  <Hash className="w-8 h-8 text-gold-700 shrink-0 mt-1" aria-hidden="true" />
+                  <div>
+                    <p className="text-sm font-bold uppercase tracking-wide text-numa-800">Número de acta de este proceso</p>
+                    <p className="text-3xl sm:text-4xl font-mono font-extrabold text-numa-900 my-1">{proceso.numero_acta_codigo}</p>
+                    <p className="text-base font-semibold text-numa-900">
+                      Escribe este número en el acta.
+                    </p>
+                    <p className="text-sm text-numa-800">
+                      Desde que se te dio tienes 48 horas para subir toda la documentación y el comprobante de pago;
+                      si no, el acta se bloquea.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <p className="text-sm text-numa-700">
                 {procesoPrimeroEnFila
@@ -1947,13 +1965,7 @@ function ProcesoDetalleContenido() {
                   : esNoAcuerdo(proceso)
                   ? 'Se pidió el acta de no acuerdo. Sube la documentación y el comprobante de pago para cerrarla.'
                   : 'El proceso llegó a un acuerdo. Sube la documentación y el comprobante de pago para cerrarlo.'}
-                {proceso.numero_acta_codigo ? (
-                  <>
-                    {' '}Número de acta: <b className="font-mono">{proceso.numero_acta_codigo}</b>.
-                  </>
-                ) : (
-                  !procesoPrimeroEnFila && ' Primero pide el número de acta.'
-                )}
+                {!proceso.numero_acta_codigo && !procesoPrimeroEnFila && ' Primero pide el número de acta.'}
               </p>
 
               {procesoPrimeroEnFila ? (
