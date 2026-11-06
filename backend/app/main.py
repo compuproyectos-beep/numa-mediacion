@@ -9223,6 +9223,7 @@ def obtener_actas_finales(
                 p.pago_pendiente,
                 EXISTS (SELECT 1 FROM pagos_efectivo pe WHERE pe.proceso_id = p.id AND NOT pe.depositado) AS efectivo_pendiente,
                 EXISTS (SELECT 1 FROM pagos_efectivo pe WHERE pe.proceso_id = p.id) AS tiene_efectivo,
+                COALESCE(p.acta_antigua, false) AS acta_antigua,
                 COALESCE(p.requiere_facturas, false) AS requiere_facturas,
                 (NOT COALESCE(p.acta_antigua, false) AND NOT COALESCE(p.sin_factura, false) AND NOT EXISTS (SELECT 1 FROM proceso_facturas f
                              WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'cliente')) AS falta_factura_cliente,

@@ -573,7 +573,7 @@ const handleExportarZip = async () => {
 
                   {a.efectivo_pendiente && <Badge label="Efectivo por depositar" variant="enviado" />}
 
-                  {!a.ruta_comprobante_pago && !a.tiene_efectivo && (
+                  {!a.ruta_comprobante_pago && !a.tiene_efectivo && !a.acta_antigua && (
                     <Badge label="Sin comprobante" variant="rechazado" />
                   )}
 
