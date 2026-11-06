@@ -1963,8 +1963,12 @@ function ProcesoDetalleContenido() {
                 {procesoPrimeroEnFila
                   ? `Esta acta no se puede subir todavía: primero completa el acta ${procesoPrimeroEnFila.numero_acta_codigo || `del proceso ${procesoPrimeroEnFila.codigo_proceso}`}, que ya pasó las 48 horas.`
                   : esNoAcuerdo(proceso)
-                  ? 'Se pidió el acta de no acuerdo. Sube la documentación y el comprobante de pago para cerrarla.'
-                  : 'El proceso llegó a un acuerdo. Sube la documentación y el comprobante de pago para cerrarlo.'}
+                  ? (proceso.numero_acta_codigo
+                      ? 'Se pidió el acta de no acuerdo.'
+                      : 'Se pidió el acta de no acuerdo. Sube la documentación y el comprobante de pago para cerrarla.')
+                  : (proceso.numero_acta_codigo
+                      ? 'El proceso llegó a un acuerdo.'
+                      : 'El proceso llegó a un acuerdo. Sube la documentación y el comprobante de pago para cerrarlo.')}
                 {!proceso.numero_acta_codigo && !procesoPrimeroEnFila && ' Primero pide el número de acta.'}
               </p>
 
