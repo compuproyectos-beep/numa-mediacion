@@ -34,6 +34,7 @@ function etiquetaAccion(accion: string): string {
     sucursal_desactivada: 'Sucursal desactivada',
     proceso_anulado: 'Proceso anulado',
     pedir_numero_acta: 'Número de acta pedido',
+    acta_antigua_registrada: 'Acta antigua registrada',
     efectivo_depositado: 'Efectivo marcado como depositado',
     sin_factura_marcado: 'Cliente sin factura (marcado)',
     sin_factura_quitado: 'Cliente sin factura (quitado)',

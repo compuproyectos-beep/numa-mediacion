@@ -6923,6 +6923,177 @@ def marcar_sin_factura(proceso_id: int, datos: dict, usuario=Depends(obtener_usu
         conn.close()
 
 
+@app.post("/actas-antiguas")
+async def registrar_acta_antigua(
+    sucursal_id: int = Form(...),
+    mediador_id: int = Form(...),
+    numero: int = Form(...),
+    fecha: str = Form(...),
+    tipo: str = Form("acuerdo"),
+    tema: str = Form(...),
+    partes: str = Form(...),
+    archivo: UploadFile = File(...),
+    usuario=Depends(obtener_usuario_actual)
+):
+    """Registra un acta física antigua (solo administrador): crea el proceso ya cerrado,
+    con el número y la fecha que trae el acta, sin facturas ni comprobantes."""
+    if usuario["rol"] != "administrador":
+        raise HTTPException(status_code=403, detail="Solo el administrador puede registrar actas antiguas")
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        tipo = (tipo or "acuerdo").strip()
+        if tipo not in ("acuerdo", "no_acuerdo"):
+            raise HTTPException(status_code=400, detail="Elige si el acta es de acuerdo o de no acuerdo")
+        tema = (tema or "").strip()
+        if not tema:
+            raise HTTPException(status_code=400, detail="Escribe el tema del acta (por ejemplo: ALIMENTOS)")
+        try:
+            f = datetime.date.fromisoformat((fecha or "").strip())
+        except Exception:
+            raise HTTPException(status_code=400, detail="La fecha del acta no es válida")
+        if f > datetime.date.today():
+            raise HTTPException(status_code=400, detail="La fecha del acta no puede ser futura")
+        fecha_dt = datetime.datetime(f.year, f.month, f.day, 12, 0, tzinfo=datetime.timezone(datetime.timedelta(hours=-5)))
+
+        try:
+            pj = json.loads(partes)
+            solicitantes = pj.get("solicitantes") or []
+            invitados = pj.get("invitados") or []
+        except Exception:
+            raise HTTPException(status_code=400, detail="Los datos de las partes no son válidos")
+        if not solicitantes or not invitados:
+            raise HTTPException(status_code=400, detail="Debe haber al menos un solicitante y un invitado")
+
+        if not archivo or not archivo.filename or not archivo.filename.lower().endswith(".pdf"):
+            raise HTTPException(status_code=400, detail="Sube el acta en PDF")
+        contenido = await archivo.read()
+        if not contenido.startswith(b"%PDF"):
+            raise HTTPException(status_code=400, detail="El archivo no es un PDF válido")
+        contenido = comprimir_pdf(contenido)
+
+        cur.execute("""
+            SELECT s.id, s.codigo_corto, s.acta_numero_inicial, c.prefijo
+            FROM sucursales s JOIN ciudades c ON c.id = s.ciudad_id WHERE s.id = %s
+        """, (sucursal_id,))
+        suc = cur.fetchone()
+        if not suc:
+            raise HTTPException(status_code=404, detail="La sucursal no existe")
+        inicial = int(suc["acta_numero_inicial"] or 1)
+        if numero < 1 or numero >= inicial:
+            raise HTTPException(
+                status_code=400,
+                detail=f"El número debe estar entre 1 y {inicial - 1}. Del {inicial} en adelante se piden desde el sistema."
+            )
+        cur.execute("SELECT id FROM usuarios WHERE id = %s AND sucursal_id = %s AND activo = true", (mediador_id, sucursal_id))
+        if not cur.fetchone():
+            raise HTTPException(status_code=400, detail="El mediador no pertenece a esa sucursal")
+
+        codigo_acta = f"{suc['prefijo']}-{suc['codigo_corto']}-{str(numero).zfill(5)}"
+        cur.execute("SELECT 1 FROM numeros_acta WHERE sucursal_id = %s AND secuencial = %s", (sucursal_id, numero))
+        if cur.fetchone():
+            raise HTTPException(status_code=400, detail=f"El acta {codigo_acta} ya está registrada")
+
+        def _cliente(d):
+            t = (d.get("tipo") or "persona").strip().lower()
+            if t == "empresa":
+                ruc = re.sub(r"\D", "", d.get("ruc") or "")
+                cur.execute("SELECT id FROM clientes WHERE ruc = %s", (ruc,))
+            else:
+                ced = (d.get("cedula") or "").strip()
+                cur.execute("SELECT id FROM clientes WHERE cedula = %s", (ced,))
+            ex = cur.fetchone()
+            if ex:
+                return ex["id"]
+            v = _validar_datos_cliente(
+                cur, t, d.get("cedula"), d.get("nombre"), d.get("apellido"), d.get("telefono"), d.get("email"),
+                None, d.get("razon_social"), d.get("ruc"), d.get("representante_nombre"), d.get("representante_cedula")
+            )
+            cur.execute("""
+                INSERT INTO clientes (tipo, cedula, nombre, apellido, razon_social, ruc,
+                    representante_nombre, representante_cedula, telefono, email, ciudad_id,
+                    fecha_creacion, fecha_modificacion)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
+            """, (v["tipo"], v["cedula"], v["nombre"], v["apellido"], v["razon_social"], v["ruc"],
+                  v["representante_nombre"], v["representante_cedula"], v["telefono"], v["email"], v["ciudad_id"],
+                  fecha_dt, fecha_dt))
+            return cur.fetchone()["id"]
+
+        ids_sol = [_cliente(d) for d in solicitantes]
+        ids_inv = [_cliente(d) for d in invitados]
+
+        codigo_proceso = f"ANT-{codigo_acta}"
+        con_acuerdo = tipo == "acuerdo"
+        ruta = f"actas-finales/{codigo_acta}/{uuid.uuid4()}.pdf"
+        cur.execute("""
+            INSERT INTO procesos_mediacion (
+                codigo_proceso, sucursal_id, usuario_id, cliente_demandante_id, cliente_demandado_id,
+                tema, estado, fecha_creacion, fecha_modificacion, finalizado, fecha_cierre,
+                fecha_acuerdo, requiere_acta_no_acuerdo, requiere_acta_firmada,
+                acta_firmada_ruta, acta_firmada_nombre, acta_firmada_tamano, acta_firmada_fecha,
+                acta_firmada_usuario_id, requiere_facturas, sin_factura, acta_antigua
+            )
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,true,%s,%s,%s,true,%s,%s,%s,%s,%s,false,true,true)
+            RETURNING id
+        """, (
+            codigo_proceso, sucursal_id, mediador_id, ids_sol[0], ids_inv[0], tema,
+            "cerrado_con_acuerdo" if con_acuerdo else "cerrado_sin_acuerdo",
+            fecha_dt, fecha_dt, fecha_dt,
+            f if con_acuerdo else None,
+            not con_acuerdo,
+            ruta, archivo.filename, len(contenido), fecha_dt, usuario["id"]
+        ))
+        proceso_id = cur.fetchone()["id"]
+
+        for i, cid in enumerate(ids_sol):
+            cur.execute("INSERT INTO proceso_partes (proceso_id, rol, cliente_id, es_responsable) VALUES (%s,'solicitante',%s,%s)",
+                        (proceso_id, cid, i == 0))
+        for i, cid in enumerate(ids_inv):
+            cur.execute("INSERT INTO proceso_partes (proceso_id, rol, cliente_id, es_responsable) VALUES (%s,'invitado',%s,%s)",
+                        (proceso_id, cid, i == 0))
+
+        cur.execute("""
+            INSERT INTO numeros_acta (sucursal_id, secuencial, codigo, estado, usuario_id, proceso_id, fecha_solicitud, fecha_uso)
+            VALUES (%s,%s,%s,'usado',%s,%s,%s,%s)
+        """, (sucursal_id, numero, codigo_acta, mediador_id, proceso_id, fecha_dt, fecha_dt))
+
+        cur.execute("""
+            INSERT INTO actas_proceso (proceso_id, codigo_acta, tipo, archivo_pdf, nombre_original, tamano_bytes, usuario_id, fecha_subida)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
+        """, (proceso_id, codigo_acta, tipo, ruta, archivo.filename, len(contenido), usuario["id"], fecha_dt))
+        acta_id = cur.fetchone()["id"]
+        cur.execute("UPDATE procesos_mediacion SET acta_final_id = %s WHERE id = %s", (acta_id, proceso_id))
+
+        SUPABASE_URL = (os.getenv("SUPABASE_URL") or "").rstrip("/")
+        SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "actas-pdf")
+        if not SUPABASE_URL or not SUPABASE_KEY:
+            raise HTTPException(status_code=500, detail="Supabase no está configurado en el backend")
+        r = requests.post(
+            f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{quote(ruta, safe='/')}",
+            headers={**_sb_auth(SUPABASE_KEY), "apikey": SUPABASE_KEY, "Content-Type": "application/pdf", "x-upsert": "true"},
+            data=contenido
+        )
+        if r.status_code not in (200, 201):
+            raise HTTPException(status_code=500, detail=f"Error subiendo el acta a Supabase: {r.text}")
+
+        registrar_auditoria(
+            cur, usuario, "acta_antigua_registrada", "proceso_mediacion", proceso_id,
+            f"Registró el acta antigua {codigo_acta} ({'acuerdo' if con_acuerdo else 'no acuerdo'}) con fecha {f.strftime('%d/%m/%Y')}"
+        )
+        conn.commit()
+        return {"proceso_id": proceso_id, "codigo_acta": codigo_acta}
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.get("/reportes/efectivo-pendiente")
 def reporte_efectivo_pendiente(
     sucursal_id: int = None,
@@ -9053,11 +9224,11 @@ def obtener_actas_finales(
                 EXISTS (SELECT 1 FROM pagos_efectivo pe WHERE pe.proceso_id = p.id AND NOT pe.depositado) AS efectivo_pendiente,
                 EXISTS (SELECT 1 FROM pagos_efectivo pe WHERE pe.proceso_id = p.id) AS tiene_efectivo,
                 COALESCE(p.requiere_facturas, false) AS requiere_facturas,
-                (NOT COALESCE(p.sin_factura, false) AND NOT EXISTS (SELECT 1 FROM proceso_facturas f
+                (NOT COALESCE(p.acta_antigua, false) AND NOT COALESCE(p.sin_factura, false) AND NOT EXISTS (SELECT 1 FROM proceso_facturas f
                              WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'cliente')) AS falta_factura_cliente,
                 COALESCE(p.sin_factura, false) AS sin_factura,
-                NOT EXISTS (SELECT 1 FROM proceso_facturas f
-                             WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'mediador') AS falta_factura_mediador,
+                (NOT COALESCE(p.acta_antigua, false) AND NOT EXISTS (SELECT 1 FROM proceso_facturas f
+                             WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'mediador')) AS falta_factura_mediador,
                 (SELECT cx.id FROM comprobantes_pago_extra cx
                   WHERE cx.proceso_id = p.id ORDER BY cx.id DESC LIMIT 1) AS comprobante_final_id,
                 fac.nombre AS fact_nombre,
@@ -11173,10 +11344,10 @@ def listar_facturas_pagos_faltantes(
                         AND NOT EXISTS (SELECT 1 FROM proceso_facturas f
                                          WHERE f.proceso_id = p.id AND f.vigente AND f.tipo = 'mediador')
                        ) AS falta_factura_mediador,
-                       EXISTS (SELECT 1 FROM actas_proceso ap
+                       (NOT COALESCE(p.acta_antigua, false) AND EXISTS (SELECT 1 FROM actas_proceso ap
                                 WHERE ap.proceso_id = p.id AND ap.ruta_comprobante_pago IS NULL
                                   AND NOT EXISTS (SELECT 1 FROM pagos_efectivo pe WHERE pe.proceso_id = p.id)
-                       ) AS falta_comprobante_pago,
+                       )) AS falta_comprobante_pago,
                        COALESCE(p.pago_en_abonos AND p.pago_pendiente, false) AS falta_comprobante_saldo
                 FROM procesos_mediacion p
                 JOIN sucursales s ON s.id = p.sucursal_id

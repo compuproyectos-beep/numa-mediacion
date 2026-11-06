@@ -1165,3 +1165,27 @@ export async function getEfectivoPendiente(params?: { sucursal_id?: number | str
   const res = await api.get('/reportes/efectivo-pendiente', { params });
   return res.data;
 }
+
+// ── ACTAS ANTIGUAS (registro manual, solo administrador) ─────────────────────
+export async function registrarActaAntigua(datos: {
+  sucursalId: number;
+  mediadorId: number;
+  numero: number;
+  fecha: string;
+  tipo: 'acuerdo' | 'no_acuerdo';
+  tema: string;
+  partes: any;
+  archivo: File;
+}): Promise<{ proceso_id: number; codigo_acta: string }> {
+  const fd = new FormData();
+  fd.append('sucursal_id', String(datos.sucursalId));
+  fd.append('mediador_id', String(datos.mediadorId));
+  fd.append('numero', String(datos.numero));
+  fd.append('fecha', datos.fecha);
+  fd.append('tipo', datos.tipo);
+  fd.append('tema', datos.tema);
+  fd.append('partes', JSON.stringify(datos.partes));
+  fd.append('archivo', datos.archivo);
+  const res = await api.post('/actas-antiguas', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+  return res.data;
+}

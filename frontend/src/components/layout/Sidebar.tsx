@@ -41,6 +41,7 @@ const COLOR_ICONO: Record<string, string> = {
   '/usuarios': 'bg-indigo-400/25 text-indigo-300',
   '/sucursales': 'bg-cyan-400/20 text-cyan-300',
   '/ciudades': 'bg-lime-400/20 text-lime-300',
+  '/actas-antiguas': 'bg-yellow-400/20 text-yellow-300',
   '/auditoria': 'bg-rose-400/20 text-rose-300',
 };
 
@@ -55,6 +56,7 @@ const navItems = [
   { href: '/usuarios', icon: UserCircle, label: 'Usuarios', adminOnly: true },
   { href: '/sucursales', icon: Building2, label: 'Sucursales', adminOnly: true },
   { href: '/ciudades', icon: MapPin, label: 'Ciudades', adminOnly: true },
+  { href: '/actas-antiguas', icon: FileCheck, label: 'Actas antiguas', adminOnly: true },
   { href: '/auditoria', icon: ClipboardList, label: 'Auditoría', adminOnly: true },
 ];
 
