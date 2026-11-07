@@ -1,5 +1,6 @@
 'use client';
 
+import { BuscadorCliente } from '@/components/clientes/SugerenciasClientes';
 import { mayusInicial } from '@/lib/texto';
 import { etapaActaBadge } from '@/lib/etapaActa';
 import { conActa } from '@/lib/actaProceso';
@@ -1146,27 +1147,16 @@ export default function ProcesosPage() {
                 </p>
               </div>
             ) : (
-            <SelectField
+            <BuscadorCliente
               label="Solicitante"
+              clientes={clientes}
               value={form.cliente_demandante_id}
-              onChange={(e) => {
-                if (e.target.value === '__nuevo__') {
-                  setForm({ ...form, cliente_demandante_id: '' });
-                  setNuevos((a) => ({ ...a, sol: { tipo: 'persona', cedula: '', nombre: '', apellido: '' } }));
-                } else {
-                  setForm({ ...form, cliente_demandante_id: e.target.value });
-                }
+              onChange={(id) => setForm((f) => ({ ...f, cliente_demandante_id: id }))}
+              onNuevo={() => {
+                setForm((f) => ({ ...f, cliente_demandante_id: '' }));
+                setNuevos((a) => ({ ...a, sol: { tipo: 'persona', cedula: '', nombre: '', apellido: '' } }));
               }}
-            >
-              <option value="">Seleccione</option>
-              <option value="__nuevo__">+ Cliente nuevo (persona)</option>
-
-              {clientes.map((c: any) => (
-                <option key={c.id} value={c.id}>
-                  {etiquetaCliente(c)}
-                </option>
-              ))}
-            </SelectField>
+            />
             )
             )}
 
@@ -1215,27 +1205,16 @@ export default function ProcesosPage() {
                 </p>
               </div>
             ) : (
-            <SelectField
+            <BuscadorCliente
               label="Invitado"
+              clientes={clientes}
               value={form.cliente_demandado_id}
-              onChange={(e) => {
-                if (e.target.value === '__nuevo__') {
-                  setForm({ ...form, cliente_demandado_id: '' });
-                  setNuevos((a) => ({ ...a, inv: { tipo: 'persona', cedula: '', nombre: '', apellido: '' } }));
-                } else {
-                  setForm({ ...form, cliente_demandado_id: e.target.value });
-                }
+              onChange={(id) => setForm((f) => ({ ...f, cliente_demandado_id: id }))}
+              onNuevo={() => {
+                setForm((f) => ({ ...f, cliente_demandado_id: '' }));
+                setNuevos((a) => ({ ...a, inv: { tipo: 'persona', cedula: '', nombre: '', apellido: '' } }));
               }}
-            >
-              <option value="">Seleccione</option>
-              <option value="__nuevo__">+ Cliente nuevo (persona)</option>
-
-              {clientes.map((c: any) => (
-                <option key={c.id} value={c.id}>
-                  {etiquetaCliente(c)}
-                </option>
-              ))}
-            </SelectField>
+            />
             )
             )}
 

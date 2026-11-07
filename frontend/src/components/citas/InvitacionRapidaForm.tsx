@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Plus, Trash2, Zap, CheckCircle2 } from 'lucide-react';
 import { InputField, TextareaField, ErrorAlert } from '@/components/ui';
 import { crearInvitacionRapida, getClientes } from '@/lib/services';
+import { buscarClientes, ListaSugerencias } from '@/components/clientes/SugerenciasClientes';
 
 // Cédula ecuatoriana (mismo cálculo que en Clientes).
 const cedulaValida = (cedula: string) => {
@@ -122,6 +123,33 @@ function LadoEditor({
     onChange({ ...lado, empresa });
   };
 
+  // Sugerencias mientras se escribe: foco = campo activo ("p0n", "p0c", "e_rs"...).
+  const [foco, setFoco] = useState('');
+  const alFoco = (k: string) => ({ onFocus: () => setFoco(k), onBlur: () => setFoco('') });
+
+  const elegirPersona = (i: number, c: any) => {
+    setFoco('');
+    onChange({
+      ...lado,
+      personas: lado.personas.map((p, idx) =>
+        idx === i ? { nombre: nombreCompleto(c), cedula: c.cedula || '', registrado: true } : p
+      )
+    });
+  };
+  const elegirEmpresa = (c: any) => {
+    setFoco('');
+    onChange({
+      ...lado,
+      empresa: {
+        razon_social: c.razon_social || c.nombre || '',
+        ruc: c.ruc || '',
+        representante_nombre: c.representante_nombre || '',
+        representante_cedula: c.representante_cedula || '',
+        registrado: true
+      }
+    });
+  };
+
   const ultima = lado.personas[lado.personas.length - 1];
   const puedeAgregar = !!ultima && !!ultima.nombre.trim() && cedulaValida(ultima.cedula);
 
@@ -161,6 +189,8 @@ function LadoEditor({
                 onChange={(e) => setPersona(i, 'nombre', e.target.value)}
                 placeholder="Nombre completo"
                 disabled={!!p.registrado}
+                autoComplete="off"
+                {...alFoco(`p${i}n`)}
               />
               <InputField
                 label="Cédula"
@@ -168,6 +198,8 @@ function LadoEditor({
                 value={p.cedula}
                 onChange={(e) => cambiarCedulaPersona(i, soloDigitos(e.target.value, 10))}
                 placeholder="10 dígitos"
+                autoComplete="off"
+                {...alFoco(`p${i}c`)}
                 error={
                   p.cedula.length === 10 && !cedulaValida(p.cedula) ? 'Cédula inválida' : undefined
                 }
@@ -185,6 +217,18 @@ function LadoEditor({
                 </button>
               ) : (
                 <span />
+              )}
+              {!p.registrado && (foco === `p${i}n` || foco === `p${i}c`) && (
+                <div className="sm:col-span-3">
+                  <ListaSugerencias
+                    items={buscarClientes(
+                      clientes,
+                      foco === `p${i}n` ? p.nombre : p.cedula,
+                      'persona'
+                    ).filter((c) => !(foco === `p${i}c` && c.cedula === p.cedula && p.cedula.length === 10))}
+                    onElegir={(c) => elegirPersona(i, c)}
+                  />
+                </div>
               )}
               {p.registrado && (
                 <p className="sm:col-span-3 -mt-1 text-xs text-green-800 flex items-start gap-1.5">
@@ -220,6 +264,8 @@ function LadoEditor({
             value={lado.empresa.razon_social}
             onChange={(e) => setEmpresa('razon_social', e.target.value)}
             disabled={!!lado.empresa.registrado}
+            autoComplete="off"
+            {...alFoco('e_rs')}
           />
 <div className="sm:max-w-[220px]">
           <InputField
@@ -228,6 +274,8 @@ function LadoEditor({
             value={lado.empresa.ruc}
             onChange={(e) => cambiarRuc(soloDigitos(e.target.value, 13))}
             placeholder="13 dígitos"
+            autoComplete="off"
+            {...alFoco('e_ruc')}
           />
 </div>
           <InputField
@@ -236,6 +284,8 @@ function LadoEditor({
             onChange={(e) => setEmpresa('representante_nombre', e.target.value)}
             placeholder="Nombres y apellidos"
             disabled={!!lado.empresa.registrado}
+            autoComplete="off"
+            {...alFoco('e_rn')}
           />
 <div className="sm:max-w-[220px]">
           <InputField
@@ -244,6 +294,8 @@ function LadoEditor({
             value={lado.empresa.representante_cedula}
             onChange={(e) => setEmpresa('representante_cedula', soloDigitos(e.target.value, 10))}
             disabled={!!lado.empresa.registrado}
+            autoComplete="off"
+            {...alFoco('e_rc')}
             error={
               lado.empresa.representante_cedula.length === 10 &&
               !cedulaValida(lado.empresa.representante_cedula)
@@ -252,6 +304,24 @@ function LadoEditor({
             }
           />
 </div>
+          {!lado.empresa.registrado && foco.startsWith('e_') && (
+            <div className="sm:col-span-2">
+              <ListaSugerencias
+                items={buscarClientes(
+                  clientes,
+                  foco === 'e_rs'
+                    ? lado.empresa.razon_social
+                    : foco === 'e_ruc'
+                    ? lado.empresa.ruc
+                    : foco === 'e_rn'
+                    ? lado.empresa.representante_nombre
+                    : lado.empresa.representante_cedula,
+                  'empresa'
+                )}
+                onElegir={elegirEmpresa}
+              />
+            </div>
+          )}
           {lado.empresa.registrado && (
             <p className="sm:col-span-2 text-xs text-green-800 flex items-start gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5 mt-px shrink-0 text-green-600" aria-hidden="true" />
