@@ -322,14 +322,14 @@ export default function ActasAntiguasPage() {
 
       <div ref={avisoRef} className="flex flex-wrap items-center gap-4">
         <button type="button" className="btn-primary" onClick={guardar} disabled={guardando}>
-          {guardando ? (segundos > 6 ? 'Comprimiendo y subiendo...' : 'Subiendo acta...') : 'Registrar acta'}
+          {guardando ? (segundos > 6 ? 'Optimizando y subiendo...' : 'Subiendo acta...') : 'Registrar acta'}
         </button>
 
         {guardando && (
           <div role="status" className="flex-1 min-w-[260px] rounded-xl border border-gold-400 bg-gold-50 px-4 py-3 text-sm text-numa-900">
             <p className="font-semibold">
               {segundos > 6
-                ? `El acta es muy pesada${pesoMB ? ` (${pesoMB.toFixed(1)} MB)` : ''}: el sistema la está comprimiendo hasta que quepa.`
+                ? `El acta es muy pesada${pesoMB ? ` (${pesoMB.toFixed(1)} MB)` : ''}: el sistema la está optimizando para poder guardarla.`
                 : 'Subiendo el acta...'}
             </p>
             <p>
