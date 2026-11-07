@@ -6954,6 +6954,8 @@ async def registrar_acta_antigua(
             raise HTTPException(status_code=400, detail="La fecha del acta no es válida")
         if f > datetime.date.today():
             raise HTTPException(status_code=400, detail="La fecha del acta no puede ser futura")
+        if f.year < 2000:
+            raise HTTPException(status_code=400, detail="La fecha del acta no es válida: revisa el año")
         fecha_dt = datetime.datetime(f.year, f.month, f.day, 12, 0, tzinfo=datetime.timezone(datetime.timedelta(hours=-5)))
 
         try:
