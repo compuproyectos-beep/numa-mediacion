@@ -1,12 +1,12 @@
 'use client';
 
-import { Suspense, useState, FormEvent } from 'react';
+import { Suspense, useEffect, useState, FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import BotonInicio from '@/components/public/BotonInicio';
 import { Eye, EyeOff, ArrowLeft, AlertCircle, CheckCircle, CalendarCheck, FileCheck, ShieldCheck, User, Lock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { getUser } from '@/lib/auth';
+import { getUser, getToken } from '@/lib/auth';
 
 export default function LoginPage() {
   return (
@@ -26,6 +26,15 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Si ya hay una sesión abierta en este navegador (otra pestaña), se entra
+  // directo al sistema en vez de pedir usuario y contraseña otra vez. Si la
+  // sesión estaba vencida, el sistema la cierra solo y vuelve a esta pantalla.
+  useEffect(() => {
+    if (getToken()) {
+      router.replace(getUser()?.rol === 'secretaria' ? '/agenda' : '/dashboard');
+    }
+  }, [router]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
