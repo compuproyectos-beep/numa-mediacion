@@ -165,6 +165,17 @@ export default function ActasAntiguasPage() {
   const [archivo, setArchivo] = useState<File | null>(null);
   const [claveArchivo, setClaveArchivo] = useState(0);
   const [guardando, setGuardando] = useState(false);
+  // Segundos desde que se pulsó "Registrar acta": para avisar si tarda.
+  const [segundos, setSegundos] = useState(0);
+  useEffect(() => {
+    if (!guardando) {
+      setSegundos(0);
+      return;
+    }
+    const t = setInterval(() => setSegundos((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, [guardando]);
+  const pesoMB = archivo ? archivo.size / 1048576 : 0;
   const [error, setError] = useState('');
   const [ok, setOk] = useState('');
 
@@ -304,9 +315,31 @@ export default function ActasAntiguasPage() {
         />
       </div>
 
+      {archivo && pesoMB > 15 && !guardando && (
+        <p className="text-sm text-numa-700">
+          Esta acta pesa {pesoMB.toFixed(1)} MB. Al guardar, el sistema la comprime solo y puede tardar un poco.
+        </p>
+      )}
+
       <button type="button" className="btn-primary" onClick={guardar} disabled={guardando}>
-        {guardando ? 'Guardando...' : 'Registrar acta'}
+        {guardando ? (segundos > 6 ? 'Comprimiendo y subiendo...' : 'Subiendo acta...') : 'Registrar acta'}
       </button>
+
+      {guardando && (
+        <div role="status" className="rounded-xl border border-gold-400 bg-gold-50 px-4 py-3 text-sm text-numa-900">
+          <p className="font-semibold">
+            {segundos > 6
+              ? `El acta es muy pesada${pesoMB ? ` (${pesoMB.toFixed(1)} MB)` : ''}: el sistema la está comprimiendo hasta que quepa.`
+              : 'Subiendo el acta...'}
+          </p>
+          <p>
+            {segundos > 6
+              ? 'No cierres ni recargues esta página. Puede tardar hasta 2 minutos.'
+              : 'Espera un momento.'}{' '}
+            ({segundos} s)
+          </p>
+        </div>
+      )}
     </div>
   );
 }
