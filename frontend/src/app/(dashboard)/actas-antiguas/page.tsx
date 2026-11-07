@@ -315,12 +315,6 @@ export default function ActasAntiguasPage() {
         />
       </div>
 
-      {archivo && pesoMB > 15 && !guardando && (
-        <p className="text-sm text-numa-700">
-          Esta acta pesa {pesoMB.toFixed(1)} MB. Al guardar, el sistema la comprime solo y puede tardar un poco.
-        </p>
-      )}
-
       <button type="button" className="btn-primary" onClick={guardar} disabled={guardando}>
         {guardando ? (segundos > 6 ? 'Comprimiendo y subiendo...' : 'Subiendo acta...') : 'Registrar acta'}
       </button>
