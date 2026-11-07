@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Plus, Trash2, Zap, CheckCircle2 } from 'lucide-react';
 import { InputField, TextareaField, ErrorAlert } from '@/components/ui';
 import { crearInvitacionRapida, getClientes } from '@/lib/services';
-import { buscarClientes, ListaSugerencias } from '@/components/clientes/SugerenciasClientes';
+import { buscarClientes, Sugerente } from '@/components/clientes/SugerenciasClientes';
 
 // Cédula ecuatoriana (mismo cálculo que en Clientes).
 const cedulaValida = (cedula: string) => {
@@ -150,6 +150,13 @@ function LadoEditor({
     });
   };
 
+  const sugPersona = (i: number, p: Persona) =>
+    !p.registrado && (foco === `p${i}n` || foco === `p${i}c`)
+      ? buscarClientes(clientes, foco === `p${i}n` ? p.nombre : p.cedula, 'persona')
+      : [];
+  const sugEmpresa = (k: string, texto: string) =>
+    !lado.empresa.registrado && foco === k ? buscarClientes(clientes, texto, 'empresa') : [];
+
   const ultima = lado.personas[lado.personas.length - 1];
   const puedeAgregar = !!ultima && !!ultima.nombre.trim() && cedulaValida(ultima.cedula);
 
@@ -183,6 +190,7 @@ function LadoEditor({
         <div className="space-y-3">
           {lado.personas.map((p, i) => (
             <div key={i} className="grid grid-cols-1 sm:grid-cols-[minmax(0,380px)_190px_auto] gap-3 items-end">
+              <Sugerente items={sugPersona(i, p)} onElegir={(c) => elegirPersona(i, c)}>
               <InputField
                 label={i === 0 ? 'Nombres y apellidos' : `Nombres y apellidos (${i + 1})`}
                 value={p.nombre}
@@ -192,6 +200,8 @@ function LadoEditor({
                 autoComplete="off"
                 {...alFoco(`p${i}n`)}
               />
+              </Sugerente>
+              <Sugerente items={sugPersona(i, p)} onElegir={(c) => elegirPersona(i, c)}>
               <InputField
                 label="Cédula"
                 inputMode="numeric"
@@ -204,6 +214,7 @@ function LadoEditor({
                   p.cedula.length === 10 && !cedulaValida(p.cedula) ? 'Cédula inválida' : undefined
                 }
               />
+              </Sugerente>
               {lado.personas.length > 1 ? (
                 <button
                   type="button"
@@ -217,18 +228,6 @@ function LadoEditor({
                 </button>
               ) : (
                 <span />
-              )}
-              {!p.registrado && (foco === `p${i}n` || foco === `p${i}c`) && (
-                <div className="sm:col-span-3">
-                  <ListaSugerencias
-                    items={buscarClientes(
-                      clientes,
-                      foco === `p${i}n` ? p.nombre : p.cedula,
-                      'persona'
-                    ).filter((c) => !(foco === `p${i}c` && c.cedula === p.cedula && p.cedula.length === 10))}
-                    onElegir={(c) => elegirPersona(i, c)}
-                  />
-                </div>
               )}
               {p.registrado && (
                 <p className="sm:col-span-3 -mt-1 text-xs text-green-800 flex items-start gap-1.5">
@@ -259,6 +258,7 @@ function LadoEditor({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Sugerente items={sugEmpresa('e_rs', lado.empresa.razon_social)} onElegir={elegirEmpresa}>
           <InputField
             label="Razón social"
             value={lado.empresa.razon_social}
@@ -267,7 +267,9 @@ function LadoEditor({
             autoComplete="off"
             {...alFoco('e_rs')}
           />
+          </Sugerente>
 <div className="sm:max-w-[220px]">
+          <Sugerente items={sugEmpresa('e_ruc', lado.empresa.ruc)} onElegir={elegirEmpresa}>
           <InputField
             label="RUC (opcional)"
             inputMode="numeric"
@@ -277,7 +279,9 @@ function LadoEditor({
             autoComplete="off"
             {...alFoco('e_ruc')}
           />
+          </Sugerente>
 </div>
+          <Sugerente items={sugEmpresa('e_rn', lado.empresa.representante_nombre)} onElegir={elegirEmpresa}>
           <InputField
             label="Representante legal"
             value={lado.empresa.representante_nombre}
@@ -287,7 +291,9 @@ function LadoEditor({
             autoComplete="off"
             {...alFoco('e_rn')}
           />
+          </Sugerente>
 <div className="sm:max-w-[220px]">
+          <Sugerente items={sugEmpresa('e_rc', lado.empresa.representante_cedula)} onElegir={elegirEmpresa}>
           <InputField
             label="Cédula del representante legal"
             inputMode="numeric"
@@ -303,25 +309,8 @@ function LadoEditor({
                 : undefined
             }
           />
+          </Sugerente>
 </div>
-          {!lado.empresa.registrado && foco.startsWith('e_') && (
-            <div className="sm:col-span-2">
-              <ListaSugerencias
-                items={buscarClientes(
-                  clientes,
-                  foco === 'e_rs'
-                    ? lado.empresa.razon_social
-                    : foco === 'e_ruc'
-                    ? lado.empresa.ruc
-                    : foco === 'e_rn'
-                    ? lado.empresa.representante_nombre
-                    : lado.empresa.representante_cedula,
-                  'empresa'
-                )}
-                onElegir={elegirEmpresa}
-              />
-            </div>
-          )}
           {lado.empresa.registrado && (
             <p className="sm:col-span-2 text-xs text-green-800 flex items-start gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5 mt-px shrink-0 text-green-600" aria-hidden="true" />

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { PageHeader, Spinner, ErrorAlert, InputField, SelectField } from '@/components/ui';
 import { getSucursales, getUsuarios, getClientes, registrarActaAntigua } from '@/lib/services';
 import { isAdmin } from '@/lib/auth';
+import { Sugerente } from '@/components/clientes/SugerenciasClientes';
 
 type Parte = {
   tipo: 'persona' | 'empresa';
@@ -90,6 +91,15 @@ function EditorPartes({ titulo, partes, onChange, clientes }: { titulo: string; 
       <p className="text-base font-bold text-numa-900">{titulo}</p>
       {partes.map((p, i) => {
         const sug = sugerencias(i);
+        const elegir = (c: any) => {
+          onChange(partes.map((x, idx) => (idx === i ? aParte(c) : x)));
+          setFoco(null);
+        };
+        const W = (campo: keyof Parte, hijo: React.ReactNode) => (
+          <Sugerente items={foco && foco.i === i && foco.campo === campo ? sug : []} onElegir={elegir} etiqueta={etiqueta}>
+            {hijo}
+          </Sugerente>
+        );
         return (
           <div key={i} className="space-y-3 border-b border-numa-100 pb-4 last:border-0 last:pb-0">
             <div className="flex items-end gap-3">
@@ -107,35 +117,16 @@ function EditorPartes({ titulo, partes, onChange, clientes }: { titulo: string; 
             </div>
             {p.tipo === 'persona' ? (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <InputField label="Cédula" value={p.cedula} maxLength={10} {...f(i, 'cedula')} onChange={(e) => set(i, 'cedula', e.target.value.replace(/\D/g, ''))} />
-                <InputField label="Nombres" value={p.nombre} {...f(i, 'nombre')} onChange={(e) => set(i, 'nombre', e.target.value)} />
-                <InputField label="Apellidos" value={p.apellido} {...f(i, 'apellido')} onChange={(e) => set(i, 'apellido', e.target.value)} />
+                {W('cedula', <InputField label="Cédula" value={p.cedula} maxLength={10} {...f(i, 'cedula')} onChange={(e) => set(i, 'cedula', e.target.value.replace(/\D/g, ''))} />)}
+                {W('nombre', <InputField label="Nombres" value={p.nombre} {...f(i, 'nombre')} onChange={(e) => set(i, 'nombre', e.target.value)} />)}
+                {W('apellido', <InputField label="Apellidos" value={p.apellido} {...f(i, 'apellido')} onChange={(e) => set(i, 'apellido', e.target.value)} />)}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <InputField label="RUC" value={p.ruc} maxLength={13} {...f(i, 'ruc')} onChange={(e) => set(i, 'ruc', e.target.value.replace(/\D/g, ''))} />
-                <InputField label="Razón social" value={p.razon_social} {...f(i, 'razon_social')} onChange={(e) => set(i, 'razon_social', e.target.value)} />
-                <InputField label="Cédula del representante" value={p.representante_cedula} maxLength={10} {...f(i, 'representante_cedula')} onChange={(e) => set(i, 'representante_cedula', e.target.value.replace(/\D/g, ''))} />
-                <InputField label="Representante legal" value={p.representante_nombre} {...f(i, 'representante_nombre')} onChange={(e) => set(i, 'representante_nombre', e.target.value)} />
-              </div>
-            )}
-            {sug.length > 0 && (
-              <div className="rounded-xl border border-numa-200 bg-white shadow-sm overflow-hidden">
-                <p className="px-3 py-1.5 text-xs text-numa-500 bg-numa-50">Ya registrados en el sistema: toca uno para usarlo, o sigue escribiendo.</p>
-                {sug.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      onChange(partes.map((x, idx) => (idx === i ? aParte(c) : x)));
-                      setFoco(null);
-                    }}
-                    className="block w-full text-left px-3 py-2 text-sm text-numa-900 hover:bg-gold-50 border-t border-numa-100"
-                  >
-                    {etiqueta(c)}
-                  </button>
-                ))}
+                {W('ruc', <InputField label="RUC" value={p.ruc} maxLength={13} {...f(i, 'ruc')} onChange={(e) => set(i, 'ruc', e.target.value.replace(/\D/g, ''))} />)}
+                {W('razon_social', <InputField label="Razón social" value={p.razon_social} {...f(i, 'razon_social')} onChange={(e) => set(i, 'razon_social', e.target.value)} />)}
+                {W('representante_cedula', <InputField label="Cédula del representante" value={p.representante_cedula} maxLength={10} {...f(i, 'representante_cedula')} onChange={(e) => set(i, 'representante_cedula', e.target.value.replace(/\D/g, ''))} />)}
+                {W('representante_nombre', <InputField label="Representante legal" value={p.representante_nombre} {...f(i, 'representante_nombre')} onChange={(e) => set(i, 'representante_nombre', e.target.value)} />)}
               </div>
             )}
             {yaExiste(p) && <p className="text-xs text-green-700">Ya está registrado en el sistema: se usan sus datos.</p>}

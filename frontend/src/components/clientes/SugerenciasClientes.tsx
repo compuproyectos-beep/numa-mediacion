@@ -34,6 +34,80 @@ export function buscarClientes(
     .slice(0, max);
 }
 
+// Lista flotante pegada a la casilla en la que se escribe: no mueve el
+// formulario. Flechas arriba/abajo para moverse, Enter acepta (la primera si
+// no se movió), Escape la cierra.
+export function Sugerente({
+  items,
+  onElegir,
+  etiqueta = etiquetaSugerencia,
+  children,
+}: {
+  items: any[];
+  onElegir: (c: any) => void;
+  etiqueta?: (c: any) => string;
+  children: React.ReactNode;
+}) {
+  const [idx, setIdx] = useState(-1);
+  const [cerrado, setCerrado] = useState(false);
+  const clave = items.map((c) => c.id).join(',');
+  useEffect(() => {
+    setIdx(-1);
+    setCerrado(false);
+  }, [clave]);
+  const abierto = items.length > 0 && !cerrado;
+
+  const teclas = (e: React.KeyboardEvent) => {
+    if (!abierto) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setIdx((i) => (i + 1) % items.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setIdx((i) => (i <= 0 ? items.length - 1 : i - 1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      onElegir(items[idx >= 0 ? idx : 0]);
+    } else if (e.key === 'Escape') {
+      setCerrado(true);
+    }
+  };
+
+  return (
+    <div className="relative" onKeyDown={teclas}>
+      {children}
+      {abierto && (
+        <div
+          role="listbox"
+          className="absolute left-0 top-full z-30 mt-1 w-max min-w-full max-w-[min(26rem,85vw)] rounded-xl border border-numa-200 bg-white shadow-lg overflow-hidden"
+        >
+          {items.map((c, n) => (
+            <button
+              key={c.id}
+              type="button"
+              role="option"
+              aria-selected={n === idx}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onElegir(c);
+              }}
+              onMouseEnter={() => setIdx(n)}
+              className={`block w-full text-left px-3 py-2 text-sm text-numa-900 border-t first:border-t-0 border-numa-100 ${
+                n === idx ? 'bg-gold-50' : 'hover:bg-gold-50'
+              }`}
+            >
+              {etiqueta(c)}
+            </button>
+          ))}
+          <p className="px-3 py-1 text-[11px] text-numa-500 bg-numa-50">
+            Ya registrados · Enter para elegir · sigue escribiendo para filtrar
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ListaSugerencias({
   items,
   onElegir,
@@ -97,7 +171,14 @@ export function BuscadorCliente({
 
   return (
     <div className="space-y-2">
-      <div>
+      <Sugerente
+        items={items}
+        onElegir={(c) => {
+          onChange(String(c.id));
+          setTexto(etiquetaSugerencia(c));
+          setAbierto(false);
+        }}
+      >
         <label className="label">{label}</label>
         <div className="flex gap-2">
           <input
@@ -126,15 +207,7 @@ export function BuscadorCliente({
             </button>
           )}
         </div>
-      </div>
-      <ListaSugerencias
-        items={items}
-        onElegir={(c) => {
-          onChange(String(c.id));
-          setTexto(etiquetaSugerencia(c));
-          setAbierto(false);
-        }}
-      />
+      </Sugerente>
       {abierto && !elegido && hayTexto && items.length === 0 && (
         <p className="text-xs text-numa-600">No hay coincidencias. Puedes crear un cliente nuevo.</p>
       )}
