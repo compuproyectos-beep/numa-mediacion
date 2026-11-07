@@ -159,22 +159,13 @@ export default function ActasAntiguasPage() {
   const [sucursalId, setSucursalId] = useState('');
   const [mediadorId, setMediadorId] = useState('');
   const [numero, setNumero] = useState('');
-  // Fecha escrita como DD/MM/AAAA: el año solo admite 4 dígitos.
-  const [fechaTxt, setFechaTxt] = useState('');
-  const fecha = (() => {
-    const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(fechaTxt);
-    if (!m) return '';
-    const d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
-    if (d.getFullYear() !== Number(m[3]) || d.getMonth() !== Number(m[2]) - 1 || d.getDate() !== Number(m[1])) return '';
-    return `${m[3]}-${m[2]}-${m[1]}`;
-  })();
-  const escribirFecha = (v: string) => {
-    const n = v.replace(/\D/g, '').slice(0, 8);
-    let t = n.slice(0, 2);
-    if (n.length > 2) t += '/' + n.slice(2, 4);
-    if (n.length > 4) t += '/' + n.slice(4);
-    setFechaTxt(t);
+  // Selector de fecha del navegador; si el año pasa de 4 dígitos se recorta.
+  const [fecha, setFecha] = useState('');
+  const cambiarFecha = (v: string) => {
+    const m = /^(\d{5,6})-(\d{2})-(\d{2})$/.exec(v);
+    setFecha(m ? `${m[1].slice(0, 4)}-${m[2]}-${m[3]}` : v);
   };
+
   const [tipo, setTipo] = useState<'acuerdo' | 'no_acuerdo'>('acuerdo');
   const [tema, setTema] = useState('');
   const [solicitantes, setSolicitantes] = useState<Parte[]>([parteVacia()]);
@@ -227,7 +218,7 @@ export default function ActasAntiguasPage() {
     setError('');
     setOk('');
     if (!numero || !fecha || !tema.trim() || !archivo || !mediadorId) {
-      setError('Completa el número, la fecha completa (DD/MM/AAAA), el tema, el mediador y sube el PDF del acta.');
+      setError('Completa el número, la fecha, el tema, el mediador y sube el PDF del acta.');
       return;
     }
     if (fecha < '2000-01-01' || fecha > new Date().toISOString().slice(0, 10)) {
@@ -249,7 +240,7 @@ export default function ActasAntiguasPage() {
       setOk(`Listo: se registró el acta ${r.codigo_acta}.`);
       getClientes().then(setClientes).catch(() => {});
       setNumero('');
-      setFechaTxt('');
+      setFecha('');
       setTema('');
       setTipo('acuerdo');
       setSolicitantes([parteVacia()]);
@@ -289,7 +280,7 @@ export default function ActasAntiguasPage() {
             ))}
           </SelectField>
           <InputField label="Número del acta (ej. 12 para ACTA No. 012-2026)" type="number" min={1} value={numero} onChange={(e) => setNumero(e.target.value)} />
-          <InputField label="Fecha que aparece en el acta" inputMode="numeric" placeholder="DD/MM/AAAA" maxLength={10} value={fechaTxt} onChange={(e) => escribirFecha(e.target.value)} error={fechaTxt.length === 10 && !fecha ? 'Fecha no válida' : undefined} />
+          <InputField label="Fecha que aparece en el acta" type="date" min="2000-01-01" max={new Date().toISOString().slice(0, 10)} value={fecha} onChange={(e) => cambiarFecha(e.target.value)} />
           <SelectField label="Resultado" value={tipo} onChange={(e) => setTipo(e.target.value as any)}>
             <option value="acuerdo">Acta de acuerdo</option>
             <option value="no_acuerdo">Acta de no acuerdo</option>
