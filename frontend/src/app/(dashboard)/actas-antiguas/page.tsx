@@ -29,59 +29,119 @@ function mensajeError(e: any): string {
   return 'No se pudo registrar el acta. Intenta de nuevo.';
 }
 
+const norm = (t: string) => (t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+function aParte(ex: any): Parte {
+  return ex.tipo === 'empresa'
+    ? { ...parteVacia(), tipo: 'empresa', ruc: ex.ruc || '', razon_social: ex.razon_social || ex.nombre || '',
+        representante_nombre: ex.representante_nombre || '', representante_cedula: ex.representante_cedula || '' }
+    : { ...parteVacia(), tipo: 'persona', cedula: ex.cedula || '', nombre: ex.nombre || '', apellido: ex.apellido || '' };
+}
+
 function EditorPartes({ titulo, partes, onChange, clientes }: { titulo: string; partes: Parte[]; onChange: (p: Parte[]) => void; clientes: any[] }) {
-  const set = (i: number, campo: keyof Parte, valor: string) =>
-    onChange(partes.map((p, idx) => (idx === i ? { ...p, [campo]: valor } : p)));
-  // Si la cédula o el RUC ya existe en el sistema, se llenan solos los demás datos.
-  const buscar = (i: number, campo: 'cedula' | 'ruc', valor: string) => {
-    const largo = campo === 'cedula' ? 10 : 13;
-    const ex = valor.length === largo ? clientes.find((c) => (campo === 'cedula' ? c.cedula : c.ruc) === valor) : null;
-    onChange(partes.map((p, idx) => {
-      if (idx !== i) return p;
-      if (!ex) return { ...p, [campo]: valor };
-      return ex.tipo === 'empresa'
-        ? { ...p, tipo: 'empresa', ruc: ex.ruc || '', razon_social: ex.razon_social || ex.nombre || '',
-            representante_nombre: ex.representante_nombre || '', representante_cedula: ex.representante_cedula || '' }
-        : { ...p, tipo: 'persona', cedula: ex.cedula || '', nombre: ex.nombre || '', apellido: ex.apellido || '' };
-    }));
+  const [foco, setFoco] = useState<{ i: number; campo: keyof Parte } | null>(null);
+
+  const set = (i: number, campo: keyof Parte, valor: string) => {
+    const nuevas = partes.map((p, idx) => (idx === i ? { ...p, [campo]: valor } : p));
+    // Si la cédula o el RUC está completo y ya existe, se llenan solos los demás datos.
+    const p = nuevas[i];
+    const ex =
+      campo === 'cedula' && valor.length === 10 ? clientes.find((c) => c.cedula === valor)
+      : campo === 'ruc' && valor.length === 13 ? clientes.find((c) => c.ruc === valor)
+      : null;
+    onChange(ex ? nuevas.map((x, idx) => (idx === i ? aParte(ex) : x)) : nuevas);
+    void p;
   };
+
+  const sugerencias = (i: number): any[] => {
+    if (!foco || foco.i !== i) return [];
+    const p = partes[i];
+    const v = norm(String(p[foco.campo] || '')).trim();
+    const esNum = foco.campo === 'cedula' || foco.campo === 'ruc' || foco.campo === 'representante_cedula';
+    if (v.length < (esNum ? 3 : 2)) return [];
+    return clientes
+      .filter((c) => (c.tipo === 'empresa') === (p.tipo === 'empresa'))
+      .filter((c) => {
+        const campos = c.tipo === 'empresa'
+          ? { ruc: c.ruc, razon_social: c.razon_social || c.nombre, representante_nombre: c.representante_nombre, representante_cedula: c.representante_cedula }
+          : { cedula: c.cedula, nombre: `${c.nombre} ${c.apellido}`, apellido: `${c.nombre} ${c.apellido}` };
+        const txt = norm(String((campos as any)[foco.campo] || ''));
+        return esNum ? txt.startsWith(v) : txt.includes(v);
+      })
+      .slice(0, 6);
+  };
+
+  const etiqueta = (c: any) =>
+    c.tipo === 'empresa'
+      ? `${c.razon_social || c.nombre} · RUC ${c.ruc}${c.representante_nombre ? ` · Rep.: ${c.representante_nombre}` : ''}`
+      : `${c.nombre} ${c.apellido} · C.I. ${c.cedula}`;
+
   const yaExiste = (p: Parte) =>
     clientes.some((c) => (p.tipo === 'empresa' ? p.ruc.length === 13 && c.ruc === p.ruc : p.cedula.length === 10 && c.cedula === p.cedula));
+
+  const f = (i: number, campo: keyof Parte) => ({
+    onFocus: () => setFoco({ i, campo }),
+    onBlur: () => setFoco((x) => (x && x.i === i && x.campo === campo ? null : x)),
+    autoComplete: 'off',
+  });
+
   return (
     <div className="card p-4 space-y-4">
       <p className="text-base font-bold text-numa-900">{titulo}</p>
-      {partes.map((p, i) => (
-        <div key={i} className="space-y-3 border-b border-numa-100 pb-4 last:border-0 last:pb-0">
-          <div className="flex items-end gap-3">
-            <div className="flex-1">
-              <SelectField label={`Persona ${i + 1}`} value={p.tipo} onChange={(e) => set(i, 'tipo', e.target.value)}>
-                <option value="persona">Persona natural</option>
-                <option value="empresa">Empresa o institución</option>
-              </SelectField>
+      {partes.map((p, i) => {
+        const sug = sugerencias(i);
+        return (
+          <div key={i} className="space-y-3 border-b border-numa-100 pb-4 last:border-0 last:pb-0">
+            <div className="flex items-end gap-3">
+              <div className="flex-1">
+                <SelectField label={`Persona ${i + 1}`} value={p.tipo} onChange={(e) => onChange(partes.map((x, idx) => (idx === i ? { ...parteVacia(), tipo: e.target.value as any } : x)))}>
+                  <option value="persona">Persona natural</option>
+                  <option value="empresa">Empresa o institución</option>
+                </SelectField>
+              </div>
+              {partes.length > 1 && (
+                <button type="button" className="btn-secondary btn-sm" onClick={() => onChange(partes.filter((_, idx) => idx !== i))}>
+                  Quitar
+                </button>
+              )}
             </div>
-            {partes.length > 1 && (
-              <button type="button" className="btn-secondary btn-sm" onClick={() => onChange(partes.filter((_, idx) => idx !== i))}>
-                Quitar
-              </button>
+            {p.tipo === 'persona' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <InputField label="Cédula" value={p.cedula} maxLength={10} {...f(i, 'cedula')} onChange={(e) => set(i, 'cedula', e.target.value.replace(/\D/g, ''))} />
+                <InputField label="Nombres" value={p.nombre} {...f(i, 'nombre')} onChange={(e) => set(i, 'nombre', e.target.value)} />
+                <InputField label="Apellidos" value={p.apellido} {...f(i, 'apellido')} onChange={(e) => set(i, 'apellido', e.target.value)} />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <InputField label="RUC" value={p.ruc} maxLength={13} {...f(i, 'ruc')} onChange={(e) => set(i, 'ruc', e.target.value.replace(/\D/g, ''))} />
+                <InputField label="Razón social" value={p.razon_social} {...f(i, 'razon_social')} onChange={(e) => set(i, 'razon_social', e.target.value)} />
+                <InputField label="Cédula del representante" value={p.representante_cedula} maxLength={10} {...f(i, 'representante_cedula')} onChange={(e) => set(i, 'representante_cedula', e.target.value.replace(/\D/g, ''))} />
+                <InputField label="Representante legal" value={p.representante_nombre} {...f(i, 'representante_nombre')} onChange={(e) => set(i, 'representante_nombre', e.target.value)} />
+              </div>
             )}
+            {sug.length > 0 && (
+              <div className="rounded-xl border border-numa-200 bg-white shadow-sm overflow-hidden">
+                <p className="px-3 py-1.5 text-xs text-numa-500 bg-numa-50">Ya registrados en el sistema: toca uno para usarlo, o sigue escribiendo.</p>
+                {sug.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      onChange(partes.map((x, idx) => (idx === i ? aParte(c) : x)));
+                      setFoco(null);
+                    }}
+                    className="block w-full text-left px-3 py-2 text-sm text-numa-900 hover:bg-gold-50 border-t border-numa-100"
+                  >
+                    {etiqueta(c)}
+                  </button>
+                ))}
+              </div>
+            )}
+            {yaExiste(p) && <p className="text-xs text-green-700">Ya está registrado en el sistema: se usan sus datos.</p>}
           </div>
-          {p.tipo === 'persona' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <InputField label="Cédula" value={p.cedula} maxLength={10} onChange={(e) => buscar(i, 'cedula', e.target.value.replace(/\D/g, ''))} />
-              <InputField label="Nombres" value={p.nombre} onChange={(e) => set(i, 'nombre', e.target.value)} />
-              <InputField label="Apellidos" value={p.apellido} onChange={(e) => set(i, 'apellido', e.target.value)} />
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <InputField label="RUC" value={p.ruc} maxLength={13} onChange={(e) => buscar(i, 'ruc', e.target.value.replace(/\D/g, ''))} />
-              <InputField label="Razón social" value={p.razon_social} onChange={(e) => set(i, 'razon_social', e.target.value)} />
-              <InputField label="Representante legal" value={p.representante_nombre} onChange={(e) => set(i, 'representante_nombre', e.target.value)} />
-              <InputField label="Cédula del representante" value={p.representante_cedula} maxLength={10} onChange={(e) => set(i, 'representante_cedula', e.target.value.replace(/\D/g, ''))} />
-            </div>
-          )}
-          {yaExiste(p) && <p className="text-xs text-green-700">Ya está registrado en el sistema: se usan sus datos.</p>}
-        </div>
-      ))}
+        );
+      })}
       <button type="button" className="btn-secondary btn-sm" onClick={() => onChange([...partes, parteVacia()])}>
         + Agregar otra persona
       </button>
