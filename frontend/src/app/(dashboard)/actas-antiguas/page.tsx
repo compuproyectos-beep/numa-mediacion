@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageHeader, Spinner, ErrorAlert, InputField, SelectField } from '@/components/ui';
-import { getSucursales, getUsuarios, registrarActaAntigua } from '@/lib/services';
+import { getSucursales, getUsuarios, getClientes, registrarActaAntigua } from '@/lib/services';
 import { isAdmin } from '@/lib/auth';
 
 type Parte = {
@@ -29,9 +29,24 @@ function mensajeError(e: any): string {
   return 'No se pudo registrar el acta. Intenta de nuevo.';
 }
 
-function EditorPartes({ titulo, partes, onChange }: { titulo: string; partes: Parte[]; onChange: (p: Parte[]) => void }) {
+function EditorPartes({ titulo, partes, onChange, clientes }: { titulo: string; partes: Parte[]; onChange: (p: Parte[]) => void; clientes: any[] }) {
   const set = (i: number, campo: keyof Parte, valor: string) =>
     onChange(partes.map((p, idx) => (idx === i ? { ...p, [campo]: valor } : p)));
+  // Si la cédula o el RUC ya existe en el sistema, se llenan solos los demás datos.
+  const buscar = (i: number, campo: 'cedula' | 'ruc', valor: string) => {
+    const largo = campo === 'cedula' ? 10 : 13;
+    const ex = valor.length === largo ? clientes.find((c) => (campo === 'cedula' ? c.cedula : c.ruc) === valor) : null;
+    onChange(partes.map((p, idx) => {
+      if (idx !== i) return p;
+      if (!ex) return { ...p, [campo]: valor };
+      return ex.tipo === 'empresa'
+        ? { ...p, tipo: 'empresa', ruc: ex.ruc || '', razon_social: ex.razon_social || ex.nombre || '',
+            representante_nombre: ex.representante_nombre || '', representante_cedula: ex.representante_cedula || '' }
+        : { ...p, tipo: 'persona', cedula: ex.cedula || '', nombre: ex.nombre || '', apellido: ex.apellido || '' };
+    }));
+  };
+  const yaExiste = (p: Parte) =>
+    clientes.some((c) => (p.tipo === 'empresa' ? p.ruc.length === 13 && c.ruc === p.ruc : p.cedula.length === 10 && c.cedula === p.cedula));
   return (
     <div className="card p-4 space-y-4">
       <p className="text-base font-bold text-numa-900">{titulo}</p>
@@ -52,18 +67,19 @@ function EditorPartes({ titulo, partes, onChange }: { titulo: string; partes: Pa
           </div>
           {p.tipo === 'persona' ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <InputField label="Cédula" value={p.cedula} maxLength={10} onChange={(e) => set(i, 'cedula', e.target.value.replace(/\D/g, ''))} />
+              <InputField label="Cédula" value={p.cedula} maxLength={10} onChange={(e) => buscar(i, 'cedula', e.target.value.replace(/\D/g, ''))} />
               <InputField label="Nombres" value={p.nombre} onChange={(e) => set(i, 'nombre', e.target.value)} />
               <InputField label="Apellidos" value={p.apellido} onChange={(e) => set(i, 'apellido', e.target.value)} />
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <InputField label="RUC" value={p.ruc} maxLength={13} onChange={(e) => set(i, 'ruc', e.target.value.replace(/\D/g, ''))} />
+              <InputField label="RUC" value={p.ruc} maxLength={13} onChange={(e) => buscar(i, 'ruc', e.target.value.replace(/\D/g, ''))} />
               <InputField label="Razón social" value={p.razon_social} onChange={(e) => set(i, 'razon_social', e.target.value)} />
               <InputField label="Representante legal" value={p.representante_nombre} onChange={(e) => set(i, 'representante_nombre', e.target.value)} />
               <InputField label="Cédula del representante" value={p.representante_cedula} maxLength={10} onChange={(e) => set(i, 'representante_cedula', e.target.value.replace(/\D/g, ''))} />
             </div>
           )}
+          {yaExiste(p) && <p className="text-xs text-green-700">Ya está registrado en el sistema: se usan sus datos.</p>}
         </div>
       ))}
       <button type="button" className="btn-secondary btn-sm" onClick={() => onChange([...partes, parteVacia()])}>
@@ -79,6 +95,7 @@ export default function ActasAntiguasPage() {
   const [loading, setLoading] = useState(true);
   const [sucursales, setSucursales] = useState<any[]>([]);
   const [usuarios, setUsuarios] = useState<any[]>([]);
+  const [clientes, setClientes] = useState<any[]>([]);
   const [sucursalId, setSucursalId] = useState('');
   const [mediadorId, setMediadorId] = useState('');
   const [numero, setNumero] = useState('');
@@ -98,10 +115,11 @@ export default function ActasAntiguasPage() {
   }, [admin, router]);
 
   useEffect(() => {
-    Promise.all([getSucursales(true), getUsuarios()])
-      .then(([s, u]) => {
+    Promise.all([getSucursales(true), getUsuarios(), getClientes()])
+      .then(([s, u, c]) => {
         setSucursales(s);
         setUsuarios(u);
+        setClientes(c);
         const matriz = s.find((x: any) => x.id === 18) || s[0];
         if (matriz) setSucursalId(String(matriz.id));
       })
@@ -150,6 +168,7 @@ export default function ActasAntiguasPage() {
         archivo,
       });
       setOk(`Listo: se registró el acta ${r.codigo_acta}.`);
+      getClientes().then(setClientes).catch(() => {});
       setNumero('');
       setFecha('');
       setTema('');
@@ -200,8 +219,8 @@ export default function ActasAntiguasPage() {
         </div>
       </div>
 
-      <EditorPartes titulo="Solicitantes" partes={solicitantes} onChange={setSolicitantes} />
-      <EditorPartes titulo="Invitados" partes={invitados} onChange={setInvitados} />
+      <EditorPartes titulo="Solicitantes" partes={solicitantes} onChange={setSolicitantes} clientes={clientes} />
+      <EditorPartes titulo="Invitados" partes={invitados} onChange={setInvitados} clientes={clientes} />
 
       <div className="card p-4 space-y-2">
         <label className="label">Acta en PDF</label>
