@@ -7078,6 +7078,8 @@ async def registrar_acta_antigua(
             data=contenido
         )
         if r.status_code not in (200, 201):
+            if r.status_code == 413 or "EntityTooLarge" in r.text:
+                raise HTTPException(status_code=400, detail="El PDF pesa demasiado (más de 50 MB incluso comprimido). Escanéalo a menor resolución o divídelo en partes.")
             raise HTTPException(status_code=500, detail=f"Error subiendo el acta a Supabase: {r.text}")
 
         registrar_auditoria(

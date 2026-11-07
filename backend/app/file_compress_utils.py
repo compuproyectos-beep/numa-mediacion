@@ -82,7 +82,7 @@ def comprimir_imagen(contenido: bytes, content_type: str):
         return contenido, content_type, None
 
 
-def comprimir_pdf(contenido: bytes) -> bytes:
+def _comprimir_pdf_una(contenido: bytes, lado_maximo: int = _LADO_MAXIMO_PX, calidad: int = _CALIDAD_JPEG_PDF) -> bytes:
     """
     Recomprime las imágenes que haya DENTRO de un PDF (escaneos o fotos
     de documentos firmados) y reoptimiza sus objetos internos. El texto
@@ -107,8 +107,8 @@ def comprimir_pdf(contenido: bytes) -> bytes:
                     ancho, alto = pil_image.size
                     lado_mayor = max(ancho, alto)
 
-                    if lado_mayor > _LADO_MAXIMO_PX:
-                        factor = _LADO_MAXIMO_PX / lado_mayor
+                    if lado_mayor > lado_maximo:
+                        factor = lado_maximo / lado_mayor
                         pil_image = pil_image.resize(
                             (max(1, int(ancho * factor)), max(1, int(alto * factor))),
                             Image.LANCZOS,
@@ -117,7 +117,7 @@ def comprimir_pdf(contenido: bytes) -> bytes:
                     pil_image = pil_image.convert("RGB")
 
                     buf_imagen = io.BytesIO()
-                    pil_image.save(buf_imagen, format="JPEG", quality=_CALIDAD_JPEG_PDF)
+                    pil_image.save(buf_imagen, format="JPEG", quality=calidad)
                     nuevo_bytes_imagen = buf_imagen.getvalue()
 
                     raw_image.write(nuevo_bytes_imagen, filter=Name("/DCTDecode"))
@@ -152,3 +152,25 @@ def comprimir_pdf(contenido: bytes) -> bytes:
     except Exception as e:
         print(f"⚠️  No se pudo optimizar el PDF, se sube el archivo original: {e}")
         return contenido
+
+
+# Supabase Storage rechaza archivos de más de 50 MB. Un escaneo a alta
+# resolución puede quedar por encima aun después de la compresión normal;
+# en ese caso se reintenta con pasos cada vez más fuertes hasta bajar del
+# límite (el texto y las firmas siguen leyéndose bien).
+LIMITE_SEGURO_BYTES = 40 * 1024 * 1024
+_PASOS_FUERTES = ((1600, 70), (1300, 62), (1000, 55))
+
+
+def comprimir_pdf(contenido: bytes) -> bytes:
+    resultado = _comprimir_pdf_una(contenido)
+    if len(resultado) <= LIMITE_SEGURO_BYTES:
+        return resultado
+    for lado, calidad in _PASOS_FUERTES:
+        intento = _comprimir_pdf_una(contenido, lado, calidad)
+        print(f"ℹ️  PDF pesado ({len(resultado) / 1048576:.1f} MB): reintento a {lado}px/calidad {calidad} -> {len(intento) / 1048576:.1f} MB")
+        if len(intento) < len(resultado):
+            resultado = intento
+        if len(resultado) <= LIMITE_SEGURO_BYTES:
+            break
+    return resultado
