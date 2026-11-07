@@ -9250,6 +9250,8 @@ def obtener_actas_finales(
                 ci.id AS ciudad_id,
                 ci.nombre AS ciudad,
                 u.nombre || ' ' || u.apellido AS usuario,
+                ap.usuario_id AS subido_por_id,
+                p.usuario_id AS mediador_id,
                 um.nombre || ' ' || um.apellido AS mediador
             FROM actas_proceso ap
             JOIN procesos_mediacion p ON ap.proceso_id = p.id

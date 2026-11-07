@@ -95,7 +95,7 @@ export default function ActasFinalesPage() {
     getSucursalesCached().then(setSucursales).catch(() => setSucursales([]));
   }, []);
 
-  const { isAdmin } = useAuth();
+  const { isAdmin, user: yo } = useAuth();
 
   const [efectivoPend, setEfectivoPend] = useState<any[]>([]);
 
@@ -598,7 +598,10 @@ const handleExportarZip = async () => {
                 </p>
 
                 <p className="text-[13px] text-numa-700">
-                  {a.ciudad} · {a.sucursal} · Mediador: {a.mediador || '—'} · Acta subida por: {a.usuario || '—'} · Fecha:{' '}
+                  {a.ciudad} · {a.sucursal}
+                  {a.mediador_id !== yo?.id && <> · Mediador: {a.mediador || '—'}</>}
+                  {a.subido_por_id !== yo?.id && <> · Acta subida por: {a.usuario || '—'}</>}
+                  {' '}· Fecha:{' '}
                   {a.fecha_subida
                     ? new Date(a.fecha_subida).toLocaleDateString('es-EC')
                     : '—'}
