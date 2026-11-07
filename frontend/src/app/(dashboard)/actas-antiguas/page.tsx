@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { CheckCircle2 } from 'lucide-react';
 import { PageHeader, Spinner, ErrorAlert, InputField, SelectField } from '@/components/ui';
 import { getSucursales, getUsuarios, getClientes, registrarActaAntigua } from '@/lib/services';
 import { isAdmin } from '@/lib/auth';
@@ -229,6 +230,7 @@ export default function ActasAntiguasPage() {
         archivo,
       });
       setOk(`Listo: se registró el acta ${r.codigo_acta}.`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       getClientes().then(setClientes).catch(() => {});
       setNumero('');
       setFecha('');
@@ -256,7 +258,15 @@ export default function ActasAntiguasPage() {
         subtitle="Para actas físicas de antes del sistema: solo el PDF, el número, la fecha y las partes. No piden facturas ni comprobantes."
       />
       {error && <ErrorAlert message={error} />}
-      {ok && <div className="card p-4 border-green-200 bg-green-50 text-green-800 text-sm font-semibold">{ok}</div>}
+      {ok && (
+        <div role="status" className="rounded-xl border-2 border-green-700 bg-green-600 text-white px-5 py-4 shadow-lg flex items-center gap-3">
+          <CheckCircle2 className="w-7 h-7 shrink-0" aria-hidden="true" />
+          <div>
+            <p className="text-lg font-bold leading-tight">{ok}</p>
+            <p className="text-sm text-green-50">Ya puedes ingresar la siguiente. El acta se ve en Actas finales.</p>
+          </div>
+        </div>
+      )}
 
       <div className="card p-4 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
