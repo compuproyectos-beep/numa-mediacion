@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2 } from 'lucide-react';
 import { PageHeader, Spinner, ErrorAlert, InputField, SelectField } from '@/components/ui';
@@ -176,6 +176,11 @@ export default function ActasAntiguasPage() {
     return () => clearInterval(t);
   }, [guardando]);
   const pesoMB = archivo ? archivo.size / 1048576 : 0;
+  // Al guardar, la pantalla baja sola hasta el botón y el aviso para que se vean.
+  const avisoRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (guardando) avisoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [guardando]);
   const [error, setError] = useState('');
   const [ok, setOk] = useState('');
 
@@ -315,25 +320,27 @@ export default function ActasAntiguasPage() {
         />
       </div>
 
-      <button type="button" className="btn-primary" onClick={guardar} disabled={guardando}>
-        {guardando ? (segundos > 6 ? 'Comprimiendo y subiendo...' : 'Subiendo acta...') : 'Registrar acta'}
-      </button>
+      <div ref={avisoRef} className="flex flex-wrap items-center gap-4">
+        <button type="button" className="btn-primary" onClick={guardar} disabled={guardando}>
+          {guardando ? (segundos > 6 ? 'Comprimiendo y subiendo...' : 'Subiendo acta...') : 'Registrar acta'}
+        </button>
 
-      {guardando && (
-        <div role="status" className="rounded-xl border border-gold-400 bg-gold-50 px-4 py-3 text-sm text-numa-900">
-          <p className="font-semibold">
-            {segundos > 6
-              ? `El acta es muy pesada${pesoMB ? ` (${pesoMB.toFixed(1)} MB)` : ''}: el sistema la está comprimiendo hasta que quepa.`
-              : 'Subiendo el acta...'}
-          </p>
-          <p>
-            {segundos > 6
-              ? 'No cierres ni recargues esta página. Puede tardar hasta 2 minutos.'
-              : 'Espera un momento.'}{' '}
-            ({segundos} s)
-          </p>
-        </div>
-      )}
+        {guardando && (
+          <div role="status" className="flex-1 min-w-[260px] rounded-xl border border-gold-400 bg-gold-50 px-4 py-3 text-sm text-numa-900">
+            <p className="font-semibold">
+              {segundos > 6
+                ? `El acta es muy pesada${pesoMB ? ` (${pesoMB.toFixed(1)} MB)` : ''}: el sistema la está comprimiendo hasta que quepa.`
+                : 'Subiendo el acta...'}
+            </p>
+            <p>
+              {segundos > 6
+                ? 'No cierres ni recargues esta página. Puede tardar hasta 2 minutos.'
+                : 'Espera un momento.'}{' '}
+              ({segundos} s)
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
