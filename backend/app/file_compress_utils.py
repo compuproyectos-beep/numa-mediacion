@@ -154,12 +154,12 @@ def _comprimir_pdf_una(contenido: bytes, lado_maximo: int = _LADO_MAXIMO_PX, cal
         return contenido
 
 
-# Supabase Storage rechaza archivos de más de 50 MB. Un escaneo a alta
+# El bucket actas-pdf de Supabase Storage rechaza archivos de más de 20 MB. Un escaneo a alta
 # resolución puede quedar por encima aun después de la compresión normal;
 # en ese caso se reintenta con pasos cada vez más fuertes hasta bajar del
 # límite (el texto y las firmas siguen leyéndose bien).
-LIMITE_SEGURO_BYTES = 40 * 1024 * 1024
-_PASOS_FUERTES = ((1600, 70), (1300, 62), (1000, 55))
+LIMITE_SEGURO_BYTES = 18 * 1024 * 1024
+_PASOS_FUERTES = ((1600, 70), (1300, 62), (1100, 58), (900, 50))
 
 
 def comprimir_pdf(contenido: bytes) -> bytes:
