@@ -295,7 +295,7 @@ function LadoEditor({
 <div className="sm:max-w-[220px]">
           <Sugerente items={sugEmpresa('e_rc', lado.empresa.representante_cedula)} onElegir={elegirEmpresa}>
           <InputField
-            label="Cédula del representante legal (opcional)"
+            label="Cédula del representante legal"
             inputMode="numeric"
             value={lado.empresa.representante_cedula}
             onChange={(e) => setEmpresa('representante_cedula', soloDigitos(e.target.value, 10))}

@@ -503,7 +503,7 @@ export default function ClientesPage() {
 
               <div>
                 <InputField
-                  label="Cédula del representante (opcional)"
+                  label="Cédula del representante"
                   disabled={soloContacto}
                   value={form.representante_cedula || ''}
                   onChange={(e) => {
