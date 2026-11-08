@@ -90,8 +90,8 @@ function NuevoClienteBox({
       </div>
       {n.tipo === 'empresa' ? (
         <p className="text-sm text-numa-800">
-          <b>{n.razon_social}</b> · RUC {n.ruc} · rep. legal {n.representante_nombre} (C.I.{' '}
-          {n.representante_cedula}). Se registrará con estos datos.
+          <b>{n.razon_social}</b> · RUC {n.ruc} · rep. legal {n.representante_nombre}
+          {n.representante_cedula ? ` (C.I. ${n.representante_cedula})` : ''}. Se registrará con estos datos.
         </p>
       ) : (
         <>
@@ -339,7 +339,7 @@ export default function ProcesosPage() {
 
   const nombreParteRapida = (x: any) =>
     x.tipo === 'empresa'
-      ? `${x.razon_social} (rep. legal ${x.representante_nombre}, C.I. ${x.representante_cedula})`
+      ? `${x.razon_social} (rep. legal ${x.representante_nombre}${x.representante_cedula ? `, C.I. ${x.representante_cedula}` : ''})`
       : `${x.nombre} (C.I. ${x.cedula})`;
 
   // Parte de la invitación rápida -> datos para registrarla como cliente.

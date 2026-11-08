@@ -447,7 +447,7 @@ export default function PartesProceso({ procesoId, editable, onCambio, resumen }
                     {...campoNuevo('representante_nombre')}
                   />
                   <InputField
-                    label="Cédula del representante"
+                    label="Cédula del representante (opcional)"
                     {...campoNuevo('representante_cedula', 10)}
                   />
                 </div>

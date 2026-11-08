@@ -1529,8 +1529,10 @@ def _validar_datos_cliente(cur, tipo, cedula, nombre, apellido, telefono, email,
         raise HTTPException(status_code=400, detail="El RUC debe tener 13 dígitos")
     if not representante_nombre:
         raise HTTPException(status_code=400, detail="El nombre del representante legal es obligatorio")
-    if not representante_cedula or not validar_cedula_ecuatoriana(representante_cedula):
+    # La cédula del representante es opcional por ahora; si se escribe, debe ser válida.
+    if representante_cedula and not validar_cedula_ecuatoriana(representante_cedula):
         raise HTTPException(status_code=400, detail="La cédula del representante legal es inválida")
+    representante_cedula = representante_cedula or None
 
     if excluir_id is None:
         cur.execute("SELECT id FROM clientes WHERE ruc = %s", (ruc,))
@@ -5145,12 +5147,13 @@ def _limpiar_partes_rapidas(datos, cedula_mediador=None):
                     raise HTTPException(status_code=400, detail="El RUC debe tener 13 dígitos")
                 if not rep_nombre:
                     raise HTTPException(status_code=400, detail=f"Falta el nombre del representante legal ({singular})")
-                if not validar_cedula_ecuatoriana(rep_cedula):
+                if rep_cedula and not validar_cedula_ecuatoriana(rep_cedula):
                     raise HTTPException(status_code=400, detail=f"La cédula del representante legal ({singular}) es inválida")
-                cedula_clave = rep_cedula
+                # Sin cédula del representante, la empresa se distingue por su RUC o razón social.
+                cedula_clave = rep_cedula or ruc or razon.lower()
                 limpio.append({
                     "tipo": "empresa", "razon_social": razon, "ruc": ruc or None,
-                    "representante_nombre": rep_nombre, "representante_cedula": rep_cedula,
+                    "representante_nombre": rep_nombre, "representante_cedula": rep_cedula or None,
                 })
             else:
                 nombre = (x.get("nombre") or "").strip()[:200]
@@ -5290,9 +5293,10 @@ def crear_invitacion_rapida(datos: dict, usuario=Depends(obtener_usuario_actual)
         for _clave in ("solicitantes", "invitados"):
             for _x in partes.get(_clave, []):
                 if _x.get("tipo") == "empresa":
-                    verificar_cedula_misma_persona(
-                        cur, _x.get("representante_cedula"), _x.get("representante_nombre"), "", "usuarios"
-                    )
+                    if _x.get("representante_cedula"):
+                        verificar_cedula_misma_persona(
+                            cur, _x.get("representante_cedula"), _x.get("representante_nombre"), "", "usuarios"
+                        )
                 else:
                     verificar_cedula_misma_persona(cur, _x.get("cedula"), _x.get("nombre"), "", "usuarios")
 

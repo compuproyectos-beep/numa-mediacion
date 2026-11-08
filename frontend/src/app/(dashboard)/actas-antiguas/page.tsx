@@ -126,7 +126,7 @@ function EditorPartes({ titulo, partes, onChange, clientes }: { titulo: string; 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {W('ruc', <InputField label="RUC" value={p.ruc} maxLength={13} {...f(i, 'ruc')} onChange={(e) => set(i, 'ruc', e.target.value.replace(/\D/g, ''))} />)}
                 {W('razon_social', <InputField label="Razón social" value={p.razon_social} {...f(i, 'razon_social')} onChange={(e) => set(i, 'razon_social', e.target.value)} />)}
-                {W('representante_cedula', <InputField label="Cédula del representante" value={p.representante_cedula} maxLength={10} {...f(i, 'representante_cedula')} onChange={(e) => set(i, 'representante_cedula', e.target.value.replace(/\D/g, ''))} />)}
+                {W('representante_cedula', <InputField label="Cédula del representante (opcional)" value={p.representante_cedula} maxLength={10} {...f(i, 'representante_cedula')} onChange={(e) => set(i, 'representante_cedula', e.target.value.replace(/\D/g, ''))} />)}
                 {W('representante_nombre', <InputField label="Representante legal" value={p.representante_nombre} {...f(i, 'representante_nombre')} onChange={(e) => set(i, 'representante_nombre', e.target.value)} />)}
               </div>
             )}

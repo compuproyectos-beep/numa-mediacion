@@ -221,7 +221,7 @@ export default function ClientesPage() {
         setRucError('El RUC debe tener 13 dígitos');
         return;
       }
-      if (!validarCedula(form.representante_cedula || '')) {
+      if ((form.representante_cedula || '') && !validarCedula(form.representante_cedula || '')) {
         setRepCedulaError('Cédula del representante inválida');
         return;
       }
@@ -503,7 +503,7 @@ export default function ClientesPage() {
 
               <div>
                 <InputField
-                  label="Cédula del representante"
+                  label="Cédula del representante (opcional)"
                   disabled={soloContacto}
                   value={form.representante_cedula || ''}
                   onChange={(e) => {

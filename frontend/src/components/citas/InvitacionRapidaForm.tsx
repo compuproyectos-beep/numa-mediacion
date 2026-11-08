@@ -295,7 +295,7 @@ function LadoEditor({
 <div className="sm:max-w-[220px]">
           <Sugerente items={sugEmpresa('e_rc', lado.empresa.representante_cedula)} onElegir={elegirEmpresa}>
           <InputField
-            label="Cédula del representante legal"
+            label="Cédula del representante legal (opcional)"
             inputMode="numeric"
             value={lado.empresa.representante_cedula}
             onChange={(e) => setEmpresa('representante_cedula', soloDigitos(e.target.value, 10))}
@@ -344,7 +344,7 @@ const revisarLado = (l: Lado, etiqueta: string): string => {
     if (e.ruc && e.ruc.length !== 13) return 'El RUC debe tener 13 dígitos.';
     if (!e.representante_nombre.trim())
       return `Escribe el nombre del representante legal (${etiqueta}).`;
-    if (!cedulaValida(e.representante_cedula))
+    if (e.representante_cedula && !cedulaValida(e.representante_cedula))
       return `La cédula del representante legal (${etiqueta}) no es válida.`;
     return '';
   }
