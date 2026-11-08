@@ -92,8 +92,8 @@ export function Sugerente({
                 onElegir(c);
               }}
               onMouseEnter={() => setIdx(n)}
-              className={`block w-full text-left px-3 py-2 text-sm text-numa-900 border-t first:border-t-0 border-numa-100 ${
-                n === idx ? 'bg-gold-50' : 'hover:bg-gold-50'
+              className={`block w-full text-left px-3 py-2 text-sm border-t first:border-t-0 border-numa-100 ${
+                n === idx ? 'bg-numa-800 text-white font-semibold' : 'text-numa-900 hover:bg-numa-100'
               }`}
             >
               {etiqueta(c)}
