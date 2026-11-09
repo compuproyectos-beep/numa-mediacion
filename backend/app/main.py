@@ -1351,6 +1351,8 @@ def obtener_clientes(usuario=Depends(obtener_usuario_actual)):
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
     try:
+        # Los clientes son compartidos entre todas las sucursales (un mediador puede
+        # buscar a cualquiera). Lo que no se comparte son los procesos y actas.
         cur.execute("""
             SELECT 
                 cl.id,
@@ -1588,6 +1590,26 @@ def actualizar_cliente(
                 detail="No se puede cambiar una persona a empresa (ni al revés). Crea un cliente nuevo."
             )
 
+        if usuario["rol"] == "mediador":
+            cur.execute("""
+                SELECT 1 FROM clientes cl
+                WHERE cl.id = %s AND (
+                    cl.creado_por_id = %s
+                    OR EXISTS (
+                        SELECT 1 FROM procesos_mediacion pm
+                        WHERE pm.usuario_id = %s
+                          AND (pm.cliente_demandante_id = cl.id OR pm.cliente_demandado_id = cl.id
+                               OR EXISTS (SELECT 1 FROM proceso_partes pp
+                                          WHERE pp.proceso_id = pm.id AND pp.cliente_id = cl.id))
+                    )
+                )
+            """, (id, usuario["id"], usuario["id"]))
+            if not cur.fetchone():
+                raise HTTPException(
+                    status_code=403,
+                    detail="Solo puedes editar clientes que tú creaste o que están en tus procesos"
+                )
+
         if usuario["rol"] == "secretaria":
             # La secretaria solo corrige datos de contacto: el nombre y la cédula
             # salen en actas y reportes, así que no puede cambiarlos.
@@ -1795,14 +1817,14 @@ def crear_cliente(
                 tipo, cedula, nombre, apellido, razon_social, ruc,
                 representante_nombre, representante_cedula,
                 telefono, email, ciudad_id, direccion,
-                fecha_creacion, fecha_modificacion
+                fecha_creacion, fecha_modificacion, creado_por_id
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW(), %s)
             RETURNING {_CAMPOS_CLIENTE_RETURN}
         """, (
             d["tipo"], d["cedula"], d["nombre"], d["apellido"], d["razon_social"], d["ruc"],
             d["representante_nombre"], d["representante_cedula"],
-            d["telefono"], d["email"], d["ciudad_id"], direccion
+            d["telefono"], d["email"], d["ciudad_id"], direccion, usuario["id"]
         ))
 
         cliente = cur.fetchone()
