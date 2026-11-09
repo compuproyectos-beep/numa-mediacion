@@ -964,13 +964,17 @@ def _limpiar_intentos(username: str):
 AVISAR_DESDE_INTENTOS_RESTANTES = 2
 
 
+def _texto_minutos(n: int) -> str:
+    return "1 minuto" if n == 1 else f"{n} minutos"
+
+
 def _error_credenciales_incorrectas(username: str, bloqueado_ahora: bool):
     """Mismo error para correo inexistente y contraseña mala. Solo cuando quedan
     pocos intentos se añade cuántos quedan (igual para cualquier correo, exista o no)."""
     if bloqueado_ahora:
         return HTTPException(
             status_code=429,
-            detail=f"Demasiados intentos fallidos. Intenta de nuevo en {BLOQUEO_MINUTOS} minuto(s)."
+            detail=f"Demasiados intentos fallidos. Intenta de nuevo en {_texto_minutos(BLOQUEO_MINUTOS)}."
         )
     registro = _intentos_login.get(_clave_intentos(username)) or {"fallos": 0}
     restantes = MAX_INTENTOS_LOGIN - registro["fallos"]
@@ -1024,7 +1028,7 @@ def login(username: str = Form(...), password: str = Form(...)):
     if minutos_restantes:
         raise HTTPException(
             status_code=429,
-            detail=f"Demasiados intentos fallidos. Intenta de nuevo en {minutos_restantes} minuto(s)."
+            detail=f"Demasiados intentos fallidos. Intenta de nuevo en {_texto_minutos(minutos_restantes)}."
         )
 
     conn = get_db()
