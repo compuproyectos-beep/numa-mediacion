@@ -26,6 +26,7 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [avisoIntentos, setAvisoIntentos] = useState('');
 
   // Si ya hay una sesión abierta en este navegador (otra pestaña), se entra
   // directo al sistema en vez de pedir usuario y contraseña otra vez. Si la
@@ -39,15 +40,23 @@ function LoginForm() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    setAvisoIntentos('');
     setIsLoading(true);
 
     try {
       await login(username, password);
       router.push(getUser()?.rol === 'secretaria' ? '/agenda' : '/dashboard');
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { detail?: string }; status?: number } };
+      const axiosErr = err as {
+        response?: { data?: { detail?: string | { intentos_restantes?: number } }; status?: number };
+      };
+      const detail = axiosErr?.response?.data?.detail;
       if (axiosErr?.response?.status === 401) {
+        const restantes = typeof detail === 'object' ? detail?.intentos_restantes : undefined;
         setError('Credenciales incorrectas. Verifique su usuario y contraseña.');
+        if (restantes) setAvisoIntentos(restantes === 1 ? 'Queda 1 intento.' : `Quedan ${restantes} intentos.`);
+      } else if (axiosErr?.response?.status === 429 && typeof detail === 'string') {
+        setError(detail);
       } else {
         setError('Error al conectar con el servidor. Intente nuevamente.');
       }
@@ -173,9 +182,14 @@ return (
               <div className="flex items-start gap-2 p-4 bg-red-50 border border-red-200 rounded-xl">
                 <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
 
-                <p className="text-red-700 text-sm">
-                  {error}
-                </p>
+                <div>
+                  <p className="text-red-700 text-sm">
+                    {error}
+                  </p>
+                  {avisoIntentos && (
+                    <p className="text-gray-500 text-xs mt-1">{avisoIntentos}</p>
+                  )}
+                </div>
               </div>
             )}
 

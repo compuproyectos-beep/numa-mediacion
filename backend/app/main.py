@@ -961,6 +961,27 @@ def _limpiar_intentos(username: str):
     _intentos_login.pop(_clave_intentos(username), None)
 
 
+AVISAR_DESDE_INTENTOS_RESTANTES = 2
+
+
+def _error_credenciales_incorrectas(username: str, bloqueado_ahora: bool):
+    """Mismo error para correo inexistente y contraseña mala. Solo cuando quedan
+    pocos intentos se añade cuántos quedan (igual para cualquier correo, exista o no)."""
+    if bloqueado_ahora:
+        return HTTPException(
+            status_code=429,
+            detail=f"Demasiados intentos fallidos. Intenta de nuevo en {BLOQUEO_MINUTOS} minuto(s)."
+        )
+    registro = _intentos_login.get(_clave_intentos(username)) or {"fallos": 0}
+    restantes = MAX_INTENTOS_LOGIN - registro["fallos"]
+    if 0 < restantes <= AVISAR_DESDE_INTENTOS_RESTANTES:
+        return HTTPException(
+            status_code=401,
+            detail={"mensaje": MENSAJE_CREDENCIALES_INCORRECTAS, "intentos_restantes": restantes}
+        )
+    return HTTPException(status_code=401, detail=MENSAJE_CREDENCIALES_INCORRECTAS)
+
+
 # =========================
 # AUDITORÍA
 # =========================
@@ -1022,16 +1043,18 @@ def login(username: str = Form(...), password: str = Form(...)):
             # Se hace el mismo trabajo que con un usuario real (y el mismo mensaje)
             # para que desde afuera no se pueda saber qué correos existen.
             pwd_context.verify(password, _HASH_FALSO)
-            if _registrar_intento_fallido(username):
+            _bloq = _registrar_intento_fallido(username)
+            if _bloq:
                 registrar_auditoria(cur, None, "cuenta_bloqueada", "auth",
                                     detalle=f"Se bloqueó el ingreso de «{username}» por {MAX_INTENTOS_LOGIN} intentos fallidos seguidos (el usuario no existe). Bloqueo de {BLOQUEO_MINUTOS} minutos.")
             conn.commit()
-            raise HTTPException(status_code=401, detail=MENSAJE_CREDENCIALES_INCORRECTAS)
+            raise _error_credenciales_incorrectas(username, _bloq)
 
         # Primero se comprueba la contraseña: así "inactivo" solo se le dice a quien
         # ya conoce la contraseña correcta, no a cualquiera que pruebe un correo.
         if not pwd_context.verify(password, user["password_hash"]):
-            if _registrar_intento_fallido(username):
+            _bloq = _registrar_intento_fallido(username)
+            if _bloq:
                 registrar_auditoria(cur, user, "cuenta_bloqueada", "auth", user["id"],
                                     f"Se bloqueó el ingreso por {MAX_INTENTOS_LOGIN} contraseñas incorrectas seguidas. Bloqueo de {BLOQUEO_MINUTOS} minutos.")
                 # Los administradores se enteran: puede ser alguien que olvidó su
@@ -1057,7 +1080,7 @@ def login(username: str = Form(...), password: str = Form(...)):
                         "sistema"
                     )
             conn.commit()
-            raise HTTPException(status_code=401, detail=MENSAJE_CREDENCIALES_INCORRECTAS)
+            raise _error_credenciales_incorrectas(username, _bloq)
 
         if not user["activo"]:
             conn.commit()
