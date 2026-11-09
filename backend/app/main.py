@@ -6036,7 +6036,12 @@ async def subir_acta_final_proceso(
             )
 
         forma_pago = (forma_pago or "deposito").strip()
-        if forma_pago not in ("deposito", "efectivo"):
+        if forma_pago == "efectivo":
+            raise HTTPException(
+                status_code=400,
+                detail="El pago en efectivo ya no se registra. Deposita el dinero en la cuenta de NUMA y sube el comprobante."
+            )
+        if forma_pago != "deposito":
             raise HTTPException(status_code=400, detail="Forma de pago no válida")
         es_efectivo = forma_pago == "efectivo"
         con_comprobante = (not es_efectivo) and comprobante_pago is not None and bool(comprobante_pago.filename)
@@ -6625,7 +6630,12 @@ async def subir_acta_firmada(
 
         # Si el pago quedó en abonos, el segundo comprobante (el saldo) es
         # obligatorio para poder cerrar el proceso.
-        saldo_efectivo = bool(proceso["pago_pendiente"]) and (forma_pago_saldo or "deposito").strip() == "efectivo"
+        if (forma_pago_saldo or "deposito").strip() == "efectivo":
+            raise HTTPException(
+                status_code=400,
+                detail="El pago en efectivo ya no se registra. Deposita el dinero en la cuenta de NUMA y sube el comprobante."
+            )
+        saldo_efectivo = False
         if proceso["pago_pendiente"] and not saldo_efectivo and (comprobante_final is None or not comprobante_final.filename):
             raise HTTPException(
                 status_code=400,

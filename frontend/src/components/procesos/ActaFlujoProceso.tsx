@@ -527,33 +527,18 @@ export default function ActaFlujoProceso({ proceso, esAdmin, onCambio }: Props) 
                 Saldo pendiente: <strong>{dinero(saldo)}</strong>. Sube el comprobante del segundo
                 pago para completar el proceso.
               </p>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <label className="flex items-center gap-2 text-sm text-numa-800 border border-numa-200 rounded-sm px-3 py-2 cursor-pointer">
-                  <input type="radio" name="forma-saldo" checked={formaSaldo === 'deposito'} onChange={() => setFormaSaldo('deposito')} />
-                  Depósito o transferencia
+              <div>
+                <label className="block text-sm font-medium text-numa-800 mb-1">
+                  Comprobante del segundo pago (PDF, JPG o PNG)
                 </label>
-                <label className="flex items-center gap-2 text-sm text-numa-800 border border-numa-200 rounded-sm px-3 py-2 cursor-pointer">
-                  <input type="radio" name="forma-saldo" checked={formaSaldo === 'efectivo'} onChange={() => { setFormaSaldo('efectivo'); setArchivoSegundoPago(null); }} />
-                  Efectivo
-                </label>
+                <input
+                  type="file"
+                  accept="application/pdf,image/jpeg,image/png"
+                  onChange={(e) => setArchivoSegundoPago(e.target.files?.[0] || null)}
+                  className="input-field"
+                />
               </div>
-              {formaSaldo === 'deposito' ? (
-                <div>
-                  <label className="block text-sm font-medium text-numa-800 mb-1">
-                    Comprobante del segundo pago (PDF, JPG o PNG)
-                  </label>
-                  <input
-                    type="file"
-                    accept="application/pdf,image/jpeg,image/png"
-                    onChange={(e) => setArchivoSegundoPago(e.target.files?.[0] || null)}
-                    className="input-field"
-                  />
-                </div>
-              ) : (
-                <p className="text-sm text-amber-800">
-                  Con efectivo no se sube comprobante: el proceso se completará cuando marques que ya depositaste el dinero.
-                </p>
-              )}
+
               <div>
                 <label className="block text-sm font-medium text-numa-800 mb-1">
                   Fecha del segundo pago

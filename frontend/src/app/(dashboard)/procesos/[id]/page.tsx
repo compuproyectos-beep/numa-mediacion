@@ -2235,50 +2235,19 @@ function ProcesoDetalleContenido() {
           </div>
 
           <div>
-            <p className="block text-sm font-medium text-numa-800 mb-2">Forma de pago</p>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <label className="flex items-center gap-2 text-sm text-numa-800 border border-numa-200 rounded-sm px-3 py-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="forma-pago"
-                  checked={formaPago === 'deposito'}
-                  onChange={() => setFormaPago('deposito')}
-                />
-                Depósito o transferencia
-              </label>
-              <label className="flex items-center gap-2 text-sm text-numa-800 border border-numa-200 rounded-sm px-3 py-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="forma-pago"
-                  checked={formaPago === 'efectivo'}
-                  onChange={() => { setFormaPago('efectivo'); setArchivoComprobantePago(null); }}
-                />
-                Efectivo
-              </label>
-            </div>
+            <label className="block text-sm font-medium text-numa-800 mb-1">
+              Comprobante de pago (PDF, JPG o PNG)
+            </label>
+            <input
+              type="file"
+              accept="application/pdf,image/jpeg,image/png"
+              onChange={(e) => {
+                const file = e.target.files?.[0] || null;
+                setArchivoComprobantePago(file);
+              }}
+              className="input-field"
+            />
           </div>
-
-          {formaPago === 'deposito' ? (
-            <div>
-              <label className="block text-sm font-medium text-numa-800 mb-1">
-                Comprobante de pago (PDF, JPG o PNG)
-              </label>
-              <input
-                type="file"
-                accept="application/pdf,image/jpeg,image/png"
-                onChange={(e) => {
-                  const file = e.target.files?.[0] || null;
-                  setArchivoComprobantePago(file);
-                }}
-                className="input-field"
-              />
-            </div>
-          ) : (
-            <p className="text-sm text-gold-800 border border-gold-200 bg-gold-50 rounded-sm p-3">
-              Con efectivo no se sube comprobante. El acta quedará pendiente hasta que deposites el dinero en la
-              cuenta de NUMA y marques «Efectivo ya depositado» en este proceso.
-            </p>
-          )}
 
           <div>
             <p className="block text-sm font-medium text-numa-800 mb-2">¿Cómo se pagó?</p>
@@ -2315,23 +2284,6 @@ function ProcesoDetalleContenido() {
               className="input-field"
             />
           </div>
-
-          {pagoModo === 'completo' && formaPago === 'efectivo' && (
-            <div>
-              <label className="block text-sm font-medium text-numa-800 mb-1">
-                Dinero recibido en efectivo ($)
-              </label>
-              <input
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.01"
-                value={montoTotal}
-                onChange={(e) => setMontoTotal(e.target.value)}
-                className="input-field"
-              />
-            </div>
-          )}
 
           {pagoModo === 'abonos' && (
             <div className="space-y-3 border border-gold-200 bg-gold-50 rounded-sm p-3">
