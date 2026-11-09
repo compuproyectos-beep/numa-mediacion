@@ -187,7 +187,7 @@ return (
                     {error}
                   </p>
                   {avisoIntentos && (
-                    <p className="text-gray-500 text-xs mt-1">{avisoIntentos}</p>
+                    <p className="text-red-700 text-sm font-semibold mt-1">{avisoIntentos}</p>
                   )}
                 </div>
               </div>
