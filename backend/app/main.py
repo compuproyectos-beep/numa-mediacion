@@ -991,6 +991,11 @@ def registrar_auditoria(cur, usuario, accion: str, entidad: str, entidad_id=None
 # =========================
 # LOGIN
 # =========================
+MENSAJE_CREDENCIALES_INCORRECTAS = "Credenciales incorrectas"
+# Hash bcrypt de una clave cualquiera, solo para gastar el mismo tiempo cuando el correo no existe.
+_HASH_FALSO = pwd_context.hash("clave-que-nadie-usa")
+
+
 @app.post("/login")
 def login(username: str = Form(...), password: str = Form(...)):
     minutos_restantes = _esta_bloqueado(username)
@@ -1014,16 +1019,17 @@ def login(username: str = Form(...), password: str = Form(...)):
         user = cur.fetchone()
 
         if not user:
+            # Se hace el mismo trabajo que con un usuario real (y el mismo mensaje)
+            # para que desde afuera no se pueda saber qué correos existen.
+            pwd_context.verify(password, _HASH_FALSO)
             if _registrar_intento_fallido(username):
                 registrar_auditoria(cur, None, "cuenta_bloqueada", "auth",
                                     detalle=f"Se bloqueó el ingreso de «{username}» por {MAX_INTENTOS_LOGIN} intentos fallidos seguidos (el usuario no existe). Bloqueo de {BLOQUEO_MINUTOS} minutos.")
             conn.commit()
-            raise HTTPException(status_code=401, detail="Usuario no encontrado")
+            raise HTTPException(status_code=401, detail=MENSAJE_CREDENCIALES_INCORRECTAS)
 
-        if not user["activo"]:
-            conn.commit()
-            raise HTTPException(status_code=401, detail="Usuario inactivo")
-
+        # Primero se comprueba la contraseña: así "inactivo" solo se le dice a quien
+        # ya conoce la contraseña correcta, no a cualquiera que pruebe un correo.
         if not pwd_context.verify(password, user["password_hash"]):
             if _registrar_intento_fallido(username):
                 registrar_auditoria(cur, user, "cuenta_bloqueada", "auth", user["id"],
@@ -1051,7 +1057,11 @@ def login(username: str = Form(...), password: str = Form(...)):
                         "sistema"
                     )
             conn.commit()
-            raise HTTPException(status_code=401, detail="Contraseña incorrecta")
+            raise HTTPException(status_code=401, detail=MENSAJE_CREDENCIALES_INCORRECTAS)
+
+        if not user["activo"]:
+            conn.commit()
+            raise HTTPException(status_code=401, detail="Usuario inactivo")
 
         _limpiar_intentos(username)
 
