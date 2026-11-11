@@ -283,12 +283,11 @@ function ImprimirInvitacion() {
           );
           setPie(`${dir || ''}\n${d.proceso?.ciudad || ''}, Ecuador`.trim());
         }
-        // El teléfono y el correo del pie son SIEMPRE los del administrador
-        // responsable de la sucursal (se editan en Sucursales); aquí no se
-        // pueden cambiar. Si la sucursal aún no los tiene, se usa el
-        // teléfono de la sucursal y el correo del centro.
+        // El pie lleva el teléfono del mediador que hace la invitación (el
+        // servidor lo manda en sucursal_admin_telefono) y SIEMPRE el correo
+        // del Centro de Mediación NUMA. No se pueden cambiar aquí.
         setTelefono(d.proceso?.sucursal_admin_telefono || d.proceso?.sucursal_telefono || '');
-        setCorreo(d.proceso?.sucursal_admin_email || CORREO_DEFECTO);
+        setCorreo(CORREO_DEFECTO);
 
         // Si la invitación ya tiene textos guardados, se usan esos. Para una
         // nueva, se parte de los de la última invitación (lugar, asunto, etc.).
@@ -855,7 +854,12 @@ function ImprimirInvitacion() {
                 className={campo}
                 disabled={bloqueada}
                 value={fechaEmision}
-                onChange={(e) => setFechaEmision(e.target.value)}
+                min={hoyEcuador()}
+                onChange={(e) => {
+                  // La fecha del documento no puede ser anterior a hoy.
+                  if (e.target.value && e.target.value < hoyEcuador()) return;
+                  setFechaEmision(e.target.value);
+                }}
               />
             </div>
           </div>
